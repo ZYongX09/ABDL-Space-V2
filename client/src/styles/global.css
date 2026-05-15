@@ -478,10 +478,10 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 
 /* ====== 响应式 ====== */
 @media (max-width: 768px) {
-  .app-layout { flex-direction: column; height: 100vh; height: 100dvh; }
+  html, body { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: auto; }
+  .app-layout { flex-direction: column; min-height: 100vh; min-height: 100dvh; height: auto; overflow: visible; }
   .app-main-content {
-    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: bounce;
+    flex: 1; overflow-y: visible; overflow-x: hidden;
     padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   }
   .sidebar-desktop { display: none !important; }
