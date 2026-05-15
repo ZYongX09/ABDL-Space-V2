@@ -1,0 +1,9 @@
+[
+  {"level":1,"exp_required":0,"badge_name":"婴儿奶瓶","badge_icon":"🍼"},
+  {"level":2,"exp_required":100,"badge_name":"安抚奶嘴","badge_icon":"👶"},
+  {"level":3,"exp_required":300,"badge_name":"婴儿围兜","badge_icon":"🧣"},
+  {"level":4,"exp_required":600,"badge_name":"毛绒玩偶","badge_icon":"🧸"},
+  {"level":5,"exp_required":1000,"badge_name":"学步车","badge_icon":"🦽"},
+  {"level":6,"exp_required":1500,"badge_name":"小童床","badge_icon":"🛏️"},
+  {"level":7,"exp_required":2100,"badge_name":"儿童王座","badge_icon":"👑"}
+]

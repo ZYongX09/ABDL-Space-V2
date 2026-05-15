@@ -1,0 +1,18 @@
+[
+  {"id":1,"term":"ABDL","abbreviation":"Adult Baby / Diaper Lover","definition":"成人宝宝/纸尿裤爱好者群体的统称。AB (Adult Baby) 指心理上认同为婴儿的成年人，DL (Diaper Lover) 指单纯的纸尿裤爱好者。","category":"基本概念"},
+  {"id":2,"term":"DL","abbreviation":"Diaper Lover","definition":"纸尿裤爱好者，指喜欢穿着纸尿裤的成年人。","category":"基本概念"},
+  {"id":3,"term":"Little","abbreviation":null,"definition":"ABDL群体中认同为小宝宝（Little）身份的成员。","category":"身份认同"},
+  {"id":4,"term":"护臀膏","abbreviation":null,"definition":"用于保护臀部皮肤的产品，预防尿布疹。","category":"护理用品"},
+  {"id":5,"term":"防漏隔边","abbreviation":null,"definition":"纸尿裤腿部的立体护围结构，防止尿液从腿口侧漏。","category":"纸尿裤结构"},
+  {"id":6,"term":"尿显","abbreviation":null,"definition":"纸尿裤表面的湿度指示条，遇水变色提示更换。","category":"纸尿裤结构"},
+  {"id":7,"term":"魔术贴","abbreviation":null,"definition":"纸尿裤腰部的粘贴固定装置。双魔术贴可重复粘贴。","category":"纸尿裤结构"},
+  {"id":8,"term":"尿裤","abbreviation":null,"definition":"可重复使用的布质纸尿裤外壳，配合一次性内芯使用。","category":"产品类型"},
+  {"id":9,"term":"内芯","abbreviation":null,"definition":"插入尿裤内部的吸水垫/纸尿裤。\"套娃\"指将婴儿纸尿裤作为内芯放入成人纸尿裤中。","category":"产品类型"},
+  {"id":10,"term":"套娃","abbreviation":null,"definition":"将一片纸尿裤（通常是婴儿款）作为内芯放入另一片更大的纸尿裤中穿着。可成倍增加吸水量。","category":"使用技巧"},
+  {"id":11,"term":"拉拉裤","abbreviation":null,"definition":"内裤式纸尿裤，弹性腰围设计，穿脱方便。","category":"产品类型"},
+  {"id":12,"term":"一体裤","abbreviation":null,"definition":"与拉拉裤类似的内裤式尿裤，一片式剪裁，包臀效果更好。","category":"产品类型"},
+  {"id":13,"term":"高分子吸水树脂","abbreviation":"SAP","definition":"Super Absorbent Polymer，纸尿裤核心吸水材料。能吸收自身重量数百倍的水分。","category":"材料知识"},
+  {"id":14,"term":"回渗量","abbreviation":null,"definition":"纸尿裤吸收液体后，在压力下从芯体反渗回表面的液体量。回渗量越低越干爽。","category":"性能指标"},
+  {"id":15,"term":"木浆棉","abbreviation":null,"definition":"传统纸尿裤芯体材料，以木浆纤维配合SAP制成。吸水后膨胀，有厚重\"尿布感\"。","category":"材料知识"},
+  {"id":16,"term":"无纺布","abbreviation":null,"definition":"纸尿裤表层和内层的主要材料，由纤维不经纺织直接粘合而成。柔软、透气。","category":"材料知识"}
+]

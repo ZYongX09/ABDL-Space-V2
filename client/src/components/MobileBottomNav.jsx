@@ -1,0 +1,27 @@
+import { NavLink } from 'react-router-dom';
+
+const TABS = [
+  { to: '/', icon: 'fa-comments', label: '论坛' },
+  { to: '/diapers', icon: 'fa-baby', label: '纸尿裤' },
+  { to: '/rankings', icon: 'fa-trophy', label: '排行' },
+  { to: '/recommend', icon: 'fa-wand-magic-sparkles', label: 'AI' },
+  { to: '/profile', icon: 'fa-user', label: '我的' },
+];
+
+export default function MobileBottomNav() {
+  return (
+    <nav className="bottom-nav">
+      {TABS.map(tab => (
+        <NavLink
+          key={tab.to}
+          to={tab.to}
+          end={tab.to === '/'}
+          className={({ isActive }) => isActive ? 'active' : ''}
+        >
+          <i className={`fa-solid ${tab.icon}`} />
+          <span>{tab.label}</span>
+        </NavLink>
+      ))}
+    </nav>
+  );
+}

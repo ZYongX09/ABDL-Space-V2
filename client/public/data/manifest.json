@@ -1,0 +1,7 @@
+{
+  "diapers": "/data/diapers.json",
+  "terms": "/data/terms.json",
+  "levels": "/data/levels.json",
+  "version": 4,
+  "updated_at": "2026-05-09"
+}

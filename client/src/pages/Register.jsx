@@ -1,0 +1,139 @@
+import { useState, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import PageLayout from '../components/PageLayout';
+import QuantumVerify from '../components/QuantumVerify';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+
+export default function Register() {
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [captchaOk, setCaptchaOk] = useState(false);
+  const [captchaStarted, setCaptchaStarted] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const verifyRef = useRef(null);
+  const { register, saveConsent } = useAuth();
+  const toast = useToast();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!username.trim() || !email.trim() || !password) { toast.error('请填写所有字段'); return; }
+    if (!email.includes('@')) { toast.error('请输入合法邮箱'); return; }
+    if (password.length < 8) { toast.error('密码至少 8 位'); return; }
+    if (password !== confirm) { toast.error('两次密码不一致'); return; }
+    if (!agreeTerms || !agreePrivacy) { toast.error('请阅读并同意用户协议和隐私政策'); return; }
+    if (!captchaOk) { toast.error('请完成安全验证'); return; }
+    try {
+      setLoading(true);
+      await register({ username: username.trim(), email: email.trim(), password });
+      saveConsent({ privacy: true, terms: true });
+      toast.success('注册成功');
+      navigate('/');
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const allReady = agreeTerms && agreePrivacy && captchaOk && !locked;
+
+  return (
+    <PageLayout hero={{ icon: 'fa-user-plus', title: '注册', subtitle: '加入 ABDL Space 大家庭' }}>
+      <div className="card max-w-md mx-auto">
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>用户名</label>
+            <input className="form-control" value={username} onChange={e => setUsername(e.target.value)} placeholder="3-30 个字符" autoFocus />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>邮箱</label>
+            <input type="email" className="form-control" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>密码</label>
+            <input type="password" className="form-control" value={password} onChange={e => setPassword(e.target.value)} placeholder="至少 8 位" />
+          </div>
+          <div className="mb-5">
+            <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>确认密码</label>
+            <input type="password" className="form-control" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="再次输入密码" />
+          </div>
+
+          {/* 安全验证 */}
+          <div className="mb-5 p-4 rounded-xl flex flex-col" style={{ border: `1.5px solid ${captchaOk ? 'var(--success)' : locked ? 'var(--danger)' : 'var(--border)'}`, background: 'var(--input-bg)', height: 380, overflow: 'hidden' }}>
+            <div className="flex items-center justify-between mb-2 flex-shrink-0">
+              <label className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                <i className="fa-solid fa-shield-halved mr-1.5" style={{ color: 'var(--primary-dark)' }} />
+                安全验证
+              </label>
+              {captchaOk && <span className="text-xs font-semibold" style={{ color: 'var(--success)' }}><i className="fa-solid fa-circle-check mr-1" />已通过</span>}
+              {locked && <span className="text-xs font-semibold" style={{ color: 'var(--danger)' }}><i className="fa-solid fa-lock mr-1" />已锁定</span>}
+            </div>
+
+            {!captchaStarted && !captchaOk && !locked && (
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <p className="text-xs mb-3 text-center" style={{ color: 'var(--text-light)' }}>
+                  请按照高亮提示的顺序依次点击节点<br />每个节点只能点击一次，5次错误将锁定5分钟
+                </p>
+                <button type="button" className="btn btn-outline" onClick={() => setCaptchaStarted(true)}>
+                  <i className="fa-solid fa-play" /> 开始验证
+                </button>
+              </div>
+            )}
+
+            {captchaStarted && !captchaOk && !locked && (
+              <div className="flex-1 flex items-center justify-center overflow-hidden">
+                <QuantumVerify
+                  ref={verifyRef}
+                  onVerified={() => setCaptchaOk(true)}
+                  onReset={(reason) => { if (reason === 'locked') setLocked(true); }}
+                />
+              </div>
+            )}
+
+            {(captchaOk || locked) && (
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <i className={`fa-solid ${captchaOk ? 'fa-circle-check' : 'fa-lock'} text-3xl mb-2`} style={{ color: captchaOk ? 'var(--success)' : 'var(--danger)' }} />
+                <p className="text-sm font-semibold" style={{ color: captchaOk ? 'var(--success)' : 'var(--danger)' }}>
+                  {captchaOk ? '验证已通过' : '验证已锁定'}
+                </p>
+                {locked && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>请5分钟后刷新页面重试</p>}
+              </div>
+            )}
+          </div>
+
+          {/* 协议同意 */}
+          <div className="mb-5 space-y-2.5">
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input type="checkbox" checked={agreeTerms} onChange={e => setAgreeTerms(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[var(--primary-dark)]" />
+              <span className="text-xs leading-relaxed" style={{ color: 'var(--text-light)' }}>
+                我已阅读并同意 <Link to="/terms" target="_blank" style={{ color: 'var(--link-color)' }}>用户协议</Link>
+              </span>
+            </label>
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input type="checkbox" checked={agreePrivacy} onChange={e => setAgreePrivacy(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[var(--primary-dark)]" />
+              <span className="text-xs leading-relaxed" style={{ color: 'var(--text-light)' }}>
+                我已阅读并同意 <Link to="/privacy" target="_blank" style={{ color: 'var(--link-color)' }}>隐私政策</Link>
+              </span>
+            </label>
+          </div>
+
+          <button type="submit" className="btn btn-primary w-full" disabled={loading || !allReady}>
+            {loading ? '注册中...' : locked ? '已锁定' : '注册'}
+          </button>
+        </form>
+        <p className="text-center mt-4 text-sm" style={{ color: 'var(--text-light)' }}>
+          已有账号？ <Link to="/login" style={{ color: 'var(--link-color)' }}>登录</Link>
+        </p>
+      </div>
+    </PageLayout>
+  );
+}
