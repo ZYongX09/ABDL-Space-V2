@@ -1,9 +1,16 @@
 import PageLayout from '../components/PageLayout';
 
-const VERSION = '2.4.0';
+const VERSION = '2.5.0';
 const LAST_UPDATE = '2026-05-16';
 
 const CHANGELOG = [
+  {
+    version: '2.5.0',
+    date: '2026-05-16',
+    changes: [
+      '新增捐赠功能',
+    ],
+  },
   {
     version: '2.4.0',
     date: '2026-05-16',
@@ -100,6 +107,74 @@ export default function About() {
             <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>用户协议</span>
             <i className="fa-solid fa-chevron-right ml-auto text-xs" style={{ color: 'var(--text-muted)' }} />
           </a>
+        </div>
+      </div>
+
+      {/* 支持我们 */}
+      <div className="card mb-5" style={{ position: 'relative', overflow: 'hidden' }}>
+        {/* 爱发电背景图标 */}
+        <img
+          src="https://static.afdiancdn.com/static/img/logo/logo.png"
+          alt=""
+          style={{
+            position: 'absolute', top: -20, right: -20,
+            width: 160, height: 160, opacity: 0.15,
+            pointerEvents: 'none', userSelect: 'none',
+            objectFit: 'contain',
+          }}
+        />
+        <h3 className="font-bold mb-3" style={{ color: 'var(--text)', position: 'relative' }}>
+          <i className="fa-solid fa-heart mr-2" style={{ color: 'var(--accent)' }} />
+          支持我们
+        </h3>
+        <p className="text-sm mb-4" style={{ color: 'var(--text-light)' }}>
+          如果你觉得 ABDL Space 对你有帮助，欢迎捐赠我们哦~ 🍼
+        </p>
+        <div className="space-y-3">
+          {/* 捐赠选择1 */}
+          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--input-bg)' }}>
+            <div className="flex-1">
+              <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                给开发者买<span style={{ color: 'var(--primary-dark)', fontWeight: 800 }}>一片</span>裤裤
+              </div>
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>哇~好舒服的裤裤</div>
+            </div>
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <div className="text-lg font-bold" style={{ color: 'var(--primary-dark)' }}>￥5</div>
+              <a href="https://ifdian.net/order/create?plan_id=a9a8a704508c11f1be9a52540025c377&product_type=0" target="_blank" rel="noopener noreferrer">
+                <img width="120" src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png" alt="赞助" style={{ borderRadius: '0.5rem' }} />
+              </a>
+            </div>
+          </div>
+          {/* 捐赠选择2 */}
+          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--input-bg)' }}>
+            <div className="flex-1">
+              <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                给开发者买<span style={{ color: 'var(--accent)', fontWeight: 800 }}>一包</span>裤裤
+              </div>
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>哇哦~好多好多裤裤呀~</div>
+            </div>
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <div className="text-lg font-bold" style={{ color: 'var(--accent)' }}>￥20</div>
+              <a href="https://ifdian.net/order/create?plan_id=bde9dab2508c11f1b80752540025c377&product_type=0" target="_blank" rel="noopener noreferrer">
+                <img width="120" src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png" alt="赞助" style={{ borderRadius: '0.5rem' }} />
+              </a>
+            </div>
+          </div>
+          {/* 捐赠选择3 */}
+          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--input-bg)' }}>
+            <div className="flex-1">
+              <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                自定义捐赠
+              </div>
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>大老板~嘿嘿</div>
+            </div>
+            <div className="flex-shrink-0">
+              <a href="https://ifdian.net/order/create?user_id=399f44cc508c11f18b7752540025c377" target="_blank" rel="noopener noreferrer">
+                <img width="120" src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png" alt="赞助" style={{ borderRadius: '0.5rem' }} />
+              </a>
+            </div>
+          </div>
         </div>
       </div>
 
