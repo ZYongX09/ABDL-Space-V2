@@ -481,6 +481,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   .app-layout { flex-direction: column; height: 100vh; height: 100dvh; }
   .app-main-content {
     flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: bounce;
     padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   }
   .sidebar-desktop { display: none !important; }
