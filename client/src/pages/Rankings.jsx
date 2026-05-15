@@ -67,7 +67,7 @@ export default function Rankings() {
                   {d.product_type}
                 </div>
               </div>
-              <div className="text-right text-sm">
+              <div className="text-right text-sm flex-shrink-0" style={{ maxWidth: '35%' }}>
                 {tab === 'hot' && d.avg_score > 0 && (
                   <span className="font-bold" style={{ color: 'var(--warning)' }}>
                     <i className="fa-solid fa-star mr-1" />{d.avg_score}

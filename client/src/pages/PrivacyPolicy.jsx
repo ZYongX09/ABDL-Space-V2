@@ -7,7 +7,7 @@ const EN = () => {
 
   return (
     <div className="space-y-4 text-sm leading-relaxed" style={s}>
-      <p><strong>Last Updated:</strong> May 15, 2026</p>
+      <p><strong>Last Updated:</strong> May 16, 2026</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>1. Introduction</h2>
       <p>Welcome to ABDL Space ("we," "us," or "our"). We operate the website abdl-space.top (the "Website"), a diaper review and community platform. This Privacy Policy explains how we collect, use, store, and protect your personal information when you use our Website.</p>
@@ -24,23 +24,24 @@ const EN = () => {
 
       <h3 className="text-base font-bold pt-1" style={h}>2.3 Information We Do NOT Collect</h3>
       <ul className="list-disc pl-6 space-y-1">
-        <li><strong>No analytics data</strong> — We do not use Google Analytics or any analytics service.</li>
         <li><strong>No advertising identifiers</strong></li>
         <li><strong>No web beacons or pixels</strong></li>
         <li><strong>No device fingerprinting</strong></li>
         <li><strong>No location tracking</strong></li>
-        <li><strong>No third-party cookies</strong></li>
+        <li><strong>No third-party cookies</strong> (except cookies used by Baidu Analytics, see Section 2.4)</li>
       </ul>
 
       <h3 className="text-base font-bold pt-1" style={h}>2.4 Automatic Data Collection</h3>
-      <p>We do <strong>not</strong> automatically collect data through analytics tools or tracking technologies. Our server logs may temporarily record standard HTTP request information (such as IP address and browser user-agent) for operational and security purposes, but this data is not used for profiling, advertising, or long-term tracking.</p>
+      <p>We use <strong>Baidu Analytics (百度统计)</strong> to understand how visitors use our Website. Baidu Analytics collects standard web browsing information, including but not limited to page views, visit duration, referral sources, browser type, operating system, and device identifiers. This information is collected through cookies and similar technologies and is used in aggregate form to help us improve the Website.</p>
+      <p>Baidu Analytics does not collect information that directly identifies you (such as your name, email address, or account credentials). For more information about how Baidu handles data, please refer to Baidu's privacy policy.</p>
+      <p>You may opt out of analytics tracking by adjusting your browser settings to block cookies or by using browser extensions that block analytics scripts.</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>3. How We Use Your Information</h2>
       <ul className="list-disc pl-6 space-y-1">
         <li><strong>Account management</strong> — Create and maintain your account, authenticate your identity.</li>
         <li><strong>Community features</strong> — Enable forum participation, ratings, reviews, private messaging.</li>
         <li><strong>AI recommendations</strong> — Process your body measurement data through DeepSeek's AI API when you explicitly opt in.</li>
-        <li><strong>Service improvement</strong> — Understand how our community uses the Website and improve features.</li>
+        <li><strong>Service improvement</strong> — Understand how visitors use the Website through analytics data and improve features.</li>
         <li><strong>Security</strong> — Detect, prevent, and address fraud, abuse, and security issues.</li>
         <li><strong>Legal compliance</strong> — Comply with applicable laws, regulations, and legal processes.</li>
       </ul>
@@ -53,6 +54,7 @@ const EN = () => {
       <p>We share data with the following third-party service providers:</p>
       <div className="p-3 rounded-xl" style={{ background: 'var(--input-bg)' }}>
         <p><strong>DeepSeek AI</strong> — Body measurement data (only with your explicit consent) — AI-powered diaper recommendations.</p>
+        <p className="mt-2"><strong>Baidu Analytics</strong> — Standard web browsing data (page views, device information, browsing behavior) — Website analytics and improvement.</p>
       </div>
       <h3 className="text-base font-bold pt-1" style={h}>5.2 What We Do NOT Do</h3>
       <ul className="list-disc pl-6 space-y-1">
@@ -98,7 +100,7 @@ const ZH = () => {
 
   return (
     <div className="space-y-4 text-sm leading-relaxed" style={s}>
-      <p><strong>最后更新日期：</strong>2026年5月15日</p>
+      <p><strong>最后更新日期：</strong>2026年5月16日</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>1. 引言</h2>
       <p>欢迎访问ABDL Space（"我们"）。我们运营网站 abdl-space.top（"本网站"），这是一个纸尿裤评价与社区平台。本隐私政策说明了您在使用本网站时，我们如何收集、使用、存储和保护您的个人信息。</p>
@@ -115,23 +117,24 @@ const ZH = () => {
 
       <h3 className="text-base font-bold pt-1" style={h}>2.3 我们不收集的信息</h3>
       <ul className="list-disc pl-6 space-y-1">
-        <li><strong>无分析数据</strong> — 我们不使用Google Analytics或任何分析服务。</li>
         <li><strong>无广告标识符</strong></li>
         <li><strong>无网络信标或像素</strong></li>
         <li><strong>无设备指纹</strong></li>
         <li><strong>无位置追踪</strong></li>
-        <li><strong>无第三方Cookie</strong></li>
+        <li><strong>无第三方Cookie</strong>（百度统计使用的Cookie除外，见第2.4节）</li>
       </ul>
 
       <h3 className="text-base font-bold pt-1" style={h}>2.4 自动数据收集</h3>
-      <p>我们<strong>不会</strong>通过分析工具或追踪技术自动收集数据。我们的服务器日志可能会临时记录标准HTTP请求信息（如IP地址和浏览器用户代理），用于运营和安全目的，但这些数据不会用于用户画像、广告投放或长期追踪。</p>
+      <p>我们使用<strong>百度统计（Baidu Analytics）</strong>来了解访问者如何使用本网站。百度统计会收集标准的网络浏览信息，包括但不限于页面浏览量、访问时长、来源渠道、浏览器类型、操作系统和设备标识符。这些信息通过Cookie及类似技术以汇总形式收集，用于帮助我们改进网站。</p>
+      <p>百度统计不会收集能够直接识别您个人身份的信息（如姓名、电子邮箱地址或账户凭据）。有关百度如何处理数据的更多信息，请参阅百度的隐私政策。</p>
+      <p>您可以通过调整浏览器设置屏蔽Cookie或使用屏蔽分析脚本的浏览器扩展来退出分析追踪。</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>3. 我们如何使用您的信息</h2>
       <ul className="list-disc pl-6 space-y-1">
         <li><strong>账户管理</strong> — 创建和维护您的账户、验证您的身份。</li>
         <li><strong>社区功能</strong> — 支持论坛参与、评分、评价、私信。</li>
         <li><strong>AI推荐</strong> — 在您明确选择同意后，通过DeepSeek的AI API处理您的身体测量数据。</li>
-        <li><strong>服务改进</strong> — 了解社区如何使用本网站，改进功能。</li>
+        <li><strong>服务改进</strong> — 通过分析数据了解访问者如何使用本网站，改进功能。</li>
         <li><strong>安全</strong> — 检测、预防和处理欺诈、滥用和安全问题。</li>
         <li><strong>法律合规</strong> — 遵守适用的法律法规和法律程序。</li>
       </ul>
@@ -144,6 +147,7 @@ const ZH = () => {
       <p>我们与以下第三方服务提供商共享数据：</p>
       <div className="p-3 rounded-xl" style={{ background: 'var(--input-bg)' }}>
         <p><strong>DeepSeek AI</strong> — 身体测量数据（仅在您明确同意后）— AI纸尿裤推荐。</p>
+        <p className="mt-2"><strong>百度统计</strong> — 标准网络浏览数据（页面浏览量、设备信息、浏览行为）— 网站分析与改进。</p>
       </div>
       <h3 className="text-base font-bold pt-1" style={h}>5.2 我们不做的事情</h3>
       <ul className="list-disc pl-6 space-y-1">
@@ -184,7 +188,7 @@ const ZH = () => {
 
 export default function PrivacyPolicy() {
   return (
-    <PageLayout hero={{ icon: 'fa-shield-halved', title: 'Privacy Policy / 隐私政策', subtitle: 'Last updated: May 15, 2026' }}>
+    <PageLayout hero={{ icon: 'fa-shield-halved', title: 'Privacy Policy / 隐私政策', subtitle: 'Last updated: May 16, 2026' }}>
       {/* 中文翻译声明 */}
       <div className="p-4 rounded-xl mb-5 flex items-start gap-3" style={{ background: 'var(--warning-bg, #FFF8E1)', border: '2px solid var(--warning)' }}>
         <i className="fa-solid fa-circle-exclamation mt-0.5 text-lg" style={{ color: 'var(--warning)' }} />

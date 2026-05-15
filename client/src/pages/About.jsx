@@ -1,9 +1,18 @@
 import PageLayout from '../components/PageLayout';
 
-const VERSION = '2.5.0';
+const VERSION = '2.5.1';
 const LAST_UPDATE = '2026-05-16';
 
 const CHANGELOG = [
+  {
+    version: '2.5.1',
+    date: '2026-05-16',
+    changes: [
+      '优化页面布局设计，优化用户体验',
+      '接入百度统计',
+      '更新隐私政策与用户协议',
+    ],
+  },
   {
     version: '2.5.0',
     date: '2026-05-16',
@@ -80,7 +89,9 @@ export default function About() {
             ['Vite', 'fa-solid fa-bolt'],
             ['Tailwind CSS', 'fa-solid fa-wind'],
             ['Font Awesome 6', 'fa-solid fa-icons'],
-            ['Node.js', 'fa-brands fa-node-js'],
+            ['Hono', 'fa-solid fa-server'],
+            ['Cloudflare Workers', 'fa-solid fa-cloud'],
+            ['Cloudflare D1', 'fa-solid fa-database'],
           ].map(([tech, icon]) => (
             <div key={tech} className="flex items-center gap-2">
               <i className={`${icon} w-5 text-center`} style={{ color: 'var(--primary-dark)' }} />

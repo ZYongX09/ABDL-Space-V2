@@ -4,6 +4,7 @@ import { useAuth } from './contexts/AuthContext';
 import Sidebar from './components/Sidebar';
 import MobileBottomNav from './components/MobileBottomNav';
 import BackToTop from './components/BackToTop';
+import BackButton from './components/BackButton';
 import ScrollProgress from './components/ScrollProgress';
 import ErrorBoundary from './components/ErrorBoundary';
 import ForumFeed from './pages/ForumFeed';
@@ -84,6 +85,7 @@ export default function App() {
       <Sidebar />
       <div className="app-main-content">
         <div className="container mx-auto px-5 py-6 max-w-[860px] page-enter">
+          <BackButton />
           <ErrorBoundary>
             <Routes>
               <Route path="/" element={<ForumFeed />} />

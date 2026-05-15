@@ -59,8 +59,7 @@ export default function AccountSwitcher() {
           {/* 点击外部关闭 */}
           <div className="fixed inset-0 z-40" onClick={() => setShowPanel(false)} />
           <div
-            className="absolute bottom-full left-0 right-0 mb-2 rounded-xl overflow-hidden z-50 animate-fade-in-up"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-hover)' }}
+            className="account-switcher-panel absolute bottom-full left-0 right-0 mb-2 rounded-xl overflow-hidden z-50 animate-fade-in-up"
           >
             <div className="px-3 py-2" style={{ borderBottom: '1px solid var(--border)' }}>
               <div className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>已保存的账户</div>

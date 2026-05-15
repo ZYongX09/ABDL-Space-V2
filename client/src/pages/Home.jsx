@@ -54,6 +54,9 @@ export default function Home() {
         <Link to="/compare" className="btn btn-outline">
           <i className="fa-solid fa-scale-balanced" /> 对比
         </Link>
+        <Link to="/rankings" className="btn btn-outline md:hidden">
+          <i className="fa-solid fa-trophy" /> 排行
+        </Link>
       </div>
 
       {/* 列表 */}

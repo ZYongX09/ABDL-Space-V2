@@ -65,16 +65,8 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* 底部：设置 + 用户 */}
+      {/* 底部：用户 + 设置 */}
       <div className="px-4 py-3 border-t" style={{ borderColor: 'var(--border)' }}>
-        <NavLink
-          to="/settings"
-          className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-        >
-          <i className="fa-solid fa-gear w-5 text-center" />
-          <span>设置</span>
-        </NavLink>
-
         {user ? (
           <AccountSwitcher />
         ) : (
@@ -83,6 +75,14 @@ export default function Sidebar() {
             <span>登录</span>
           </NavLink>
         )}
+
+        <NavLink
+          to="/settings"
+          className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+        >
+          <i className="fa-solid fa-gear w-5 text-center" />
+          <span>设置</span>
+        </NavLink>
       </div>
     </aside>
   );
