@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { Spinner } from '../components/Feedback';
+import ImageGrid from '../components/ImageGrid';
+import ImageUploader from '../components/ImageUploader';
 import { forumAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -13,6 +15,8 @@ export default function PostDetail() {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
+  const [publishing, setPublishing] = useState(false);
+  const imgRef = useRef(null);
   const { user } = useAuth();
   const toast = useToast();
   const { trigger, VerifyModal } = useVerifyModal();
@@ -20,6 +24,7 @@ export default function PostDetail() {
   useEffect(() => {
     (async () => {
       try {
+        setLoading(true);
         const data = await forumAPI.getPost(id);
         setPost(data.post);
         setComments(data.comments || []);
@@ -32,16 +37,25 @@ export default function PostDetail() {
   }, [id]);
 
   const handleComment = async () => {
-    if (!commentText.trim()) return;
+    if (!commentText.trim() && !imgRef.current?.hasPending()) return;
     trigger(async () => {
+      setPublishing(true);
       try {
-        await forumAPI.comment(id, { content: commentText.trim() });
+        let imageUrls = [];
+        if (imgRef.current?.hasPending()) {
+          toast.info('正在上传图片...');
+          imageUrls = await imgRef.current.uploadAll();
+        }
+        await forumAPI.comment(id, { content: commentText.trim(), images: imageUrls.length > 0 ? imageUrls : undefined });
         setCommentText('');
-        toast.success('评论成功');
+        imgRef.current?.clear();
+        toast.success(imageUrls.length > 0 ? '图片上传完成，评论成功！' : '评论成功');
         const data = await forumAPI.getPost(id);
         setComments(data.comments || []);
       } catch (e) {
         toast.error(e.message);
+      } finally {
+        setPublishing(false);
       }
     });
   };
@@ -79,6 +93,7 @@ export default function PostDetail() {
           </div>
         </div>
         <p className="whitespace-pre-wrap break-words mb-4">{post.content}</p>
+        {post.images && post.images.length > 0 && <ImageGrid images={post.images} />}
         <div className="flex items-center gap-4 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
           <button
             className={`flex items-center gap-1.5 text-sm ${post.has_liked ? 'font-bold' : ''}`}
@@ -123,6 +138,7 @@ export default function PostDetail() {
                 <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{new Date(c.created_at).toLocaleString('zh-CN')}</span>
               </div>
               <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--text)' }}>{c.content}</p>
+              {c.images && c.images.length > 0 && <ImageGrid images={c.images} />}
             </div>
           ))}
         </div>
@@ -132,15 +148,17 @@ export default function PostDetail() {
       {user ? (
         <div className="card">
           <textarea
-            className="form-control mb-3"
+            className="form-control mb-2"
             placeholder="写下你的评论..."
             value={commentText}
             onChange={e => setCommentText(e.target.value)}
             rows={3}
+            disabled={publishing}
           />
-          <div className="flex justify-end">
-            <button className="btn btn-primary btn-sm" onClick={handleComment} disabled={!commentText.trim()}>
-              发表评论
+          <ImageUploader ref={imgRef} max={2} onError={msg => toast.error(msg)} />
+          <div className="flex justify-end mt-3">
+            <button className="btn btn-primary btn-sm" onClick={handleComment} disabled={(!commentText.trim() && !imgRef.current?.hasPending()) || publishing}>
+              {publishing ? <><i className="fa-solid fa-spinner fa-spin mr-1" />发送中...</> : '发表评论'}
             </button>
           </div>
         </div>

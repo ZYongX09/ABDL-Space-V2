@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { LoadingSkeleton, EmptyState } from '../components/Feedback';
 import { useVerifyModal } from '../components/VerifyModal';
+import ImageUploader from '../components/ImageUploader';
+import ImageGrid from '../components/ImageGrid';
 import { forumAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -12,7 +14,9 @@ export default function ForumFeed() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [content, setContent] = useState('');
+  const [publishing, setPublishing] = useState(false);
   const [search, setSearch] = useState('');
+  const imgRef = useRef(null);
   const { user } = useAuth();
   const toast = useToast();
   const { trigger, VerifyModal } = useVerifyModal();
@@ -32,20 +36,32 @@ export default function ForumFeed() {
   useEffect(() => { loadPosts(); }, [search]);
 
   const doPost = async () => {
-    if (!content.trim()) return;
+    if (!content.trim() && !imgRef.current?.hasPending()) return;
+    setPublishing(true);
     try {
-      await forumAPI.create({ content: content.trim() });
+      // 1. 先上传图片
+      let imageUrls = [];
+      if (imgRef.current?.hasPending()) {
+        toast.info('正在上传图片...');
+        imageUrls = await imgRef.current.uploadAll();
+      }
+      // 2. 发布帖子
+      await forumAPI.create({ content: content.trim(), images: imageUrls.length > 0 ? imageUrls : undefined });
+      // 3. 成功后清理
       setContent('');
+      imgRef.current?.clear();
       setShowForm(false);
-      toast.success('发布成功');
+      toast.success(imageUrls.length > 0 ? '图片上传完成，发布成功！' : '发布成功');
       loadPosts();
     } catch (e) {
       toast.error(e.message);
+    } finally {
+      setPublishing(false);
     }
   };
 
   const handlePost = () => {
-    if (!content.trim()) return;
+    if (!content.trim() && !imgRef.current?.hasPending()) return;
     trigger(doPost);
   };
 
@@ -80,15 +96,19 @@ export default function ForumFeed() {
       {showForm && (
         <div className="card mb-5 animate-fade-in-up">
           <textarea
-            className="form-control mb-3"
+            className="form-control mb-2"
             placeholder="分享点什么..."
             value={content}
             onChange={e => setContent(e.target.value)}
             rows={4}
+            disabled={publishing}
           />
-          <div className="flex gap-2 justify-end">
-            <button className="btn btn-outline btn-sm" onClick={() => setShowForm(false)}>取消</button>
-            <button className="btn btn-primary btn-sm" onClick={handlePost} disabled={!content.trim()}>发布</button>
+          <ImageUploader ref={imgRef} max={4} onError={msg => toast.error(msg)} />
+          <div className="flex gap-2 justify-end mt-3">
+            <button className="btn btn-outline btn-sm" onClick={() => { setShowForm(false); imgRef.current?.clear(); }} disabled={publishing}>取消</button>
+            <button className="btn btn-primary btn-sm" onClick={handlePost} disabled={(!content.trim() && !imgRef.current?.hasPending()) || publishing}>
+              {publishing ? <><i className="fa-solid fa-spinner fa-spin mr-1" />发布中...</> : '发布'}
+            </button>
           </div>
         </div>
       )}
@@ -121,6 +141,11 @@ export default function ForumFeed() {
                   <Link to={`/forum/${post.id}`} className="block mt-1" style={{ color: 'var(--text)', textDecoration: 'none' }}>
                     <p className="whitespace-pre-wrap break-words">{post.content}</p>
                   </Link>
+                  {post.images && post.images.length > 0 && (
+                    <Link to={`/forum/${post.id}`} style={{ textDecoration: 'none' }}>
+                      <ImageGrid images={post.images} />
+                    </Link>
+                  )}
                   <div className="flex items-center gap-4 mt-3">
                     <button
                       className={`flex items-center gap-1.5 text-sm transition-colors ${post.has_liked ? 'font-bold' : ''}`}

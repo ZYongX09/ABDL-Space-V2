@@ -407,8 +407,8 @@ export const forumAPI = {
     };
   },
 
-  create: async ({ content, diaper_id }) => {
-    if (USE_API) return apiFetch('/api/posts', { method: 'POST', body: JSON.stringify({ content, diaper_id }) });
+  create: async ({ content, diaper_id, images }) => {
+    if (USE_API) return apiFetch('/api/posts', { method: 'POST', body: JSON.stringify({ content, diaper_id, images }) });
     const user = LS.get('currentUser');
     if (!user) throw new Error('请先登录');
     const posts = LS.get('posts') || [];
@@ -426,8 +426,8 @@ export const forumAPI = {
     return { message: '已删除' };
   },
 
-  comment: async (postId, { content, parent_id }) => {
-    if (USE_API) return apiFetch(`/api/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ content, parent_id }) });
+  comment: async (postId, { content, parent_id, images }) => {
+    if (USE_API) return apiFetch(`/api/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ content, parent_id, images }) });
     const user = LS.get('currentUser');
     if (!user) throw new Error('请先登录');
     const comments = LS.get('comments') || {};

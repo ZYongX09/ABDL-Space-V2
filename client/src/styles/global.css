@@ -23,6 +23,7 @@
   --success: #7BC67E;
   --danger: #E8837C;
   --warning: #F0C040;
+  --warning-bg: #FFF8E1;
   --radius: 16px;
   --radius-sm: 10px;
   --shadow: 0 2px 12px rgba(168, 216, 240, 0.25);
@@ -55,6 +56,7 @@
   --success: #5DAE60;
   --danger: #D35F5A;
   --warning: #D4A830;
+  --warning-bg: #2A2518;
   --shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.5);
   --skeleton-base: #2A2E35;
@@ -84,6 +86,7 @@
   --success: #6BC67A;
   --danger: #E07070;
   --warning: #E8B830;
+  --warning-bg: rgba(232, 184, 48, 0.12);
   --shadow: 0 4px 20px rgba(168, 180, 216, 0.2);
   --shadow-hover: 0 8px 36px rgba(168, 180, 216, 0.35);
   --skeleton-base: rgba(255, 255, 255, 0.3);
@@ -547,6 +550,132 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .back-btn:active {
   transform: scale(0.92);
 }
+
+/* ====== 人机验证加载动画 ====== */
+.cap-loading-ring {
+  width: 36px; height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary-dark);
+  border-radius: 50%;
+  animation: capSpin 0.8s linear infinite;
+}
+@keyframes capSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* 验证画布容器 — 适配多彩主题 */
+.quantum-verify {
+  background: var(--bg-card);
+}
+
+/* ====== 图片上传器 ====== */
+.img-uploader { margin-top: 8px; }
+.img-preview-grid {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;
+}
+.img-preview-item {
+  position: relative; width: 72px; height: 72px; border-radius: 10px; overflow: hidden;
+  border: 1.5px solid var(--border);
+}
+.img-preview-item img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.img-remove {
+  position: absolute; top: 2px; right: 2px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(0,0,0,0.6); color: #fff; border: none;
+  font-size: 10px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.img-drop-zone {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: 10px;
+  border: 1.5px dashed var(--border);
+  cursor: pointer; transition: border-color 0.2s, background 0.2s;
+  color: var(--text-muted); font-size: 0.8rem;
+}
+.img-drop-zone:hover {
+  border-color: var(--primary-dark);
+  background: var(--primary-light);
+}
+.img-upload-warning {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 6px; padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(232, 131, 124, 0.08);
+  color: var(--danger);
+  font-size: 0.7rem; font-weight: 500;
+}
+.img-upload-warning i { font-size: 0.75rem; flex-shrink: 0; }
+.img-upload-donate {
+  margin-left: auto; white-space: nowrap;
+  font-size: 0.7rem; font-weight: 600;
+  color: var(--primary-dark);
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+.img-upload-donate:hover { opacity: 0.7; text-decoration: underline; }
+
+/* ====== 图片网格 (Twitter 风格) ====== */
+.img-grid {
+  display: grid; gap: 3px; border-radius: 12px; overflow: hidden;
+  margin-top: 10px; max-width: 400px;
+}
+.img-grid-1 { grid-template-columns: 1fr; }
+.img-grid-2 { grid-template-columns: 1fr 1fr; }
+.img-grid-3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.img-grid-3 .img-grid-item:first-child { grid-row: 1 / 3; }
+.img-grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.img-grid-item {
+  position: relative; cursor: pointer; overflow: hidden;
+  aspect-ratio: 1; background: var(--bg-card);
+}
+.img-grid-1 .img-grid-item { aspect-ratio: 16/10; }
+.img-grid-item img {
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform 0.2s;
+}
+.img-grid-item:hover img { transform: scale(1.03); }
+.img-grid-more {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.45); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; font-weight: 700;
+}
+
+/* ====== 图片灯箱 ====== */
+.img-lightbox {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,0.85);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.2s ease;
+}
+.img-lightbox img {
+  max-width: 90vw; max-height: 80vh; object-fit: contain;
+  border-radius: 8px;
+}
+.img-lightbox-close {
+  position: absolute; top: 16px; right: 16px;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,0.15); color: #fff; border: none;
+  font-size: 1.2rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.img-lightbox-close:hover { background: rgba(255,255,255,0.3); }
+.img-lightbox-nav {
+  display: flex; align-items: center; gap: 16px;
+  margin-top: 12px; color: rgba(255,255,255,0.8); font-size: 0.85rem;
+}
+.img-lightbox-nav button {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.12); color: #fff; border: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.img-lightbox-nav button:hover { background: rgba(255,255,255,0.25); }
 [data-theme="dark"] .back-btn {
   background: rgba(40,44,52,0.6);
   border-color: rgba(255,255,255,0.12);

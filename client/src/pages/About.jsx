@@ -122,7 +122,7 @@ export default function About() {
       </div>
 
       {/* 支持我们 */}
-      <div className="card mb-5" style={{ position: 'relative', overflow: 'hidden' }}>
+      <div id="donate" className="card mb-5" style={{ position: 'relative', overflow: 'hidden' }}>
         {/* 爱发电背景图标 */}
         <img
           src="https://static.afdiancdn.com/static/img/logo/logo.png"
