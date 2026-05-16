@@ -1,9 +1,18 @@
 import PageLayout from '../components/PageLayout';
 
-const VERSION = '2.5.1';
-const LAST_UPDATE = '2026-05-16';
+const VERSION = '2.6.0';
+const LAST_UPDATE = '2026-05-17';
 
 const CHANGELOG = [
+  {
+    version: '2.6.0',
+    date: '2026-05-17',
+    changes: [
+      '新增图片上传组件与网格预览',
+      'CAPTCHA 频率感知触发：2分钟内首次操作免验证，连续操作才弹验证',
+      '登录页优化：前2次失败不弹验证，第3次起才出现安全验证',
+    ],
+  },
   {
     version: '2.5.1',
     date: '2026-05-16',
