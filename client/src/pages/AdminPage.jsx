@@ -4,6 +4,7 @@ import { LoadingSkeleton, Spinner } from '../components/Feedback';
 import { adminAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useVerifyModal } from '../components/VerifyModal';
 import { Link } from 'react-router-dom';
 
 const TABS = [
@@ -15,6 +16,7 @@ const TABS = [
 export default function AdminPage() {
   const { user } = useAuth();
   const toast = useToast();
+  const { trigger, VerifyModal } = useVerifyModal();
   const [tab, setTab] = useState('overview');
   const [loading, setLoading] = useState(true);
 
@@ -53,20 +55,23 @@ export default function AdminPage() {
   };
 
   const handleDeleteUser = async (id) => {
-    if (!confirm('确定删除该用户？')) return;
-    try {
-      await adminAPI.deleteUser(id);
-      setUsers(prev => prev.filter(u => u.id !== id));
-      toast.success('已删除');
-    } catch (e) { toast.error(e.message); }
+    trigger(async () => {
+      try {
+        await adminAPI.deleteUser(id);
+        setUsers(prev => prev.filter(u => u.id !== id));
+        toast.success('已删除');
+      } catch (e) { toast.error(e.message); }
+    });
   };
 
   const handleBanUser = async (id) => {
-    try {
-      const data = await adminAPI.banUser(id);
-      setUsers(prev => prev.map(u => u.id === id ? { ...u, banned: data.banned } : u));
-      toast.success(data.banned ? '已封禁' : '已解封');
-    } catch (e) { toast.error(e.message); }
+    trigger(async () => {
+      try {
+        const data = await adminAPI.banUser(id);
+        setUsers(prev => prev.map(u => u.id === id ? { ...u, banned: data.banned } : u));
+        toast.success(data.banned ? '已封禁' : '已解封');
+      } catch (e) { toast.error(e.message); }
+    });
   };
 
   const handlePinPost = async (id) => {
@@ -78,12 +83,13 @@ export default function AdminPage() {
   };
 
   const handleDeletePost = async (id) => {
-    if (!confirm('确定删除该帖子？')) return;
-    try {
-      await adminAPI.deletePost(id);
-      setPosts(prev => prev.filter(p => p.id !== id));
-      toast.success('已删除');
-    } catch (e) { toast.error(e.message); }
+    trigger(async () => {
+      try {
+        await adminAPI.deletePost(id);
+        setPosts(prev => prev.filter(p => p.id !== id));
+        toast.success('已删除');
+      } catch (e) { toast.error(e.message); }
+    });
   };
 
   if (!user || user.role !== 'admin') {
@@ -216,5 +222,6 @@ export default function AdminPage() {
         )
       )}
     </PageLayout>
+    {VerifyModal}
   );
 }

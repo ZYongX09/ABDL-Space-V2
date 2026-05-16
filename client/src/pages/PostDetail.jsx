@@ -5,6 +5,7 @@ import { Spinner } from '../components/Feedback';
 import { forumAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useVerifyModal } from '../components/VerifyModal';
 
 export default function PostDetail() {
   const { id } = useParams();
@@ -14,6 +15,7 @@ export default function PostDetail() {
   const [commentText, setCommentText] = useState('');
   const { user } = useAuth();
   const toast = useToast();
+  const { trigger, VerifyModal } = useVerifyModal();
 
   useEffect(() => {
     (async () => {
@@ -31,15 +33,17 @@ export default function PostDetail() {
 
   const handleComment = async () => {
     if (!commentText.trim()) return;
-    try {
-      await forumAPI.comment(id, { content: commentText.trim() });
-      setCommentText('');
-      toast.success('评论成功');
-      const data = await forumAPI.getPost(id);
-      setComments(data.comments || []);
-    } catch (e) {
-      toast.error(e.message);
-    }
+    trigger(async () => {
+      try {
+        await forumAPI.comment(id, { content: commentText.trim() });
+        setCommentText('');
+        toast.success('评论成功');
+        const data = await forumAPI.getPost(id);
+        setComments(data.comments || []);
+      } catch (e) {
+        toast.error(e.message);
+      }
+    });
   };
 
   const handleLike = async () => {
@@ -135,5 +139,6 @@ export default function PostDetail() {
         </p>
       )}
     </PageLayout>
+    {VerifyModal}
   );
 }
