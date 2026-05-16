@@ -106,6 +106,7 @@ export default function AdminPage() {
   }
 
   return (
+    <>
     <PageLayout hero={{ icon: 'fa-shield-halved', title: '管理后台' }}>
       {/* 标签页 */}
       <div className="flex gap-2 mb-5 flex-wrap">
@@ -222,6 +223,7 @@ export default function AdminPage() {
         )
       )}
     </PageLayout>
-    {VerifyModal}
+    <>{VerifyModal}</>
+    </>
   );
 }

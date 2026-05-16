@@ -61,6 +61,7 @@ export default function PostDetail() {
   if (!post) return <div className="empty-state"><h3>帖子不存在</h3></div>;
 
   return (
+    <>
     <PageLayout hero={{ icon: 'fa-file-lines', title: '帖子详情' }}>
       <div className="card mb-5">
         <div className="flex items-start gap-3 mb-4">
@@ -90,6 +91,16 @@ export default function PostDetail() {
           <span className="text-sm" style={{ color: 'var(--text-light)' }}>
             <i className="fa-regular fa-comment mr-1.5" />{comments.length}
           </span>
+          {user && user.id === post.user?.id && (
+            <button
+              className="flex items-center gap-1 text-sm ml-auto"
+              style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
+              onClick={() => trigger(async () => { try { await forumAPI.delete(post.id); toast.success('已删除'); window.history.back(); } catch (e) { toast.error(e.message); } })}
+              title="删除帖子"
+            >
+              <i className="fa-regular fa-trash-can" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -139,6 +150,7 @@ export default function PostDetail() {
         </p>
       )}
     </PageLayout>
-    {VerifyModal}
+    <>{VerifyModal}</>
+    </>
   );
 }
