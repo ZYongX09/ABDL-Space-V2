@@ -461,6 +461,14 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
 
   const locked = attempts >= MAX_ATTEMPTS;
 
+  // 挂载时检查是否已锁定
+  useEffect(() => {
+    if (initAttempts >= MAX_ATTEMPTS) {
+      setStatus('超过最大尝试次数，请5分钟后再试');
+      onReset?.('locked');
+    }
+  }, []);
+
   return (
     <div className="quantum-verify">
       <canvas

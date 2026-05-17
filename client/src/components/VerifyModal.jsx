@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import QuantumVerify from './QuantumVerify';
 
-const GRACE_MS = 2 * 60 * 1000; // 2分钟内操作才触发验证
+const GRACE_MS = 2 * 60 * 1000;
 const LS_KEY = 'qv_action_ts';
 
 function getRecentActions() {
@@ -10,7 +10,6 @@ function getRecentActions() {
     if (!saved) return [];
     const arr = JSON.parse(saved);
     const now = Date.now();
-    // 只保留 GRACE_MS 内的记录
     return arr.filter(t => now - t < GRACE_MS);
   } catch { return []; }
 }
@@ -31,19 +30,19 @@ export function useVerifyModal() {
   const [show, setShow] = useState(false);
   const [started, setStarted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [locked, setLocked] = useState(false);
   const [animState, setAnimState] = useState('hidden');
   const actionRef = useRef(null);
 
   const trigger = useCallback((onPass) => {
     const recent = getRecentActions();
-    // 2分钟内没有操作记录 → 免验证
     if (recent.length === 0) {
       recordAction();
       onPass();
       return;
     }
-    // 有操作记录 → 需要验证
     actionRef.current = onPass;
+    setLocked(false);
     setShow(true);
     setStarted(false);
     setAnimState('entering');
@@ -54,18 +53,22 @@ export function useVerifyModal() {
     setTimeout(() => {
       setAnimState('exiting');
       setTimeout(() => {
-        setShow(false); setStarted(false); setLoading(false); setAnimState('hidden');
-        clearActions(); // 清除旧记录，验证后重新计时
-        recordAction(); // 记录本次操作
+        setShow(false); setStarted(false); setLoading(false); setLocked(false); setAnimState('hidden');
+        clearActions();
+        recordAction();
         if (actionRef.current) { actionRef.current(); actionRef.current = null; }
       }, 250);
     }, 600);
   }, []);
 
+  const handleLocked = useCallback(() => {
+    setLocked(true);
+  }, []);
+
   const handleClose = useCallback(() => {
     setAnimState('exiting');
     setTimeout(() => {
-      setShow(false); setStarted(false); setLoading(false); setAnimState('hidden');
+      setShow(false); setStarted(false); setLoading(false); setLocked(false); setAnimState('hidden');
       actionRef.current = null;
     }, 200);
   }, []);
@@ -105,11 +108,15 @@ export function useVerifyModal() {
         {!started ? (
           <div className="flex flex-col items-center py-4">
             <p className="text-xs mb-4 text-center" style={{ color: 'var(--text-light)' }}>
-              请按照高亮提示的顺序依次点击节点<br />每个节点只能点击一次，5次错误将锁定5分钟
+              {locked
+                ? '验证已锁定，请5分钟后再试'
+                : '请按照高亮提示的顺序依次点击节点\n每个节点只能点击一次，5次错误将锁定5分钟'}
             </p>
-            <button type="button" className="btn btn-outline" onClick={() => { setStarted(true); setLoading(true); setTimeout(() => setLoading(false), 400); }}>
-              <i className="fa-solid fa-play" /> 开始验证
-            </button>
+            {!locked && (
+              <button type="button" className="btn btn-outline" onClick={() => { setStarted(true); setLoading(true); setTimeout(() => setLoading(false), 400); }}>
+                <i className="fa-solid fa-play" /> 开始验证
+              </button>
+            )}
           </div>
         ) : loading ? (
           <div className="flex flex-col items-center justify-center" style={{ minHeight: 200 }}>
@@ -118,7 +125,7 @@ export function useVerifyModal() {
           </div>
         ) : (
           <div style={{ border: '1.5px solid var(--border)', borderRadius: '1rem', overflow: 'hidden' }}>
-            <QuantumVerify onVerified={handleVerified} onReset={() => {}} />
+            <QuantumVerify onVerified={handleVerified} onReset={handleLocked} />
           </div>
         )}
       </div>

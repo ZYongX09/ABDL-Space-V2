@@ -17,10 +17,19 @@ export default function ForumFeed() {
   const [content, setContent] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [search, setSearch] = useState('');
+  const [cooldown, setCooldown] = useState(0);
   const imgRef = useRef(null);
+  const lastPostTime = useRef(0);
   const { user } = useAuth();
   const toast = useToast();
   const { trigger, VerifyModal } = useVerifyModal();
+
+  // 冷却计时器
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => setCooldown(c => c - 1), 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const loadPosts = async () => {
     try {
@@ -38,17 +47,23 @@ export default function ForumFeed() {
 
   const doPost = async () => {
     if (!content.trim() && !imgRef.current?.hasPending()) return;
+    // 冷却检查
+    const now = Date.now();
+    const elapsed = (now - lastPostTime.current) / 1000;
+    if (elapsed < 30) {
+      toast.error(`发帖太频繁，请等待 ${Math.ceil(30 - elapsed)} 秒`);
+      return;
+    }
     setPublishing(true);
     try {
-      // 1. 先上传图片
       let imageUrls = [];
       if (imgRef.current?.hasPending()) {
         toast.info('正在上传图片...');
         imageUrls = await imgRef.current.uploadAll();
       }
-      // 2. 发布帖子
       await forumAPI.create({ content: content.trim(), images: imageUrls.length > 0 ? imageUrls : undefined });
-      // 3. 成功后清理
+      lastPostTime.current = Date.now();
+      setCooldown(30);
       setContent('');
       imgRef.current?.clear();
       setShowForm(false);
@@ -107,8 +122,8 @@ export default function ForumFeed() {
           <ImageUploader ref={imgRef} max={4} onError={msg => toast.error(msg)} />
           <div className="flex gap-2 justify-end mt-3">
             <button className="btn btn-outline btn-sm" onClick={() => { setShowForm(false); imgRef.current?.clear(); }} disabled={publishing}>取消</button>
-            <button className="btn btn-primary btn-sm" onClick={handlePost} disabled={(!content.trim() && !imgRef.current?.hasPending()) || publishing}>
-              {publishing ? <><i className="fa-solid fa-spinner fa-spin mr-1" />发布中...</> : '发布'}
+            <button className="btn btn-primary btn-sm" onClick={handlePost} disabled={(!content.trim() && !imgRef.current?.hasPending()) || publishing || cooldown > 0}>
+              {publishing ? <><i className="fa-solid fa-spinner fa-spin mr-1" />发布中...</> : cooldown > 0 ? <><i className="fa-solid fa-clock mr-1" />{cooldown}s</> : '发布'}
             </button>
           </div>
         </div>

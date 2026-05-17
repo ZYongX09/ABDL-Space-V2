@@ -17,10 +17,19 @@ export default function PostDetail() {
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
   const [publishing, setPublishing] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
   const imgRef = useRef(null);
+  const lastCommentTime = useRef(0);
   const { user } = useAuth();
   const toast = useToast();
   const { trigger, VerifyModal } = useVerifyModal();
+
+  // 冷却计时器
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => setCooldown(c => c - 1), 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   useEffect(() => {
     (async () => {
@@ -39,6 +48,13 @@ export default function PostDetail() {
 
   const handleComment = async () => {
     if (!commentText.trim() && !imgRef.current?.hasPending()) return;
+    // 冷却检查
+    const now = Date.now();
+    const elapsed = (now - lastCommentTime.current) / 1000;
+    if (elapsed < 15) {
+      toast.error(`评论太频繁，请等待 ${Math.ceil(15 - elapsed)} 秒`);
+      return;
+    }
     trigger(async () => {
       setPublishing(true);
       try {
@@ -48,6 +64,8 @@ export default function PostDetail() {
           imageUrls = await imgRef.current.uploadAll();
         }
         await forumAPI.comment(id, { content: commentText.trim(), images: imageUrls.length > 0 ? imageUrls : undefined });
+        lastCommentTime.current = Date.now();
+        setCooldown(15);
         setCommentText('');
         imgRef.current?.clear();
         toast.success(imageUrls.length > 0 ? '图片上传完成，评论成功！' : '评论成功');
@@ -158,8 +176,8 @@ export default function PostDetail() {
           />
           <ImageUploader ref={imgRef} max={2} onError={msg => toast.error(msg)} />
           <div className="flex justify-end mt-3">
-            <button className="btn btn-primary btn-sm" onClick={handleComment} disabled={(!commentText.trim() && !imgRef.current?.hasPending()) || publishing}>
-              {publishing ? <><i className="fa-solid fa-spinner fa-spin mr-1" />发送中...</> : '发表评论'}
+            <button className="btn btn-primary btn-sm" onClick={handleComment} disabled={(!commentText.trim() && !imgRef.current?.hasPending()) || publishing || cooldown > 0}>
+              {publishing ? <><i className="fa-solid fa-spinner fa-spin mr-1" />发送中...</> : cooldown > 0 ? <><i className="fa-solid fa-clock mr-1" />{cooldown}s</> : '发表评论'}
             </button>
           </div>
         </div>
