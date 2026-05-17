@@ -9,32 +9,20 @@ const TLDS = 'com|net|org|cn|top|xyz|io|dev|app|co|me|cc|info|edu|gov|mil|club|o
 // 清理 URL 末尾的标点符号
 function cleanUrl(url) {
   let s = url;
-  // 循环去掉末尾标点
   for (let i = 0; i < 10; i++) {
     if (s.length === 0) break;
     const ch = s[s.length - 1];
-    // 直接去掉的标点
     if ('.,;:!?_~'.includes(ch)) { s = s.slice(0, -1); continue; }
-    // 括号：只有多余的右括号才去掉
     if (ch === ')') {
-      const opens = (s.match(/\(/g) || []).length;
-      const closes = (s.match(/\)/g) || []).length;
-      if (closes > opens) { s = s.slice(0, -1); continue; }
+      if ((s.match(/\)/g) || []).length > (s.match(/\(/g) || []).length) { s = s.slice(0, -1); continue; }
     }
-    // 方括号、花括号同理
     if (ch === ']') {
-      const opens = (s.match(/\[/g) || []).length;
-      const closes = (s.match(/\]/g) || []).length;
-      if (closes > opens) { s = s.slice(0, -1); continue; }
+      if ((s.match(/\]/g) || []).length > (s.match(/\[/g) || []).length) { s = s.slice(0, -1); continue; }
     }
     if (ch === '}') {
-      const opens = (s.match(/{/g) || []).length;
-      const closes = (s.match(/}/g) || []).length;
-      if (closes > opens) { s = s.slice(0, -1); continue; }
+      if ((s.match(/}/g) || []).length > (s.match(/{/g) || []).length) { s = s.slice(0, -1); continue; }
     }
-    // 引号：直接去掉
     if (ch === '"' || ch === "'" || ch === '`') { s = s.slice(0, -1); continue; }
-    // 其他字符不动
     break;
   }
   return s;
@@ -43,10 +31,10 @@ function cleanUrl(url) {
 // 从文本中提取所有 URL
 function extractUrls(text) {
   const results = [];
+  let m;
 
   // 1) https?:// 开头
   const re1 = /https?:\/\/[^\s<>"'`,;)}\]]+/gi;
-  let m;
   while ((m = re1.exec(text)) !== null) {
     results.push({ index: m.index, raw: m[0] });
   }
@@ -58,8 +46,11 @@ function extractUrls(text) {
     if (!already) results.push({ index: m.index, raw: m[0] });
   }
 
-  // 3) 裸域名（前面必须是空白或行首）
-  const domainRe = new RegExp(`(?:^|\\s)([a-zA-Z0-9][a-zA-Z0-9-]*\\.(?:${TLDS})(?:/[^\\s<>"'\`,;)}\\]]*)?)`, 'gi');
+  // 3) 裸域名：前面是行首、空白、中文字符或常见标点
+  //    中文字符范围: \u4e00-\u9fff (CJK统一汉字), \u3000-\u303f (CJK标点), \uff00-\uffef (全角符号)
+  const delim = '(?:^|[\\s\\u4e00-\\u9fff\\u3000-\\u303f\\uff00-\\uffef.,;:!?(\\[{"])';
+  const domainBody = `[a-zA-Z0-9][a-zA-Z0-9-]*\\.(?:${TLDS})(?:/[^\\s<>"'\`,;)}\\]]*)?`;
+  const domainRe = new RegExp(delim + '(' + domainBody + ')', 'gi');
   while ((m = domainRe.exec(text)) !== null) {
     const url = m[1];
     const idx = m.index + m[0].length - url.length;
@@ -67,7 +58,6 @@ function extractUrls(text) {
     if (!already) results.push({ index: idx, raw: url });
   }
 
-  // 按位置排序
   results.sort((a, b) => a.index - b.index);
   return results;
 }
@@ -123,16 +113,13 @@ export default function RichContent({ text, className, style }) {
       const cleaned = cleanUrl(raw);
       if (cleaned.length === 0) continue;
 
-      // URL 前的纯文本
       if (index > lastIndex) {
         result.push({ type: 'text', value: text.slice(lastIndex, index) });
       }
       result.push({ type: 'link', value: cleaned });
-      // 关键：用 cleaned 的实际长度推进 lastIndex
       lastIndex = index + cleaned.length;
     }
 
-    // 剩余纯文本
     if (lastIndex < text.length) {
       result.push({ type: 'text', value: text.slice(lastIndex) });
     }
@@ -140,7 +127,6 @@ export default function RichContent({ text, className, style }) {
     return result;
   }, [text]);
 
-  // 没有链接直接返回纯文本
   if (parts.length === 0) return <span className={className} style={style}>{text}</span>;
 
   return (
