@@ -68,38 +68,70 @@ const EN = () => {
           <thead>
             <tr>
               <th style={th}>Cookie</th>
-              <th style={th}>Provider</th>
+              <th style={th}>Type</th>
               <th style={th}>Purpose</th>
               <th style={th}>Duration</th>
-              <th style={th}>Type</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td style={td}><code>_hmt_*</code></td>
-              <td style={td}>Baidu (百度)</td>
-              <td style={td}>Website traffic analysis</td>
-              <td style={td}>Session / 2 years</td>
-              <td style={td}>Analytics</td>
+              <td style={td}><code>HMACCOUNT</code></td>
+              <td style={td}>Third-party (Baidu)</td>
+              <td style={td}>Visitor ID</td>
+              <td style={td}>Expires 2038</td>
             </tr>
             <tr>
-              <td style={td}><code>Hm_lpvt_*</code></td>
-              <td style={td}>Baidu (百度)</td>
-              <td style={td}>Last visit timestamp</td>
+              <td style={td}><code>HMACCOUNT_BFESS</code></td>
+              <td style={td}>Third-party (Baidu)</td>
+              <td style={td}>Visitor ID</td>
+              <td style={td}>Expires 2038</td>
+            </tr>
+            <tr>
+              <td style={td}><code>HMVT</code></td>
+              <td style={td}>Third-party (Baidu)</td>
+              <td style={td}>Cross-domain tracking</td>
               <td style={td}>Session</td>
-              <td style={td}>Analytics</td>
             </tr>
             <tr>
-              <td style={td}><code>Hm_lvt_*</code></td>
-              <td style={td}>Baidu (百度)</td>
-              <td style={td}>Visit count tracking</td>
+              <td style={td}><code>Hm_lvt_{siteId}</code></td>
+              <td style={td}>First-party</td>
+              <td style={td}>Visitor visit history timestamps</td>
               <td style={td}>1 year</td>
-              <td style={td}>Analytics</td>
+            </tr>
+            <tr>
+              <td style={td}><code>Hm_lpvt_{siteId}</code></td>
+              <td style={td}>First-party</td>
+              <td style={td}>Current visit timestamp</td>
+              <td style={td}>Session</td>
+            </tr>
+            <tr>
+              <td style={td}><code>Hm_up_{siteId}</code></td>
+              <td style={td}>First-party</td>
+              <td style={td}>Custom user ID</td>
+              <td style={td}>1 year</td>
+            </tr>
+            <tr>
+              <td style={td}><code>Hm_ct_{siteId}</code></td>
+              <td style={td}>First-party</td>
+              <td style={td}>Custom tag</td>
+              <td style={td}>1 year</td>
+            </tr>
+            <tr>
+              <td style={td}><code>Hm_ck_{siteId}</code></td>
+              <td style={td}>First-party</td>
+              <td style={td}>Custom tag</td>
+              <td style={td}>Deleted immediately after write</td>
+            </tr>
+            <tr>
+              <td style={td}><code>Hm_cv_{siteId}</code></td>
+              <td style={td}>First-party</td>
+              <td style={td}>Custom variable</td>
+              <td style={td}>1 year</td>
             </tr>
           </tbody>
         </table>
       </div>
-      <p className="mt-2">Baidu Analytics does not collect personally identifiable information. For more information, see <a href="https://privacy.baidu.com" style={link}>Baidu's Privacy Policy</a>.</p>
+      <p className="mt-2">Source: <a href="https://tongji.baidu.com/holmes/Analytics/%E9%9A%90%E7%A7%81%E5%90%88%E8%A7%84%E6%8C%87%E5%8D%97/%E7%99%BE%E5%BA%A6%E7%BB%9F%E8%AE%A1%E7%9B%B8%E5%85%B3Cookie%E5%88%97%E8%A1%A8" style={link}>Baidu Analytics Cookie List</a>. Baidu Analytics does not collect personally identifiable information. For more information, see <a href="https://privacy.baidu.com" style={link}>Baidu's Privacy Policy</a>.</p>
       <p className="mt-2"><strong>Baidu Analytics is only loaded after you accept cookies.</strong> If you reject cookies, Baidu Analytics scripts will not be loaded or executed.</p>
 
       <h3 className="text-base font-bold pt-2" style={h}>3.3 What We Do NOT Use</h3>
@@ -194,38 +226,70 @@ const ZH = () => {
           <thead>
             <tr>
               <th style={th}>Cookie</th>
-              <th style={th}>提供方</th>
+              <th style={th}>类型</th>
               <th style={th}>用途</th>
               <th style={th}>有效期</th>
-              <th style={th}>类型</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td style={td}><code>_hmt_*</code></td>
-              <td style={td}>百度</td>
-              <td style={td}>网站流量分析</td>
-              <td style={td}>会话 / 2年</td>
-              <td style={td}>分析</td>
+              <td style={td}><code>HMACCOUNT</code></td>
+              <td style={td}>第三方（百度）</td>
+              <td style={td}>访客ID</td>
+              <td style={td}>2038年过期</td>
             </tr>
             <tr>
-              <td style={td}><code>Hm_lpvt_*</code></td>
-              <td style={td}>百度</td>
-              <td style={td}>最后访问时间</td>
+              <td style={td}><code>HMACCOUNT_BFESS</code></td>
+              <td style={td}>第三方（百度）</td>
+              <td style={td}>访客ID</td>
+              <td style={td}>2038年过期</td>
+            </tr>
+            <tr>
+              <td style={td}><code>HMVT</code></td>
+              <td style={td}>第三方（百度）</td>
+              <td style={td}>跨域访问</td>
               <td style={td}>会话</td>
-              <td style={td}>分析</td>
             </tr>
             <tr>
-              <td style={td}><code>Hm_lvt_*</code></td>
-              <td style={td}>百度</td>
-              <td style={td}>访问次数统计</td>
+              <td style={td}><code>Hm_lvt_{站点id}</code></td>
+              <td style={td}>第一方</td>
+              <td style={td}>访客历史访问时间</td>
               <td style={td}>1年</td>
-              <td style={td}>分析</td>
+            </tr>
+            <tr>
+              <td style={td}><code>Hm_lpvt_{站点id}</code></td>
+              <td style={td}>第一方</td>
+              <td style={td}>访客当前访问时间</td>
+              <td style={td}>会话</td>
+            </tr>
+            <tr>
+              <td style={td}><code>Hm_up_{站点id}</code></td>
+              <td style={td}>第一方</td>
+              <td style={td}>自定义用户ID</td>
+              <td style={td}>1年</td>
+            </tr>
+            <tr>
+              <td style={td}><code>Hm_ct_{站点id}</code></td>
+              <td style={td}>第一方</td>
+              <td style={td}>自定义标签</td>
+              <td style={td}>1年</td>
+            </tr>
+            <tr>
+              <td style={td}><code>Hm_ck_{站点id}</code></td>
+              <td style={td}>第一方</td>
+              <td style={td}>自定义标签</td>
+              <td style={td}>写完立刻删除</td>
+            </tr>
+            <tr>
+              <td style={td}><code>Hm_cv_{站点id}</code></td>
+              <td style={td}>第一方</td>
+              <td style={td}>自定义变量</td>
+              <td style={td}>1年</td>
             </tr>
           </tbody>
         </table>
       </div>
-      <p className="mt-2">百度统计不会收集可直接识别您个人身份的信息。更多信息请参阅<a href="https://privacy.baidu.com" style={link}>百度隐私政策</a>。</p>
+      <p className="mt-2">来源：<a href="https://tongji.baidu.com/holmes/Analytics/%E9%9A%90%E7%A7%81%E5%90%88%E8%A7%84%E6%8C%87%E5%8D%97/%E7%99%BE%E5%BA%A6%E7%BB%9F%E8%AE%A1%E7%9B%B8%E5%85%B3Cookie%E5%88%97%E8%A1%A8" style={link}>百度统计相关Cookie列表</a>。百度统计不会收集可直接识别您个人身份的信息。更多信息请参阅<a href="https://privacy.baidu.com" style={link}>百度隐私政策</a>。</p>
       <p className="mt-2"><strong>百度统计仅在您接受Cookie后才会加载。</strong>如果您拒绝Cookie，百度统计脚本将不会加载或执行。</p>
 
       <h3 className="text-base font-bold pt-2" style={h}>3.3 我们未使用的技术</h3>
