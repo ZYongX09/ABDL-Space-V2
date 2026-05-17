@@ -28,6 +28,7 @@ import MessagesPage from './pages/MessagesPage';
 import NotificationsPage from './pages/NotificationsPage';
 import AdminPage from './pages/AdminPage';
 import ExternalLink from './pages/ExternalLink';
+import { useExternalLinkInterceptor } from './hooks/useExternalLinkInterceptor';
 
 const ROUTE_TITLES = {
   '/': '论坛 — ABDL Space',
@@ -67,6 +68,7 @@ function ScrollToTop() {
 export default function App() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  useExternalLinkInterceptor();
 
   // 全局键盘快捷键
   useEffect(() => {
