@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { Spinner } from '../components/Feedback';
+import OfficialBadge from '../components/OfficialBadge';
 import { useToast } from '../contexts/ToastContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
@@ -46,6 +47,7 @@ export default function UserPage() {
           </div>
           <div>
             <h3 className="text-lg font-bold" style={{ color: 'var(--text)' }}>{user.username}</h3>
+            {user.role === 'admin' && <OfficialBadge />}
             <span className="tag">{user.role === 'admin' ? '管理员' : '用户'}</span>
           </div>
         </div>

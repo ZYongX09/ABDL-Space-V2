@@ -6,6 +6,7 @@ import { useVerifyModal } from '../components/VerifyModal';
 import ImageUploader from '../components/ImageUploader';
 import ImageGrid from '../components/ImageGrid';
 import RichContent from '../components/RichContent';
+import OfficialBadge from '../components/OfficialBadge';
 import { forumAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -150,6 +151,7 @@ export default function ForumFeed() {
                     <Link to={`/user/${post.user?.id}`} className="font-semibold text-sm hover:underline" style={{ color: 'var(--text)' }}>
                       {post.user?.username || '匿名'}
                     </Link>
+                    {post.user?.role === 'admin' && <OfficialBadge />}
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                       {new Date(post.created_at).toLocaleString('zh-CN')}
                     </span>

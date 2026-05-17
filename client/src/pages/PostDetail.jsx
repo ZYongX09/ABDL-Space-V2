@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useVerifyModal } from '../components/VerifyModal';
 import RichContent from '../components/RichContent';
+import OfficialBadge from '../components/OfficialBadge';
 
 export default function PostDetail() {
   const { id } = useParams();
@@ -106,6 +107,7 @@ export default function PostDetail() {
             <Link to={`/user/${post.user?.id}`} className="font-semibold text-sm hover:underline" style={{ color: 'var(--text)' }}>
               {post.user?.username || '匿名'}
             </Link>
+            {post.user?.role === 'admin' && <OfficialBadge />}
             <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
               {new Date(post.created_at).toLocaleString('zh-CN')}
             </div>
@@ -154,6 +156,7 @@ export default function PostDetail() {
                   {c.user?.username?.[0]?.toUpperCase() || '?'}
                 </div>
                 <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{c.user?.username || '匿名'}</span>
+                {c.user?.role === 'admin' && <OfficialBadge />}
                 <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{new Date(c.created_at).toLocaleString('zh-CN')}</span>
               </div>
               <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--text)' }}><RichContent text={c.content} /></p>
