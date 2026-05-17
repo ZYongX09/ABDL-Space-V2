@@ -1,5 +1,8 @@
+import { useState, useEffect } from 'react';
 import PageLayout from '../components/PageLayout';
 import { externalLinkUrl } from '../utils/externalLink';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 const VERSION = '2.6.1';
 const LAST_UPDATE = '2026-05-18';
@@ -81,6 +84,20 @@ const CHANGELOG = [
 ];
 
 export default function About() {
+  const { user, getConsentStatus, withdrawConsent } = useAuth();
+  const toast = useToast();
+  const [consent, setConsent] = useState({ privacy: false, terms: false, date: null });
+
+  useEffect(() => {
+    if (user) setConsent(getConsentStatus());
+  }, [user, getConsentStatus]);
+
+  const handleWithdraw = () => {
+    if (!confirm('撤回同意隐私政策和用户协议将导致您被退出登录，且无法继续使用本平台服务。确定要撤回吗？')) return;
+    withdrawConsent();
+    toast.success('已撤回同意，您已被退出登录');
+  };
+
   return (
     <PageLayout hero={{ icon: 'fa-circle-info', title: '关于', subtitle: `v${VERSION}` }}>
       {/* 项目简介 */}
@@ -141,14 +158,36 @@ export default function About() {
           <a href="/privacy" className="flex items-center gap-3 p-3 rounded-xl transition-all hover:opacity-80" style={{ background: 'var(--input-bg)', textDecoration: 'none' }}>
             <i className="fa-solid fa-shield-halved w-5 text-center" style={{ color: 'var(--primary-dark)' }} />
             <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Privacy Policy</span>
+            {user && consent.privacy && <i className="fa-solid fa-circle-check text-xs ml-1" style={{ color: 'var(--success)' }} />}
             <i className="fa-solid fa-chevron-right ml-auto text-xs" style={{ color: 'var(--text-muted)' }} />
           </a>
           <a href="/terms" className="flex items-center gap-3 p-3 rounded-xl transition-all hover:opacity-80" style={{ background: 'var(--input-bg)', textDecoration: 'none' }}>
             <i className="fa-solid fa-file-contract w-5 text-center" style={{ color: 'var(--primary-dark)' }} />
             <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>用户协议</span>
+            {user && consent.terms && <i className="fa-solid fa-circle-check text-xs ml-1" style={{ color: 'var(--success)' }} />}
             <i className="fa-solid fa-chevron-right ml-auto text-xs" style={{ color: 'var(--text-muted)' }} />
           </a>
         </div>
+        {user && consent.date && (
+          <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
+            同意时间：{new Date(consent.date).toLocaleString('zh-CN')}
+          </p>
+        )}
+        {user && (
+          <div className="mt-4 p-3 rounded-xl" style={{ background: 'rgba(232, 131, 124, 0.08)', border: '1px solid rgba(232, 131, 124, 0.3)' }}>
+            <div className="flex items-start gap-2">
+              <i className="fa-solid fa-triangle-exclamation mt-0.5 text-xs" style={{ color: 'var(--danger)' }} />
+              <div className="flex-1">
+                <p className="text-xs mb-2" style={{ color: 'var(--text-light)' }}>
+                  撤回同意将导致您被退出登录，且无法继续使用本平台服务。
+                </p>
+                <button className="btn btn-sm" style={{ background: 'var(--danger)', color: 'white' }} onClick={handleWithdraw}>
+                  <i className="fa-solid fa-ban" /> 撤回同意
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 支持我们 */}
