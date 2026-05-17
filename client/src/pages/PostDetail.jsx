@@ -270,7 +270,7 @@ export default function PostDetail() {
           <p className="text-sm">暂无评论，快来抢沙发！</p>
         </div>
       ) : (
-        <div className="space-y-3 mb-5">
+        <div className="space-y-3 mb-5 miui-list-enter">
           {comments.map((c, i) => (
             <div key={c.id} className="card stagger-item animate-fade-in-up" style={{ padding: '1rem', animationDelay: `${i * 0.05}s` }}>
               <div className="flex items-center gap-2 mb-2">

@@ -3,6 +3,7 @@ import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import Sidebar from './components/Sidebar';
 import MobileBottomNav from './components/MobileBottomNav';
+import CookieConsent from './components/CookieConsent';
 import BackToTop from './components/BackToTop';
 import BackButton from './components/BackButton';
 import ScrollProgress from './components/ScrollProgress';
@@ -98,7 +99,7 @@ export default function App() {
       <ScrollToTop />
       <Sidebar />
       <div className="app-main-content">
-        <div className="container mx-auto px-5 py-6 max-w-[860px] page-enter">
+        <div className="container mx-auto px-5 py-6 max-w-[860px] page-transition-enter">
           <BackButton />
           <ErrorBoundary>
             <Suspense fallback={<PageFallback />}>
@@ -145,6 +146,7 @@ export default function App() {
         </footer>
       </div>
       <MobileBottomNav />
+      <CookieConsent />
       <ScrollProgress />
       <BackToTop />
     </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import PageLayout from '../components/PageLayout';
 import { LoadingSkeleton, Spinner } from '../components/Feedback';
+import TabBar from '../components/TabBar';
 import { adminAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -116,17 +117,7 @@ export default function AdminPage() {
     <>
     <PageLayout hero={{ icon: 'fa-shield-halved', title: '管理后台' }}>
       {/* 标签页 */}
-      <div className="flex gap-2 mb-5 flex-wrap tab-bar">
-        {TABS.map(t => (
-          <button
-            key={t.key}
-            className={`btn btn-sm ${tab === t.key ? 'btn-primary' : 'btn-outline'}`}
-            onClick={() => setTab(t.key)}
-          >
-            <i className={`fa-solid ${t.icon}`} /> {t.label}
-          </button>
-        ))}
-      </div>
+      <TabBar tabs={TABS} value={tab} onChange={setTab} />
 
       {/* 概览 */}
       {tab === 'overview' && (
@@ -152,7 +143,7 @@ export default function AdminPage() {
       {/* 用户管理 */}
       {tab === 'users' && (
         loading ? <LoadingSkeleton count={5} height={60} /> : (
-          <div className="space-y-2">
+          <div className="space-y-2 miui-list-enter">
             {users.length === 0 ? (
               <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>暂无用户</p>
             ) : users.map(u => (
@@ -198,7 +189,7 @@ export default function AdminPage() {
       {/* 帖子管理 */}
       {tab === 'posts' && (
         loading ? <LoadingSkeleton count={5} height={80} /> : (
-          <div className="space-y-2">
+          <div className="space-y-2 miui-list-enter">
             {posts.length === 0 ? (
               <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>暂无帖子</p>
             ) : posts.map(p => (

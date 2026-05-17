@@ -456,7 +456,172 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   flex: 1; min-width: 0; min-height: 0; overflow-y: auto;
 }
 
-/* ====== 移动端底部导航 ====== */
+/* ====== MIUI 风格标签栏 ====== */
+.miui-tab-bar-wrapper {
+  margin-bottom: 1.25rem;
+}
+.miui-tab-bar {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--input-bg);
+  border-radius: var(--radius-sm);
+  position: relative;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.miui-tab-bar::-webkit-scrollbar { display: none; }
+
+.miui-tab {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: calc(var(--radius-sm) - 4px);
+  transition: color 0.2s ease;
+  white-space: nowrap;
+  position: relative;
+  z-index: 2;
+  font-family: var(--font);
+}
+.miui-tab i {
+  font-size: 0.8rem;
+}
+.miui-tab.active {
+  color: var(--text);
+}
+.miui-tab:not(.active):hover {
+  color: var(--text-light);
+}
+
+/* 滑动指示器 — MIUI 弹性动画 */
+.miui-tab-indicator {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  height: calc(100% - 8px);
+  background: var(--bg-card);
+  border-radius: calc(var(--radius-sm) - 4px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 0.5px 1px rgba(0, 0, 0, 0.04);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), width 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 1;
+  pointer-events: none;
+}
+[data-theme="dark"] .miui-tab-indicator {
+  background: var(--bg-sidebar);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+[data-theme="colorful"] .miui-tab-indicator {
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* 标签内容切换动画 */
+.miui-tab-content {
+  position: relative;
+  overflow: hidden;
+}
+.miui-tab-content > div {
+  animation: tabFadeIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* MIUI 风格页面切换动画 */
+.page-transition-enter {
+  animation: miuiPageIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes miuiPageIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 列表项交错入场 — MIUI 快速淡入 */
+.miui-list-enter > * {
+  animation: miuiListItem 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.miui-list-enter > *:nth-child(1) { animation-delay: 0s; }
+.miui-list-enter > *:nth-child(2) { animation-delay: 0.03s; }
+.miui-list-enter > *:nth-child(3) { animation-delay: 0.06s; }
+.miui-list-enter > *:nth-child(4) { animation-delay: 0.09s; }
+.miui-list-enter > *:nth-child(5) { animation-delay: 0.12s; }
+.miui-list-enter > *:nth-child(6) { animation-delay: 0.15s; }
+.miui-list-enter > *:nth-child(7) { animation-delay: 0.18s; }
+.miui-list-enter > *:nth-child(8) { animation-delay: 0.21s; }
+.miui-list-enter > *:nth-child(n+9) { animation-delay: 0.24s; }
+
+@keyframes miuiListItem {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 底部导航 MIUI 风格切换动画 */
+.bottom-nav-floating a {
+  transition: color 0.2s ease, transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.bottom-nav-floating a.active {
+  animation: navPop 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes navPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@media (max-width: 768px) {
+  .miui-tab-bar {
+    gap: 1px;
+    padding: 3px;
+  }
+  .miui-tab {
+    padding: 7px 12px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .miui-tab-indicator {
+    transition: none;
+  }
+  .miui-tab-content > div,
+  .miui-list-enter > *,
+  .page-transition-enter {
+    animation: none !important;
+  }
+}
 .bottom-nav-floating {
   position: fixed; bottom: 12px; left: 12px; right: 12px; z-index: 100;
   height: 56px;
@@ -689,7 +854,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 /* 主题切换过渡 */
 body, .card, .hero-card, .btn, .form-control, .sidebar-link,
 .rank-item, .tag, .toast, .back-to-top {
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 /* ====== 更多菜单按钮 ====== */
@@ -797,11 +962,38 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
 
 /* 卡片悬停增强 */
 .hover-lift {
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+  will-change: transform;
 }
 .hover-lift:hover {
   transform: translateY(-3px);
-  box-shadow: var(--shadow-hover);
+  box-shadow: 0 6px 20px rgba(168, 216, 240, 0.3);
+}
+
+/* GPU加速卡 */
+.card, .hover-lift, .rank-item {
+  transform: translateZ(0);
+}
+
+/* 减少动效偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .hero-card::after {
+    animation: none;
+    display: none;
+  }
+  .stagger-item {
+    animation: none !important;
+    opacity: 1;
+  }
+  [data-theme="colorful"] body {
+    animation: none !important;
+  }
 }
 
 /* 脉冲动画（用于通知红点） */

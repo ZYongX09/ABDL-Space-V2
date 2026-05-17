@@ -5,6 +5,7 @@ import { LoadingSkeleton, EmptyState } from '../components/Feedback';
 import { useVerifyModal } from '../components/VerifyModal';
 import ImageUploader from '../components/ImageUploader';
 import ImageGrid from '../components/ImageGrid';
+import PullToRefresh from '../components/PullToRefresh';
 import RichContent from '../components/RichContent';
 import OfficialBadge from '../components/OfficialBadge';
 import { forumAPI } from '../api';
@@ -131,12 +132,13 @@ export default function ForumFeed() {
       )}
 
       {/* 帖子列表 */}
+      <PullToRefresh onRefresh={loadPosts}>
       {loading ? (
         <LoadingSkeleton count={4} height={100} />
       ) : posts.length === 0 ? (
         <EmptyState icon="fa-comments" title="暂无帖子" description="快来发第一帖吧！" />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 miui-list-enter">
           {posts.map((post, i) => (
             <div key={post.id} className={`card stagger-item ${post.pinned ? 'post-pinned' : ''}`} style={{ padding: '1.25rem' }}>
               {post.pinned && (
@@ -190,6 +192,7 @@ export default function ForumFeed() {
           ))}
         </div>
       )}
+      </PullToRefresh>
     {VerifyModal}
     </PageLayout>
   );
