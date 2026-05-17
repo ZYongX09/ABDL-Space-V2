@@ -11,8 +11,6 @@ const TABS = [
   { key: 'overview', label: '概览', icon: 'fa-chart-pie' },
   { key: 'users', label: '用户', icon: 'fa-users' },
   { key: 'posts', label: '帖子', icon: 'fa-file-lines' },
-  { key: 'comments', label: '评论', icon: 'fa-comments' },
-  { key: 'diapers', label: '纸尿裤', icon: 'fa-baby' },
 ];
 
 export default function AdminPage() {
@@ -25,8 +23,6 @@ export default function AdminPage() {
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [posts, setPosts] = useState([]);
-  const [comments, setComments] = useState([]);
-  const [diapers, setDiapers] = useState([]);
 
   useEffect(() => {
     if (user?.role !== 'admin') { setLoading(false); return; }
@@ -45,12 +41,6 @@ export default function AdminPage() {
       } else if (t === 'posts') {
         const data = await adminAPI.posts();
         setPosts(data.posts || []);
-      } else if (t === 'comments') {
-        const data = await adminAPI.comments();
-        setComments(data.comments || []);
-      } else if (t === 'diapers') {
-        const data = await adminAPI.diapers();
-        setDiapers(data.diapers || []);
       }
     } catch (e) {
       toast.error(e.message);
@@ -107,25 +97,7 @@ export default function AdminPage() {
     });
   };
 
-  const handleDeleteComment = async (id) => {
-    trigger(async () => {
-      try {
-        await adminAPI.deleteComment(id);
-        setComments(prev => prev.filter(c => c.id !== id));
-        toast.success('已删除');
-      } catch (e) { toast.error(e.message); }
-    });
-  };
 
-  const handleDeleteDiaper = async (id) => {
-    trigger(async () => {
-      try {
-        await adminAPI.deleteDiaper(id);
-        setDiapers(prev => prev.filter(d => d.id !== id));
-        toast.success('已删除');
-      } catch (e) { toast.error(e.message); }
-    });
-  };
 
   if (!user || user.role !== 'admin') {
     return (
@@ -264,63 +236,7 @@ export default function AdminPage() {
         )
       )}
 
-      {/* 评论管理 */}
-      {tab === 'comments' && (
-        loading ? <LoadingSkeleton count={5} height={60} /> : (
-          <div className="space-y-2">
-            {comments.length === 0 ? (
-              <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>暂无评论</p>
-            ) : comments.map(c => (
-              <div key={c.id} className="card stagger-item animate-fade-in-up" style={{ padding: '0.75rem 1rem' }}>
-                <div className="flex items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>{c.user?.username || '匿名'}</span>
-                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        回复帖子 #{c.post_id} · {c.created_at ? new Date(c.created_at).toLocaleString('zh-CN') : '-'}
-                      </span>
-                    </div>
-                    <p className="text-sm" style={{ color: 'var(--text)' }}>{c.content}</p>
-                  </div>
-                  <button className="btn btn-sm flex-shrink-0" style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'var(--danger)', color: 'white' }}
-                    onClick={() => handleDeleteComment(c.id)} title="删除评论">
-                    <i className="fa-solid fa-trash" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      )}
 
-      {/* 纸尿裤管理 */}
-      {tab === 'diapers' && (
-        loading ? <LoadingSkeleton count={5} height={60} /> : (
-          <div className="space-y-2">
-            {diapers.length === 0 ? (
-              <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>暂无纸尿裤</p>
-            ) : diapers.map(d => (
-              <div key={d.id} className="card stagger-item animate-fade-in-up" style={{ padding: '0.75rem 1rem' }}>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{d.brand} {d.model}</div>
-                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {d.product_type || '-'} · 厚度 {d.thickness || '-'}/5 · ID: {d.id}
-                    </div>
-                  </div>
-                  <Link to={`/diaper/${d.id}`} className="btn btn-outline btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem' }} title="查看详情">
-                    <i className="fa-solid fa-eye" />
-                  </Link>
-                  <button className="btn btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'var(--danger)', color: 'white' }}
-                    onClick={() => handleDeleteDiaper(d.id)} title="删除">
-                    <i className="fa-solid fa-trash" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      )}
     </PageLayout>
     <>{VerifyModal}</>
     </>

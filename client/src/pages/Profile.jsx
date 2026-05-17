@@ -190,7 +190,7 @@ export default function Profile() {
           <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>还没有发过帖子</p>
         ) : (
           <div className="space-y-2">
-            {myPosts.slice(0, 5).map(p => (
+            {myPosts.map(p => (
               <Link
                 key={p.id}
                 to={`/forum/${p.id}`}
@@ -205,11 +205,6 @@ export default function Profile() {
                 </div>
               </Link>
             ))}
-            {myPosts.length > 5 && (
-              <p className="text-xs text-center pt-1" style={{ color: 'var(--text-muted)' }}>
-                共 {myPosts.length} 条，仅显示最近 5 条
-              </p>
-            )}
           </div>
         )}
       </div>
