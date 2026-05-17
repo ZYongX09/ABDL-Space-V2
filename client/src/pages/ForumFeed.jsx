@@ -169,7 +169,7 @@ export default function ForumFeed() {
                       <ImageGrid images={post.images} />
                     </Link>
                   )}
-                  <div className="flex items-center gap-4 mt-3">
+                  <div className="flex items-center gap-4 mt-3 post-actions">
                     <button
                       className={`flex items-center gap-1.5 text-sm transition-colors ${post.has_liked ? 'font-bold' : ''}`}
                       style={{ color: post.has_liked ? 'var(--danger)' : 'var(--text-light)', background: 'none', border: 'none', cursor: 'pointer' }}

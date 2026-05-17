@@ -116,7 +116,7 @@ export default function AdminPage() {
     <>
     <PageLayout hero={{ icon: 'fa-shield-halved', title: '管理后台' }}>
       {/* 标签页 */}
-      <div className="flex gap-2 mb-5 flex-wrap">
+      <div className="flex gap-2 mb-5 flex-wrap tab-bar">
         {TABS.map(t => (
           <button
             key={t.key}
@@ -131,7 +131,7 @@ export default function AdminPage() {
       {/* 概览 */}
       {tab === 'overview' && (
         loading ? <Spinner /> : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 admin-stats-grid">
             {[
               { label: '用户', value: stats?.users, icon: 'fa-users', color: 'var(--primary)' },
               { label: '帖子', value: stats?.posts, icon: 'fa-file-lines', color: 'var(--accent)' },

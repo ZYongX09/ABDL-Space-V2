@@ -244,7 +244,7 @@ export default function PostDetail() {
           </>
         )}
 
-        <div className="flex items-center gap-4 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
+        <div className="flex items-center gap-4 pt-3 border-t post-actions" style={{ borderColor: 'var(--border)' }}>
           <button
             className={`btn-icon ${post.has_liked ? 'liked' : ''}`}
             onClick={handleLike}

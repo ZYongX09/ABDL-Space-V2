@@ -868,6 +868,136 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
   input.form-control[placeholder*="搜索"] {
     font-size: 16px;
   }
+
+  /* 帖子卡片移动端布局 */
+  .post-card-mobile {
+    flex-direction: column;
+  }
+  .post-card-mobile .post-avatar {
+    width: 36px; height: 36px; font-size: 0.8rem;
+  }
+
+  /* 快捷操作按钮 2列自适应 */
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .quick-action-item {
+    padding: 12px 8px;
+  }
+  .quick-action-item i {
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+  }
+  .quick-action-item .text-sm {
+    font-size: 0.75rem;
+  }
+
+  /* 帖子操作栏移动端 */
+  .post-actions {
+    gap: 12px;
+  }
+  .post-actions button,
+  .post-actions a {
+    min-height: 36px;
+    padding: 6px 10px;
+  }
+
+  /* 评论卡片移动端 */
+  .comment-card {
+    padding: 0.75rem;
+  }
+  .comment-card .comment-avatar {
+    width: 28px; height: 28px; font-size: 0.65rem;
+  }
+
+  /* 管理后台统计卡片 */
+  .admin-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .admin-stat-card {
+    padding: 12px 8px;
+  }
+  .admin-stat-card .text-2xl {
+    font-size: 1.25rem;
+  }
+
+  /* 用户列表移动端 */
+  .admin-user-item {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .admin-user-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  /* 图片网格移动端更大 */
+  .img-grid-item { min-height: 80px; }
+
+  /* 返回按钮移动端 */
+  .back-link {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+
+  /* 表单区域移动端 */
+  .form-section {
+    padding: 12px;
+  }
+
+  /* 标签页移动端 */
+  .tab-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 6px;
+    padding-bottom: 4px;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-bar .btn-sm {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* 个人中心头像缩小 */
+  .profile-avatar {
+    width: 48px; height: 48px;
+    font-size: 1.25rem;
+  }
+
+  /* 设置主题卡片 */
+  .theme-card {
+    padding: 14px 10px;
+  }
+  .theme-card .text-2xl {
+    font-size: 1.5rem;
+  }
+
+  /* 列表项触控优化 */
+  .list-item {
+    min-height: 48px;
+    padding: 10px 12px;
+  }
+
+  /* 文字截断 */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Hero Card 移动端图标缩小 */
+  .hero-card .w-12 {
+    width: 40px; height: 40px;
+    font-size: 1rem;
+    border-radius: 12px;
+  }
+  .hero-card .text-lg {
+    font-size: 1rem;
+  }
 }
 
 @keyframes slideUp {
@@ -882,6 +1012,8 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
   .btn { padding: 7px 14px; font-size: 0.85rem; }
   .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
   .form-control { padding: 10px 12px; }
+  .quick-actions-grid { gap: 6px; }
+  .admin-stats-grid { gap: 6px; }
 }
 
 /* ====== 安全区适配（刘海屏/底部横条） ====== */
@@ -892,4 +1024,12 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
   .sidebar-mobile {
     padding-bottom: calc(16px + env(safe-area-inset-bottom));
   }
+}
+
+/* ====== 横屏优化 ====== */
+@media (max-width: 768px) and (orientation: landscape) {
+  .hero-card { padding: 12px 20px; }
+  .bottom-nav-floating { height: 48px; bottom: 8px; }
+  .bottom-nav-floating a { padding: 4px 10px; font-size: 0.6rem; }
+  .bottom-nav-floating a i { font-size: 1rem; }
 }

@@ -210,7 +210,7 @@ export default function Profile() {
       </div>
 
       {/* 快捷操作 */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 quick-actions-grid">
         {[
           { to: '/messages', icon: 'fa-envelope', label: '私信' },
           { to: '/notifications', icon: 'fa-bell', label: '通知' },
