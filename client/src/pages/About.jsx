@@ -1,9 +1,17 @@
 import PageLayout from '../components/PageLayout';
 
-const VERSION = '2.6.0';
-const LAST_UPDATE = '2026-05-17';
+const VERSION = '2.6.1';
+const LAST_UPDATE = '2026-05-18';
 
 const CHANGELOG = [
+  {
+    version: '2.6.1',
+    date: '2026-05-18',
+    changes: [
+      '关于页新增 GitHub 和开发者博客入口',
+      '支持 Cloudflare Pages 部署',
+    ],
+  },
   {
     version: '2.6.0',
     date: '2026-05-17',
