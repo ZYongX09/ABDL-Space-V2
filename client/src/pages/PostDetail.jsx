@@ -4,7 +4,7 @@ import PageLayout from '../components/PageLayout';
 import { Spinner } from '../components/Feedback';
 import ImageGrid from '../components/ImageGrid';
 import ImageUploader from '../components/ImageUploader';
-import { forumAPI } from '../api';
+import { forumAPI, adminAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useVerifyModal } from '../components/VerifyModal';
@@ -19,11 +19,27 @@ export default function PostDetail() {
   const [commentText, setCommentText] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [showMenu, setShowMenu] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editContent, setEditContent] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
   const imgRef = useRef(null);
+  const menuRef = useRef(null);
   const lastCommentTime = useRef(0);
   const { user } = useAuth();
   const toast = useToast();
   const { trigger, VerifyModal } = useVerifyModal();
+
+  const isOwner = user && user.id === post?.user?.id;
+  const isAdmin = user?.role === 'admin';
+
+  // 点击外部关闭菜单
+  useEffect(() => {
+    if (!showMenu) return;
+    const handler = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showMenu]);
 
   // 冷却计时器
   useEffect(() => {
@@ -47,9 +63,16 @@ export default function PostDetail() {
     })();
   }, [id]);
 
+  const loadPost = async () => {
+    try {
+      const data = await forumAPI.getPost(id);
+      setPost(data.post);
+      setComments(data.comments || []);
+    } catch {}
+  };
+
   const handleComment = async () => {
     if (!commentText.trim() && !imgRef.current?.hasPending()) return;
-    // 冷却检查
     const now = Date.now();
     const elapsed = (now - lastCommentTime.current) / 1000;
     if (elapsed < 15) {
@@ -84,10 +107,50 @@ export default function PostDetail() {
     if (!user) { toast.error('请先登录'); return; }
     try {
       await forumAPI.like({ target_type: 'post', target_id: Number(id) });
-      const data = await forumAPI.getPost(id);
-      setPost(data.post);
+      await loadPost();
     } catch (e) {
       toast.error(e.message);
+    }
+  };
+
+  const handleDelete = () => {
+    setShowMenu(false);
+    trigger(async () => {
+      try {
+        await forumAPI.delete(post.id);
+        toast.success('帖子已删除');
+        window.history.back();
+      } catch (e) { toast.error(e.message); }
+    });
+  };
+
+  const handlePin = async () => {
+    setShowMenu(false);
+    try {
+      const data = await adminAPI.pinPost(post.id);
+      toast.success(data.pinned ? '已置顶' : '已取消置顶');
+      await loadPost();
+    } catch (e) { toast.error(e.message); }
+  };
+
+  const startEdit = () => {
+    setShowMenu(false);
+    setEditContent(post.content);
+    setEditing(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editContent.trim()) { toast.error('内容不能为空'); return; }
+    setEditSaving(true);
+    try {
+      await forumAPI.editPost(post.id, { content: editContent.trim() });
+      toast.success('已修改');
+      setEditing(false);
+      await loadPost();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -97,59 +160,114 @@ export default function PostDetail() {
   return (
     <>
     <PageLayout hero={{ icon: 'fa-file-lines', title: '帖子详情' }}>
-      <div className="card mb-5">
+      <div className="card mb-5 animate-fade-in-up">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
             style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
             {post.user?.username?.[0]?.toUpperCase() || '?'}
           </div>
-          <div>
-            <Link to={`/user/${post.user?.id}`} className="font-semibold text-sm hover:underline" style={{ color: 'var(--text)' }}>
-              {post.user?.username || '匿名'}
-            </Link>
-            {post.user?.role === 'admin' && <OfficialBadge className="ml-1.5" />}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <Link to={`/user/${post.user?.id}`} className="font-semibold text-sm hover:underline" style={{ color: 'var(--text)' }}>
+                {post.user?.username || '匿名'}
+              </Link>
+              {post.user?.role === 'admin' && <OfficialBadge className="ml-1.5" />}
+            </div>
             <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
               {new Date(post.created_at).toLocaleString('zh-CN')}
             </div>
           </div>
+          {/* 更多按钮 */}
+          {(isOwner || isAdmin) && (
+            <div className="relative" ref={menuRef}>
+              <button
+                className="btn-menu"
+                onClick={() => setShowMenu(!showMenu)}
+                title="更多操作"
+              >
+                <i className="fa-solid fa-ellipsis-vertical" />
+              </button>
+              {showMenu && (
+                <div className="dropdown-menu animate-fade-in-scale">
+                  {isAdmin && (
+                    <button className="dropdown-item" onClick={handlePin}>
+                      <i className={`fa-solid fa-thumbtack ${post.pinned ? '' : 'opacity-50'}`} />
+                      {post.pinned ? '取消置顶' : '置顶帖子'}
+                    </button>
+                  )}
+                  {isOwner && (
+                    <button className="dropdown-item" onClick={startEdit}>
+                      <i className="fa-solid fa-pen" />
+                      编辑帖子
+                    </button>
+                  )}
+                  <button className="dropdown-item dropdown-item-danger" onClick={handleDelete}>
+                    <i className="fa-solid fa-trash" />
+                    删除帖子
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        <p className="whitespace-pre-wrap break-words mb-4"><RichContent text={post.content} /></p>
-        {post.images && post.images.length > 0 && <ImageGrid images={post.images} />}
+
+        {/* 帖子内容 / 编辑模式 */}
+        {editing ? (
+          <div className="animate-fade-in-up">
+            <textarea
+              className="form-control mb-3"
+              value={editContent}
+              onChange={e => setEditContent(e.target.value)}
+              rows={4}
+              maxLength={5000}
+              disabled={editSaving}
+            />
+            <div className="text-xs mb-2" style={{ color: editContent.length > 4500 ? 'var(--danger)' : 'var(--text-muted)' }}>
+              {editContent.length}/5000
+            </div>
+            <div className="flex gap-2">
+              <button className="btn btn-primary btn-sm" onClick={handleEditSave} disabled={editSaving || !editContent.trim()}>
+                {editSaving ? <><i className="fa-solid fa-spinner fa-spin mr-1" />保存中</> : '保存'}
+              </button>
+              <button className="btn btn-outline btn-sm" onClick={() => setEditing(false)} disabled={editSaving}>取消</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="whitespace-pre-wrap break-words mb-4"><RichContent text={post.content} /></p>
+            {post.images && post.images.length > 0 && <ImageGrid images={post.images} />}
+          </>
+        )}
+
         <div className="flex items-center gap-4 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
           <button
-            className={`flex items-center gap-1.5 text-sm ${post.has_liked ? 'font-bold' : ''}`}
-            style={{ color: post.has_liked ? 'var(--danger)' : 'var(--text-light)', background: 'none', border: 'none', cursor: 'pointer' }}
+            className={`btn-icon ${post.has_liked ? 'liked' : ''}`}
             onClick={handleLike}
           >
             <i className={`${post.has_liked ? 'fa-solid' : 'fa-regular'} fa-heart`} />
-            {post.like_count || 0}
+            <span>{post.like_count || 0}</span>
           </button>
-          <span className="text-sm" style={{ color: 'var(--text-light)' }}>
-            <i className="fa-regular fa-comment mr-1.5" />{comments.length}
+          <span className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-light)' }}>
+            <i className="fa-regular fa-comment" />
+            {comments.length}
           </span>
-          {user && user.id === post.user?.id && (
-            <button
-              className="flex items-center gap-1 text-sm ml-auto"
-              style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
-              onClick={() => trigger(async () => { try { await forumAPI.delete(post.id); toast.success('已删除'); window.history.back(); } catch (e) { toast.error(e.message); } })}
-              title="删除帖子"
-            >
-              <i className="fa-regular fa-trash-can" />
-            </button>
-          )}
         </div>
       </div>
 
       {/* 评论列表 */}
       <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--text)' }}>
+        <i className="fa-regular fa-comments mr-2" style={{ color: 'var(--primary-dark)' }} />
         评论 ({comments.length})
       </h3>
       {comments.length === 0 ? (
-        <p className="text-sm text-center py-6" style={{ color: 'var(--text-muted)' }}>暂无评论，快来抢沙发！</p>
+        <div className="text-center py-8" style={{ color: 'var(--text-muted)' }}>
+          <i className="fa-regular fa-comment-dots text-3xl mb-2 block opacity-40" />
+          <p className="text-sm">暂无评论，快来抢沙发！</p>
+        </div>
       ) : (
         <div className="space-y-3 mb-5">
-          {comments.map(c => (
-            <div key={c.id} className="card" style={{ padding: '1rem' }}>
+          {comments.map((c, i) => (
+            <div key={c.id} className="card stagger-item animate-fade-in-up" style={{ padding: '1rem', animationDelay: `${i * 0.05}s` }}>
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
                   style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
@@ -168,7 +286,7 @@ export default function PostDetail() {
 
       {/* 评论表单 */}
       {user ? (
-        <div className="card">
+        <div className="card animate-fade-in-up">
           <textarea
             className="form-control mb-2"
             placeholder="写下你的评论..."

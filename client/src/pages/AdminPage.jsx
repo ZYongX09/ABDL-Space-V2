@@ -11,6 +11,8 @@ const TABS = [
   { key: 'overview', label: '概览', icon: 'fa-chart-pie' },
   { key: 'users', label: '用户', icon: 'fa-users' },
   { key: 'posts', label: '帖子', icon: 'fa-file-lines' },
+  { key: 'comments', label: '评论', icon: 'fa-comments' },
+  { key: 'diapers', label: '纸尿裤', icon: 'fa-baby' },
 ];
 
 export default function AdminPage() {
@@ -20,14 +22,11 @@ export default function AdminPage() {
   const [tab, setTab] = useState('overview');
   const [loading, setLoading] = useState(true);
 
-  // 概览
   const [stats, setStats] = useState(null);
-
-  // 用户
   const [users, setUsers] = useState([]);
-
-  // 帖子
   const [posts, setPosts] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [diapers, setDiapers] = useState([]);
 
   useEffect(() => {
     if (user?.role !== 'admin') { setLoading(false); return; }
@@ -46,6 +45,12 @@ export default function AdminPage() {
       } else if (t === 'posts') {
         const data = await adminAPI.posts();
         setPosts(data.posts || []);
+      } else if (t === 'comments') {
+        const data = await adminAPI.comments();
+        setComments(data.comments || []);
+      } else if (t === 'diapers') {
+        const data = await adminAPI.diapers();
+        setDiapers(data.diapers || []);
       }
     } catch (e) {
       toast.error(e.message);
@@ -74,6 +79,16 @@ export default function AdminPage() {
     });
   };
 
+  const handlePromoteUser = async (id) => {
+    trigger(async () => {
+      try {
+        await adminAPI.promoteUser(id);
+        setUsers(prev => prev.map(u => u.id === id ? { ...u, role: 'admin' } : u));
+        toast.success('已提升为管理员');
+      } catch (e) { toast.error(e.message); }
+    });
+  };
+
   const handlePinPost = async (id) => {
     try {
       const data = await adminAPI.pinPost(id);
@@ -87,6 +102,26 @@ export default function AdminPage() {
       try {
         await adminAPI.deletePost(id);
         setPosts(prev => prev.filter(p => p.id !== id));
+        toast.success('已删除');
+      } catch (e) { toast.error(e.message); }
+    });
+  };
+
+  const handleDeleteComment = async (id) => {
+    trigger(async () => {
+      try {
+        await adminAPI.deleteComment(id);
+        setComments(prev => prev.filter(c => c.id !== id));
+        toast.success('已删除');
+      } catch (e) { toast.error(e.message); }
+    });
+  };
+
+  const handleDeleteDiaper = async (id) => {
+    trigger(async () => {
+      try {
+        await adminAPI.deleteDiaper(id);
+        setDiapers(prev => prev.filter(d => d.id !== id));
         toast.success('已删除');
       } catch (e) { toast.error(e.message); }
     });
@@ -132,7 +167,7 @@ export default function AdminPage() {
               { label: '产品', value: stats?.diapers, icon: 'fa-baby', color: 'var(--success)' },
               { label: '评分', value: stats?.ratings, icon: 'fa-star', color: 'var(--warning)' },
             ].map(s => (
-              <div key={s.label} className="card text-center stagger-item">
+              <div key={s.label} className="card text-center stagger-item animate-fade-in-up">
                 <i className={`fa-solid ${s.icon} text-xl mb-1.5`} style={{ color: s.color }} />
                 <div className="text-2xl font-bold" style={{ color: 'var(--text)' }}>{s.value ?? '-'}</div>
                 <div className="text-xs" style={{ color: 'var(--text-light)' }}>{s.label}</div>
@@ -149,7 +184,7 @@ export default function AdminPage() {
             {users.length === 0 ? (
               <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>暂无用户</p>
             ) : users.map(u => (
-              <div key={u.id} className="card flex items-center gap-3 stagger-item" style={{ padding: '0.75rem 1rem' }}>
+              <div key={u.id} className="card flex items-center gap-3 stagger-item animate-fade-in-up" style={{ padding: '0.75rem 1rem' }}>
                 <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
                   style={{ background: u.banned ? 'rgba(232,131,124,0.2)' : 'var(--primary-light)', color: u.banned ? 'var(--danger)' : 'var(--primary-dark)' }}>
                   {u.username?.[0]?.toUpperCase()}
@@ -167,6 +202,10 @@ export default function AdminPage() {
                 <div className="flex gap-1.5 flex-shrink-0">
                   {u.role !== 'admin' && (
                     <>
+                      <button className="btn btn-outline btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                        onClick={() => handlePromoteUser(u.id)} title="提升为管理员">
+                        <i className="fa-solid fa-user-shield" />
+                      </button>
                       <button className="btn btn-outline btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem' }}
                         onClick={() => handleBanUser(u.id)} title={u.banned ? '解封' : '封禁'}>
                         <i className={`fa-solid ${u.banned ? 'fa-unlock' : 'fa-ban'}`} />
@@ -191,7 +230,7 @@ export default function AdminPage() {
             {posts.length === 0 ? (
               <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>暂无帖子</p>
             ) : posts.map(p => (
-              <div key={p.id} className="card stagger-item" style={{ padding: '0.75rem 1rem' }}>
+              <div key={p.id} className="card stagger-item animate-fade-in-up" style={{ padding: '0.75rem 1rem' }}>
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -200,7 +239,9 @@ export default function AdminPage() {
                         {p.user?.username || '匿名'} · {p.created_at ? new Date(p.created_at).toLocaleString('zh-CN') : '-'}
                       </span>
                     </div>
-                    <p className="text-sm truncate" style={{ color: 'var(--text)' }}>{p.content}</p>
+                    <Link to={`/forum/${p.id}`} className="text-sm hover:underline block" style={{ color: 'var(--text)', textDecoration: 'none' }}>
+                      <p className="truncate">{p.content}</p>
+                    </Link>
                     <div className="flex items-center gap-3 mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
                       <span><i className="fa-solid fa-heart mr-1" />{p.like_count || 0}</span>
                       <span><i className="fa-solid fa-comment mr-1" />{p.comment_count || 0}</span>
@@ -216,6 +257,64 @@ export default function AdminPage() {
                       <i className="fa-solid fa-trash" />
                     </button>
                   </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+
+      {/* 评论管理 */}
+      {tab === 'comments' && (
+        loading ? <LoadingSkeleton count={5} height={60} /> : (
+          <div className="space-y-2">
+            {comments.length === 0 ? (
+              <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>暂无评论</p>
+            ) : comments.map(c => (
+              <div key={c.id} className="card stagger-item animate-fade-in-up" style={{ padding: '0.75rem 1rem' }}>
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>{c.user?.username || '匿名'}</span>
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        回复帖子 #{c.post_id} · {c.created_at ? new Date(c.created_at).toLocaleString('zh-CN') : '-'}
+                      </span>
+                    </div>
+                    <p className="text-sm" style={{ color: 'var(--text)' }}>{c.content}</p>
+                  </div>
+                  <button className="btn btn-sm flex-shrink-0" style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'var(--danger)', color: 'white' }}
+                    onClick={() => handleDeleteComment(c.id)} title="删除评论">
+                    <i className="fa-solid fa-trash" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+
+      {/* 纸尿裤管理 */}
+      {tab === 'diapers' && (
+        loading ? <LoadingSkeleton count={5} height={60} /> : (
+          <div className="space-y-2">
+            {diapers.length === 0 ? (
+              <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>暂无纸尿裤</p>
+            ) : diapers.map(d => (
+              <div key={d.id} className="card stagger-item animate-fade-in-up" style={{ padding: '0.75rem 1rem' }}>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{d.brand} {d.model}</div>
+                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {d.product_type || '-'} · 厚度 {d.thickness || '-'}/5 · ID: {d.id}
+                    </div>
+                  </div>
+                  <Link to={`/diaper/${d.id}`} className="btn btn-outline btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem' }} title="查看详情">
+                    <i className="fa-solid fa-eye" />
+                  </Link>
+                  <button className="btn btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'var(--danger)', color: 'white' }}
+                    onClick={() => handleDeleteDiaper(d.id)} title="删除">
+                    <i className="fa-solid fa-trash" />
+                  </button>
                 </div>
               </div>
             ))}

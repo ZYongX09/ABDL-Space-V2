@@ -177,16 +177,7 @@ export default function ForumFeed() {
                       <i className="fa-regular fa-comment" />
                       {post.comment_count || 0}
                     </Link>
-                    {user && user.id === post.user?.id && (
-                      <button
-                        className="flex items-center gap-1 text-sm ml-auto"
-                        style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
-                        onClick={() => trigger(async () => { try { await forumAPI.delete(post.id); toast.success('已删除'); loadPosts(); } catch (e) { toast.error(e.message); } })}
-                        title="删除帖子"
-                      >
-                        <i className="fa-regular fa-trash-can" />
-                      </button>
-                    )}
+
                   </div>
                 </div>
               </div>

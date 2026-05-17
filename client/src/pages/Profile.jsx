@@ -1,15 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { usersAPI } from '../api';
 
 export default function Profile() {
   const { user, accounts, updateProfile, logout } = useAuth();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({});
+  const [myPosts, setMyPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(false);
   const toast = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      setPostsLoading(true);
+      try {
+        const data = await usersAPI.getPosts(user.id, { limit: 20 });
+        setMyPosts(data.posts || []);
+      } catch {} finally { setPostsLoading(false); }
+    })();
+  }, [user]);
 
   if (!user) {
     return (
@@ -157,6 +171,45 @@ export default function Profile() {
             <button className="btn btn-outline btn-sm mt-2" onClick={startEdit}>
               <i className="fa-solid fa-pen" /> 编辑资料
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* 我的帖子 */}
+      <div className="card mb-5">
+        <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--text)' }}>
+          <i className="fa-solid fa-file-lines" style={{ color: 'var(--primary-dark)' }} />
+          我的帖子
+          <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>({myPosts.length})</span>
+        </h3>
+        {postsLoading ? (
+          <div className="text-center py-4">
+            <i className="fa-solid fa-spinner fa-spin" style={{ color: 'var(--text-muted)' }} />
+          </div>
+        ) : myPosts.length === 0 ? (
+          <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>还没有发过帖子</p>
+        ) : (
+          <div className="space-y-2">
+            {myPosts.slice(0, 5).map(p => (
+              <Link
+                key={p.id}
+                to={`/forum/${p.id}`}
+                className="block p-3 rounded-lg transition-all hover:shadow-hover"
+                style={{ background: 'var(--input-bg)', textDecoration: 'none', color: 'var(--text)' }}
+              >
+                <p className="text-sm line-clamp-2 mb-1.5">{p.content}</p>
+                <div className="flex gap-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+                  <span><i className="fa-regular fa-heart mr-1" />{p.like_count || 0}</span>
+                  <span><i className="fa-regular fa-comment mr-1" />{p.comment_count || 0}</span>
+                  <span>{p.created_at ? new Date(p.created_at).toLocaleDateString('zh-CN') : ''}</span>
+                </div>
+              </Link>
+            ))}
+            {myPosts.length > 5 && (
+              <p className="text-xs text-center pt-1" style={{ color: 'var(--text-muted)' }}>
+                共 {myPosts.length} 条，仅显示最近 5 条
+              </p>
+            )}
           </div>
         )}
       </div>

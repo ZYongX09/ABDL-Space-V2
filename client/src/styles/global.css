@@ -692,6 +692,105 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
+/* ====== 更多菜单按钮 ====== */
+.btn-menu {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--input-bg); border: 1px solid var(--border);
+  color: var(--text-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem; transition: all 0.2s;
+  flex-shrink: 0;
+}
+.btn-menu:hover {
+  background: var(--primary-light);
+  color: var(--text);
+  border-color: var(--primary);
+}
+
+/* ====== 下拉菜单 ====== */
+.dropdown-menu {
+  position: absolute; top: 100%; right: 0; z-index: 50;
+  min-width: 160px; padding: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-top: 4px;
+}
+[data-theme="dark"] .dropdown-menu {
+  background: var(--bg-sidebar);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.dropdown-item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 8px 12px;
+  border: none; background: none;
+  color: var(--text); font-size: 0.85rem;
+  border-radius: 6px; cursor: pointer;
+  transition: background 0.15s;
+  font-family: var(--font);
+  text-align: left;
+}
+.dropdown-item:hover {
+  background: var(--primary-light);
+}
+.dropdown-item i {
+  width: 16px; text-align: center;
+  font-size: 0.8rem;
+}
+.dropdown-item-danger {
+  color: var(--danger);
+}
+.dropdown-item-danger:hover {
+  background: rgba(232, 131, 124, 0.1);
+}
+
+/* ====== 点赞按钮 ====== */
+.btn-icon {
+  display: flex; align-items: center; gap: 4px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-light); font-size: 0.9rem;
+  padding: 4px 8px; border-radius: 8px;
+  transition: all 0.2s;
+}
+.btn-icon:hover {
+  background: rgba(232, 131, 124, 0.08);
+}
+.btn-icon.liked {
+  color: var(--danger);
+}
+.btn-icon:active {
+  transform: scale(0.92);
+}
+
+/* ====== 更多动画 ====== */
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-fade-in-scale {
+  animation: fadeInScale 0.2s ease-out;
+}
+
+/* 卡片悬停增强 */
+.hover-lift {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
+}
+
+/* 脉冲动画（用于通知红点） */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
 /* 移动端触控反馈 */
 @media (max-width: 768px) {
   .card:active { transform: scale(0.985); transition: transform 0.1s ease; }

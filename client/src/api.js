@@ -426,6 +426,16 @@ export const forumAPI = {
     return { message: '已删除' };
   },
 
+  editPost: async (id, { content }) => {
+    if (USE_API) return apiFetch(`/api/posts/${id}`, { method: 'PATCH', body: JSON.stringify({ content }) });
+    const posts = LS.get('posts') || [];
+    const post = posts.find(p => p.id === Number(id));
+    if (!post) throw new Error('帖子不存在');
+    post.content = content;
+    LS.set('posts', posts);
+    return { message: '已修改' };
+  },
+
   comment: async (postId, { content, parent_id, images }) => {
     if (USE_API) return apiFetch(`/api/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ content, parent_id, images }) });
     const user = LS.get('currentUser');
@@ -680,5 +690,25 @@ export const adminAPI = {
   deleteDiaper: async (id) => {
     if (USE_API) return apiFetch(`/api/admin/diapers/${id}`, { method: 'DELETE' });
     return { message: '已删除' };
+  },
+
+  posts: async () => {
+    if (USE_API) return apiFetch('/api/admin/posts');
+    return { posts: LS.get('posts') || [] };
+  },
+
+  comments: async () => {
+    if (USE_API) return apiFetch('/api/admin/comments');
+    return { comments: [] };
+  },
+
+  diapers: async () => {
+    if (USE_API) return apiFetch('/api/admin/diapers');
+    return { diapers: [] };
+  },
+
+  promoteUser: async (id) => {
+    if (USE_API) return apiFetch('/api/admin/add', { method: 'POST', body: JSON.stringify({ user_ids: [id] }) });
+    return { message: '已提升' };
   },
 };
