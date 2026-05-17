@@ -93,37 +93,37 @@ const EN = () => {
               <td style={td}>Session</td>
             </tr>
             <tr>
-              <td style={td}><code>Hm_lvt_{siteId}</code></td>
+              <td style={td}><code>{'Hm_lvt_{siteId}'}</code></td>
               <td style={td}>First-party</td>
               <td style={td}>Visitor visit history timestamps</td>
               <td style={td}>1 year</td>
             </tr>
             <tr>
-              <td style={td}><code>Hm_lpvt_{siteId}</code></td>
+              <td style={td}><code>{'Hm_lpvt_{siteId}'}</code></td>
               <td style={td}>First-party</td>
               <td style={td}>Current visit timestamp</td>
               <td style={td}>Session</td>
             </tr>
             <tr>
-              <td style={td}><code>Hm_up_{siteId}</code></td>
+              <td style={td}><code>{'Hm_up_{siteId}'}</code></td>
               <td style={td}>First-party</td>
               <td style={td}>Custom user ID</td>
               <td style={td}>1 year</td>
             </tr>
             <tr>
-              <td style={td}><code>Hm_ct_{siteId}</code></td>
+              <td style={td}><code>{'Hm_ct_{siteId}'}</code></td>
               <td style={td}>First-party</td>
               <td style={td}>Custom tag</td>
               <td style={td}>1 year</td>
             </tr>
             <tr>
-              <td style={td}><code>Hm_ck_{siteId}</code></td>
+              <td style={td}><code>{'Hm_ck_{siteId}'}</code></td>
               <td style={td}>First-party</td>
               <td style={td}>Custom tag</td>
               <td style={td}>Deleted immediately after write</td>
             </tr>
             <tr>
-              <td style={td}><code>Hm_cv_{siteId}</code></td>
+              <td style={td}><code>{'Hm_cv_{siteId}'}</code></td>
               <td style={td}>First-party</td>
               <td style={td}>Custom variable</td>
               <td style={td}>1 year</td>
@@ -251,37 +251,37 @@ const ZH = () => {
               <td style={td}>会话</td>
             </tr>
             <tr>
-              <td style={td}><code>Hm_lvt_{站点id}</code></td>
+              <td style={td}><code>{'Hm_lvt_{站点id}'}</code></td>
               <td style={td}>第一方</td>
               <td style={td}>访客历史访问时间</td>
               <td style={td}>1年</td>
             </tr>
             <tr>
-              <td style={td}><code>Hm_lpvt_{站点id}</code></td>
+              <td style={td}><code>{'Hm_lpvt_{站点id}'}</code></td>
               <td style={td}>第一方</td>
               <td style={td}>访客当前访问时间</td>
               <td style={td}>会话</td>
             </tr>
             <tr>
-              <td style={td}><code>Hm_up_{站点id}</code></td>
+              <td style={td}><code>{'Hm_up_{站点id}'}</code></td>
               <td style={td}>第一方</td>
               <td style={td}>自定义用户ID</td>
               <td style={td}>1年</td>
             </tr>
             <tr>
-              <td style={td}><code>Hm_ct_{站点id}</code></td>
+              <td style={td}><code>{'Hm_ct_{站点id}'}</code></td>
               <td style={td}>第一方</td>
               <td style={td}>自定义标签</td>
               <td style={td}>1年</td>
             </tr>
             <tr>
-              <td style={td}><code>Hm_ck_{站点id}</code></td>
+              <td style={td}><code>{'Hm_ck_{站点id}'}</code></td>
               <td style={td}>第一方</td>
               <td style={td}>自定义标签</td>
               <td style={td}>写完立刻删除</td>
             </tr>
             <tr>
-              <td style={td}><code>Hm_cv_{站点id}</code></td>
+              <td style={td}><code>{'Hm_cv_{站点id}'}</code></td>
               <td style={td}>第一方</td>
               <td style={td}>自定义变量</td>
               <td style={td}>1年</td>
