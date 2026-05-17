@@ -27,6 +27,7 @@ import UserPage from './pages/UserPage';
 import MessagesPage from './pages/MessagesPage';
 import NotificationsPage from './pages/NotificationsPage';
 import AdminPage from './pages/AdminPage';
+import ExternalLink from './pages/ExternalLink';
 
 const ROUTE_TITLES = {
   '/': '论坛 — ABDL Space',
@@ -41,6 +42,7 @@ const ROUTE_TITLES = {
   '/messages': '私信 — ABDL Space',
   '/notifications': '通知 — ABDL Space',
   '/admin': '管理后台 — ABDL Space',
+  '/external': '外部链接 — ABDL Space',
   '/about': '关于 — ABDL Space',
   '/settings': '设置 — ABDL Space',
 };
@@ -108,6 +110,7 @@ export default function App() {
               <Route path="/messages" element={<MessagesPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/admin" element={<AdminPage />} />
+              <Route path="/external" element={<ExternalLink />} />
             </Routes>
           </ErrorBoundary>
         </div>

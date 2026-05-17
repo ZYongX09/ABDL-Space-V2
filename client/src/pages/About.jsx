@@ -1,4 +1,5 @@
 import PageLayout from '../components/PageLayout';
+import { externalLinkUrl } from '../utils/externalLink';
 
 const VERSION = '2.6.1';
 const LAST_UPDATE = '2026-05-18';
@@ -93,12 +94,12 @@ export default function About() {
           致力于为爱好者打造一个温馨友好的交流空间。
         </p>
         <div className="flex flex-wrap gap-3">
-          <a href="https://github.com/ZYongX09/ABDL-Space-V2" target="_blank" rel="noopener noreferrer"
+          <a href={externalLinkUrl('https://github.com/ZYongX09/ABDL-Space-V2')}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-80"
             style={{ background: '#24292e', textDecoration: 'none' }}>
             <i className="fa-brands fa-github" /> GitHub
           </a>
-          <a href="https://zhx-blog.top" target="_blank" rel="noopener noreferrer"
+          <a href={externalLinkUrl('https://zhx-blog.top')}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
             style={{ background: 'var(--primary-dark)', color: '#fff', textDecoration: 'none' }}>
             <i className="fa-solid fa-blog" /> ZhX 的博客
@@ -181,7 +182,7 @@ export default function About() {
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
               <div className="text-lg font-bold" style={{ color: 'var(--primary-dark)' }}>￥5</div>
-              <a href="https://ifdian.net/order/create?plan_id=a9a8a704508c11f1be9a52540025c377&product_type=0" target="_blank" rel="noopener noreferrer">
+              <a href={externalLinkUrl('https://ifdian.net/order/create?plan_id=a9a8a704508c11f1be9a52540025c377&product_type=0')}>
                 <img width="120" src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png" alt="赞助" style={{ borderRadius: '0.5rem' }} />
               </a>
             </div>
@@ -196,7 +197,7 @@ export default function About() {
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
               <div className="text-lg font-bold" style={{ color: 'var(--accent)' }}>￥20</div>
-              <a href="https://ifdian.net/order/create?plan_id=bde9dab2508c11f1b80752540025c377&product_type=0" target="_blank" rel="noopener noreferrer">
+              <a href={externalLinkUrl('https://ifdian.net/order/create?plan_id=bde9dab2508c11f1b80752540025c377&product_type=0')}>
                 <img width="120" src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png" alt="赞助" style={{ borderRadius: '0.5rem' }} />
               </a>
             </div>
@@ -210,7 +211,7 @@ export default function About() {
               <div className="text-xs" style={{ color: 'var(--text-muted)' }}>大老板~嘿嘿</div>
             </div>
             <div className="flex-shrink-0">
-              <a href="https://ifdian.net/order/create?user_id=399f44cc508c11f18b7752540025c377" target="_blank" rel="noopener noreferrer">
+              <a href={externalLinkUrl('https://ifdian.net/order/create?user_id=399f44cc508c11f18b7752540025c377')}>
                 <img width="120" src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png" alt="赞助" style={{ borderRadius: '0.5rem' }} />
               </a>
             </div>
