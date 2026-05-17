@@ -4,55 +4,72 @@
 import { useMemo } from 'react';
 
 // 常见顶级域名
-const TLDS = 'com|net|org|cn|top|xyz|io|dev|app|co|me|cc|info|edu|gov|mil|club|online|site|tech|store|blog|work|live|video|social|design|shop|icu|ltd|fun|space|host|press|link|click|buzz|pro|vip|wang|ren|中国|公司|网络';
+const TLDS = 'com|net|org|cn|top|xyz|io|dev|app|co|me|cc|info|edu|gov|mil|club|online|site|tech|store|blog|work|live|video|social|design|shop|icu|ltd|fun|space|host|press|link|click|buzz|pro|vip|wang|ren';
+
+// 清理 URL 末尾的标点符号
+function cleanUrl(url) {
+  let s = url;
+  // 循环去掉末尾标点
+  for (let i = 0; i < 10; i++) {
+    if (s.length === 0) break;
+    const ch = s[s.length - 1];
+    // 直接去掉的标点
+    if ('.,;:!?_~'.includes(ch)) { s = s.slice(0, -1); continue; }
+    // 括号：只有多余的右括号才去掉
+    if (ch === ')') {
+      const opens = (s.match(/\(/g) || []).length;
+      const closes = (s.match(/\)/g) || []).length;
+      if (closes > opens) { s = s.slice(0, -1); continue; }
+    }
+    // 方括号、花括号同理
+    if (ch === ']') {
+      const opens = (s.match(/\[/g) || []).length;
+      const closes = (s.match(/\]/g) || []).length;
+      if (closes > opens) { s = s.slice(0, -1); continue; }
+    }
+    if (ch === '}') {
+      const opens = (s.match(/{/g) || []).length;
+      const closes = (s.match(/}/g) || []).length;
+      if (closes > opens) { s = s.slice(0, -1); continue; }
+    }
+    // 引号：直接去掉
+    if (ch === '"' || ch === "'" || ch === '`') { s = s.slice(0, -1); continue; }
+    // 其他字符不动
+    break;
+  }
+  return s;
+}
 
 // 从文本中提取所有 URL
 function extractUrls(text) {
   const results = [];
-  // 匹配 https?:// 开头的 URL
+
+  // 1) https?:// 开头
   const re1 = /https?:\/\/[^\s<>"'`,;)}\]]+/gi;
   let m;
   while ((m = re1.exec(text)) !== null) {
     results.push({ index: m.index, raw: m[0] });
   }
-  // 匹配 www. 开头的 URL
+
+  // 2) www. 开头
   const re2 = /www\.[^\s<>"'`,;)}\]]+/gi;
   while ((m = re2.exec(text)) !== null) {
-    // 避免重复（如果已经被 re1 匹配过）
-    if (!results.some(r => r.index <= m.index && r.index + r.raw.length >= m.index + m[0].length)) {
-      results.push({ index: m.index, raw: m[0] });
-    }
+    const already = results.some(r => r.index <= m.index && r.index + r.raw.length >= m.index + m[0].length);
+    if (!already) results.push({ index: m.index, raw: m[0] });
   }
-  // 匹配裸域名（如 example.com/path）
-  const domainRe = new RegExp(`(?:^|[\\s<>"'\`,;)}\\]])([a-zA-Z0-9][a-zA-Z0-9-]*\\.(?:${TLDS})(?:/[^\\s<>"'\`,;)}\\]]*)?)`, 'gi');
+
+  // 3) 裸域名（前面必须是空白或行首）
+  const domainRe = new RegExp(`(?:^|\\s)([a-zA-Z0-9][a-zA-Z0-9-]*\\.(?:${TLDS})(?:/[^\\s<>"'\`,;)}\\]]*)?)`, 'gi');
   while ((m = domainRe.exec(text)) !== null) {
     const url = m[1];
     const idx = m.index + m[0].length - url.length;
-    // 避免重复
-    if (!results.some(r => r.index <= idx && r.index + r.raw.length >= idx + url.length)) {
-      results.push({ index: idx, raw: url });
-    }
+    const already = results.some(r => r.index <= idx && r.index + r.raw.length >= idx + url.length);
+    if (!already) results.push({ index: idx, raw: url });
   }
+
   // 按位置排序
   results.sort((a, b) => a.index - b.index);
   return results;
-}
-
-// 清理 URL 末尾的标点符号
-function cleanUrl(url) {
-  // 逐步去掉末尾的标点，直到最后一个有效字符
-  let cleaned = url;
-  while (cleaned.length > 0 && /[.,;:!?)}\]'"_~]$/.test(cleaned)) {
-    // 但如果末尾是 ) 且 URL 中有 (，可能是合法的括号匹配
-    if (cleaned.endsWith(')') && (cleaned.match(/\(/g) || []).length < (cleaned.match(/\)/g) || []).length) {
-      cleaned = cleaned.slice(0, -1);
-    } else if (cleaned.endsWith(')')) {
-      break;
-    } else {
-      cleaned = cleaned.slice(0, -1);
-    }
-  }
-  return cleaned;
 }
 
 function getDomain(url) {
@@ -97,7 +114,7 @@ export default function RichContent({ text, className, style }) {
     if (!text) return [];
 
     const urls = extractUrls(text);
-    if (urls.length === 0) return [{ type: 'text', value: text }];
+    if (urls.length === 0) return [];
 
     const result = [];
     let lastIndex = 0;
@@ -111,6 +128,7 @@ export default function RichContent({ text, className, style }) {
         result.push({ type: 'text', value: text.slice(lastIndex, index) });
       }
       result.push({ type: 'link', value: cleaned });
+      // 关键：用 cleaned 的实际长度推进 lastIndex
       lastIndex = index + cleaned.length;
     }
 
@@ -122,11 +140,8 @@ export default function RichContent({ text, className, style }) {
     return result;
   }, [text]);
 
+  // 没有链接直接返回纯文本
   if (parts.length === 0) return <span className={className} style={style}>{text}</span>;
-
-  // 检查是否包含链接，如果没有链接则直接返回纯文本 span
-  const hasLinks = parts.some(p => p.type === 'link');
-  if (!hasLinks) return <span className={className} style={style}>{text}</span>;
 
   return (
     <span className={className} style={style}>
