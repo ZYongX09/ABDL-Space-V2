@@ -19,6 +19,44 @@ async function apiFetch(path, options = {}) {
   return data;
 }
 
+// ====== 内存缓存层 ======
+const _cache = new Map();
+const CACHE_TTL = {
+  short: 30 * 1000,      // 30秒 — 帖子列表、评论
+  medium: 2 * 60 * 1000,  // 2分钟 — 帖子详情、用户信息
+  long: 5 * 60 * 1000,    // 5分钟 — 纸尿裤、排行榜、静态数据
+};
+
+function cacheGet(key) {
+  const entry = _cache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expireAt) { _cache.delete(key); return null; }
+  return entry.data;
+}
+
+function cacheSet(key, data, ttl = CACHE_TTL.short) {
+  _cache.set(key, { data, expireAt: Date.now() + ttl });
+}
+
+function cacheInvalidate(pattern) {
+  for (const key of _cache.keys()) {
+    if (key.includes(pattern)) _cache.delete(key);
+  }
+}
+
+// 带缓存的 fetch：先返回缓存，后台刷新
+async function cachedFetch(key, fetchFn, ttl = CACHE_TTL.short) {
+  const cached = cacheGet(key);
+  if (cached) {
+    // 后台静默刷新（stale-while-revalidate）
+    fetchFn().then(data => cacheSet(key, data, ttl)).catch(() => {});
+    return cached;
+  }
+  const data = await fetchFn();
+  cacheSet(key, data, ttl);
+  return data;
+}
+
 // ====== localStorage 工具 ======
 const LS = {
   get(key) { try { return JSON.parse(localStorage.getItem('abdl_' + key)); } catch { return null; } },
@@ -151,7 +189,9 @@ export const diapersAPI = {
       if (params.order) qs.set('order', params.order);
       if (params.page) qs.set('page', params.page);
       if (params.limit) qs.set('limit', params.limit);
-      return apiFetch(`/api/diapers?${qs}`);
+      const cacheKey = `diapers:${qs}`;
+      if (params.search) return apiFetch(`/api/diapers?${qs}`);
+      return cachedFetch(cacheKey, () => apiFetch(`/api/diapers?${qs}`), CACHE_TTL.long);
     }
     if (!_diapers) await loadData();
     let list = [..._diapers];
@@ -184,7 +224,7 @@ export const diapersAPI = {
   },
 
   get: async (id) => {
-    if (USE_API) return apiFetch(`/api/diapers/${id}`);
+    if (USE_API) return cachedFetch(`diaper:${id}`, () => apiFetch(`/api/diapers/${id}`), CACHE_TTL.long);
     if (!_diapers) await loadData();
     const d = _diapers.find(dd => dd.id === Number(id));
     if (!d) throw new Error('纸尿裤不存在');
@@ -328,7 +368,7 @@ export const rankingsAPI = {
     if (USE_API) {
       const qs = new URLSearchParams({ type });
       if (dimension) qs.set('dimension', dimension);
-      return apiFetch(`/api/rankings?${qs}`);
+      return cachedFetch(`rankings:${qs}`, () => apiFetch(`/api/rankings?${qs}`), CACHE_TTL.long);
     }
     if (!_diapers) await loadData();
     const ratings = LS.get('ratings') || {};
@@ -366,7 +406,10 @@ export const forumAPI = {
     if (USE_API) {
       const qs = new URLSearchParams({ page, limit });
       if (search) qs.set('search', search);
-      return apiFetch(`/api/posts?${qs}`);
+      const cacheKey = `feed:${qs}`;
+      // 搜索不缓存
+      if (search) return apiFetch(`/api/posts?${qs}`);
+      return cachedFetch(cacheKey, () => apiFetch(`/api/posts?${qs}`), CACHE_TTL.short);
     }
     let posts = LS.get('posts') || [];
     if (search) { const s = search.toLowerCase(); posts = posts.filter(p => p.content?.toLowerCase().includes(s)); }
@@ -386,7 +429,7 @@ export const forumAPI = {
   },
 
   getPost: async (id) => {
-    if (USE_API) return apiFetch(`/api/posts/${id}`);
+    if (USE_API) return cachedFetch(`post:${id}`, () => apiFetch(`/api/posts/${id}`), CACHE_TTL.medium);
     const posts = LS.get('posts') || [];
     const post = posts.find(p => p.id === Number(id));
     if (!post) throw new Error('帖子不存在');
@@ -408,7 +451,11 @@ export const forumAPI = {
   },
 
   create: async ({ content, diaper_id, images }) => {
-    if (USE_API) return apiFetch('/api/posts', { method: 'POST', body: JSON.stringify({ content, diaper_id, images }) });
+    if (USE_API) {
+      const result = await apiFetch('/api/posts', { method: 'POST', body: JSON.stringify({ content, diaper_id, images }) });
+      cacheInvalidate('feed:');
+      return result;
+    }
     const user = LS.get('currentUser');
     if (!user) throw new Error('请先登录');
     const posts = LS.get('posts') || [];
@@ -419,7 +466,12 @@ export const forumAPI = {
   },
 
   delete: async (id) => {
-    if (USE_API) return apiFetch(`/api/posts/${id}`, { method: 'DELETE' });
+    if (USE_API) {
+      const result = await apiFetch(`/api/posts/${id}`, { method: 'DELETE' });
+      cacheInvalidate('feed:');
+      cacheInvalidate(`post:${id}`);
+      return result;
+    }
     let posts = LS.get('posts') || [];
     posts = posts.filter(p => p.id !== Number(id));
     LS.set('posts', posts);
@@ -427,7 +479,12 @@ export const forumAPI = {
   },
 
   editPost: async (id, { content }) => {
-    if (USE_API) return apiFetch(`/api/posts/${id}`, { method: 'PATCH', body: JSON.stringify({ content }) });
+    if (USE_API) {
+      const result = await apiFetch(`/api/posts/${id}`, { method: 'PATCH', body: JSON.stringify({ content }) });
+      cacheInvalidate('feed:');
+      cacheInvalidate(`post:${id}`);
+      return result;
+    }
     const posts = LS.get('posts') || [];
     const post = posts.find(p => p.id === Number(id));
     if (!post) throw new Error('帖子不存在');
@@ -437,7 +494,11 @@ export const forumAPI = {
   },
 
   comment: async (postId, { content, parent_id, images }) => {
-    if (USE_API) return apiFetch(`/api/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ content, parent_id, images }) });
+    if (USE_API) {
+      const result = await apiFetch(`/api/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ content, parent_id, images }) });
+      cacheInvalidate(`post:${postId}`);
+      return result;
+    }
     const user = LS.get('currentUser');
     if (!user) throw new Error('请先登录');
     const comments = LS.get('comments') || {};
