@@ -32,7 +32,7 @@ export default function ExternalLink() {
       <PageLayout hero={{ icon: 'fa-link-slash', title: '无效链接', subtitle: '目标地址不存在' }}>
         <div className="card text-center py-8">
           <p className="text-sm mb-4" style={{ color: 'var(--text-light)' }}>无法解析目标链接</p>
-          <button className="btn btn-outline" onClick={() => navigate(-1)}>返回</button>
+          <button className="btn btn-outline" onClick={() => window.history.back()}>返回</button>
         </div>
       </PageLayout>
     );
@@ -68,14 +68,12 @@ export default function ExternalLink() {
         </p>
 
         <div className="flex items-center justify-center gap-3">
-          <button className="btn btn-outline" onClick={() => navigate(-1)}>
+          <button className="btn btn-outline" onClick={() => window.history.back()}>
             <i className="fa-solid fa-arrow-left" /> 返回
           </button>
-          <a href={url} target="_blank" rel="noopener noreferrer"
-            className="btn btn-primary"
-            style={{ textDecoration: 'none' }}>
+          <button className="btn btn-primary" onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}>
             继续访问 <i className="fa-solid fa-arrow-up-right-from-square ml-1" />
-          </a>
+          </button>
         </div>
       </div>
     </PageLayout>
