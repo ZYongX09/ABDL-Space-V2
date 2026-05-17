@@ -151,7 +151,7 @@ export default function ForumFeed() {
                     <Link to={`/user/${post.user?.id}`} className="font-semibold text-sm hover:underline" style={{ color: 'var(--text)' }}>
                       {post.user?.username || '匿名'}
                     </Link>
-                    {post.user?.role === 'admin' && <OfficialBadge />}
+                    {post.user?.role === 'admin' && <OfficialBadge className="ml-1.5" />}
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                       {new Date(post.created_at).toLocaleString('zh-CN')}
                     </span>
