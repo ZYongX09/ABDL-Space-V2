@@ -45,7 +45,7 @@ export default function Settings() {
         <div className="space-y-2 text-sm">
           {[
             ['Ctrl+Shift+T', '切换主题'],
-            ['Alt+1', '论坛'],
+            ['Alt+1', '广场'],
             ['Alt+2', '纸尿裤列表'],
             ['Alt+3', '排行榜'],
             ['Alt+4', 'AI 推荐'],

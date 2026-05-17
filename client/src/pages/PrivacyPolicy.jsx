@@ -110,7 +110,7 @@ const ZH = () => {
       <h3 className="text-base font-bold pt-1" style={h}>2.1 您直接提供的信息</h3>
       <p><strong>账户注册：</strong>电子邮箱地址、用户名、密码（以哈希形式存储）。</p>
       <p><strong>个人资料信息（可选）：</strong>年龄、地区/所在地、体重、腰围、臀围、风格偏好、个人简介、头像。</p>
-      <p><strong>社区活动：</strong>论坛帖子和评论、对帖子和评论的点赞、纸尿裤评分（6个维度，1-10星）、使用感受评价（5个维度，-5至+5分）、发送给其他用户的私信。</p>
+      <p><strong>社区活动：</strong>广场帖子和评论、对帖子和评论的点赞、纸尿裤评分（6个维度，1-10星）、使用感受评价（5个维度，-5至+5分）、发送给其他用户的私信。</p>
 
       <h3 className="text-base font-bold pt-1" style={h}>2.2 AI推荐数据</h3>
       <p>当您选择使用我们的AI推荐功能时，您可以选择将某些身体测量数据（如体重、腰围和臀围）发送给DeepSeek的AI API进行处理。<strong>此数据仅在您明确选择并确认同意后才会传输。</strong>您无需使用此功能即可访问本网站。</p>
@@ -132,7 +132,7 @@ const ZH = () => {
       <h2 className="text-lg font-bold pt-2" style={h}>3. 我们如何使用您的信息</h2>
       <ul className="list-disc pl-6 space-y-1">
         <li><strong>账户管理</strong> — 创建和维护您的账户、验证您的身份。</li>
-        <li><strong>社区功能</strong> — 支持论坛参与、评分、评价、私信。</li>
+        <li><strong>社区功能</strong> — 支持广场参与、评分、评价、私信。</li>
         <li><strong>AI推荐</strong> — 在您明确选择同意后，通过DeepSeek的AI API处理您的身体测量数据。</li>
         <li><strong>服务改进</strong> — 通过分析数据了解访问者如何使用本网站，改进功能。</li>
         <li><strong>安全</strong> — 检测、预防和处理欺诈、滥用和安全问题。</li>

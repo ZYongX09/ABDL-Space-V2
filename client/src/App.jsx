@@ -42,7 +42,7 @@ function PageFallback() {
 }
 
 const ROUTE_TITLES = {
-  '/': '论坛 — ABDL Space',
+  '/': '广场 — ABDL Space',
   '/diapers': '纸尿裤列表 — ABDL Space',
   '/rankings': '排行榜 — ABDL Space',
   '/compare': '对比工具 — ABDL Space',
@@ -135,7 +135,7 @@ export default function App() {
             <span>ABDL Space v2 · © {new Date().getFullYear()}</span>
           </div>
           <div className="flex items-center justify-center gap-4 flex-wrap">
-            <a href="/" style={{ color: 'var(--link-color)', textDecoration: 'none' }}>论坛</a>
+            <a href="/" style={{ color: 'var(--link-color)', textDecoration: 'none' }}>广场</a>
             <a href="/termwiki" style={{ color: 'var(--link-color)', textDecoration: 'none' }}><i className="fa-solid fa-book mr-1" />术语 Wiki</a>
             <a href="/settings" style={{ color: 'var(--link-color)', textDecoration: 'none' }}><i className="fa-solid fa-gear mr-1" />设置</a>
             <a href="/about" style={{ color: 'var(--link-color)', textDecoration: 'none' }}><i className="fa-solid fa-circle-info mr-1" />关于</a>

@@ -107,7 +107,7 @@ export default function About() {
           ABDL Space
         </h3>
         <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-light)' }}>
-          ABDL Space 是一个面向 ABDL 群体的中文社区平台，提供纸尿裤评价、排行榜、AI 推荐、论坛讨论等功能。
+          ABDL Space 是一个面向 ABDL 群体的中文社区平台，提供纸尿裤评价、排行榜、AI 推荐、广场讨论等功能。
           致力于为爱好者打造一个温馨友好的交流空间。
         </p>
         <div className="flex flex-wrap gap-3">

@@ -399,7 +399,7 @@ export const rankingsAPI = {
 };
 
 // =====================================================================
-// 论坛 Posts（后端路径 /api/posts）
+// 广场 Posts（后端路径 /api/posts）
 // =====================================================================
 export const forumAPI = {
   feed: async ({ page = 1, limit = 20, search } = {}) => {

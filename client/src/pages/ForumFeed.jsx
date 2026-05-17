@@ -94,7 +94,7 @@ export default function ForumFeed() {
   };
 
   return (
-    <PageLayout hero={{ icon: 'fa-comments', title: '论坛', subtitle: '分享你的 ABDL 生活' }}>
+    <PageLayout hero={{ icon: 'fa-comments', title: '广场', subtitle: '分享你的 ABDL 生活' }}>
       {/* 搜索 + 发帖 */}
       <div className="flex gap-3 mb-5 flex-wrap">
         <input

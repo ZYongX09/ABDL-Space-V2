@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 
 const TABS = [
-  { to: '/', icon: 'fa-comments', label: '论坛' },
+  { to: '/', icon: 'fa-comments', label: '广场' },
   { to: '/diapers', icon: 'fa-baby', label: '纸尿裤' },
   { to: '/recommend', icon: 'fa-wand-magic-sparkles', label: 'AI' },
   { to: '/profile', icon: 'fa-user', label: '我的' },
