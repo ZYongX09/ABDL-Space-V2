@@ -51,6 +51,12 @@ const EN = () => {
               <td style={td}>Persistent</td>
               <td style={td}>Essential</td>
             </tr>
+            <tr>
+              <td style={td}><code>abdl_*</code></td>
+              <td style={td}>Offline mode data (users, posts, ratings, etc.)</td>
+              <td style={td}>Persistent</td>
+              <td style={td}>Functional</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -170,6 +176,12 @@ const ZH = () => {
               <td style={td}>Cookie同意状态</td>
               <td style={td}>持久</td>
               <td style={td}>必要</td>
+            </tr>
+            <tr>
+              <td style={td}><code>abdl_*</code></td>
+              <td style={td}>离线模式数据（用户、帖子、评分等）</td>
+              <td style={td}>持久</td>
+              <td style={td}>功能性</td>
             </tr>
           </tbody>
         </table>
