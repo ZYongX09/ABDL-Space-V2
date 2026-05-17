@@ -8,6 +8,7 @@ import { forumAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useVerifyModal } from '../components/VerifyModal';
+import RichContent from '../components/RichContent';
 
 export default function PostDetail() {
   const { id } = useParams();
@@ -92,7 +93,7 @@ export default function PostDetail() {
             </div>
           </div>
         </div>
-        <p className="whitespace-pre-wrap break-words mb-4">{post.content}</p>
+        <p className="whitespace-pre-wrap break-words mb-4"><RichContent text={post.content} /></p>
         {post.images && post.images.length > 0 && <ImageGrid images={post.images} />}
         <div className="flex items-center gap-4 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
           <button
@@ -137,7 +138,7 @@ export default function PostDetail() {
                 <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{c.user?.username || '匿名'}</span>
                 <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{new Date(c.created_at).toLocaleString('zh-CN')}</span>
               </div>
-              <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--text)' }}>{c.content}</p>
+              <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--text)' }}><RichContent text={c.content} /></p>
               {c.images && c.images.length > 0 && <ImageGrid images={c.images} />}
             </div>
           ))}

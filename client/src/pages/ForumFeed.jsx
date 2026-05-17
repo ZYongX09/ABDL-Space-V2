@@ -5,6 +5,7 @@ import { LoadingSkeleton, EmptyState } from '../components/Feedback';
 import { useVerifyModal } from '../components/VerifyModal';
 import ImageUploader from '../components/ImageUploader';
 import ImageGrid from '../components/ImageGrid';
+import RichContent from '../components/RichContent';
 import { forumAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -139,7 +140,7 @@ export default function ForumFeed() {
                     </span>
                   </div>
                   <Link to={`/forum/${post.id}`} className="block mt-1" style={{ color: 'var(--text)', textDecoration: 'none' }}>
-                    <p className="whitespace-pre-wrap break-words">{post.content}</p>
+                    <p className="whitespace-pre-wrap break-words"><RichContent text={post.content} /></p>
                   </Link>
                   {post.images && post.images.length > 0 && (
                     <Link to={`/forum/${post.id}`} style={{ textDecoration: 'none' }}>
