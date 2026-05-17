@@ -28,12 +28,11 @@ const EN = () => {
       </div>
 
       <h3 className="text-base font-bold pt-1" style={h}>3.2 Traditional Cookies</h3>
-      <p>We do <strong>not</strong> use traditional HTTP cookies on our Website.</p>
+      <p>Our use of Baidu Analytics (百度统计) involves the use of traditional HTTP cookies. These cookies are set by Baidu's tracking code embedded in our pages and are used to collect anonymous website usage data. These cookies are managed by Baidu and are subject to <a href="https://privacy.baidu.com" style={{ color: 'var(--link-color)' }}>Baidu's Privacy Policy</a>.</p>
 
       <h3 className="text-base font-bold pt-1" style={h}>3.3 What We Do NOT Use</h3>
       <ul className="list-disc pl-6 space-y-1">
-        <li><strong>No third-party cookies</strong></li>
-        <li><strong>No analytics cookies</strong> — We do not use Google Analytics or any analytics service.</li>
+        <li><strong>No third-party cookies</strong> (other than Baidu Analytics)</li>
         <li><strong>No advertising cookies</strong></li>
         <li><strong>No web beacons</strong></li>
         <li><strong>No fingerprinting</strong></li>
@@ -41,6 +40,7 @@ const EN = () => {
 
       <h2 className="text-lg font-bold pt-2" style={h}>4. How to Control LocalStorage</h2>
       <p>Since we use localStorage rather than cookies, traditional cookie consent banners do not apply. You can manage localStorage through your browser's Developer Tools (F12 → Application → Local Storage). Clearing localStorage will log you out and reset your preferences.</p>
+      <p>To opt out of Baidu Analytics tracking, you can install the <a href="https://tongji.baidu.com/web/welcome/jscode" style={{ color: 'var(--link-color)' }}>Baidu Analytics Opt-out Browser Add-on</a> or block Baidu's tracking scripts through your browser settings.</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>5. Do Not Track Signals</h2>
       <p>Because we do not engage in tracking activities, our Website does not alter its behavior in response to DNT signals.</p>
@@ -85,12 +85,11 @@ const ZH = () => {
       </div>
 
       <h3 className="text-base font-bold pt-1" style={h}>3.2 传统Cookie</h3>
-      <p>我们<strong>不</strong>使用传统的HTTP Cookie。</p>
+      <p>我们使用百度统计（Baidu Analytics），这涉及使用传统 HTTP Cookie。这些 Cookie 由嵌入在我们页面中的百度跟踪代码设置，用于收集匿名网站使用数据。这些 Cookie 由百度管理，受<a href="https://privacy.baidu.com" style={{ color: 'var(--link-color)' }}>百度隐私政策</a>约束。</p>
 
       <h3 className="text-base font-bold pt-1" style={h}>3.3 我们未使用的技术</h3>
       <ul className="list-disc pl-6 space-y-1">
-        <li><strong>无第三方Cookie</strong></li>
-        <li><strong>无分析Cookie</strong> — 我们不使用Google Analytics或任何分析服务。</li>
+        <li><strong>无第三方Cookie</strong>（百度统计除外）</li>
         <li><strong>无广告Cookie</strong></li>
         <li><strong>无网络信标</strong></li>
         <li><strong>无浏览器指纹</strong></li>
@@ -98,6 +97,7 @@ const ZH = () => {
 
       <h2 className="text-lg font-bold pt-2" style={h}>4. 如何控制本地存储</h2>
       <p>由于我们使用的是本地存储而非Cookie，传统的Cookie同意横幅不适用。您可以通过浏览器的开发者工具（F12 → Application → Local Storage）管理本地存储。清除本地存储将使您登出并重置偏好设置。</p>
+      <p>如需退出百度统计追踪，您可以安装<a href="https://tongji.baidu.com/web/welcome/jscode" style={{ color: 'var(--link-color)' }}>百度统计退出浏览器插件</a>，或通过浏览器设置屏蔽百度的跟踪脚本。</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>5. "请勿追踪"信号</h2>
       <p>由于我们不从事追踪活动，本网站不会因DNT信号而改变其行为。</p>
