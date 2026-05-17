@@ -160,7 +160,12 @@ export default function PostDetail() {
   return (
     <>
     <PageLayout hero={{ icon: 'fa-file-lines', title: '帖子详情' }}>
-      <div className="card mb-5 animate-fade-in-up">
+      <div className={`card mb-5 animate-fade-in-up ${post.pinned ? 'post-pinned' : ''}`}>
+        {post.pinned && (
+          <div className="post-pinned-tag">
+            <i className="fa-solid fa-thumbtack" /> 置顶
+          </div>
+        )}
         <div className="flex items-start gap-3 mb-4">
           <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
             style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>

@@ -138,7 +138,12 @@ export default function ForumFeed() {
       ) : (
         <div className="space-y-4">
           {posts.map((post, i) => (
-            <div key={post.id} className="card stagger-item" style={{ padding: '1.25rem' }}>
+            <div key={post.id} className={`card stagger-item ${post.pinned ? 'post-pinned' : ''}`} style={{ padding: '1.25rem' }}>
+              {post.pinned && (
+                <div className="post-pinned-tag">
+                  <i className="fa-solid fa-thumbtack" /> 置顶
+                </div>
+              )}
               <div className="flex items-start gap-3">
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"

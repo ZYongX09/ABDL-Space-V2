@@ -48,7 +48,7 @@ export default function UserPage() {
           <div>
             <h3 className="text-lg font-bold" style={{ color: 'var(--text)' }}>{user.username}</h3>
             {user.role === 'admin' && <OfficialBadge />}
-            <span className="tag">{user.role === 'admin' ? '管理员' : '用户'}</span>
+            {user.role !== 'admin' && <span className="tag">用户</span>}
           </div>
         </div>
         {user.bio && <p className="text-sm mb-2" style={{ color: 'var(--text-light)' }}>{user.bio}</p>}
