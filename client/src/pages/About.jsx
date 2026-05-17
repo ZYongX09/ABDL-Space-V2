@@ -80,10 +80,22 @@ export default function About() {
           <i className="fa-solid fa-baby mr-2" style={{ color: 'var(--primary-dark)' }} />
           ABDL Space
         </h3>
-        <p className="text-sm leading-relaxed" style={{ color: 'var(--text-light)' }}>
+        <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-light)' }}>
           ABDL Space 是一个面向 ABDL 群体的中文社区平台，提供纸尿裤评价、排行榜、AI 推荐、论坛讨论等功能。
           致力于为爱好者打造一个温馨友好的交流空间。
         </p>
+        <div className="flex flex-wrap gap-3">
+          <a href="https://github.com/ZYongX09/ABDL-Space-V2" target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-80"
+            style={{ background: '#24292e', textDecoration: 'none' }}>
+            <i className="fa-brands fa-github" /> GitHub
+          </a>
+          <a href="https://zhx-blog.top" target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
+            style={{ background: 'var(--primary-dark)', color: '#fff', textDecoration: 'none' }}>
+            <i className="fa-solid fa-blog" /> ZhX 的博客
+          </a>
+        </div>
       </div>
 
       {/* 技术栈 */}
