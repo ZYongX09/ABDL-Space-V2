@@ -68,8 +68,8 @@ export default function ExternalLink() {
         </p>
 
         <div className="flex items-center justify-center gap-3">
-          <button className="btn btn-outline" onClick={() => navigate(-1)}>
-            <i className="fa-solid fa-arrow-left" /> 返回
+          <button className="btn btn-outline" onClick={() => navigate('/')}>
+            <i className="fa-solid fa-arrow-left" /> 返回首页
           </button>
           <button className="btn btn-primary" onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}>
             继续访问 <i className="fa-solid fa-arrow-up-right-from-square ml-1" />
