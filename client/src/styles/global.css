@@ -668,6 +668,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   border-right: 1px solid var(--border);
   transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   z-index: 30;
+  will-change: width;
 }
 .sidebar-collapsible.expanded {
   width: 240px;
