@@ -3,7 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import AccountSwitcher from './AccountSwitcher';
 
 const NAV_ITEMS = [
-  { to: '/', icon: 'fa-comments', label: '广场', end: true },
+  { to: '/', icon: 'fa-house', label: '广场', end: true },
+  { to: '/messages', icon: 'fa-envelope', label: '私信' },
   { to: '/diapers', icon: 'fa-baby', label: '纸尿裤' },
   { to: '/rankings', icon: 'fa-trophy', label: '排行榜' },
   { to: '/recommend', icon: 'fa-wand-magic-sparkles', label: 'AI 推荐' },
