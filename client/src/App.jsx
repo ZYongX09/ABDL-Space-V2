@@ -99,7 +99,7 @@ export default function App() {
       <ScrollToTop />
       <Sidebar />
       <div className="app-main-content">
-        <div className="container mx-auto px-5 py-6 max-w-[860px] page-transition-enter">
+        <div className="container mx-auto px-5 py-6 max-w-[1080px] page-transition-enter">
           <BackButton />
           <ErrorBoundary>
             <Suspense fallback={<PageFallback />}>
