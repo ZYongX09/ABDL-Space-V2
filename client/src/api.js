@@ -14,7 +14,13 @@ async function apiFetch(path, options = {}) {
   const token = getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
-  const data = await res.json();
+  const text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`服务器响应异常 (${res.status})`);
+  }
   if (!res.ok) throw new Error(data.error || `请求失败 (${res.status})`);
   return data;
 }
