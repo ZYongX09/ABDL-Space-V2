@@ -760,9 +760,13 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   flex: 1;
   padding: 4px 8px;
 }
+.sidebar-collapsible:not(.expanded) .sidebar-nav {
+  padding: 4px 6px;
+}
 .sidebar-link {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   padding: 10px 12px;
   border-radius: 12px;
@@ -774,7 +778,6 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   white-space: nowrap;
 }
 .sidebar-collapsible:not(.expanded) .sidebar-link {
-  justify-content: center;
   padding: 10px 0;
   gap: 0;
   margin: 2px 0;
