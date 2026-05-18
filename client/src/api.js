@@ -639,21 +639,73 @@ export const wikiAPI = {
 // 消息 Messages（后端暂未实现，localStorage 兜底）
 // =====================================================================
 export const messagesAPI = {
-  conversations: () => ({ conversations: LS.get('conversations') || [] }),
+  // 获取会话列表
+  conversations: async () => {
+    if (USE_API) return apiFetch('/api/messages/conversations');
+    const conversations = LS.get('conversations') || [];
+    return { conversations };
+  },
+
+  // 获取与某用户的消息
+  getMessages: async (userId) => {
+    if (USE_API) return apiFetch(`/api/messages/${userId}`);
+    const msgs = LS.get('messages') || {};
+    const key = Object.keys(msgs).find(k => k.includes(String(userId)));
+    const allMsgs = key ? msgs[key] : [];
+    // 也兼容旧格式 (key = userId)
+    const legacyMsgs = msgs[userId] || [];
+    const merged = [...new Map([...allMsgs, ...legacyMsgs].map(m => [m.id, m])).values()]
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    return { messages: merged };
+  },
+
+  // 发送消息
+  send: async (receiverId, content) => {
+    if (USE_API) return apiFetch('/api/messages', { method: 'POST', body: JSON.stringify({ receiver_id: receiverId, content }) });
+    const user = LS.get('currentUser');
+    if (!user) throw new Error('请先登录');
+    const msgs = LS.get('messages') || {};
+    const key = [user.id, receiverId].sort().join('-');
+    if (!msgs[key]) msgs[key] = [];
+    const msg = { id: Date.now(), sender_id: user.id, receiver_id: receiverId, content, created_at: new Date().toISOString(), read: false };
+    msgs[key].push(msg);
+    LS.set('messages', msgs);
+    // 更新会话列表
+    const convos = LS.get('conversations') || [];
+    const existing = convos.find(c => c.user_id === receiverId);
+    if (existing) {
+      existing.last_message = content;
+      existing.last_message_at = msg.created_at;
+      existing.unread = 0;
+    } else {
+      convos.unshift({ user_id: receiverId, last_message: content, last_message_at: msg.created_at, unread: 0 });
+    }
+    LS.set('conversations', convos);
+    return { message: '发送成功', id: msg.id };
+  },
+
+  // 标记已读
+  markRead: async (userId) => {
+    if (USE_API) return apiFetch(`/api/messages/${userId}/read`, { method: 'POST' });
+    const convos = LS.get('conversations') || [];
+    const convo = convos.find(c => c.user_id === userId);
+    if (convo) convo.unread = 0;
+    LS.set('conversations', convos);
+    return { message: '已标为已读' };
+  },
+
+  // 检查是否可以发消息
+  canMessage: async (userId) => {
+    if (USE_API) return apiFetch(`/api/users/${userId}/can-message`);
+    return { allowed: true };
+  },
+
+  // 兼容旧接口
   withUser: (userId) => {
     const msgs = LS.get('messages') || {};
     const users = LS.get('users') || {};
     const u = Object.values(users).find(uu => uu.id === userId);
     return { messages: msgs[userId] || [], other: { id: userId, username: u?.username || '用户' } };
-  },
-  send: ({ receiver_id, content }) => {
-    const user = LS.get('currentUser');
-    if (!user) throw new Error('请先登录');
-    const msgs = LS.get('messages') || {};
-    if (!msgs[receiver_id]) msgs[receiver_id] = [];
-    msgs[receiver_id].push({ id: Date.now(), sender_id: user.id, content, created_at: new Date().toISOString() });
-    LS.set('messages', msgs);
-    return { message: '发送成功' };
   },
 };
 

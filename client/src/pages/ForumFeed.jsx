@@ -159,6 +159,16 @@ export default function ForumFeed() {
                       {post.user?.username || '匿名'}
                     </Link>
                     {post.user?.role === 'admin' && <OfficialBadge className="ml-1.5" />}
+                    {user && user.id !== post.user?.id && (
+                      <Link
+                        to={`/messages?user=${post.user?.id}`}
+                        className="ml-1 text-xs"
+                        style={{ color: 'var(--text-muted)', textDecoration: 'none' }}
+                        title="发私信"
+                      >
+                        <i className="fa-solid fa-envelope" />
+                      </Link>
+                    )}
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                       {new Date(post.created_at).toLocaleString('zh-CN')}
                     </span>
