@@ -39,8 +39,9 @@ export default function CookieConsent() {
         bottom: 0,
         left: 0,
         right: 0,
-        zIndex: 90,
+        zIndex: 110,
         padding: '0 16px 16px',
+        paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px))',
         animation: 'slideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
         pointerEvents: 'none',
       }}
