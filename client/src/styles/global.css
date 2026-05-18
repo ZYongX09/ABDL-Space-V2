@@ -970,9 +970,31 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .img-grid-1 .img-grid-item { aspect-ratio: 16/10; }
 .img-grid-item img {
   width: 100%; height: 100%; object-fit: cover;
-  transition: transform 0.2s;
+  transition: transform 0.2s, opacity 0.3s ease;
 }
 .img-grid-item:hover img { transform: scale(1.03); }
+
+/* 图片加载动画 */
+.img-grid-loading {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--skeleton-base);
+  animation: shimmer 1.5s infinite;
+}
+.img-grid-loading-spinner {
+  width: 24px; height: 24px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.img-grid-error {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--input-bg);
+  color: var(--text-muted);
+  font-size: 1.2rem;
+}
 .img-grid-more {
   position: absolute; inset: 0;
   background: rgba(0,0,0,0.45); color: #fff;

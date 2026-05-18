@@ -1,5 +1,36 @@
 import { useState } from 'react';
 
+function ImageItem({ url, onClick, overlay }) {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  return (
+    <div className="img-grid-item" onClick={onClick}>
+      {/* 加载骨架 */}
+      {!loaded && !error && (
+        <div className="img-grid-loading">
+          <div className="img-grid-loading-spinner" />
+        </div>
+      )}
+      {/* 加载失败 */}
+      {error && (
+        <div className="img-grid-error">
+          <i className="fa-solid fa-image" />
+        </div>
+      )}
+      <img
+        src={url}
+        alt=""
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+        style={{ opacity: loaded ? 1 : 0 }}
+      />
+      {overlay}
+    </div>
+  );
+}
+
 export default function ImageGrid({ images = [] }) {
   const [lightbox, setLightbox] = useState(null);
   if (!images.length) return null;
@@ -17,16 +48,16 @@ export default function ImageGrid({ images = [] }) {
     <>
       <div className={`img-grid ${gridClass}`}>
         {urls.slice(0, 4).map((url, i) => (
-          <div
+          <ImageItem
             key={i}
-            className="img-grid-item"
+            url={url}
             onClick={() => setLightbox(i)}
-          >
-            <img src={url} alt="" loading="lazy" />
-            {i === 3 && urls.length > 4 && (
-              <div className="img-grid-more">+{urls.length - 4}</div>
-            )}
-          </div>
+            overlay={
+              i === 3 && urls.length > 4
+                ? <div className="img-grid-more">+{urls.length - 4}</div>
+                : null
+            }
+          />
         ))}
       </div>
 
@@ -38,11 +69,11 @@ export default function ImageGrid({ images = [] }) {
           <img src={urls[lightbox]} alt="" />
           {urls.length > 1 && (
             <div className="img-lightbox-nav">
-              <button onClick={e => { e.stopPropagation(); setLightbox((lightbox - 1 + images.length) % images.length); }}>
+              <button onClick={e => { e.stopPropagation(); setLightbox((lightbox - 1 + urls.length) % urls.length); }}>
                 <i className="fa-solid fa-chevron-left" />
               </button>
               <span>{lightbox + 1} / {urls.length}</span>
-              <button onClick={e => { e.stopPropagation(); setLightbox((lightbox + 1) % images.length); }}>
+              <button onClick={e => { e.stopPropagation(); setLightbox((lightbox + 1) % urls.length); }}>
                 <i className="fa-solid fa-chevron-right" />
               </button>
             </div>
