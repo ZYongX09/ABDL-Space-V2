@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AccountSwitcher from './AccountSwitcher';
@@ -11,9 +11,21 @@ const NAV_ITEMS = [
   { to: '/recommend', icon: 'fa-wand-magic-sparkles', label: 'AI 推荐' },
 ];
 
+const EXPAND_DELAY = 200; // ms
+
 export default function Sidebar() {
   const { user } = useAuth();
   const [expanded, setExpanded] = useState(false);
+  const timerRef = useRef(null);
+
+  const handleMouseEnter = () => {
+    timerRef.current = setTimeout(() => setExpanded(true), EXPAND_DELAY);
+  };
+
+  const handleMouseLeave = () => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    setExpanded(false);
+  };
 
   return (
     <>
@@ -22,9 +34,9 @@ export default function Sidebar() {
 
       {/* 侧边栏 */}
       <aside
-        className={`sidebar-desktop sidebar-collapsible ${expanded ? 'expanded' : ''}`}
-        onMouseEnter={() => setExpanded(true)}
-        onMouseLeave={() => setExpanded(false)}
+        className="sidebar-desktop sidebar-collapsible ${expanded ? 'expanded' : ''}"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         {/* Logo */}
         <div className="sidebar-header">
