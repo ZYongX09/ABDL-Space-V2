@@ -777,6 +777,11 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   justify-content: center;
   padding: 10px 0;
   gap: 0;
+  margin: 2px 0;
+}
+.sidebar-collapsible:not(.expanded) .sidebar-link-icon {
+  width: auto;
+  margin: 0;
 }
 .sidebar-link:hover {
   background: var(--primary-light);
