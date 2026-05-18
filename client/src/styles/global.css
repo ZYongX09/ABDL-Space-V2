@@ -658,6 +658,160 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   .bottom-nav-floating { display: none; }
 }
 
+/* ====== 可折叠侧边栏 ====== */
+.sidebar-collapsible {
+  width: 64px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow: hidden;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 30;
+}
+.sidebar-collapsible.expanded {
+  width: 240px;
+  overflow-y: auto;
+}
+
+/* 毛玻璃遮罩 */
+.sidebar-overlay {
+  position: fixed;
+  top: 0; left: 64px; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 29;
+  animation: fadeIn 0.2s ease;
+}
+
+/* Header */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  min-height: 60px;
+}
+.sidebar-logo {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.sidebar-header-text {
+  flex: 1;
+  min-width: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease 0.1s;
+  white-space: nowrap;
+}
+.sidebar-collapsible.expanded .sidebar-header-text {
+  opacity: 1;
+}
+.sidebar-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.sidebar-subtitle {
+  font-size: 0.7rem;
+  color: var(--text-light);
+}
+.sidebar-icon-btn {
+  padding: 6px;
+  border-radius: 8px;
+  color: var(--text-light);
+  opacity: 0;
+  transition: opacity 0.15s ease 0.1s;
+  font-size: 0.85rem;
+}
+.sidebar-collapsible.expanded .sidebar-icon-btn {
+  opacity: 1;
+}
+.sidebar-icon-btn:hover {
+  background: var(--primary-light);
+}
+
+/* 搜索 */
+.sidebar-search-wrap {
+  padding: 0 12px;
+  margin-bottom: 8px;
+  position: relative;
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+  transition: opacity 0.15s ease 0.1s, height 0.2s ease;
+}
+.sidebar-collapsible.expanded .sidebar-search-wrap {
+  opacity: 1;
+  height: 40px;
+}
+.sidebar-search-icon {
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* 导航链接 */
+.sidebar-nav {
+  flex: 1;
+  padding: 4px 8px;
+}
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.sidebar-link:hover {
+  background: var(--primary-light);
+}
+.sidebar-link.active {
+  background: var(--primary);
+  color: white;
+}
+.sidebar-link-icon {
+  width: 20px;
+  text-align: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.sidebar-link-label {
+  opacity: 0;
+  transition: opacity 0.15s ease 0.1s;
+  overflow: hidden;
+}
+.sidebar-collapsible.expanded .sidebar-link-label {
+  opacity: 1;
+}
+
+/* 底部 */
+.sidebar-footer {
+  padding: 8px;
+  border-top: 1px solid var(--border);
+}
+
 /* ====== 侧边栏搜索 ====== */
 .sidebar-search-input {
   width: 100%; padding: 8px 12px 8px 36px;

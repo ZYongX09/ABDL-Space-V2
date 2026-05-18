@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
 
-export default function AccountSwitcher() {
+export default function AccountSwitcher({ collapsed = false }) {
   const { user, accounts, switchAccount, removeAccount, logoutAll } = useAuth();
   const [showPanel, setShowPanel] = useState(false);
   const toast = useToast();
@@ -43,14 +43,18 @@ export default function AccountSwitcher() {
           style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
           {user.username?.[0]?.toUpperCase()}
         </div>
-        <div className="flex-1 min-w-0 text-left">
-          <div className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{user.username}</div>
-          <div className="text-xs" style={{ color: 'var(--text-light)' }}>
-            {user.role === 'admin' ? '管理员' : '用户'}
-            {accounts.length > 1 && <span style={{ color: 'var(--text-muted)' }}> · {accounts.length} 个账户</span>}
-          </div>
-        </div>
-        <i className={`fa-solid fa-chevron-${showPanel ? 'up' : 'down'} text-xs`} style={{ color: 'var(--text-muted)' }} />
+        {!collapsed && (
+          <>
+            <div className="flex-1 min-w-0 text-left">
+              <div className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{user.username}</div>
+              <div className="text-xs" style={{ color: 'var(--text-light)' }}>
+                {user.role === 'admin' ? '管理员' : '用户'}
+                {accounts.length > 1 && <span style={{ color: 'var(--text-muted)' }}> · {accounts.length} 个账户</span>}
+              </div>
+            </div>
+            <i className={`fa-solid fa-chevron-${showPanel ? 'up' : 'down'} text-xs`} style={{ color: 'var(--text-muted)' }} />
+          </>
+        )}
       </button>
 
       {/* 下拉面板 */}
