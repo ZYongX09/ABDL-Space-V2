@@ -779,19 +779,18 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   white-space: nowrap;
 }
 .sidebar-collapsible:not(.expanded) .sidebar-link {
-  padding: 10px 0;
-  gap: 0;
+  padding: 10px 0 !important;
+  gap: 0 !important;
   margin: 2px 0;
+  width: 100%;
   text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 .sidebar-collapsible:not(.expanded) .sidebar-link-icon {
-  width: auto;
-  margin: 0 auto;
-  display: block;
+  width: 100% !important;
   text-align: center;
+  display: block;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 .sidebar-link:hover {
   background: var(--primary-light);
