@@ -683,9 +683,12 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
   padding: 16px 10px;
   min-height: 60px;
+}
+.sidebar-collapsible:not(.expanded) .sidebar-header {
+  padding: 16px 0;
+  gap: 0;
 }
 .sidebar-logo {
   width: 36px; height: 36px;
