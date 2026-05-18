@@ -368,18 +368,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 }
 
 /* ====== 侧边栏 ====== */
-.sidebar-link {
-  display: flex; align-items: center; gap: 12px;
-  padding: 11px 20px; margin: 1px 8px; border-radius: 28px;
-  text-decoration: none; color: var(--text);
-  font-weight: 500; font-size: 0.95rem;
-  transition: all 0.15s ease;
-}
-.sidebar-link:hover { background: var(--primary-light); }
-.sidebar-link.active {
-  background: var(--primary); color: white; font-weight: 700;
-  box-shadow: 0 2px 12px rgba(168, 216, 240, 0.3);
-}
+
 
 /* 账户切换面板 — 高模糊毛玻璃 */
 .account-switcher-panel {
@@ -783,6 +772,11 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   font-weight: 500;
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;
+}
+.sidebar-collapsible:not(.expanded) .sidebar-link {
+  justify-content: center;
+  padding: 10px 0;
+  gap: 0;
 }
 .sidebar-link:hover {
   background: var(--primary-light);
