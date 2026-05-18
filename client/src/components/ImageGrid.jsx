@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 function ImageItem({ url, onClick, overlay }) {
   const [loaded, setLoaded] = useState(false);
@@ -61,24 +62,27 @@ export default function ImageGrid({ images = [] }) {
         ))}
       </div>
 
-      {lightbox !== null && (
-        <div className="img-lightbox" onClick={() => setLightbox(null)}>
-          <button className="img-lightbox-close" onClick={() => setLightbox(null)}>
-            <i className="fa-solid fa-xmark" />
-          </button>
-          <img src={urls[lightbox]} alt="" />
-          {urls.length > 1 && (
-            <div className="img-lightbox-nav">
-              <button onClick={e => { e.stopPropagation(); setLightbox((lightbox - 1 + urls.length) % urls.length); }}>
-                <i className="fa-solid fa-chevron-left" />
-              </button>
-              <span>{lightbox + 1} / {urls.length}</span>
-              <button onClick={e => { e.stopPropagation(); setLightbox((lightbox + 1) % urls.length); }}>
-                <i className="fa-solid fa-chevron-right" />
-              </button>
-            </div>
-          )}
-        </div>
+      {lightbox !== null && createPortal(
+        <>
+          <div className="img-lightbox" onClick={() => setLightbox(null)}>
+            <button className="img-lightbox-close" onClick={() => setLightbox(null)}>
+              <i className="fa-solid fa-xmark" />
+            </button>
+            <img src={urls[lightbox]} alt="" />
+            {urls.length > 1 && (
+              <div className="img-lightbox-nav">
+                <button onClick={e => { e.stopPropagation(); setLightbox((lightbox - 1 + urls.length) % urls.length); }}>
+                  <i className="fa-solid fa-chevron-left" />
+                </button>
+                <span>{lightbox + 1} / {urls.length}</span>
+                <button onClick={e => { e.stopPropagation(); setLightbox((lightbox + 1) % urls.length); }}>
+                  <i className="fa-solid fa-chevron-right" />
+                </button>
+              </div>
+            )}
+          </div>
+        </>,
+        document.body
       )}
     </>
   );
