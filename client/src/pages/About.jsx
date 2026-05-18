@@ -5,10 +5,21 @@ import { externalLinkUrl } from '../utils/externalLink';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
-const VERSION = '2.6.1';
-const LAST_UPDATE = '2026-05-18';
+const VERSION = '2.7.0';
+const LAST_UPDATE = '2026-05-19';
 
 const CHANGELOG = [
+  {
+    version: '2.7.0',
+    date: '2026-05-19',
+    changes: [
+      '发帖支持上传图片，新增图片预览与查看功能',
+      '全面优化移动端页面布局与交互体验',
+      '新增私信功能（开发调试中）',
+      '优化个人中心页面',
+      '提升产品性能，修复已知问题',
+    ],
+  },
   {
     version: '2.6.1',
     date: '2026-05-18',
