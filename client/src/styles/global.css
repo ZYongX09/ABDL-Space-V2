@@ -123,6 +123,13 @@
   border-right: 1px solid rgba(255, 255, 255, 0.4);
 }
 
+[data-theme="colorful"] .sidebar-collapsible {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-right: 1px solid rgba(255, 255, 255, 0.5);
+}
+
 [data-theme="colorful"] .glass-navbar {
   background: rgba(255, 255, 255, 0.35);
   backdrop-filter: blur(20px) saturate(150%);
