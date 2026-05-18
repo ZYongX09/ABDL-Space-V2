@@ -16,9 +16,9 @@ export default function MobileBottomNav() {
           to={tab.to}
           end={tab.to === '/'}
           className={({ isActive }) => isActive ? 'active' : ''}
+          title={tab.label}
         >
           <i className={`fa-solid ${tab.icon}`} />
-          <span>{tab.label}</span>
         </NavLink>
       ))}
     </nav>
