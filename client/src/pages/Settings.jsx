@@ -36,40 +36,7 @@ export default function Settings() {
         </p>
       </div>
 
-      {/* 隐私设置 */}
-      {user && (
-        <div className="card mb-5">
-          <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
-            <i className="fa-solid fa-shield-halved mr-2" style={{ color: 'var(--primary-dark)' }} />
-            隐私设置
-          </h3>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>允许接收私信</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>其他用户可以向你发送私信</p>
-            </div>
-            <button
-              className="relative w-12 h-7 rounded-full transition-colors"
-              style={{
-                background: localStorage.getItem('abdl_privacy_allow_messages') !== 'false' ? 'var(--primary)' : 'var(--border)',
-                border: 'none', cursor: 'pointer',
-              }}
-              onClick={() => {
-                const current = localStorage.getItem('abdl_privacy_allow_messages') !== 'false';
-                localStorage.setItem('abdl_privacy_allow_messages', String(!current));
-                toast.success(current ? '已关闭私信接收' : '已开启私信接收');
-              }}
-            >
-              <div
-                className="absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-transform"
-                style={{
-                  transform: localStorage.getItem('abdl_privacy_allow_messages') !== 'false' ? 'translateX(20px)' : 'translateX(2px)',
-                }}
-              />
-            </button>
-          </div>
-        </div>
-      )}
+
 
       {/* 快捷键 */}
       <div className="card">

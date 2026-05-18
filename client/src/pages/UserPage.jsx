@@ -53,26 +53,6 @@ export default function UserPage() {
         </div>
         {user.bio && <p className="text-sm mb-2" style={{ color: 'var(--text-light)' }}>{user.bio}</p>}
         {user.region && <p className="text-sm" style={{ color: 'var(--text-muted)' }}><i className="fa-solid fa-location-dot mr-1" />{user.region}</p>}
-        {/* 发私信按钮（仅查看他人时显示） */}
-        {(() => {
-          try {
-            const current = JSON.parse(localStorage.getItem('abdl_active_account'));
-            const accounts = JSON.parse(localStorage.getItem('abdl_accounts') || '[]');
-            const active = accounts.find(a => a.id === current);
-            if (active && active.id !== user.id) {
-              return (
-                <Link
-                  to={`/messages?user=${user.id}`}
-                  className="btn btn-outline btn-sm mt-3"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <i className="fa-solid fa-envelope" /> 发私信
-                </Link>
-              );
-            }
-          } catch {}
-          return null;
-        })()}
       </div>
     </PageLayout>
   );

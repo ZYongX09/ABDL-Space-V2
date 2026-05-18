@@ -177,15 +177,6 @@ export default function PostDetail() {
                 {post.user?.username || '匿名'}
               </Link>
               {post.user?.role === 'admin' && <OfficialBadge className="ml-1.5" />}
-              {user && user.id !== post.user?.id && (
-                <Link
-                  to={`/messages?user=${post.user?.id}`}
-                  className="btn btn-outline btn-xs ml-2"
-                  style={{ fontSize: '0.7rem', padding: '2px 8px' }}
-                >
-                  <i className="fa-solid fa-envelope mr-1" /> 发私信
-                </Link>
-              )}
             </div>
             <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
               {new Date(post.created_at).toLocaleString('zh-CN')}

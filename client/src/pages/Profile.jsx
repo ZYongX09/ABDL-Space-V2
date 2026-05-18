@@ -212,7 +212,6 @@ export default function Profile() {
       {/* 快捷操作 */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 quick-actions-grid">
         {[
-          { to: '/messages', icon: 'fa-envelope', label: '私信' },
           { to: '/notifications', icon: 'fa-bell', label: '通知' },
           { to: '/settings', icon: 'fa-gear', label: '设置' },
           { to: '/about', icon: 'fa-circle-info', label: '关于' },

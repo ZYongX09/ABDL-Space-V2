@@ -31,9 +31,6 @@ export default function Sidebar() {
         </div>
         {user && (
           <div className="flex items-center gap-1">
-            <NavLink to="/messages" className="relative p-1.5 rounded-lg hover:opacity-70 transition-opacity" style={{ color: 'var(--text-light)' }} title="私信">
-              <i className="fa-solid fa-envelope text-sm" />
-            </NavLink>
             <NavLink to="/notifications" className="relative p-1.5 rounded-lg hover:opacity-70 transition-opacity" style={{ color: 'var(--text-light)' }} title="通知">
               <i className="fa-solid fa-bell text-sm" />
             </NavLink>
