@@ -635,7 +635,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .bottom-nav-floating a.active {
   color: var(--primary-dark);
 }
-.bottom-nav-floating a i { font-size: 1.15rem; }
+.bottom-nav-floating a i { font-size: 1.35rem; }
 
 /* ====== 响应式 ====== */
 @media (max-width: 768px) {
