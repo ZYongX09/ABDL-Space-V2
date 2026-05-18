@@ -17,9 +17,17 @@ export default function NewConversation({ onClose }) {
     try {
       const API_BASE = import.meta.env.VITE_API_BASE || '';
       if (API_BASE) {
-        const res = await fetch(`${API_BASE}/api/users/search?q=${encodeURIComponent(q)}`);
-        const data = await res.json();
-        setResults(data.users || []);
+        try {
+          const res = await fetch(`${API_BASE}/api/users/search?q=${encodeURIComponent(q)}`);
+          if (res.ok) {
+            const data = await res.json();
+            setResults(data.users || []);
+          } else {
+            setResults([]);
+          }
+        } catch {
+          setResults([]);
+        }
       } else {
         // 离线模式：搜索本地用户
         const users = JSON.parse(localStorage.getItem('abdl_users') || '{}');

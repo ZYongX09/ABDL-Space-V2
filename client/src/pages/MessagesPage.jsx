@@ -53,8 +53,12 @@ export default function MessagesPage() {
       if (API_BASE) {
         try {
           const res = await fetch(`${API_BASE}/api/users/${userId}`);
-          const udata = await res.json();
-          setOtherUser(udata.user || udata);
+          if (res.ok) {
+            const udata = await res.json();
+            setOtherUser(udata.user || udata);
+          } else {
+            setOtherUser({ id: Number(userId), username: '用户' });
+          }
         } catch {
           setOtherUser({ id: Number(userId), username: '用户' });
         }
