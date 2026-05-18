@@ -5,7 +5,7 @@ import MobileHeader from '../components/MobileHeader';
 import { Spinner } from '../components/Feedback';
 import ImageGrid from '../components/ImageGrid';
 import ImageUploader from '../components/ImageUploader';
-import { forumAPI, adminAPI } from '../api';
+import { forumAPI, adminAPI, followsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useVerifyModal } from '../components/VerifyModal';
@@ -24,6 +24,8 @@ export default function PostDetail() {
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+  const [followStatus, setFollowStatus] = useState({ following: false });
+  const [followLoading, setFollowLoading] = useState(false);
   const imgRef = useRef(null);
   const menuRef = useRef(null);
   const lastCommentTime = useRef(0);
@@ -33,6 +35,36 @@ export default function PostDetail() {
 
   const isOwner = user && user.id === post?.user?.id;
   const isAdmin = user?.role === 'admin';
+
+  // Load follow status
+  useEffect(() => {
+    if (!post?.user?.id || isOwner) return;
+    (async () => {
+      try {
+        const data = await followsAPI.status(post.user.id);
+        setFollowStatus(data);
+      } catch {}
+    })();
+  }, [post?.user?.id, isOwner]);
+
+  const handleFollow = async () => {
+    if (!user) { toast.error('请先登录'); return; }
+    setFollowLoading(true);
+    const wasFollowing = followStatus.following;
+    try {
+      if (wasFollowing) {
+        await followsAPI.unfollow(post.user.id);
+        setFollowStatus(prev => ({ ...prev, following: false }));
+      } else {
+        await followsAPI.follow(post.user.id);
+        setFollowStatus(prev => ({ ...prev, following: true }));
+      }
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   // 点击外部关闭菜单
   useEffect(() => {
@@ -185,6 +217,21 @@ export default function PostDetail() {
               <Link to={`/user/${post.user?.id}`} className="font-semibold text-sm hover:underline whitespace-nowrap" style={{ color: 'var(--text)' }}>
                 {post.user?.username || '匿名'}
               </Link>
+              {!isOwner && user && post.user?.id && (
+                <button
+                  className={`btn btn-xs ${followStatus.following ? 'btn-outline' : 'btn-primary'}`}
+                  onClick={handleFollow}
+                  disabled={followLoading}
+                  style={{
+                    fontSize: '11px',
+                    padding: '1px 8px',
+                    lineHeight: '18px',
+                    ...(followStatus.following ? { borderColor: 'var(--border)', color: 'var(--text-light)' } : {}),
+                  }}
+                >
+                  {followLoading ? <i className="fa-solid fa-spinner fa-spin" /> : (followStatus.following ? '已关注' : '关注')}
+                </button>
+              )}
               {post.user?.role === 'admin' && <OfficialBadge className="flex-shrink-0" />}
             </div>
             <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
