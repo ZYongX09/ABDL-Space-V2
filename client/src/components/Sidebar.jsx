@@ -17,6 +17,9 @@ export default function Sidebar() {
 
   return (
     <>
+      {/* 占位元素（折叠时撑开布局） */}
+      <div className={`sidebar-placeholder ${expanded ? 'expanded' : ''}`} />
+
       {/* 侧边栏 */}
       <aside
         className={`sidebar-desktop sidebar-collapsible ${expanded ? 'expanded' : ''}`}

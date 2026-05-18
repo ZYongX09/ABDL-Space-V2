@@ -32,6 +32,7 @@ const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const ExternalLink = lazy(() => import('./pages/ExternalLink'));
+const CreatePost = lazy(() => import('./pages/CreatePost'));
 
 function PageFallback() {
   return (
@@ -57,6 +58,7 @@ const ROUTE_TITLES = {
   '/external': '外部链接 — ABDL Space',
   '/about': '关于 — ABDL Space',
   '/settings': '设置 — ABDL Space',
+  '/create-post': '发帖 — ABDL Space',
 };
 
 function getTitle(pathname) {
@@ -125,6 +127,7 @@ export default function App() {
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/external" element={<ExternalLink />} />
+                <Route path="/create-post" element={<CreatePost />} />
               </Routes>
             </Suspense>
           </ErrorBoundary>

@@ -1,9 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { LoadingSkeleton, EmptyState } from '../components/Feedback';
-import { useVerifyModal } from '../components/VerifyModal';
-import ImageUploader from '../components/ImageUploader';
 import ImageGrid from '../components/ImageGrid';
 import PullToRefresh from '../components/PullToRefresh';
 import RichContent from '../components/RichContent';
@@ -15,23 +13,10 @@ import { useToast } from '../contexts/ToastContext';
 export default function ForumFeed() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [content, setContent] = useState('');
-  const [publishing, setPublishing] = useState(false);
   const [search, setSearch] = useState('');
-  const [cooldown, setCooldown] = useState(0);
-  const imgRef = useRef(null);
-  const lastPostTime = useRef(0);
   const { user } = useAuth();
   const toast = useToast();
-  const { trigger, VerifyModal } = useVerifyModal();
-
-  // 冷却计时器
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = setInterval(() => setCooldown(c => c - 1), 1000);
-    return () => clearInterval(timer);
-  }, [cooldown]);
+  const navigate = useNavigate();
 
   const loadPosts = async () => {
     try {
@@ -46,42 +31,6 @@ export default function ForumFeed() {
   };
 
   useEffect(() => { loadPosts(); }, [search]);
-
-  const doPost = async () => {
-    if (!content.trim() && !imgRef.current?.hasPending()) return;
-    // 冷却检查
-    const now = Date.now();
-    const elapsed = (now - lastPostTime.current) / 1000;
-    if (elapsed < 30) {
-      toast.error(`发帖太频繁，请等待 ${Math.ceil(30 - elapsed)} 秒`);
-      return;
-    }
-    setPublishing(true);
-    try {
-      let imageUrls = [];
-      if (imgRef.current?.hasPending()) {
-        toast.info('正在上传图片...');
-        imageUrls = await imgRef.current.uploadAll();
-      }
-      await forumAPI.create({ content: content.trim(), images: imageUrls.length > 0 ? imageUrls : undefined });
-      lastPostTime.current = Date.now();
-      setCooldown(30);
-      setContent('');
-      imgRef.current?.clear();
-      setShowForm(false);
-      toast.success(imageUrls.length > 0 ? '图片上传完成，发布成功！' : '发布成功');
-      loadPosts();
-    } catch (e) {
-      toast.error(e.message);
-    } finally {
-      setPublishing(false);
-    }
-  };
-
-  const handlePost = () => {
-    if (!content.trim() && !imgRef.current?.hasPending()) return;
-    trigger(doPost);
-  };
 
   const handleLike = async (postId) => {
     if (!user) { toast.error('请先登录'); return; }
@@ -104,32 +53,11 @@ export default function ForumFeed() {
           onChange={e => setSearch(e.target.value)}
         />
         {user && (
-          <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+          <button className="btn btn-primary" onClick={() => navigate('/create-post')}>
             <i className="fa-solid fa-pen" /> 发帖
           </button>
         )}
       </div>
-
-      {/* 发帖表单 */}
-      {showForm && (
-        <div className="card mb-5 animate-fade-in-up">
-          <textarea
-            className="form-control mb-2"
-            placeholder="分享点什么..."
-            value={content}
-            onChange={e => setContent(e.target.value)}
-            rows={4}
-            disabled={publishing}
-          />
-          <ImageUploader ref={imgRef} max={4} onError={msg => toast.error(msg)} />
-          <div className="flex gap-2 justify-end mt-3">
-            <button className="btn btn-outline btn-sm" onClick={() => { setShowForm(false); imgRef.current?.clear(); }} disabled={publishing}>取消</button>
-            <button className="btn btn-primary btn-sm" onClick={handlePost} disabled={(!content.trim() && !imgRef.current?.hasPending()) || publishing || cooldown > 0}>
-              {publishing ? <><i className="fa-solid fa-spinner fa-spin mr-1" />发布中...</> : cooldown > 0 ? <><i className="fa-solid fa-clock mr-1" />{cooldown}s</> : '发布'}
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* 帖子列表 */}
       <PullToRefresh onRefresh={loadPosts}>
@@ -193,7 +121,6 @@ export default function ForumFeed() {
         </div>
       )}
       </PullToRefresh>
-    {VerifyModal}
     </PageLayout>
   );
 }
