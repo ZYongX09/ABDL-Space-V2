@@ -114,9 +114,13 @@ function MobileLightbox({ urls, index, onClose, onNavigate }) {
   const handleTouchEndRef = useRef(null);
 
   handleTouchStartRef.current = (e) => {
-    e.preventDefault();
     const s = stateRef.current;
     const now = Date.now();
+
+    // 不阻止按钮的触摸事件
+    if (e.target.closest('button')) return;
+
+    e.preventDefault();
 
     if (e.touches.length === 2) {
       // Pinch start
