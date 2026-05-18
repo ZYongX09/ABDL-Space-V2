@@ -1,7 +1,8 @@
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Link } from 'react-router-dom';
 
-const UPLOAD_WORKER = import.meta.env.VITE_UPLOAD_URL || 'https://abdl-space-upload.3806526113.workers.dev';
+// 图床 API（通过后端代理，API Key 不暴露到前端）
+const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 // Cloudflare Workers 免费版限制
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -24,11 +25,10 @@ function createPreview(file) {
   });
 }
 
-// 上传单张图片（带超时）
+// 上传单张图片（通过后端代理）
 async function uploadImage(file) {
-  const apiBase = import.meta.env.VITE_API_BASE;
   // 离线模式：返回 base64
-  if (!apiBase) {
+  if (!API_BASE) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result);
@@ -45,7 +45,7 @@ async function uploadImage(file) {
   const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT);
 
   try {
-    const res = await fetch(UPLOAD_WORKER, {
+    const res = await fetch(`${API_BASE}/api/images/upload`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
@@ -58,7 +58,7 @@ async function uploadImage(file) {
   } catch (e) {
     clearTimeout(timer);
     if (e.name === 'AbortError') {
-      throw new Error('上传超时，可能原因：网络不稳定、图片过大、或图片上传服务在当前网络环境下不可用');
+      throw new Error('上传超时，可能原因：网络不稳定或图片过大');
     }
     throw e;
   }

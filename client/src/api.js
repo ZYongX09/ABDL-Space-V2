@@ -467,6 +467,16 @@ export const forumAPI = {
 
   delete: async (id) => {
     if (USE_API) {
+      // 先获取帖子图片，删除图床图片
+      try {
+        const postData = await apiFetch(`/api/posts/${id}`);
+        const images = postData.post?.images || [];
+        for (const img of images) {
+          if (img.image_url) {
+            try { await imagesAPI.delete(img.image_url); } catch {}
+          }
+        }
+      } catch {}
       const result = await apiFetch(`/api/posts/${id}`, { method: 'DELETE' });
       cacheInvalidate('feed:');
       cacheInvalidate(`post:${id}`);
@@ -712,6 +722,20 @@ export const messagesAPI = {
 // =====================================================================
 // 通知 Notifications（后端 /api/notifications）
 // =====================================================================
+export const imagesAPI = {
+  // 删除图床图片（后端代理，API Key 不暴露）
+  delete: async (url) => {
+    if (USE_API) return apiFetch('/api/images/delete', { method: 'POST', body: JSON.stringify({ url }) });
+    return { message: '已删除' };
+  },
+
+  // 列出图床图片（管理员）
+  list: async (page = 1, perPage = 20) => {
+    if (USE_API) return apiFetch(`/api/images/list?page=${page}&perPage=${perPage}`);
+    return { files: [], total: 0 };
+  },
+};
+
 export const notificationsAPI = {
   list: async () => {
     if (USE_API) return apiFetch('/api/notifications');
