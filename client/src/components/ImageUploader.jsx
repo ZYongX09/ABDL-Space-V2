@@ -1,5 +1,4 @@
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react';
-import { Link } from 'react-router-dom';
 
 // 图床 API（通过后端代理，API Key 不暴露到前端）
 const API_BASE = import.meta.env.VITE_API_BASE || '';
@@ -171,8 +170,7 @@ const ImageUploader = forwardRef(function ImageUploader({ max = 4, onError }, re
           </div>
           <div className="img-upload-warning">
             <i className="fa-solid fa-triangle-exclamation" />
-            <span>图片上传服务在中国大陆网络环境下可能无法使用</span>
-            <Link to="/about#donate" className="img-upload-donate">帮助我们做得更好</Link>
+            <span>禁止上传违法、侵权、色情等违规内容，违者将封禁账号</span>
           </div>
         </>
       )}
