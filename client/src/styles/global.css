@@ -685,6 +685,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   justify-content: center;
   padding: 16px 10px;
   min-height: 60px;
+  gap: 8px;
 }
 .sidebar-collapsible:not(.expanded) .sidebar-header {
   padding: 16px 0;
