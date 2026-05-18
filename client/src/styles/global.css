@@ -369,6 +369,11 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   font-size: 1.3rem; transition: all 0.2s;
   display: flex; align-items: center; justify-content: center;
 }
+@media (max-width: 768px) {
+  .back-to-top {
+    bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+}
 .back-to-top:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(168, 216, 240, 0.6);

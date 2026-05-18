@@ -4,8 +4,8 @@ export default function BackButton() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 首页不显示返回按钮
-  if (location.pathname === '/') return null;
+  // 首页和个人中心不显示返回按钮
+  if (location.pathname === '/' || location.pathname === '/profile') return null;
 
   const handleBack = () => {
     if (window.history.length > 1) {
