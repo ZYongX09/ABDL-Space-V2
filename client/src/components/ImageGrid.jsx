@@ -297,7 +297,7 @@ function MobileLightbox({ urls, index, onClose, onNavigate }) {
       style={{ touchAction: 'none' }}
     >
       {/* 关闭按钮 */}
-      <button className="lightbox-mobile-close" onClick={(e) => { e.stopPropagation(); onClose(); }}>
+      <button className="lightbox-mobile-close" onPointerDown={(e) => { e.stopPropagation(); onClose(); }}>
         <i className="fa-solid fa-xmark" />
       </button>
 

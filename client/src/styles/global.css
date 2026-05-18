@@ -361,7 +361,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 
 /* ====== 回到顶部 ====== */
 .back-to-top {
-  position: fixed; bottom: 24px; right: 24px; z-index: 99;
+  position: fixed; bottom: 24px; right: 24px; z-index: 101;
   width: 44px; height: 44px; border-radius: 50%;
   background: var(--primary); color: white;
   border: none; cursor: pointer;
@@ -1148,7 +1148,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   position: fixed; bottom: 80px; right: 20px;
   width: 52px; height: 52px; border-radius: 50%;
   background: var(--primary); color: white;
-  border: none; cursor: pointer; z-index: 40;
+  border: none; cursor: pointer; z-index: 101;
   display: none; align-items: center; justify-content: center;
   font-size: 1.1rem;
   box-shadow: 0 4px 16px rgba(168, 216, 240, 0.4);
@@ -1245,8 +1245,8 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   position: absolute;
   top: calc(12px + env(safe-area-inset-top, 0px));
   right: 12px;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.15);
   color: #fff;
@@ -1259,6 +1259,8 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   z-index: 501;
   transition: background 0.2s;
   backdrop-filter: blur(8px);
+  touch-action: auto;
+  pointer-events: auto;
 }
 .lightbox-mobile-close:active {
   background: rgba(255, 255, 255, 0.3);
