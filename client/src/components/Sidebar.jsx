@@ -5,11 +5,11 @@ import { useNotifications } from '../contexts/NotificationContext';
 import AccountSwitcher from './AccountSwitcher';
 
 const NAV_ITEMS = [
-  { to: '/', icon: 'fa-house', label: '广场', end: true },
-  { to: '/messages', icon: 'fa-envelope', label: '私信' },
-  { to: '/diapers', icon: 'fa-baby', label: '纸尿裤' },
-  { to: '/rankings', icon: 'fa-trophy', label: '排行榜' },
-  { to: '/recommend', icon: 'fa-wand-magic-sparkles', label: 'AI 推荐' },
+  { to: '/', icon: 'fa-regular fa-house', label: '广场', end: true },
+  { to: '/messages', icon: 'fa-regular fa-envelope', label: '私信' },
+  { to: '/diapers', icon: 'fa-regular fa-baby', label: '纸尿裤' },
+  { to: '/rankings', icon: 'fa-regular fa-trophy', label: '排行榜' },
+  { to: '/recommend', icon: 'fa-regular fa-wand-magic-sparkles', label: 'AI 推荐' },
 ];
 
 const EXPAND_DELAY = 200; // ms

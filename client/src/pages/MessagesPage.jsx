@@ -159,7 +159,7 @@ export default function MessagesPage() {
               onClick={() => setShowNewConvo(true)}
               title="新私信"
             >
-              <i className="fa-solid fa-pen" />
+              <i className="fa-regular fa-square-plus" />
             </button>
           </div>
 
@@ -279,7 +279,7 @@ export default function MessagesPage() {
           className="msg-fab"
           onClick={() => setShowNewConvo(true)}
         >
-          <i className="fa-solid fa-pen" />
+          <i className="fa-regular fa-square-plus" />
         </button>
       )}
 

@@ -88,14 +88,14 @@ export default function Profile() {
     {/* 移动端标题栏 — 始终显示，滚动后显示用户名 */}
     <div className="mobile-header">
       <button className="mobile-header-btn" onClick={() => setShowDrawer(true)} title="菜单">
-        <i className="fa-solid fa-bars" />
+        <i className="fa-regular fa-bars" />
       </button>
       <span className="mobile-header-title" style={{ opacity: scrolled ? 1 : 0, transition: 'opacity 0.2s ease' }}>
         {user.username}
       </span>
       <div className="mobile-header-right">
         <button className="mobile-header-btn" onClick={startEdit} title="编辑资料">
-          <i className="fa-solid fa-pen" />
+          <i className="fa-regular fa-pen-to-square" />
         </button>
       </div>
     </div>
@@ -116,15 +116,15 @@ export default function Profile() {
           </div>
           <nav className="profile-drawer-nav">
             <button className="profile-drawer-item" onClick={() => { setShowDrawer(false); navigate('/settings'); }}>
-              <i className="fa-solid fa-gear" />
+              <i className="fa-regular fa-gear" />
               <span>设置</span>
             </button>
             <button className="profile-drawer-item" onClick={() => { setShowDrawer(false); navigate('/about'); }}>
-              <i className="fa-solid fa-circle-info" />
+              <i className="fa-regular fa-circle-question" />
               <span>关于</span>
             </button>
             <button className="profile-drawer-item" onClick={() => { setShowDrawer(false); navigate('/notifications'); }}>
-              <i className="fa-solid fa-bell" />
+              <i className="fa-regular fa-bell" />
               <span>通知</span>
             </button>
           </nav>
@@ -135,7 +135,7 @@ export default function Profile() {
               navigate('/');
               toast.success(accounts.length > 1 ? '已切换到其他账户' : '已退出登录');
             }}>
-              <i className="fa-solid fa-right-from-bracket" />
+              <i className="fa-regular fa-right-from-bracket" />
               <span>退出登录</span>
             </button>
           </div>
@@ -236,7 +236,7 @@ export default function Profile() {
             {user.style_preference && <p><i className="fa-solid fa-heart mr-2" />偏好: {user.style_preference}</p>}
             <p><i className="fa-solid fa-calendar mr-2" />注册于 {new Date(user.created_at).toLocaleDateString('zh-CN')}</p>
             <button className="btn btn-outline btn-sm mt-2" onClick={startEdit}>
-              <i className="fa-solid fa-pen" /> 编辑资料
+              <i className="fa-regular fa-pen-to-square" /> 编辑资料
             </button>
           </div>
         )}

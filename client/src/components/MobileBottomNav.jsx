@@ -1,11 +1,11 @@
 import { NavLink } from 'react-router-dom';
 
 const TABS = [
-  { to: '/', icon: 'fa-house', label: '首页' },
-  { to: '/messages', icon: 'fa-envelope', label: '私信' },
-  { to: '/diapers', icon: 'fa-baby', label: '纸尿裤' },
-  { to: '/recommend', icon: 'fa-wand-magic-sparkles', label: 'AI' },
-  { to: '/profile', icon: 'fa-user', label: '我的' },
+  { to: '/', icon: 'fa-regular fa-house', label: '首页' },
+  { to: '/messages', icon: 'fa-regular fa-envelope', label: '私信' },
+  { to: '/diapers', icon: 'fa-regular fa-baby', label: '纸尿裤' },
+  { to: '/recommend', icon: 'fa-regular fa-wand-magic-sparkles', label: 'AI' },
+  { to: '/profile', icon: 'fa-regular fa-user', label: '我的' },
 ];
 
 export default function MobileBottomNav() {
