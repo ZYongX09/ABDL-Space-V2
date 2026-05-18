@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../contexts/NotificationContext';
 import AccountSwitcher from './AccountSwitcher';
 
 const NAV_ITEMS = [
@@ -15,6 +16,7 @@ const EXPAND_DELAY = 200; // ms
 
 export default function Sidebar() {
   const { user } = useAuth();
+  const { unreadCount } = useNotifications();
   const [expanded, setExpanded] = useState(false);
   const timerRef = useRef(null);
 
@@ -48,8 +50,9 @@ export default function Sidebar() {
             <div className="sidebar-subtitle">纸尿裤社区</div>
           </div>
           {user && (
-            <NavLink to="/notifications" className="sidebar-icon-btn" title="通知">
+            <NavLink to="/notifications" className="sidebar-icon-btn" title="通知" style={{ position: 'relative' }}>
               <i className="fa-solid fa-bell" />
+              {unreadCount > 0 && <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
             </NavLink>
           )}
         </div>

@@ -542,7 +542,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 
 /* MIUI 风格页面切换动画 */
 .page-transition-enter {
-  animation: miuiPageIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: miuiPageIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes miuiPageIn {
@@ -643,6 +643,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
     padding-top: 48px;
   }
   .sidebar-desktop { display: none !important; }
+  .sidebar-placeholder { display: none; }
   .btn { min-height: 44px; }
   .card { padding: 16px; border-radius: 12px; }
   .hero-card { display: none; }

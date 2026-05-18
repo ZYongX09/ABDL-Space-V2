@@ -4,6 +4,7 @@ import MobileHeader from '../components/MobileHeader';
 import { LoadingSkeleton, EmptyState } from '../components/Feedback';
 import { notificationsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../contexts/NotificationContext';
 import { useToast } from '../contexts/ToastContext';
 import { Link } from 'react-router-dom';
 
@@ -12,6 +13,7 @@ export default function NotificationsPage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { clearUnread } = useNotifications();
   const toast = useToast();
 
   useEffect(() => {
@@ -34,6 +36,7 @@ export default function NotificationsPage() {
       await notificationsAPI.readAll();
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
+      clearUnread();
       toast.success('已全部标为已读');
     } catch (e) {
       toast.error(e.message);
