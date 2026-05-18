@@ -85,25 +85,19 @@ export default function Profile() {
 
   return (
     <>
-    {/* 移动端固定标题栏 — 滚动后显示 */}
-    <div className={`profile-header ${scrolled ? 'visible' : ''}`}>
+    {/* 移动端标题栏 — 始终显示，滚动后显示用户名 */}
+    <div className="mobile-header">
       <button className="mobile-header-btn" onClick={() => setShowDrawer(true)} title="菜单">
         <i className="fa-solid fa-bars" />
       </button>
-      <span className="profile-header-title">{user.username}</span>
-      <button className="mobile-header-btn" onClick={startEdit} title="编辑资料">
-        <i className="fa-solid fa-pen" />
-      </button>
-    </div>
-
-    {/* 移动端顶部按钮 — 始终显示 */}
-    <div className="profile-top-bar">
-      <button className="mobile-header-btn" onClick={() => setShowDrawer(true)} title="菜单">
-        <i className="fa-solid fa-bars" />
-      </button>
-      <button className="mobile-header-btn" onClick={startEdit} title="编辑资料">
-        <i className="fa-solid fa-pen" />
-      </button>
+      <span className="mobile-header-title" style={{ opacity: scrolled ? 1 : 0, transition: 'opacity 0.2s ease' }}>
+        {user.username}
+      </span>
+      <div className="mobile-header-right">
+        <button className="mobile-header-btn" onClick={startEdit} title="编辑资料">
+          <i className="fa-solid fa-pen" />
+        </button>
+      </div>
     </div>
 
     {/* 侧边抽屉 */}

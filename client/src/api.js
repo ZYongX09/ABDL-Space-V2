@@ -855,3 +855,33 @@ export const adminAPI = {
     return { message: '已提升' };
   },
 };
+
+// =====================================================================
+// 关注 Follows（后端 /api/follows）
+// =====================================================================
+export const followsAPI = {
+  follow: async (userId) => {
+    if (USE_API) return apiFetch(`/api/follows/${userId}`, { method: 'POST' });
+    return { message: '已关注', mutual: false };
+  },
+
+  unfollow: async (userId) => {
+    if (USE_API) return apiFetch(`/api/follows/${userId}`, { method: 'DELETE' });
+    return { message: '已取消关注' };
+  },
+
+  status: async (userId) => {
+    if (USE_API) return apiFetch(`/api/follows/${userId}/status`);
+    return { following: false, follower: false, mutual: false };
+  },
+
+  followers: async (userId, page = 1) => {
+    if (USE_API) return apiFetch(`/api/follows/${userId}/followers?page=${page}`);
+    return { users: [], total: 0 };
+  },
+
+  following: async (userId, page = 1) => {
+    if (USE_API) return apiFetch(`/api/follows/${userId}/following?page=${page}`);
+    return { users: [], total: 0 };
+  },
+};

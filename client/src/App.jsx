@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import Sidebar from './components/Sidebar';
 import MobileBottomNav from './components/MobileBottomNav';
 import CookieConsent from './components/CookieConsent';
@@ -33,6 +34,7 @@ const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const ExternalLink = lazy(() => import('./pages/ExternalLink'));
 const CreatePost = lazy(() => import('./pages/CreatePost'));
+const FollowersPage = lazy(() => import('./pages/FollowersPage'));
 
 function PageFallback() {
   return (
@@ -99,6 +101,7 @@ export default function App() {
   return (
     <div className="app-layout">
       <ScrollToTop />
+      <NotificationProvider>
       <Sidebar />
       <div className="app-main-content">
         <div className="container mx-auto px-5 py-6 max-w-[1080px] page-transition-enter">
@@ -123,6 +126,8 @@ export default function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/user/:id" element={<UserPage />} />
+                <Route path="/user/:id/followers" element={<FollowersPage />} />
+                <Route path="/user/:id/following" element={<FollowersPage />} />
                 <Route path="/messages" element={<MessagesPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/admin" element={<AdminPage />} />
@@ -148,6 +153,7 @@ export default function App() {
           </div>
         </footer>
       </div>
+      </NotificationProvider>
       <MobileBottomNav />
       <CookieConsent />
       <ScrollProgress />
