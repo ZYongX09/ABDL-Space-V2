@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
-import MobileHeader from '../components/MobileHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { usersAPI } from '../api';
@@ -12,8 +11,11 @@ export default function Profile() {
   const [form, setForm] = useState({});
   const [myPosts, setMyPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [showDrawer, setShowDrawer] = useState(false);
   const toast = useToast();
   const navigate = useNavigate();
+  const headerRef = useRef(null);
 
   useEffect(() => {
     if (!user) return;
@@ -26,10 +28,17 @@ export default function Profile() {
     })();
   }, [user]);
 
+  // 监听滚动，控制标题栏显示
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 120);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   if (!user) {
     return (
-      <>
-      <MobileHeader title="个人中心" />
       <PageLayout hero={{ icon: 'fa-user', title: '个人中心' }}>
         <div className="empty-state">
           <div className="icon"><i className="fa-solid fa-user" /></div>
@@ -38,7 +47,6 @@ export default function Profile() {
           <Link to="/login" className="btn btn-primary mt-4">去登录</Link>
         </div>
       </PageLayout>
-      </>
     );
   }
 
@@ -57,7 +65,6 @@ export default function Profile() {
 
   const handleSave = async () => {
     try {
-      // 转换数字字段
       const body = { ...form };
       if (body.age) body.age = Number(body.age); else body.age = null;
       if (body.weight) body.weight = Number(body.weight); else body.weight = null;
@@ -78,9 +85,72 @@ export default function Profile() {
 
   return (
     <>
-    <MobileHeader title="个人中心" actions={[{ icon: 'fa-gear', onClick: () => navigate('/settings'), title: '设置' }]} />
+    {/* 移动端固定标题栏 — 滚动后显示 */}
+    <div className={`profile-header ${scrolled ? 'visible' : ''}`}>
+      <button className="mobile-header-btn" onClick={() => setShowDrawer(true)} title="菜单">
+        <i className="fa-solid fa-bars" />
+      </button>
+      <span className="profile-header-title">{user.username}</span>
+      <button className="mobile-header-btn" onClick={startEdit} title="编辑资料">
+        <i className="fa-solid fa-pen" />
+      </button>
+    </div>
+
+    {/* 移动端顶部按钮 — 始终显示 */}
+    <div className="profile-top-bar">
+      <button className="mobile-header-btn" onClick={() => setShowDrawer(true)} title="菜单">
+        <i className="fa-solid fa-bars" />
+      </button>
+      <button className="mobile-header-btn" onClick={startEdit} title="编辑资料">
+        <i className="fa-solid fa-pen" />
+      </button>
+    </div>
+
+    {/* 侧边抽屉 */}
+    {showDrawer && (
+      <>
+        <div className="profile-drawer-overlay" onClick={() => setShowDrawer(false)} />
+        <div className="profile-drawer animate-slide-in-left">
+          <div className="profile-drawer-header">
+            <div className="profile-drawer-avatar">
+              {user.username?.[0]?.toUpperCase()}
+            </div>
+            <div>
+              <div className="font-bold text-sm" style={{ color: 'var(--text)' }}>{user.username}</div>
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{user.role === 'admin' ? '管理员' : '用户'}</div>
+            </div>
+          </div>
+          <nav className="profile-drawer-nav">
+            <button className="profile-drawer-item" onClick={() => { setShowDrawer(false); navigate('/settings'); }}>
+              <i className="fa-solid fa-gear" />
+              <span>设置</span>
+            </button>
+            <button className="profile-drawer-item" onClick={() => { setShowDrawer(false); navigate('/about'); }}>
+              <i className="fa-solid fa-circle-info" />
+              <span>关于</span>
+            </button>
+            <button className="profile-drawer-item" onClick={() => { setShowDrawer(false); navigate('/notifications'); }}>
+              <i className="fa-solid fa-bell" />
+              <span>通知</span>
+            </button>
+          </nav>
+          <div className="profile-drawer-footer">
+            <button className="profile-drawer-item danger" onClick={() => {
+              setShowDrawer(false);
+              logout();
+              navigate('/');
+              toast.success(accounts.length > 1 ? '已切换到其他账户' : '已退出登录');
+            }}>
+              <i className="fa-solid fa-right-from-bracket" />
+              <span>退出登录</span>
+            </button>
+          </div>
+        </div>
+      </>
+    )}
+
     <PageLayout hero={{ icon: 'fa-user', title: '个人中心', subtitle: `欢迎回来，${user.username}` }}>
-      {/* 基本信息 */}
+      {/* 用户信息卡片 */}
       <div className="card mb-5">
         <div className="flex items-center gap-4 mb-4">
           <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold"
@@ -95,7 +165,6 @@ export default function Profile() {
 
         {editing ? (
           <div className="space-y-4">
-            {/* 基本信息 */}
             <div>
               <h4 className="text-sm font-bold mb-2" style={{ color: 'var(--text)' }}>
                 <i className="fa-solid fa-circle-user mr-1.5" style={{ color: 'var(--primary-dark)' }} />
@@ -117,7 +186,6 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* 身体数据 */}
             <div>
               <h4 className="text-sm font-bold mb-2" style={{ color: 'var(--text)' }}>
                 <i className="fa-solid fa-ruler mr-1.5" style={{ color: 'var(--primary-dark)' }} />
@@ -140,7 +208,6 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* 偏好 */}
             <div>
               <h4 className="text-sm font-bold mb-2" style={{ color: 'var(--text)' }}>
                 <i className="fa-solid fa-heart mr-1.5" style={{ color: 'var(--accent)' }} />
@@ -213,30 +280,6 @@ export default function Profile() {
             ))}
           </div>
         )}
-      </div>
-
-      {/* 快捷操作 */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 quick-actions-grid">
-        {[
-          { to: '/notifications', icon: 'fa-bell', label: '通知' },
-          { to: '/settings', icon: 'fa-gear', label: '设置' },
-          { to: '/about', icon: 'fa-circle-info', label: '关于' },
-        ].map(item => (
-          <Link key={item.to} to={item.to} className="card text-center py-4 hover:shadow-hover transition-all" style={{ textDecoration: 'none', color: 'var(--text)' }}>
-            <i className={`fa-solid ${item.icon} text-xl mb-2`} style={{ color: 'var(--primary-dark)' }} />
-            <div className="text-sm font-semibold">{item.label}</div>
-          </Link>
-        ))}
-      </div>
-
-      <div className="mt-5 text-center">
-        <button className="btn btn-danger btn-sm" onClick={() => {
-          logout();
-          navigate('/');
-          toast.success(accounts.length > 1 ? '已切换到其他账户' : '已退出登录');
-        }}>
-          <i className="fa-solid fa-right-from-bracket" /> 退出当前账户
-        </button>
       </div>
     </PageLayout>
     </>

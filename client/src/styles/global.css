@@ -968,6 +968,96 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 }
 .img-upload-donate:hover { opacity: 0.7; text-decoration: underline; }
 
+/* ====== 个人中心自定义头部 ====== */
+.profile-header {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 48px; z-index: 50;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 12px;
+  opacity: 0; transform: translateY(-100%);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+}
+.profile-header.visible {
+  opacity: 1; transform: translateY(0);
+  pointer-events: auto;
+}
+.profile-header-title {
+  font-size: 0.95rem; font-weight: 700; color: var(--text);
+  position: absolute; left: 50%; transform: translateX(-50%);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 50%;
+}
+.profile-top-bar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 48px; z-index: 49;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 12px;
+}
+.profile-top-bar .mobile-header-btn {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+@media (min-width: 769px) {
+  .profile-header, .profile-top-bar { display: none; }
+}
+
+/* 侧边抽屉 */
+.profile-drawer-overlay {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: fadeIn 0.2s ease;
+}
+.profile-drawer {
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: 260px; z-index: 61;
+  background: var(--bg-card);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+  display: flex; flex-direction: column;
+  animation: slideInLeft 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.profile-drawer-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 24px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.profile-drawer-avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--primary-light); color: var(--primary-dark);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; font-weight: 700; flex-shrink: 0;
+}
+.profile-drawer-nav {
+  flex: 1; padding: 8px;
+}
+.profile-drawer-item {
+  display: flex; align-items: center; gap: 14px;
+  width: 100%; padding: 12px 16px;
+  border: none; background: none; cursor: pointer;
+  color: var(--text); font-size: 0.9rem; font-weight: 500;
+  border-radius: 12px; transition: background 0.15s;
+  font-family: var(--font); text-align: left;
+}
+.profile-drawer-item:hover { background: var(--hover-bg); }
+.profile-drawer-item i {
+  width: 20px; text-align: center; font-size: 1rem; color: var(--text-light);
+}
+.profile-drawer-item.danger { color: var(--danger); }
+.profile-drawer-item.danger i { color: var(--danger); }
+.profile-drawer-footer {
+  padding: 8px;
+  border-top: 1px solid var(--border);
+}
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
 /* ====== 私信页面 ====== */
 .msg-container {
   display: flex;
