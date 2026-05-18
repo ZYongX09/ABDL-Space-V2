@@ -708,6 +708,9 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   transition: opacity 0.15s ease 0.1s;
   white-space: nowrap;
 }
+.sidebar-collapsible:not(.expanded) .sidebar-header-text {
+  display: none;
+}
 .sidebar-collapsible.expanded .sidebar-header-text {
   opacity: 1;
 }
@@ -727,6 +730,9 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   opacity: 0;
   transition: opacity 0.15s ease 0.1s;
   font-size: 0.85rem;
+}
+.sidebar-collapsible:not(.expanded) .sidebar-icon-btn {
+  display: none;
 }
 .sidebar-collapsible.expanded .sidebar-icon-btn {
   opacity: 1;
