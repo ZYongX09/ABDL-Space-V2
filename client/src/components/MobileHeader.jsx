@@ -1,12 +1,14 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-export default function MobileHeader({ title, back, actions }) {
+export default function MobileHeader({ title, leftActions, actions }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const showBack = location.pathname !== '/';
 
   return (
     <div className="mobile-header">
       <div className="mobile-header-left">
-        {back && (
+        {showBack && (
           <button
             className="mobile-header-btn"
             onClick={() => navigate(-1)}
@@ -15,6 +17,16 @@ export default function MobileHeader({ title, back, actions }) {
             <i className="fa-solid fa-arrow-left" />
           </button>
         )}
+        {leftActions?.map((a, i) => (
+          <button
+            key={i}
+            className="mobile-header-btn"
+            onClick={a.onClick}
+            title={a.title}
+          >
+            <i className={a.icon} />
+          </button>
+        ))}
       </div>
       <span className="mobile-header-title">{title}</span>
       <div className="mobile-header-right">
@@ -25,7 +37,7 @@ export default function MobileHeader({ title, back, actions }) {
             onClick={a.onClick}
             title={a.title}
           >
-            <i className={`fa-solid ${a.icon}`} />
+            <i className={a.icon} />
           </button>
         ))}
       </div>

@@ -48,7 +48,7 @@ export default function CreatePost() {
 
   return (
     <>
-    <MobileHeader title="发帖" back />
+    <MobileHeader title="发帖" />
     <PageLayout hero={{ icon: 'fa-pen', title: '发帖', subtitle: '分享你的 ABDL 生活' }}>
       <div className="card" style={{ padding: '1.5rem' }}>
         <textarea

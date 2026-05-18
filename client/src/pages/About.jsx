@@ -101,7 +101,7 @@ export default function About() {
 
   return (
     <>
-    <MobileHeader title="关于" back />
+    <MobileHeader title="关于" />
     <PageLayout hero={{ icon: 'fa-circle-info', title: '关于', subtitle: `v${VERSION}` }}>
       {/* 项目简介 */}
       <div className="card mb-5">

@@ -72,7 +72,7 @@ export default function UserPage() {
 
   return (
     <>
-    <MobileHeader title={user?.username || '用户'} back />
+    <MobileHeader title={user?.username || '用户'} />
     <PageLayout hero={{ icon: 'fa-user', title: user.username }}>
       <div className="card">
         <div className="flex items-center gap-4 mb-4">

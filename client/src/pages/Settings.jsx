@@ -12,7 +12,7 @@ export default function Settings() {
 
   return (
     <>
-    <MobileHeader title="设置" back />
+    <MobileHeader title="设置" />
     <PageLayout hero={{ icon: 'fa-gear', title: '设置', subtitle: '自定义你的体验' }}>
       {/* 主题设置 */}
       <div className="card mb-5">

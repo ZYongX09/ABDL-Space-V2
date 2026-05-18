@@ -64,7 +64,7 @@ export default function FollowersPage() {
 
   return (
     <>
-      <MobileHeader title={tab === 'followers' ? '粉丝' : '关注'} back />
+      <MobileHeader title={tab === 'followers' ? '粉丝' : '关注'} />
       <PageLayout hero={{ icon: tab === 'followers' ? 'fa-users' : 'fa-user-plus', title: tab === 'followers' ? '粉丝' : '关注', subtitle: total > 0 ? `${total} 人` : undefined }}>
         {/* Tab 切换 */}
         <div className="flex gap-2 mb-4">

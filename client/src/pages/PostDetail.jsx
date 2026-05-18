@@ -167,7 +167,7 @@ export default function PostDetail() {
 
   return (
     <>
-    <MobileHeader title="帖子详情" back />
+    <MobileHeader title="帖子详情" />
     <PageLayout hero={{ icon: 'fa-file-lines', title: '帖子详情' }}>
       <div className={`card mb-5 animate-fade-in-up ${post.pinned ? 'post-pinned' : ''}`}>
         {post.pinned && (

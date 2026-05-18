@@ -6,7 +6,6 @@ import Sidebar from './components/Sidebar';
 import MobileBottomNav from './components/MobileBottomNav';
 import CookieConsent from './components/CookieConsent';
 import BackToTop from './components/BackToTop';
-import BackButton from './components/BackButton';
 import ScrollProgress from './components/ScrollProgress';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useExternalLinkInterceptor } from './hooks/useExternalLinkInterceptor';
@@ -28,7 +27,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Settings = lazy(() => import('./pages/Settings'));
-const UserPage = lazy(() => import('./pages/UserPage'));
+
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
@@ -68,6 +67,7 @@ function getTitle(pathname) {
   if (pathname.startsWith('/diaper/')) return '纸尿裤详情 — ABDL Space';
   if (pathname.startsWith('/forum/')) return '帖子详情 — ABDL Space';
   if (pathname.startsWith('/user/')) return '用户主页 — ABDL Space';
+  if (pathname.startsWith('/profile/')) return '用户主页 — ABDL Space';
   return 'ABDL Space';
 }
 
@@ -105,7 +105,6 @@ export default function App() {
       <Sidebar />
       <div className="app-main-content">
         <div className="container mx-auto px-5 py-6 max-w-[1080px] page-transition-enter">
-          <BackButton />
           <ErrorBoundary>
             <Suspense fallback={<PageFallback />}>
               <Routes>
@@ -124,8 +123,9 @@ export default function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/profile/:id" element={<Profile />} />
                 <Route path="/settings" element={<Settings />} />
-                <Route path="/user/:id" element={<UserPage />} />
+                <Route path="/user/:id" element={<Profile />} />
                 <Route path="/user/:id/followers" element={<FollowersPage />} />
                 <Route path="/user/:id/following" element={<FollowersPage />} />
                 <Route path="/messages" element={<MessagesPage />} />
