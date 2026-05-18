@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
+import MobileHeader from '../components/MobileHeader';
 import { Spinner } from '../components/Feedback';
 import ImageGrid from '../components/ImageGrid';
 import ImageUploader from '../components/ImageUploader';
@@ -159,6 +160,7 @@ export default function PostDetail() {
 
   return (
     <>
+    <MobileHeader title="帖子详情" back />
     <PageLayout hero={{ icon: 'fa-file-lines', title: '帖子详情' }}>
       <div className={`card mb-5 animate-fade-in-up ${post.pinned ? 'post-pinned' : ''}`}>
         {post.pinned && (

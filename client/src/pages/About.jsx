@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import PageLayout from '../components/PageLayout';
+import MobileHeader from '../components/MobileHeader';
 import { externalLinkUrl } from '../utils/externalLink';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -99,6 +100,8 @@ export default function About() {
   };
 
   return (
+    <>
+    <MobileHeader title="关于" back />
     <PageLayout hero={{ icon: 'fa-circle-info', title: '关于', subtitle: `v${VERSION}` }}>
       {/* 项目简介 */}
       <div className="card mb-5">
@@ -292,5 +295,6 @@ export default function About() {
         </p>
       </div>
     </PageLayout>
+    </>
   );
 }

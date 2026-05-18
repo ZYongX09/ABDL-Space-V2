@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
+import MobileHeader from '../components/MobileHeader';
 import { LoadingSkeleton, EmptyState } from '../components/Feedback';
 import ImageGrid from '../components/ImageGrid';
 import PullToRefresh from '../components/PullToRefresh';
@@ -43,6 +44,14 @@ export default function ForumFeed() {
   };
 
   return (
+    <>
+    <MobileHeader
+      title="广场"
+      actions={[
+        { icon: 'fa-envelope', onClick: () => navigate('/messages'), title: '私信' },
+        ...(user ? [{ icon: 'fa-pen', onClick: () => navigate('/create-post'), title: '发帖' }] : []),
+      ]}
+    />
     <PageLayout hero={{ icon: 'fa-comments', title: '广场', subtitle: '分享你的 ABDL 生活' }}>
       {/* 搜索 + 发帖 */}
       <div className="flex gap-3 mb-5 flex-wrap">
@@ -122,5 +131,6 @@ export default function ForumFeed() {
       )}
       </PullToRefresh>
     </PageLayout>
+    </>
   );
 }

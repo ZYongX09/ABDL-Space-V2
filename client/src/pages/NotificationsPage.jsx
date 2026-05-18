@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import PageLayout from '../components/PageLayout';
+import MobileHeader from '../components/MobileHeader';
 import { LoadingSkeleton, EmptyState } from '../components/Feedback';
 import { notificationsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
@@ -41,6 +42,8 @@ export default function NotificationsPage() {
 
   if (!user) {
     return (
+      <>
+      <MobileHeader title="通知" back />
       <PageLayout hero={{ icon: 'fa-bell', title: '通知' }}>
         <div className="empty-state">
           <div className="icon"><i className="fa-solid fa-bell" /></div>
@@ -48,10 +51,13 @@ export default function NotificationsPage() {
           <Link to="/login" className="btn btn-primary mt-4">去登录</Link>
         </div>
       </PageLayout>
+      </>
     );
   }
 
   return (
+    <>
+    <MobileHeader title="通知" back />
     <PageLayout hero={{ icon: 'fa-bell', title: '通知', subtitle: unreadCount > 0 ? `${unreadCount} 条未读` : undefined }}>
       {unreadCount > 0 && (
         <div className="flex justify-end mb-4">
@@ -97,5 +103,6 @@ export default function NotificationsPage() {
         </div>
       )}
     </PageLayout>
+    </>
   );
 }

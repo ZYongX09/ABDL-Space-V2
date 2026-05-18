@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import MobileHeader from '../components/MobileHeader';
 import ChatMessage from '../components/ChatMessage';
 import NewConversation from '../components/NewConversation';
 import { Spinner } from '../components/Feedback';
@@ -142,6 +143,12 @@ export default function MessagesPage() {
 
   return (
     <>
+    <MobileHeader
+      title="私信"
+      actions={[
+        { icon: 'fa-user-plus', onClick: () => setShowNewConvo(true), title: '新私信' },
+      ]}
+    />
       <div className="msg-container">
         {/* 左侧：会话列表 */}
         <div className={`msg-sidebar ${showList ? 'show' : ''}`}>

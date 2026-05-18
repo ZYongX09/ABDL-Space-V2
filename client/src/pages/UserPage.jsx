@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
+import MobileHeader from '../components/MobileHeader';
 import { Spinner } from '../components/Feedback';
 import OfficialBadge from '../components/OfficialBadge';
 import { useToast } from '../contexts/ToastContext';
@@ -38,6 +39,8 @@ export default function UserPage() {
   if (!user) return <div className="empty-state"><h3>用户不存在</h3></div>;
 
   return (
+    <>
+    <MobileHeader title={user?.username || '用户'} back />
     <PageLayout hero={{ icon: 'fa-user', title: user.username }}>
       <div className="card">
         <div className="flex items-center gap-4 mb-4">
@@ -55,5 +58,6 @@ export default function UserPage() {
         {user.region && <p className="text-sm" style={{ color: 'var(--text-muted)' }}><i className="fa-solid fa-location-dot mr-1" />{user.region}</p>}
       </div>
     </PageLayout>
+    </>
   );
 }

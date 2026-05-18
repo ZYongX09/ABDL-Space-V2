@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import PageLayout from '../components/PageLayout';
+import MobileHeader from '../components/MobileHeader';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -10,6 +11,8 @@ export default function Settings() {
   const toast = useToast();
 
   return (
+    <>
+    <MobileHeader title="设置" back />
     <PageLayout hero={{ icon: 'fa-gear', title: '设置', subtitle: '自定义你的体验' }}>
       {/* 主题设置 */}
       <div className="card mb-5">
@@ -61,5 +64,6 @@ export default function Settings() {
         </div>
       </div>
     </PageLayout>
+    </>
   );
 }

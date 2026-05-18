@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
+import MobileHeader from '../components/MobileHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { usersAPI } from '../api';
@@ -27,6 +28,8 @@ export default function Profile() {
 
   if (!user) {
     return (
+      <>
+      <MobileHeader title="个人中心" />
       <PageLayout hero={{ icon: 'fa-user', title: '个人中心' }}>
         <div className="empty-state">
           <div className="icon"><i className="fa-solid fa-user" /></div>
@@ -35,6 +38,7 @@ export default function Profile() {
           <Link to="/login" className="btn btn-primary mt-4">去登录</Link>
         </div>
       </PageLayout>
+      </>
     );
   }
 
@@ -73,6 +77,8 @@ export default function Profile() {
   const update = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
   return (
+    <>
+    <MobileHeader title="个人中心" actions={[{ icon: 'fa-gear', onClick: () => navigate('/settings'), title: '设置' }]} />
     <PageLayout hero={{ icon: 'fa-user', title: '个人中心', subtitle: `欢迎回来，${user.username}` }}>
       {/* 基本信息 */}
       <div className="card mb-5">
@@ -233,5 +239,6 @@ export default function Profile() {
         </button>
       </div>
     </PageLayout>
+    </>
   );
 }

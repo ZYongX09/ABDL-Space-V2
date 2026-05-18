@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
+import MobileHeader from '../components/MobileHeader';
 import ImageUploader from '../components/ImageUploader';
 import { useVerifyModal } from '../components/VerifyModal';
 import { forumAPI } from '../api';
@@ -46,6 +47,8 @@ export default function CreatePost() {
   };
 
   return (
+    <>
+    <MobileHeader title="发帖" back />
     <PageLayout hero={{ icon: 'fa-pen', title: '发帖', subtitle: '分享你的 ABDL 生活' }}>
       <div className="card" style={{ padding: '1.5rem' }}>
         <textarea
@@ -92,5 +95,6 @@ export default function CreatePost() {
       </div>
       {VerifyModal}
     </PageLayout>
+    </>
   );
 }
