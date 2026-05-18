@@ -106,10 +106,17 @@ export default function PostDetail() {
 
   const handleLike = async () => {
     if (!user) { toast.error('请先登录'); return; }
+    const wasLiked = post.has_liked;
+    const oldCount = post.like_count || 0;
+    setPost(prev => ({
+      ...prev,
+      has_liked: !wasLiked,
+      like_count: wasLiked ? oldCount - 1 : oldCount + 1,
+    }));
     try {
       await forumAPI.like({ target_type: 'post', target_id: Number(id) });
-      await loadPost();
     } catch (e) {
+      setPost(prev => ({ ...prev, has_liked: wasLiked, like_count: oldCount }));
       toast.error(e.message);
     }
   };
@@ -174,11 +181,11 @@ export default function PostDetail() {
             {post.user?.username?.[0]?.toUpperCase() || '?'}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <Link to={`/user/${post.user?.id}`} className="font-semibold text-sm hover:underline" style={{ color: 'var(--text)' }}>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Link to={`/user/${post.user?.id}`} className="font-semibold text-sm hover:underline whitespace-nowrap" style={{ color: 'var(--text)' }}>
                 {post.user?.username || '匿名'}
               </Link>
-              {post.user?.role === 'admin' && <OfficialBadge className="ml-1.5" />}
+              {post.user?.role === 'admin' && <OfficialBadge className="flex-shrink-0" />}
             </div>
             <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
               {new Date(post.created_at).toLocaleString('zh-CN')}

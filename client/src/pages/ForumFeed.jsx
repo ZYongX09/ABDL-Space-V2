@@ -35,10 +35,21 @@ export default function ForumFeed() {
 
   const handleLike = async (postId) => {
     if (!user) { toast.error('请先登录'); return; }
+    // 乐观更新：立即反映UI
+    setPosts(prev => prev.map(p => p.id === postId ? {
+      ...p,
+      has_liked: !p.has_liked,
+      like_count: p.has_liked ? p.like_count - 1 : p.like_count + 1,
+    } : p));
     try {
       await forumAPI.like({ target_type: 'post', target_id: postId });
-      loadPosts();
     } catch (e) {
+      // 失败则回滚
+      setPosts(prev => prev.map(p => p.id === postId ? {
+        ...p,
+        has_liked: !p.has_liked,
+        like_count: p.has_liked ? p.like_count - 1 : p.like_count + 1,
+      } : p));
       toast.error(e.message);
     }
   };
@@ -91,12 +102,12 @@ export default function ForumFeed() {
                   {post.user?.username?.[0]?.toUpperCase() || '?'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Link to={`/user/${post.user?.id}`} className="font-semibold text-sm hover:underline" style={{ color: 'var(--text)' }}>
+                  <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                    <Link to={`/user/${post.user?.id}`} className="font-semibold text-sm hover:underline whitespace-nowrap" style={{ color: 'var(--text)' }}>
                       {post.user?.username || '匿名'}
                     </Link>
-                    {post.user?.role === 'admin' && <OfficialBadge className="ml-1.5" />}
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {post.user?.role === 'admin' && <OfficialBadge className="flex-shrink-0" />}
+                    <span className="text-xs whitespace-nowrap flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
                       {new Date(post.created_at).toLocaleString('zh-CN')}
                     </span>
                   </div>

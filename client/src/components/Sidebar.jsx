@@ -34,7 +34,7 @@ export default function Sidebar() {
 
       {/* 侧边栏 */}
       <aside
-        className="sidebar-desktop sidebar-collapsible ${expanded ? 'expanded' : ''}"
+        className={`sidebar-desktop sidebar-collapsible ${expanded ? 'expanded' : ''}`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
