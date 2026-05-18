@@ -16,7 +16,7 @@ export default function BackButton() {
   };
 
   return (
-    <div className="back-btn-wrap">
+    <div className="back-btn-wrap hidden md:block">
       <div className="back-btn-spacer" />
       <button
         onClick={handleBack}
