@@ -6,13 +6,16 @@ import { useMemo } from 'react';
 // 常见顶级域名
 const TLDS = 'com|net|org|cn|top|xyz|io|dev|app|co|me|cc|info|edu|gov|mil|club|online|site|tech|store|blog|work|live|video|social|design|shop|icu|ltd|fun|space|host|press|link|click|buzz|pro|vip|wang|ren';
 
+// 需要从 URL 末尾剥离的字符
+const TRAILING_PUNCT = '.,;:!?_~。，；：！？、';
+
 // 清理 URL 末尾的标点符号
 function cleanUrl(url) {
   let s = url;
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 20; i++) {
     if (s.length === 0) break;
     const ch = s[s.length - 1];
-    if ('.,;:!?_~'.includes(ch)) { s = s.slice(0, -1); continue; }
+    if (TRAILING_PUNCT.includes(ch)) { s = s.slice(0, -1); continue; }
     if (ch === ')') {
       if ((s.match(/\)/g) || []).length > (s.match(/\(/g) || []).length) { s = s.slice(0, -1); continue; }
     }
@@ -34,13 +37,13 @@ function extractUrls(text) {
   let m;
 
   // 1) https?:// 开头
-  const re1 = /https?:\/\/[^\s<>"'`,;)}\]]+/gi;
+  const re1 = /https?:\/\/[^\s<>"'`,;)}\]\u3000-\u303f\uff00-\uffef\u4e00-\u9fff]+/gi;
   while ((m = re1.exec(text)) !== null) {
     results.push({ index: m.index, raw: m[0] });
   }
 
   // 2) www. 开头
-  const re2 = /www\.[^\s<>"'`,;)}\]]+/gi;
+  const re2 = /www\.[^\s<>"'`,;)}\]\u3000-\u303f\uff00-\uffef\u4e00-\u9fff]+/gi;
   while ((m = re2.exec(text)) !== null) {
     const already = results.some(r => r.index <= m.index && r.index + r.raw.length >= m.index + m[0].length);
     if (!already) results.push({ index: m.index, raw: m[0] });
