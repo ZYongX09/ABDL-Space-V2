@@ -3,6 +3,59 @@
 > 每次对项目进行修改后，由 AI 助手自动更新此文件
 > 记录格式：日期时间、版本、修改内容、涉及文件、原因/背景
 
+## 2026-05-20
+
+### 00:00-01:32 — v2.8.0 收工发布
+
+#### NSFW 敏感内容智能检测体系
+- 接入 NSFWJS + TensorFlow.js 浏览器端 AI 分类
+- 两级检测：高敏感（Porn≥0.2/Hentai≥0.25）禁止上传，低敏感（Sexy≥0.15/Hentai≥0.1）模糊+黄色发光+类型标签
+- 上传时检测并标记，后端存储 is_nsfw，前端根据标记 blur
+- CORS 兼容：独立 Image 元素分类，无 CORS 头时跳过检测
+- 设置页「敏感内容屏蔽」开关 + 「搜索包含敏感内容」开关
+- 新增 NsfwContext、NsfwGuard 组件
+
+#### 举报系统
+- 帖子/评论新增红色盾牌举报按钮
+- ReportModal 举报弹窗（敏感内容/垃圾广告/其他）
+- 管理后台新增「举报管理」tab（待处理/已处理/已驳回）
+- 后端新增 reports 表 + 举报 API
+
+#### 头像上传
+- 个人中心编辑模式新增头像上传区域
+- 上传前 NSFW 检测，敏感内容拒绝上传
+- 支持 JPG/PNG/GIF/WEBP，最大 5MB
+
+#### 批量删除帖子
+- 个人中心「管理」按钮进入选择模式
+- 复选框多选 + 批量删除
+
+#### MIUI/HyperOS 移动端优化
+- 卡片弹性触控反馈 + cubic-bezier 弹性曲线
+- 底部导航栏/标题栏毛玻璃增强
+- 模态框底部弹出（MIUI sheet 风格）
+- Toast 底部居中 + 弹性入场动画
+- 骨架屏丝滑动画、通知徽章脉冲
+- 搜索框/输入框 MIUI 圆角 + focus 发光
+- 帖子操作栏触控区 40px、标签页胶囊样式
+
+#### Bug 修复
+- 模型加载竞态：loadModel 后 modelReady state 异步更新导致误报
+- 删除帖子需两次点击：setTimeout 延迟触发验证
+- Settings searchNsfw 未定义：补回状态定义
+- CSP connect-src none：新增 _headers 文件配置
+- NSFW 刷新后 blur 消失：后端 safeGetImages 加 is_nsfw 查询
+- API 返回图片不含 is_nsfw：所有 .map() 加 is_nsfw 字段
+- 图片数据格式不兼容：后端兼容 {url, is_nsfw} 对象
+- 图床改用 ImgBed：代理到 img.abdl-space.top
+- 删除帖子/评论清理图床图片
+- 移动端图标不显示：fa-regular 改 fa-solid
+- 私信页面被容器限制：破出父容器全屏显示
+
+#### 涉及文件
+前端：NsfwContext.jsx、NsfwGuard.jsx、ReportModal.jsx、ImageUploader.jsx、ImageGrid.jsx、ForumFeed.jsx、PostDetail.jsx、Profile.jsx、Settings.jsx、AdminPage.jsx、App.jsx、api.js、global.css、_headers、About.jsx、CHANGELOG.md、PROJECT.md
+后端：posts.ts、images.ts、reports.ts、admin.ts、index.ts、types/index.ts、schema.sql
+
 ---
 
 ## 2026-05-19

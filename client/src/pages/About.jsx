@@ -5,10 +5,23 @@ import { externalLinkUrl } from '../utils/externalLink';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
-const VERSION = '2.7.0';
-const LAST_UPDATE = '2026-05-19';
+const VERSION = '2.8.0';
+const LAST_UPDATE = '2026-05-20';
 
 const CHANGELOG = [
+  {
+    version: '2.8.0',
+    date: '2026-05-20',
+    changes: [
+      '新增敏感内容智能检测与分级管理',
+      '新增内容举报功能',
+      '新增头像上传功能',
+      '新增个人中心帖子批量管理',
+      '全面优化移动端交互体验',
+      '优化图片上传与安全检测流程',
+      '修复已知问题，提升产品性能',
+    ],
+  },
   {
     version: '2.7.0',
     date: '2026-05-19',
