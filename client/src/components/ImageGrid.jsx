@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import NsfwGuard from './NsfwGuard';
 
-function ImageItem({ url, onClick, overlay, isNsfw }) {
+function ImageItem({ url, onClick, overlay, isNsfw, nsfwType }) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
 
@@ -21,6 +21,7 @@ function ImageItem({ url, onClick, overlay, isNsfw }) {
       <NsfwGuard
         src={url}
         backendNsfw={isNsfw}
+        backendNsfwType={nsfwType}
         alt=""
         loading="lazy"
         style={{ opacity: loaded ? 1 : 0 }}
@@ -339,8 +340,8 @@ export default function ImageGrid({ images = [] }) {
   if (!images.length) return null;
 
   const imageItems = images.map(img => {
-    if (typeof img === 'string') return { url: img, isNsfw: undefined };
-    return { url: img?.image_url || img?.src || '', isNsfw: img?.is_nsfw };
+    if (typeof img === 'string') return { url: img, isNsfw: undefined, nsfwType: undefined };
+    return { url: img?.image_url || img?.src || '', isNsfw: img?.is_nsfw, nsfwType: img?.nsfw_type };
   });
   const urls = imageItems.map(i => i.url);
   const count = Math.min(urls.length, 4);
@@ -368,6 +369,7 @@ export default function ImageGrid({ images = [] }) {
             key={i}
             url={item.url}
             isNsfw={item.isNsfw}
+            nsfwType={item.nsfwType}
             onClick={() => setLightbox(i)}
             overlay={
               i === 3 && urls.length > 4

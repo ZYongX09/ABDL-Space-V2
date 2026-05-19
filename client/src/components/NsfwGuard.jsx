@@ -1,9 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNsfw } from '../contexts/NsfwContext';
 
-export default function NsfwGuard({ src, backendNsfw, className, style, onClick, onLoad: onLoadProp, onError: onErrorProp, alt, loading }) {
+export default function NsfwGuard({ src, backendNsfw, backendNsfwType, className, style, onClick, onLoad: onLoadProp, onError: onErrorProp, alt, loading }) {
   const { classify, loaded: modelReady, blurEnabled } = useNsfw();
-  const [nsfw, setNsfw] = useState(false);
+  const [result, setResult] = useState(null); // { level, type, score }
   const [checking, setChecking] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const imgRef = useRef(null);
@@ -12,21 +12,20 @@ export default function NsfwGuard({ src, backendNsfw, className, style, onClick,
   // 后端标记优先
   useEffect(() => {
     if (backendNsfw === true) {
-      setNsfw(true);
+      setResult({ level: 'low', type: backendNsfwType || '敏感内容', score: 0 });
       setChecking(false);
     }
-  }, [backendNsfw]);
+  }, [backendNsfw, backendNsfwType]);
 
   // 无后端标记 + 模型就绪 → 客户端检测
   useEffect(() => {
     if (backendNsfw !== undefined || triedRef.current || !modelReady) return;
     const img = imgRef.current;
     if (!img || !img.complete || !img.naturalWidth) return;
-
     triedRef.current = true;
     setChecking(true);
-    classify(img).then(score => {
-      if (score != null && score >= 0.3) setNsfw(true);
+    classify(img).then(r => {
+      if (r && r.level !== 'safe') setResult(r);
       setChecking(false);
     }).catch(() => setChecking(false));
   }, [backendNsfw, modelReady, classify]);
@@ -38,8 +37,8 @@ export default function NsfwGuard({ src, backendNsfw, className, style, onClick,
       if (img && img.complete && img.naturalWidth) {
         triedRef.current = true;
         setChecking(true);
-        classify(img).then(score => {
-          if (score != null && score >= 0.3) setNsfw(true);
+        classify(img).then(r => {
+          if (r && r.level !== 'safe') setResult(r);
           setChecking(false);
         }).catch(() => setChecking(false));
       }
@@ -51,8 +50,9 @@ export default function NsfwGuard({ src, backendNsfw, className, style, onClick,
     setChecking(false);
   }, [onErrorProp]);
 
-  // 是否显示模糊：检测为敏感 + 开关开启 + 用户未手动揭示
-  const showBlur = nsfw && blurEnabled && !revealed;
+  const isSensitive = result && result.level !== 'safe';
+  const showBlur = isSensitive && blurEnabled && !revealed;
+  const isLowSensitive = result?.level === 'low';
 
   return (
     <div style={{ position: 'relative', display: 'contents' }}>
@@ -65,7 +65,9 @@ export default function NsfwGuard({ src, backendNsfw, className, style, onClick,
         style={{
           ...style,
           filter: showBlur ? 'blur(24px)' : undefined,
-          transition: 'filter 0.3s ease',
+          boxShadow: (showBlur && isLowSensitive) ? '0 0 16px 4px rgba(255, 200, 0, 0.6), inset 0 0 16px 4px rgba(255, 200, 0, 0.3)' : undefined,
+          borderRadius: style?.borderRadius || undefined,
+          transition: 'filter 0.3s ease, box-shadow 0.3s ease',
         }}
         onLoad={handleLoad}
         onError={handleError}
@@ -80,26 +82,33 @@ export default function NsfwGuard({ src, backendNsfw, className, style, onClick,
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px',
-            background: 'rgba(0,0,0,0.35)',
+            gap: '6px',
+            background: 'rgba(0,0,0,0.4)',
             borderRadius: 'inherit',
             zIndex: 10,
             cursor: 'default',
           }}
           onClick={e => e.stopPropagation()}
         >
-          <i className="fa-solid fa-shield-halved" style={{ fontSize: '1.2rem', color: '#fff' }} />
-          <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.9)', textAlign: 'center', lineHeight: 1.3 }}>
-            可能包含敏感内容
+          <i className="fa-solid fa-shield-halved" style={{ fontSize: '1.1rem', color: '#fff' }} />
+          <span style={{
+            fontSize: '0.7rem',
+            fontWeight: 600,
+            color: isLowSensitive ? 'rgba(255,220,100,0.95)' : 'rgba(255,255,255,0.9)',
+            textAlign: 'center',
+            lineHeight: 1.3,
+            textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+          }}>
+            {result?.type || '敏感内容'}
           </span>
           <button
             onClick={e => { e.stopPropagation(); setRevealed(true); }}
             style={{
-              fontSize: '0.65rem',
-              padding: '4px 12px',
+              fontSize: '0.6rem',
+              padding: '3px 10px',
               borderRadius: '6px',
-              border: '1px solid rgba(255,255,255,0.5)',
-              background: 'rgba(255,255,255,0.15)',
+              border: '1px solid rgba(255,255,255,0.4)',
+              background: 'rgba(255,255,255,0.12)',
               color: '#fff',
               cursor: 'pointer',
               backdropFilter: 'blur(4px)',

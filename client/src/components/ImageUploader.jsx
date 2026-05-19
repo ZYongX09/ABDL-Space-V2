@@ -74,7 +74,7 @@ const ImageUploader = forwardRef(function ImageUploader({ max = 4, onError }, re
   const [previews, setPreviews] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState('');
-  const [nsfwResults, setNsfwResults] = useState({}); // { [index]: boolean }
+  const [nsfwResults, setNsfwResults] = useState({}); // { [index]: { level, type, score } | null }
   const fileRef = useRef(null);
 
   const { loaded: modelReady, loading: modelLoading, loadModel, classifyFile } = useNsfw();
@@ -127,14 +127,18 @@ const ImageUploader = forwardRef(function ImageUploader({ max = 4, onError }, re
         }
       }
 
-      // 第二步：NSFW 检测（loadModel 成功后 classifyFile 内部会用 modelRef）
+      // 第二步：NSFW 检测（分级）
       const results = {};
       for (let i = 0; i < previews.length; i++) {
         setProgress(`正在检测图片 ${i + 1}/${previews.length}...`);
-        const isNsfw = await classifyFile(previews[i].file);
-        results[i] = isNsfw === true;
+        const r = await classifyFile(previews[i].file);
+        if (r && r.level === 'high') {
+          // 高敏感 → 禁止上传
+          throw new Error(`图片 ${i + 1} 包含${r.type}，禁止上传`);
+        }
+        results[i] = r && r.level === 'low' ? r : null;
         if (results[i]) {
-          setProgress(`图片 ${i + 1} 检测到敏感内容，已标记`);
+          setProgress(`图片 ${i + 1} 检测到${results[i].type}，将标记为敏感`);
         }
       }
       setNsfwResults(results);
@@ -143,7 +147,8 @@ const ImageUploader = forwardRef(function ImageUploader({ max = 4, onError }, re
       const uploaded = [];
       for (let i = 0; i < previews.length; i++) {
         setProgress(`正在上传图片 ${i + 1}/${previews.length}...`);
-        const result = await uploadImage(previews[i].file, results[i] === true);
+        const isNsfw = results[i] !== null && results[i] !== undefined;
+        const result = await uploadImage(previews[i].file, isNsfw);
         uploaded.push(result);
       }
       setProgress('图片上传完成');
@@ -176,8 +181,8 @@ const ImageUploader = forwardRef(function ImageUploader({ max = 4, onError }, re
           {previews.map((item, i) => (
             <div key={i} className="img-preview-item">
               <img src={item.preview} alt="" />
-              {nsfwResults[i] === true && (
-                <div className="img-nsfw-badge">
+              {nsfwResults[i] && nsfwResults[i].level === 'low' && (
+                <div className="img-nsfw-badge" title={nsfwResults[i].type}>
                   <i className="fa-solid fa-shield-halved" />
                 </div>
               )}

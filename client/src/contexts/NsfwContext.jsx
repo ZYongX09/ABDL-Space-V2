@@ -13,7 +13,53 @@ const NsfwContext = createContext({
 });
 
 const STORAGE_KEY = 'abdl_nsfw_blur';
-const NSFW_LABELS = ['Porn', 'Hentai', 'Sexy'];
+
+// 分类结果: { level: 'safe'|'low'|'high', type: string|null, score: number }
+// level: safe=安全, low=低敏感(模糊), high=高敏感(禁止)
+function classifyPredictions(predictions) {
+  const get = (name) => predictions.find(p => p.className === name)?.probability || 0;
+
+  const porn = get('Porn');
+  const hentai = get('Hentai');
+  const sexy = get('Sexy');
+  const neutral = get('Neutral');
+  const drawing = get('Drawing');
+
+  console.log('[NSFW]', predictions.map(p => `${p.className}: ${p.probability.toFixed(3)}`).join(', '));
+
+  // 高敏感: Porn ≥ 0.5 → 禁止上传
+  if (porn >= 0.5) {
+    console.log('[NSFW] → 高敏感(色情内容), score:', porn.toFixed(3));
+    return { level: 'high', type: '色情内容', score: porn };
+  }
+
+  // 高敏感: Hentai ≥ 0.6 → 禁止上传
+  if (hentai >= 0.6) {
+    console.log('[NSFW] → 高敏感(成人动漫), score:', hentai.toFixed(3));
+    return { level: 'high', type: '成人动漫内容', score: hentai };
+  }
+
+  // 低敏感: Sexy ≥ 0.3
+  if (sexy >= 0.3) {
+    console.log('[NSFW] → 低敏感(擦边内容), score:', sexy.toFixed(3));
+    return { level: 'low', type: '擦边内容', score: sexy };
+  }
+
+  // 低敏感: Hentai 0.3~0.6
+  if (hentai >= 0.3) {
+    console.log('[NSFW] → 低敏感(成人动漫), score:', hentai.toFixed(3));
+    return { level: 'low', type: '疑似成人动漫', score: hentai };
+  }
+
+  // 低敏感: Porn 0.3~0.5
+  if (porn >= 0.3) {
+    console.log('[NSFW] → 低敏感(疑似色情), score:', porn.toFixed(3));
+    return { level: 'low', type: '疑似色情内容', score: porn };
+  }
+
+  console.log('[NSFW] → 安全');
+  return { level: 'safe', type: null, score: 0 };
+}
 
 export function NsfwProvider({ children }) {
   const [model, setModel] = useState(null);
@@ -24,7 +70,7 @@ export function NsfwProvider({ children }) {
     try { return localStorage.getItem(STORAGE_KEY) !== 'false'; } catch { return true; }
   });
   const modelRef = useRef(null);
-  const loadPromiseRef = useRef(null); // 用于等待加载完成
+  const loadPromiseRef = useRef(null);
   const queueRef = useRef([]);
   const runningRef = useRef(0);
   const MAX_CONCURRENT = 2;
@@ -37,11 +83,8 @@ export function NsfwProvider({ children }) {
     });
   }, []);
 
-  // 加载模型 — 使用 promise 缓存避免重复加载
   const loadModel = useCallback(async () => {
-    // 已加载
     if (modelRef.current) return modelRef.current;
-    // 正在加载 — 等待同一个 promise
     if (loadPromiseRef.current) return loadPromiseRef.current;
 
     const promise = (async () => {
@@ -68,7 +111,6 @@ export function NsfwProvider({ children }) {
     return promise;
   }, []);
 
-  // 分类队列处理
   const processQueue = useCallback(async () => {
     if (runningRef.current >= MAX_CONCURRENT || queueRef.current.length === 0) return;
     runningRef.current++;
@@ -77,10 +119,7 @@ export function NsfwProvider({ children }) {
       const m = modelRef.current;
       if (!m) { resolve(null); return; }
       const predictions = await m.classify(imgElement);
-      const nsfwScore = predictions
-        .filter(p => NSFW_LABELS.includes(p.className))
-        .reduce((sum, p) => sum + p.probability, 0);
-      resolve(nsfwScore);
+      resolve(classifyPredictions(predictions));
     } catch {
       resolve(null);
     } finally {
@@ -89,7 +128,6 @@ export function NsfwProvider({ children }) {
     }
   }, []);
 
-  // 对已加载的 <img> 元素分类
   const classify = useCallback((imgElement) => {
     const m = modelRef.current;
     if (!m) return Promise.resolve(null);
@@ -99,7 +137,7 @@ export function NsfwProvider({ children }) {
     });
   }, [processQueue]);
 
-  // 对 File 对象分类（上传时用）
+  // 对 File 对象分类（上传时用）— 返回分级结果
   const classifyFile = useCallback((file) => {
     const m = modelRef.current;
     if (!m) return Promise.resolve(null);
@@ -109,12 +147,7 @@ export function NsfwProvider({ children }) {
       img.onload = async () => {
         try {
           const predictions = await m.classify(img);
-          console.log('[NSFW] 分类结果:', file.name, predictions.map(p => `${p.className}: ${p.probability.toFixed(3)}`).join(', '));
-          const nsfwScore = predictions
-            .filter(p => NSFW_LABELS.includes(p.className))
-            .reduce((sum, p) => sum + p.probability, 0);
-          console.log('[NSFW] 敏感分数:', nsfwScore.toFixed(3), '阈值: 0.3', nsfwScore >= 0.3 ? '→ 敏感' : '→ 安全');
-          resolve(nsfwScore >= 0.3);
+          resolve(classifyPredictions(predictions));
         } catch (e) {
           console.error('[NSFW] 分类失败:', e);
           resolve(null);
