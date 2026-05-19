@@ -12,6 +12,16 @@ export default function Settings() {
   const { user } = useAuth();
   const toast = useToast();
   const { blurEnabled, toggleBlur } = useNsfw();
+  const [searchNsfw, setSearchNsfw] = useState(() => {
+    try { return localStorage.getItem('abdl_search_nsfw') === 'true'; } catch { return false; }
+  });
+  const toggleSearchNsfw = () => {
+    setSearchNsfw(prev => {
+      const next = !prev;
+      try { localStorage.setItem('abdl_search_nsfw', String(next)); } catch {}
+      return next;
+    });
+  };
 
 
   return (
