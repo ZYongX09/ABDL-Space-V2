@@ -6,7 +6,7 @@ import OfficialBadge from '../components/OfficialBadge';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNsfw } from '../contexts/NsfwContext';
-import { authAPI, usersAPI, followsAPI } from '../api';
+import { authAPI, usersAPI, followsAPI, forumAPI } from '../api';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
@@ -28,6 +28,8 @@ export default function Profile() {
   const [form, setForm] = useState({});
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const [showDrawer, setShowDrawer] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -503,11 +505,42 @@ export default function Profile() {
 
       {/* 帖子列表 */}
       <div className="card mb-5">
-        <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--text)' }}>
-          <i className="fa-solid fa-file-lines" style={{ color: 'var(--primary-dark)' }} />
-          {isSelf ? '我的帖子' : 'TA 的帖子'}
-          <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>({posts.length})</span>
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: 'var(--text)' }}>
+            <i className="fa-solid fa-file-lines" style={{ color: 'var(--primary-dark)' }} />
+            {isSelf ? '我的帖子' : 'TA 的帖子'}
+            <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>({posts.length})</span>
+          </h3>
+          {isSelf && posts.length > 0 && (
+            <div className="flex items-center gap-2">
+              {selectMode && selectedIds.size > 0 && (
+                <button
+                  className="btn btn-sm"
+                  style={{ background: 'var(--danger)', color: 'white', fontSize: '0.7rem', padding: '3px 10px' }}
+                  onClick={async () => {
+                    if (!confirm(`确认删除选中的 ${selectedIds.size} 条帖子？`)) return;
+                    for (const id of selectedIds) {
+                      try { await forumAPI.delete(id); } catch {}
+                    }
+                    setPosts(prev => prev.filter(p => !selectedIds.has(p.id)));
+                    setSelectedIds(new Set());
+                    setSelectMode(false);
+                    toast.success(`已删除 ${selectedIds.size} 条帖子`);
+                  }}
+                >
+                  <i className="fa-solid fa-trash mr-1" />删除 ({selectedIds.size})
+                </button>
+              )}
+              <button
+                className="btn btn-outline btn-sm"
+                style={{ fontSize: '0.7rem', padding: '3px 10px' }}
+                onClick={() => { setSelectMode(!selectMode); setSelectedIds(new Set()); }}
+              >
+                {selectMode ? '取消' : '管理'}
+              </button>
+            </div>
+          )}
+        </div>
         {postsLoading ? (
           <div className="text-center py-4">
             <i className="fa-solid fa-spinner fa-spin" style={{ color: 'var(--text-muted)' }} />
@@ -519,19 +552,36 @@ export default function Profile() {
         ) : (
           <div className="space-y-2">
             {posts.map(p => (
-              <Link
-                key={p.id}
-                to={`/forum/${p.id}`}
-                className="block p-3 rounded-lg transition-all hover:shadow-hover"
-                style={{ background: 'var(--input-bg)', textDecoration: 'none', color: 'var(--text)' }}
-              >
-                <p className="text-sm line-clamp-2 mb-1.5">{p.content}</p>
-                <div className="flex gap-3 text-xs" style={{ color: 'var(--text-muted)' }}>
-                  <span><i className="fa-regular fa-heart mr-1" />{p.like_count || 0}</span>
-                  <span><i className="fa-regular fa-comment mr-1" />{p.comment_count || 0}</span>
-                  <span>{p.created_at ? new Date(p.created_at).toLocaleDateString('zh-CN') : ''}</span>
-                </div>
-              </Link>
+              <div key={p.id} className="flex items-center gap-2">
+                {selectMode && isSelf && (
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(p.id)}
+                    onChange={e => {
+                      setSelectedIds(prev => {
+                        const next = new Set(prev);
+                        if (e.target.checked) next.add(p.id);
+                        else next.delete(p.id);
+                        return next;
+                      });
+                    }}
+                    style={{ width: '16px', height: '16px', accentColor: 'var(--danger)', flexShrink: 0 }}
+                  />
+                )}
+                <Link
+                  to={`/forum/${p.id}`}
+                  className="block p-3 rounded-lg transition-all hover:shadow-hover flex-1"
+                  style={{ background: 'var(--input-bg)', textDecoration: 'none', color: 'var(--text)' }}
+                  onClick={e => { if (selectMode) e.preventDefault(); }}
+                >
+                  <p className="text-sm line-clamp-2 mb-1.5">{p.content}</p>
+                  <div className="flex gap-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <span><i className="fa-regular fa-heart mr-1" />{p.like_count || 0}</span>
+                    <span><i className="fa-regular fa-comment mr-1" />{p.comment_count || 0}</span>
+                    <span>{p.created_at ? new Date(p.created_at).toLocaleDateString('zh-CN') : ''}</span>
+                  </div>
+                </Link>
+              </div>
             ))}
           </div>
         )}
