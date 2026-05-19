@@ -30,6 +30,7 @@
   8. 前端：广场搜索默认排除敏感帖子（可在设置中开启）
 - **涉及文件**：reports.ts（新建）、ReportModal.jsx（新建）、posts.ts、index.ts、api.js、ForumFeed.jsx、PostDetail.jsx、AdminPage.jsx、Settings.jsx、schema.sql
 - **参考**：Twitter/X 敏感内容政策
+- **Git 状态**：前端已 push（ce92a18），后端已部署（53a0f2ca），后端 git 仓库损坏需重新 clone
 
 ### 20:14 — 敏感内容屏蔽：强制检测 + 开关控制 blur
 - **类型**：需求调整

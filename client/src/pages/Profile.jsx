@@ -5,7 +5,10 @@ import MobileHeader from '../components/MobileHeader';
 import OfficialBadge from '../components/OfficialBadge';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useNsfw } from '../contexts/NsfwContext';
 import { authAPI, usersAPI, followsAPI } from '../api';
+
+const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 export default function Profile() {
   const { id: paramId } = useParams();
@@ -13,6 +16,8 @@ export default function Profile() {
   const { user: currentUser, accounts, updateProfile, logout } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const { classifyFile, loaded: modelReady, loadModel } = useNsfw();
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const isSelf = !paramId || (currentUser && String(currentUser.id) === String(paramId));
   const targetId = isSelf ? currentUser?.id : paramId;
@@ -153,6 +158,49 @@ export default function Profile() {
   };
 
   const update = (key, val) => setForm(f => ({ ...f, [key]: val }));
+
+  // 头像上传
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('请选择图片文件'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('图片不能超过 5MB'); return; }
+
+    setAvatarUploading(true);
+    try {
+      // NSFW 检测
+      if (!modelReady) {
+        toast.info('正在加载安全检测模型...');
+        await loadModel();
+      }
+      const isNsfw = await classifyFile(file);
+      if (isNsfw === true) {
+        toast.error('头像不允许包含敏感内容');
+        setAvatarUploading(false);
+        return;
+      }
+
+      // 上传
+      const form = new FormData();
+      form.append('file', file);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/api/images/upload?returnFormat=full`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '上传失败');
+
+      update('avatar', data.url);
+      toast.success('头像已上传，记得保存');
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setAvatarUploading(false);
+      e.target.value = '';
+    }
+  };
 
   // Not logged in and no param → prompt login
   if (!currentUser && !paramId) {
@@ -330,6 +378,44 @@ export default function Profile() {
 
         {editing ? (
           <div className="space-y-4">
+            {/* 头像上传 */}
+            <div>
+              <h4 className="text-sm font-bold mb-2" style={{ color: 'var(--text)' }}>
+                <i className="fa-solid fa-image mr-1.5" style={{ color: 'var(--primary-dark)' }} />
+                头像
+              </h4>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold overflow-hidden"
+                    style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
+                    {form.avatar
+                      ? <img src={form.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                      : currentUser?.username?.[0]?.toUpperCase()
+                    }
+                  </div>
+                  {avatarUploading && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-full" style={{ background: 'rgba(0,0,0,0.4)' }}>
+                      <i className="fa-solid fa-spinner fa-spin text-white" />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="btn btn-outline btn-sm cursor-pointer" style={{ fontSize: '0.75rem' }}>
+                    <i className="fa-solid fa-upload mr-1" />
+                    {form.avatar ? '更换头像' : '上传头像'}
+                    <input type="file" accept="image/*" hidden onChange={handleAvatarUpload} disabled={avatarUploading} />
+                  </label>
+                  {form.avatar && (
+                    <button className="btn btn-outline btn-sm ml-2" style={{ fontSize: '0.75rem', color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                      onClick={() => update('avatar', null)}>
+                      <i className="fa-solid fa-trash mr-1" />移除
+                    </button>
+                  )}
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>支持 JPG/PNG/GIF/WEBP，最大 5MB</p>
+                </div>
+              </div>
+            </div>
+
             <div>
               <h4 className="text-sm font-bold mb-2" style={{ color: 'var(--text)' }}>
                 <i className="fa-solid fa-circle-user mr-1.5" style={{ color: 'var(--primary-dark)' }} />
