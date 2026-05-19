@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +8,11 @@ export default function AccountSwitcher({ collapsed = false }) {
   const [showPanel, setShowPanel] = useState(false);
   const toast = useToast();
   const navigate = useNavigate();
+
+  // 侧边栏折叠时关闭面板
+  useEffect(() => {
+    if (collapsed) setShowPanel(false);
+  }, [collapsed]);
 
   if (!user) return null;
 

@@ -57,12 +57,6 @@ export default function Sidebar() {
           )}
         </div>
 
-        {/* 搜索 */}
-        <div className="sidebar-search-wrap">
-          <i className="fa-solid fa-magnifying-glass sidebar-search-icon" />
-          <input className="sidebar-search-input" placeholder="搜索..." />
-        </div>
-
         {/* 导航 */}
         <nav className="sidebar-nav">
           {NAV_ITEMS.map(item => (
