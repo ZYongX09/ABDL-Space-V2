@@ -113,8 +113,8 @@ export function NsfwProvider({ children }) {
           const nsfwScore = predictions
             .filter(p => NSFW_LABELS.includes(p.className))
             .reduce((sum, p) => sum + p.probability, 0);
-          console.log('[NSFW] 敏感分数:', nsfwScore.toFixed(3), '阈值: 0.6', nsfwScore >= 0.6 ? '→ 敏感' : '→ 安全');
-          resolve(nsfwScore >= 0.6);
+          console.log('[NSFW] 敏感分数:', nsfwScore.toFixed(3), '阈值: 0.3', nsfwScore >= 0.3 ? '→ 敏感' : '→ 安全');
+          resolve(nsfwScore >= 0.3);
         } catch (e) {
           console.error('[NSFW] 分类失败:', e);
           resolve(null);

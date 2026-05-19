@@ -26,7 +26,7 @@ export default function NsfwGuard({ src, backendNsfw, className, style, onClick,
     triedRef.current = true;
     setChecking(true);
     classify(img).then(score => {
-      if (score != null && score >= 0.6) setNsfw(true);
+      if (score != null && score >= 0.3) setNsfw(true);
       setChecking(false);
     }).catch(() => setChecking(false));
   }, [backendNsfw, modelReady, classify]);
@@ -39,7 +39,7 @@ export default function NsfwGuard({ src, backendNsfw, className, style, onClick,
         triedRef.current = true;
         setChecking(true);
         classify(img).then(score => {
-          if (score != null && score >= 0.6) setNsfw(true);
+          if (score != null && score >= 0.3) setNsfw(true);
           setChecking(false);
         }).catch(() => setChecking(false));
       }
