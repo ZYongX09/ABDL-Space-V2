@@ -7,6 +7,32 @@
 
 ## 2026-05-19
 
+### 19:34 — NSFW 敏感图片检测功能
+- **类型**：新功能
+- **内容**：
+  1. 接入 NSFWJS + TensorFlow.js，浏览器端 AI 图片分类
+  2. 新增 NsfwContext（模型加载、分类队列、开关状态持久化）
+  3. 新增 NsfwGuard 组件（高斯模糊遮罩 + 警告提示 + 显示图片按钮）
+  4. ImageGrid 集成 NsfwGuard，所有帖子图片自动检测
+  5. 设置页新增「敏感图片检测」开关，说明需加载约 3MB 模型
+- **涉及文件**：NsfwContext.jsx（新建）、NsfwGuard.jsx（新建）、ImageGrid.jsx、App.jsx、Settings.jsx、package.json
+- **技术细节**：
+  - 动态 import 实现懒加载，不影响首屏性能
+  - 分类队列限制并发 2 个，避免同时推理多张图片卡顿
+  - NSFW 阈值 0.6（Porn + Hentai + Sexy 概率之和）
+  - 用户可按需开关，状态存 localStorage
+
+### 19:26 — 移动端图标修复 + 私信页面全屏布局
+- **类型**：Bug 修复 + 布局优化
+- **内容**：
+  1. 修复 Profile 页抽屉菜单按钮图标不显示（fa-regular → fa-solid）
+  2. 修复 MessagesPage 标题栏新私信按钮图标不显示（缺 fa-solid 前缀）
+  3. 修复 ForumFeed 标题栏私信/发帖按钮图标不显示（同上）
+  4. 移动端私信页面改为全屏布局，破出父容器 px-5/py-6/max-w 限制，不被标题栏和导航栏遮挡
+- **涉及文件**：Profile.jsx、MessagesPage.jsx、ForumFeed.jsx、global.css
+- **原因**：项目曾从 fa-regular 回退 fa-solid，但部分页面漏改；私信页面被 App.jsx 容器约束导致移动端显示不全
+- **推送状态**：commit f33c45f，已 push ✅
+
 ### 04:22 — 收工流程 v2.7.0 发布
 - **版本**：v2.7.0
 - **类型**：收工发布

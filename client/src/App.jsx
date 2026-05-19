@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { NsfwProvider } from './contexts/NsfwContext';
 import Sidebar from './components/Sidebar';
 import MobileBottomNav from './components/MobileBottomNav';
 import CookieConsent from './components/CookieConsent';
@@ -102,6 +103,7 @@ export default function App() {
     <div className="app-layout">
       <ScrollToTop />
       <NotificationProvider>
+      <NsfwProvider>
       <Sidebar />
       <div className="app-main-content">
         <div className="container mx-auto px-5 py-6 max-w-[1080px] page-transition-enter">
@@ -153,6 +155,7 @@ export default function App() {
           </div>
         </footer>
       </div>
+      </NsfwProvider>
       </NotificationProvider>
       <MobileBottomNav />
       <CookieConsent />

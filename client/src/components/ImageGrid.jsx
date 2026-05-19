@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import NsfwGuard from './NsfwGuard';
 
 function ImageItem({ url, onClick, overlay }) {
   const [loaded, setLoaded] = useState(false);
@@ -17,13 +18,13 @@ function ImageItem({ url, onClick, overlay }) {
           <i className="fa-solid fa-image" />
         </div>
       )}
-      <img
+      <NsfwGuard
         src={url}
         alt=""
         loading="lazy"
+        style={{ opacity: loaded ? 1 : 0 }}
         onLoad={() => setLoaded(true)}
         onError={() => setError(true)}
-        style={{ opacity: loaded ? 1 : 0 }}
       />
       {overlay}
     </div>
