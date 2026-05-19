@@ -408,10 +408,11 @@ export const rankingsAPI = {
 // 广场 Posts（后端路径 /api/posts）
 // =====================================================================
 export const forumAPI = {
-  feed: async ({ page = 1, limit = 20, search } = {}) => {
+  feed: async ({ page = 1, limit = 20, search, excludeNsfw } = {}) => {
     if (USE_API) {
       const qs = new URLSearchParams({ page, limit });
       if (search) qs.set('search', search);
+      if (excludeNsfw) qs.set('exclude_nsfw', '1');
       const cacheKey = `feed:${qs}`;
       // 搜索不缓存
       if (search) return apiFetch(`/api/posts?${qs}`);
@@ -755,6 +756,16 @@ export const notificationsAPI = {
 };
 
 // =====================================================================
+// 举报 Reports（后端 /api/reports）
+// =====================================================================
+export const reportsAPI = {
+  submit: async ({ target_type, target_id, reason, description }) => {
+    if (USE_API) return apiFetch('/api/reports', { method: 'POST', body: JSON.stringify({ target_type, target_id, reason, description }) });
+    return { message: '举报已提交' };
+  },
+};
+
+// =====================================================================
 // 用户等级 & 历史（后端 /api/users/:id/level 等）
 // =====================================================================
 export const usersAPI = {
@@ -853,6 +864,17 @@ export const adminAPI = {
   promoteUser: async (id) => {
     if (USE_API) return apiFetch('/api/admin/add', { method: 'POST', body: JSON.stringify({ user_ids: [id] }) });
     return { message: '已提升' };
+  },
+
+  // 举报管理
+  reports: async (status = 'pending', page = 1) => {
+    if (USE_API) return apiFetch(`/api/reports/admin?status=${status}&page=${page}`);
+    return { reports: [], pagination: { page: 1, total: 0 } };
+  },
+
+  resolveReport: async (id, action, deleteContent = false) => {
+    if (USE_API) return apiFetch(`/api/reports/admin/${id}`, { method: 'PATCH', body: JSON.stringify({ action, delete_content: deleteContent }) });
+    return { message: '已处理' };
   },
 };
 

@@ -17,6 +17,20 @@
   5. 设置页新增「内容安全」说明
 - **涉及文件**：NsfwContext.jsx（新建）、NsfwGuard.jsx（新建）、ImageGrid.jsx、App.jsx、Settings.jsx、package.json
 
+### 21:20 — 敏感内容管理体系（完整实现）
+- **类型**：新功能
+- **内容**：
+  1. 数据库：新增 reports 表 + posts.has_nsfw 冗余标记
+  2. 后端：举报 API（POST /api/reports）、管理员举报管理（GET/PATCH /api/admin/reports）、帖子 exclude_nsfw 过滤
+  3. 前端：ReportModal 举报弹窗组件
+  4. 前端：广场帖子卡片新增举报按钮 + 敏感内容标签
+  5. 前端：帖子详情页菜单新增举报选项
+  6. 前端：管理后台新增「举报管理」tab（待处理/已处理/已驳回筛选）
+  7. 前端：设置页新增「搜索包含敏感内容」开关
+  8. 前端：广场搜索默认排除敏感帖子（可在设置中开启）
+- **涉及文件**：reports.ts（新建）、ReportModal.jsx（新建）、posts.ts、index.ts、api.js、ForumFeed.jsx、PostDetail.jsx、AdminPage.jsx、Settings.jsx、schema.sql
+- **参考**：Twitter/X 敏感内容政策
+
 ### 20:14 — 敏感内容屏蔽：强制检测 + 开关控制 blur
 - **类型**：需求调整
 - **内容**：

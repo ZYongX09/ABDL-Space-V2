@@ -75,6 +75,31 @@ export default function Settings() {
             }} />
           </button>
         </div>
+        {/* 搜索包含敏感内容 */}
+        <div className="flex items-center justify-between mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+          <div>
+            <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>搜索包含敏感内容</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+              搜索结果中显示包含敏感图片的帖子
+            </div>
+          </div>
+          <button
+            onClick={toggleSearchNsfw}
+            style={{
+              width: '48px', height: '26px', borderRadius: '13px',
+              border: 'none', cursor: 'pointer',
+              background: searchNsfw ? 'var(--primary)' : 'var(--border)',
+              position: 'relative', transition: 'background 0.2s',
+            }}
+          >
+            <div style={{
+              width: '22px', height: '22px', borderRadius: '50%',
+              background: 'white', position: 'absolute', top: '2px',
+              left: searchNsfw ? '24px' : '2px',
+              transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            }} />
+          </button>
+        </div>
       </div>
 
       {/* 快捷键 */}

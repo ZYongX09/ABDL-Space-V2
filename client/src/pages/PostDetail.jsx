@@ -11,6 +11,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useVerifyModal } from '../components/VerifyModal';
 import RichContent from '../components/RichContent';
 import OfficialBadge from '../components/OfficialBadge';
+import ReportModal from '../components/ReportModal';
 
 export default function PostDetail() {
   const { id } = useParams();
@@ -21,6 +22,7 @@ export default function PostDetail() {
   const [publishing, setPublishing] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
+  const [reportTarget, setReportTarget] = useState(null);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
   const [editSaving, setEditSaving] = useState(false);
@@ -270,6 +272,12 @@ export default function PostDetail() {
                     <i className="fa-solid fa-trash" />
                     删除帖子
                   </button>
+                  {!isOwner && (
+                    <button className="dropdown-item" onClick={() => { setShowMenu(false); setReportTarget({ type: 'post', id: post.id }); }}>
+                      <i className="fa-solid fa-flag" />
+                      举报帖子
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -374,6 +382,13 @@ export default function PostDetail() {
       )}
     </PageLayout>
     <>{VerifyModal}</>
+    {reportTarget && (
+      <ReportModal
+        targetType={reportTarget.type}
+        targetId={reportTarget.id}
+        onClose={() => setReportTarget(null)}
+      />
+    )}
     </>
   );
 }

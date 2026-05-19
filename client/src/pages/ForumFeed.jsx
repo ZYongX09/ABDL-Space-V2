@@ -7,6 +7,7 @@ import ImageGrid from '../components/ImageGrid';
 import PullToRefresh from '../components/PullToRefresh';
 import RichContent from '../components/RichContent';
 import OfficialBadge from '../components/OfficialBadge';
+import ReportModal from '../components/ReportModal';
 import { forumAPI, followsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -16,6 +17,7 @@ export default function ForumFeed() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [followMap, setFollowMap] = useState({});
+  const [reportTarget, setReportTarget] = useState(null);
   const { user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
@@ -23,7 +25,11 @@ export default function ForumFeed() {
   const loadPosts = async () => {
     try {
       setLoading(true);
-      const data = await forumAPI.feed({ search: search || undefined });
+      const searchNsfwEnabled = localStorage.getItem('abdl_search_nsfw') === 'true';
+      const data = await forumAPI.feed({
+        search: search || undefined,
+        excludeNsfw: search && !searchNsfwEnabled ? true : undefined,
+      });
       setPosts(data.posts || []);
     } catch (e) {
       toast.error(e.message);
@@ -158,6 +164,13 @@ export default function ForumFeed() {
                   <ImageGrid images={post.images} />
                 </Link>
               )}
+              {/* NSFW tag */}
+              {post.has_nsfw === 1 && (
+                <div className="flex items-center gap-1.5 mt-2 text-xs" style={{ color: 'var(--warning)' }}>
+                  <i className="fa-solid fa-triangle-exclamation" />
+                  <span>该帖子包含敏感内容</span>
+                </div>
+              )}
               {/* Line 5: actions */}
               <div className="flex items-center gap-4 mt-3 post-actions">
                 <button
@@ -172,6 +185,14 @@ export default function ForumFeed() {
                   <i className="fa-regular fa-comment" />
                   {post.comment_count || 0}
                 </Link>
+                <button
+                  className="flex items-center gap-1.5 text-sm ml-auto"
+                  style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
+                  onClick={() => setReportTarget({ type: 'post', id: post.id })}
+                  title="举报"
+                >
+                  <i className="fa-solid fa-flag" />
+                </button>
               </div>
             </div>
           ))}
@@ -179,6 +200,13 @@ export default function ForumFeed() {
       )}
       </PullToRefresh>
     </PageLayout>
+    {reportTarget && (
+      <ReportModal
+        targetType={reportTarget.type}
+        targetId={reportTarget.id}
+        onClose={() => setReportTarget(null)}
+      />
+    )}
     </>
   );
 }

@@ -13,6 +13,7 @@ const TABS = [
   { key: 'overview', label: '概览', icon: 'fa-chart-pie' },
   { key: 'users', label: '用户', icon: 'fa-users' },
   { key: 'posts', label: '帖子', icon: 'fa-file-lines' },
+  { key: 'reports', label: '举报', icon: 'fa-flag' },
 ];
 
 export default function AdminPage() {
@@ -25,6 +26,8 @@ export default function AdminPage() {
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [posts, setPosts] = useState([]);
+  const [reports, setReports] = useState([]);
+  const [reportStatus, setReportStatus] = useState('pending');
 
   useEffect(() => {
     if (user?.role !== 'admin') { setLoading(false); return; }
@@ -43,6 +46,9 @@ export default function AdminPage() {
       } else if (t === 'posts') {
         const data = await adminAPI.posts();
         setPosts(data.posts || []);
+      } else if (t === 'reports') {
+        const data = await adminAPI.reports(reportStatus);
+        setReports(data.reports || []);
       }
     } catch (e) {
       toast.error(e.message);
@@ -230,6 +236,79 @@ export default function AdminPage() {
             ))}
           </div>
         )
+      )}
+
+      {/* 举报管理 */}
+      {tab === 'reports' && (
+        <>
+          <div className="flex gap-2 mb-4">
+            {['pending', 'resolved', 'dismissed'].map(s => (
+              <button
+                key={s}
+                className="btn btn-sm"
+                onClick={() => { setReportStatus(s); loadTab('reports'); }}
+                style={{
+                  background: reportStatus === s ? 'var(--primary)' : 'var(--input-bg)',
+                  color: reportStatus === s ? 'white' : 'var(--text)',
+                  border: 'none', fontSize: '0.75rem',
+                }}
+              >
+                {{ pending: '待处理', resolved: '已处理', dismissed: '已驳回' }[s]}
+              </button>
+            ))}
+          </div>
+          {loading ? <LoadingSkeleton count={5} height={80} /> : (
+            <div className="space-y-2">
+              {reports.length === 0 ? (
+                <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>暂无举报</p>
+              ) : reports.map(r => (
+                <div key={r.id} className="card stagger-item animate-fade-in-up" style={{ padding: '0.75rem 1rem' }}>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ background: r.reason === 'nsfw' ? 'rgba(232,131,124,0.15)' : 'var(--primary-light)', color: r.reason === 'nsfw' ? 'var(--danger)' : 'var(--primary-dark)' }}>
+                      <i className="fa-solid fa-flag text-xs" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="tag" style={{
+                          background: r.reason === 'nsfw' ? 'rgba(232,131,124,0.15)' : r.reason === 'spam' ? 'rgba(240,192,64,0.15)' : 'var(--input-bg)',
+                          color: r.reason === 'nsfw' ? 'var(--danger)' : r.reason === 'spam' ? 'var(--warning)' : 'var(--text-light)',
+                          fontSize: '0.65rem', padding: '1px 6px',
+                        }}>
+                          {{ nsfw: '敏感内容', spam: '垃圾广告', other: '其他' }[r.reason]}
+                        </span>
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                          举报人: {r.reporter_name} · {r.created_at ? new Date(r.created_at).toLocaleString('zh-CN') : ''}
+                        </span>
+                      </div>
+                      <p className="text-sm truncate" style={{ color: 'var(--text-light)' }}>{r.content_preview}</p>
+                      {r.description && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>补充: {r.description}</p>}
+                    </div>
+                    {reportStatus === 'pending' && (
+                      <div className="flex gap-1.5 flex-shrink-0">
+                        <button className="btn btn-outline btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                          onClick={async () => { try { await adminAPI.resolveReport(r.id, 'resolve'); setReports(prev => prev.filter(x => x.id !== r.id)); toast.success('已处理'); } catch (e) { toast.error(e.message); } }}
+                          title="处理">
+                          <i className="fa-solid fa-check" />
+                        </button>
+                        <button className="btn btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'var(--danger)', color: 'white' }}
+                          onClick={async () => { try { await adminAPI.resolveReport(r.id, 'resolve', true); setReports(prev => prev.filter(x => x.id !== r.id)); toast.success('已处理并删除内容'); } catch (e) { toast.error(e.message); } }}
+                          title="处理并删除内容">
+                          <i className="fa-solid fa-trash" />
+                        </button>
+                        <button className="btn btn-outline btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                          onClick={async () => { try { await adminAPI.resolveReport(r.id, 'dismiss'); setReports(prev => prev.filter(x => x.id !== r.id)); toast.success('已驳回'); } catch (e) { toast.error(e.message); } }}
+                          title="驳回">
+                          <i className="fa-solid fa-xmark" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
 
