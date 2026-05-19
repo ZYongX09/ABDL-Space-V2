@@ -127,11 +127,7 @@ const ImageUploader = forwardRef(function ImageUploader({ max = 4, onError }, re
         }
       }
 
-      if (!modelReady) {
-        throw new Error('安全检测模型未就绪，请稍后重试');
-      }
-
-      // 第二步：NSFW 检测
+      // 第二步：NSFW 检测（loadModel 成功后 classifyFile 内部会用 modelRef）
       const results = {};
       for (let i = 0; i < previews.length; i++) {
         setProgress(`正在检测图片 ${i + 1}/${previews.length}...`);
