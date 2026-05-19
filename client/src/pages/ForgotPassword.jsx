@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import MobileHeader from '../components/MobileHeader';
 import VerificationInput from '../components/VerificationInput';
+import QuantumVerify from '../components/QuantumVerify';
 import { authAPI } from '../api';
 import { useToast } from '../contexts/ToastContext';
 
@@ -15,6 +16,9 @@ export default function ForgotPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [sendCodeCount, setSendCodeCount] = useState(0);
+  const [sendCodeCaptchaOk, setSendCodeCaptchaOk] = useState(false);
+  const [sendCodeCaptchaStarted, setSendCodeCaptchaStarted] = useState(false);
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -26,18 +30,25 @@ export default function ForgotPassword() {
 
   const handleSendCode = useCallback(async () => {
     if (!email.trim()) { toast.error('请输入邮箱'); return; }
+    if (sendCodeCount >= 2 && !sendCodeCaptchaOk) {
+      toast.error('请先完成安全验证');
+      return;
+    }
     setLoading(true);
     try {
       await authAPI.sendCode({ email: email.trim(), type: 'reset' });
       toast.success('验证码已发送');
       setCooldown(60);
+      setSendCodeCount(v => v + 1);
+      setSendCodeCaptchaOk(false);
+      setSendCodeCaptchaStarted(false);
       setStep(2);
     } catch (e) {
       toast.error(e.message);
     } finally {
       setLoading(false);
     }
-  }, [email, toast]);
+  }, [email, sendCodeCount, sendCodeCaptchaOk, toast]);
 
   const handleReset = useCallback(async () => {
     if (!code || code.length < 6) { toast.error('请输入完整验证码'); return; }
@@ -79,6 +90,34 @@ export default function ForgotPassword() {
                   onKeyDown={e => e.key === 'Enter' && handleSendCode()}
                 />
               </div>
+
+              {/* 发送验证码安全验证（第 2 次起） */}
+              {sendCodeCount >= 2 && !sendCodeCaptchaOk && (
+                <div className="mb-4 p-3 rounded-xl" style={{ border: '1.5px solid var(--border)', background: 'var(--input-bg)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-semibold" style={{ color: 'var(--text)' }}>
+                      <i className="fa-solid fa-shield-halved mr-1" style={{ color: 'var(--primary-dark)' }} />
+                      安全验证
+                    </label>
+                  </div>
+                  {!sendCodeCaptchaStarted ? (
+                    <div className="text-center">
+                      <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>频繁获取验证码需要安全验证</p>
+                      <button type="button" className="btn btn-outline btn-sm" onClick={() => setSendCodeCaptchaStarted(true)}>
+                        <i className="fa-solid fa-play" /> 开始验证
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center overflow-hidden" style={{ height: 280 }}>
+                      <QuantumVerify
+                        onVerified={() => setSendCodeCaptchaOk(true)}
+                        onReset={() => {}}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
               <button
                 className="btn btn-primary w-full"
                 onClick={handleSendCode}

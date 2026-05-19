@@ -37,7 +37,7 @@ export default function VerificationInput({ onComplete, onChange, value = '', di
     }
 
     // 输入完成
-    if (code.length === 6 && code.every(c => c !== '')) {
+    if (newDigits.every(d => d !== '')) {
       onComplete?.(code);
     }
   };

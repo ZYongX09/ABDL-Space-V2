@@ -129,12 +129,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   // 注册
-  const register = useCallback(async ({ username, email, password }) => {
+  const register = useCallback(async ({ username, email, password, code }) => {
     if (USE_API) {
       const res = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, username }),
+        body: JSON.stringify({ email, password, username, code }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '注册失败');
