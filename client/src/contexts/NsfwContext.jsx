@@ -109,11 +109,14 @@ export function NsfwProvider({ children }) {
       img.onload = async () => {
         try {
           const predictions = await m.classify(img);
+          console.log('[NSFW] 分类结果:', file.name, predictions.map(p => `${p.className}: ${p.probability.toFixed(3)}`).join(', '));
           const nsfwScore = predictions
             .filter(p => NSFW_LABELS.includes(p.className))
             .reduce((sum, p) => sum + p.probability, 0);
+          console.log('[NSFW] 敏感分数:', nsfwScore.toFixed(3), '阈值: 0.6', nsfwScore >= 0.6 ? '→ 敏感' : '→ 安全');
           resolve(nsfwScore >= 0.6);
-        } catch {
+        } catch (e) {
+          console.error('[NSFW] 分类失败:', e);
           resolve(null);
         } finally {
           URL.revokeObjectURL(url);
