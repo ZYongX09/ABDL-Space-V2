@@ -4,12 +4,14 @@ import MobileHeader from '../components/MobileHeader';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useNsfw } from '../contexts/NsfwContext';
 
 
 export default function Settings() {
   const { theme, setTheme, THEMES, THEME_LABELS } = useTheme();
   const { user } = useAuth();
   const toast = useToast();
+  const { blurEnabled, toggleBlur } = useNsfw();
 
 
   return (
@@ -49,9 +51,29 @@ export default function Settings() {
           <i className="fa-solid fa-shield-halved mr-2" style={{ color: 'var(--primary-dark)' }} />
           内容安全
         </h3>
-        <div className="text-sm" style={{ color: 'var(--text-light)' }}>
-          <p>发帖上传图片时，系统会自动进行内容安全检测。</p>
-          <p className="mt-2">检测到敏感内容的图片将自动添加模糊遮罩，其他用户可选择是否查看。</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>敏感内容屏蔽</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+              对所有图片进行安全检测，敏感内容将自动模糊处理
+            </div>
+          </div>
+          <button
+            onClick={toggleBlur}
+            style={{
+              width: '48px', height: '26px', borderRadius: '13px',
+              border: 'none', cursor: 'pointer',
+              background: blurEnabled ? 'var(--primary)' : 'var(--border)',
+              position: 'relative', transition: 'background 0.2s',
+            }}
+          >
+            <div style={{
+              width: '22px', height: '22px', borderRadius: '50%',
+              background: 'white', position: 'absolute', top: '2px',
+              left: blurEnabled ? '24px' : '2px',
+              transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            }} />
+          </button>
         </div>
       </div>
 

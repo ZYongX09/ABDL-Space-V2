@@ -2,14 +2,14 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNsfw } from '../contexts/NsfwContext';
 
 export default function NsfwGuard({ src, backendNsfw, className, style, onClick, onLoad: onLoadProp, onError: onErrorProp, alt, loading }) {
-  const { classify, loaded: modelReady } = useNsfw();
+  const { classify, loaded: modelReady, blurEnabled } = useNsfw();
   const [nsfw, setNsfw] = useState(false);
   const [checking, setChecking] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const imgRef = useRef(null);
   const triedRef = useRef(false);
 
-  // 优先使用后端标记
+  // 后端标记优先
   useEffect(() => {
     if (backendNsfw === true) {
       setNsfw(true);
@@ -17,7 +17,7 @@ export default function NsfwGuard({ src, backendNsfw, className, style, onClick,
     }
   }, [backendNsfw]);
 
-  // 图片加载完成后，如果没有后端标记且模型已就绪，则客户端检测
+  // 无后端标记 + 模型就绪 → 客户端检测
   useEffect(() => {
     if (backendNsfw !== undefined || triedRef.current || !modelReady) return;
     const img = imgRef.current;
@@ -33,7 +33,6 @@ export default function NsfwGuard({ src, backendNsfw, className, style, onClick,
 
   const handleLoad = useCallback(() => {
     onLoadProp?.();
-    // 如果没有后端标记且模型已就绪，立即检测
     if (backendNsfw === undefined && modelReady && !triedRef.current) {
       const img = imgRef.current;
       if (img && img.complete && img.naturalWidth) {
@@ -52,7 +51,8 @@ export default function NsfwGuard({ src, backendNsfw, className, style, onClick,
     setChecking(false);
   }, [onErrorProp]);
 
-  const showBlur = nsfw && !revealed;
+  // 是否显示模糊：检测为敏感 + 开关开启 + 用户未手动揭示
+  const showBlur = nsfw && blurEnabled && !revealed;
 
   return (
     <div style={{ position: 'relative', display: 'contents' }}>

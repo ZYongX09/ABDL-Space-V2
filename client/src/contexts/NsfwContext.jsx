@@ -1,15 +1,18 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, useRef } from 'react';
 
 const NsfwContext = createContext({
   model: null,
   loading: false,
   loaded: false,
   error: null,
+  blurEnabled: true,
   loadModel: async () => {},
   classify: async () => null,
   classifyFile: async () => null,
+  toggleBlur: () => {},
 });
 
+const STORAGE_KEY = 'abdl_nsfw_blur';
 const NSFW_LABELS = ['Porn', 'Hentai', 'Sexy'];
 
 export function NsfwProvider({ children }) {
@@ -17,17 +20,28 @@ export function NsfwProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(null);
+  const [blurEnabled, setBlurEnabled] = useState(() => {
+    try { return localStorage.getItem(STORAGE_KEY) !== 'false'; } catch { return true; }
+  });
   const queueRef = useRef([]);
   const runningRef = useRef(0);
   const MAX_CONCURRENT = 2;
 
-  // 手动触发加载模型
+  const toggleBlur = useCallback(() => {
+    setBlurEnabled(prev => {
+      const next = !prev;
+      try { localStorage.setItem(STORAGE_KEY, String(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  // 加载模型（上传图片时自动调用）
   const loadModel = useCallback(async () => {
     if (model || loading) return;
     setLoading(true);
     setError(null);
     try {
-      const tf = await import('@tensorflow/tfjs');
+      await import('@tensorflow/tfjs');
       const nsfwjs = await import('nsfwjs');
       const loadedModel = await nsfwjs.load();
       setModel(loadedModel);
@@ -93,7 +107,7 @@ export function NsfwProvider({ children }) {
   }, [model]);
 
   return (
-    <NsfwContext.Provider value={{ model, loading, loaded, error, loadModel, classify, classifyFile }}>
+    <NsfwContext.Provider value={{ model, loading, loaded, error, blurEnabled, loadModel, classify, classifyFile, toggleBlur }}>
       {children}
     </NsfwContext.Provider>
   );
