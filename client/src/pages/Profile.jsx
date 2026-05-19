@@ -3,7 +3,6 @@ import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import MobileHeader from '../components/MobileHeader';
 import OfficialBadge from '../components/OfficialBadge';
-import EditProfile from '../components/EditProfile';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { authAPI, usersAPI, followsAPI, forumAPI } from '../api';
@@ -23,7 +22,7 @@ export default function Profile() {
 
   const [profileUser, setProfileUser] = useState(null);
   const [loading, setLoading] = useState(!isSelf);
-  const [showEdit, setShowEdit] = useState(false);
+  const [showEdit, setShowEdit] = useState(false); // 保留防报错，实际不再使用
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
@@ -185,9 +184,9 @@ export default function Profile() {
       </span>
       <div className="mobile-header-right">
         {isSelf ? (
-          <button className="mobile-header-btn" onClick={() => setShowEdit(true)} title="编辑资料">
-            <i className="fa-solid fa-pen-to-square" />
-          </button>
+          <Link to="/account" className="mobile-header-btn" title="账户设置">
+            <i className="fa-solid fa-gear" />
+          </Link>
         ) : (
           <button
             className={`btn btn-sm ${followStatus.following ? 'btn-outline' : 'btn-primary'}`}
@@ -304,8 +303,6 @@ export default function Profile() {
           </Link>
         </div>
 
-        {showEdit && <EditProfile onClose={() => setShowEdit(false)} />}
-        {!showEdit && (
           <div className="space-y-2 text-sm" style={{ color: 'var(--text-light)' }}>
             {displayUser.bio && <p>{displayUser.bio}</p>}
             {displayUser.region && <p><i className="fa-solid fa-location-dot mr-2" />{displayUser.region}</p>}
@@ -323,12 +320,11 @@ export default function Profile() {
             {displayUser.style_preference && <p><i className="fa-solid fa-heart mr-2" />偏好: {displayUser.style_preference}</p>}
             <p><i className="fa-solid fa-calendar mr-2" />注册于 {new Date(displayUser.created_at).toLocaleDateString('zh-CN')}</p>
             {isSelf && (
-              <button className="btn btn-outline btn-sm mt-2" onClick={() => setShowEdit(true)}>
-                <i className="fa-solid fa-pen-to-square" /> 编辑资料
-              </button>
+              <Link to="/account" className="btn btn-outline btn-sm mt-2">
+                <i className="fa-solid fa-gear" /> 账户设置
+              </Link>
             )}
           </div>
-        )}
       </div>
 
       {/* 帖子列表 */}
