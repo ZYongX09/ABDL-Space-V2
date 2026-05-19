@@ -175,9 +175,9 @@ export default function Profile() {
         toast.info('正在加载安全检测模型...');
         await loadModel();
       }
-      const isNsfw = await classifyFile(file);
-      if (isNsfw === true) {
-        toast.error('头像不允许包含敏感内容');
+      const result = await classifyFile(file);
+      if (result && result.level === 'high') {
+        toast.error(`头像不允许包含${result.type}`);
         setAvatarUploading(false);
         return;
       }
