@@ -27,32 +27,38 @@ function classifyPredictions(predictions) {
 
   console.log('[NSFW]', predictions.map(p => `${p.className}: ${p.probability.toFixed(3)}`).join(', '));
 
-  // 高敏感: Porn ≥ 0.5 → 禁止上传
-  if (porn >= 0.5) {
+  // 高敏感: Porn ≥ 0.2 → 禁止上传（不放过任何可能的色情内容）
+  if (porn >= 0.2) {
     console.log('[NSFW] → 高敏感(色情内容), score:', porn.toFixed(3));
     return { level: 'high', type: '色情内容', score: porn };
   }
 
-  // 高敏感: Hentai ≥ 0.6 → 禁止上传
-  if (hentai >= 0.6) {
+  // 高敏感: Hentai ≥ 0.25 → 禁止上传
+  if (hentai >= 0.25) {
     console.log('[NSFW] → 高敏感(成人动漫), score:', hentai.toFixed(3));
     return { level: 'high', type: '成人动漫内容', score: hentai };
   }
 
-  // 低敏感: Sexy ≥ 0.3
-  if (sexy >= 0.3) {
+  // 高敏感: Sexy ≥ 0.5 → 禁止上传（高度擦边视为高敏感）
+  if (sexy >= 0.5) {
+    console.log('[NSFW] → 高敏感(擦边内容), score:', sexy.toFixed(3));
+    return { level: 'high', type: '擦边内容', score: sexy };
+  }
+
+  // 低敏感: Sexy ≥ 0.15
+  if (sexy >= 0.15) {
     console.log('[NSFW] → 低敏感(擦边内容), score:', sexy.toFixed(3));
     return { level: 'low', type: '擦边内容', score: sexy };
   }
 
-  // 低敏感: Hentai 0.3~0.6
-  if (hentai >= 0.3) {
+  // 低敏感: Hentai ≥ 0.1
+  if (hentai >= 0.1) {
     console.log('[NSFW] → 低敏感(成人动漫), score:', hentai.toFixed(3));
     return { level: 'low', type: '疑似成人动漫', score: hentai };
   }
 
-  // 低敏感: Porn 0.3~0.5
-  if (porn >= 0.3) {
+  // 低敏感: Porn ≥ 0.1
+  if (porn >= 0.1) {
     console.log('[NSFW] → 低敏感(疑似色情), score:', porn.toFixed(3));
     return { level: 'low', type: '疑似色情内容', score: porn };
   }
