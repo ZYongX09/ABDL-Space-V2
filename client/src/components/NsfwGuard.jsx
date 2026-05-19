@@ -24,11 +24,17 @@ export default function NsfwGuard({ src, backendNsfw, backendNsfwType, className
     if (!img || !img.complete || !img.naturalWidth) return;
     triedRef.current = true;
     setChecking(true);
-    classify(img).then(r => {
-      if (r && r.level !== 'safe') setResult(r);
-      setChecking(false);
-    }).catch(() => setChecking(false));
-  }, [backendNsfw, modelReady, classify]);
+    const classifyImg = new Image();
+    classifyImg.crossOrigin = 'anonymous';
+    classifyImg.onload = () => {
+      classify(classifyImg).then(r => {
+        if (r && r.level !== 'safe') setResult(r);
+        setChecking(false);
+      }).catch(() => setChecking(false));
+    };
+    classifyImg.onerror = () => setChecking(false);
+    classifyImg.src = src;
+  }, [backendNsfw, modelReady, classify, src]);
 
   const handleLoad = useCallback(() => {
     onLoadProp?.();
@@ -37,13 +43,23 @@ export default function NsfwGuard({ src, backendNsfw, backendNsfwType, className
       if (img && img.complete && img.naturalWidth) {
         triedRef.current = true;
         setChecking(true);
-        classify(img).then(r => {
-          if (r && r.level !== 'safe') setResult(r);
+        // 用独立 Image 元素做 CORS 安全的分类
+        const classifyImg = new Image();
+        classifyImg.crossOrigin = 'anonymous';
+        classifyImg.onload = () => {
+          classify(classifyImg).then(r => {
+            if (r && r.level !== 'safe') setResult(r);
+            setChecking(false);
+          }).catch(() => setChecking(false));
+        };
+        classifyImg.onerror = () => {
+          // CORS 失败，跳过检测
           setChecking(false);
-        }).catch(() => setChecking(false));
+        };
+        classifyImg.src = src;
       }
     }
-  }, [onLoadProp, backendNsfw, modelReady, classify]);
+  }, [onLoadProp, backendNsfw, modelReady, classify, src]);
 
   const handleError = useCallback(() => {
     onErrorProp?.();
@@ -61,7 +77,6 @@ export default function NsfwGuard({ src, backendNsfw, backendNsfwType, className
         src={src}
         alt={alt || ''}
         loading={loading}
-        crossOrigin="anonymous"
         className={className}
         style={{
           ...style,
