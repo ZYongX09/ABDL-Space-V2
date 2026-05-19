@@ -6,38 +6,38 @@ import { useNsfw } from '../contexts/NsfwContext';
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 export default function EditProfile({ onClose }) {
-  const { currentUser, updateProfile } = useAuth();
+  const { user, updateProfile } = useAuth();
   const toast = useToast();
   const { classifyFile, loaded: modelReady, loadModel } = useNsfw();
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({
-    bio: currentUser?.bio || '',
-    region: currentUser?.region || '',
-    age: currentUser?.age || '',
-    weight: currentUser?.weight || '',
-    waist: currentUser?.waist || '',
-    hip: currentUser?.hip || '',
-    style_preference: currentUser?.style_preference || '',
-    avatar: currentUser?.avatar || null,
+    bio: user?.bio || '',
+    region: user?.region || '',
+    age: user?.age || '',
+    weight: user?.weight || '',
+    waist: user?.waist || '',
+    hip: user?.hip || '',
+    style_preference: user?.style_preference || '',
+    avatar: user?.avatar || null,
   });
 
-  // currentUser 加载后同步表单
+  // user 加载后同步表单
   useEffect(() => {
-    if (currentUser) {
+    if (user) {
       setForm({
-        bio: currentUser.bio || '',
-        region: currentUser.region || '',
-        age: currentUser.age || '',
-        weight: currentUser.weight || '',
-        waist: currentUser.waist || '',
-        hip: currentUser.hip || '',
-        style_preference: currentUser.style_preference || '',
-        avatar: currentUser.avatar || null,
+        bio: user.bio || '',
+        region: user.region || '',
+        age: user.age || '',
+        weight: user.weight || '',
+        waist: user.waist || '',
+        hip: user.hip || '',
+        style_preference: user.style_preference || '',
+        avatar: user.avatar || null,
       });
     }
-  }, [currentUser]);
+  }, [user]);
 
   const update = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
@@ -135,7 +135,7 @@ export default function EditProfile({ onClose }) {
                   style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
                   {form.avatar
                     ? <img src={form.avatar} alt="" className="w-full h-full rounded-full object-cover" />
-                    : currentUser?.username?.[0]?.toUpperCase()
+                    : user?.username?.[0]?.toUpperCase()
                   }
                 </div>
                 {avatarUploading && (

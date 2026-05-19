@@ -32,6 +32,8 @@ export default function MessagesPage() {
       setConversations(data.conversations || []);
     } catch (e) {
       toast.error(e.message);
+    } finally {
+      setLoading(false);
     }
   }, [toast]);
 
