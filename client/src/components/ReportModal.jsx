@@ -44,10 +44,10 @@ export default function ReportModal({ targetType, targetId, onClose }) {
 
   return createPortal(
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', padding: '24px' }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold" style={{ color: 'var(--text)' }}>
-            <i className="fa-solid fa-flag mr-2" style={{ color: 'var(--danger)' }} />
+            <i className="fa-solid fa-shield-halved mr-2" style={{ color: 'var(--danger)' }} />
             举报内容
           </h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem' }}>

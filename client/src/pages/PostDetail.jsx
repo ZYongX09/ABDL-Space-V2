@@ -161,13 +161,16 @@ export default function PostDetail() {
 
   const handleDelete = () => {
     setShowMenu(false);
-    trigger(async () => {
-      try {
-        await forumAPI.delete(post.id);
-        toast.success('帖子已删除');
-        window.history.back();
-      } catch (e) { toast.error(e.message); }
-    });
+    // 延迟触发验证，避免菜单关闭的 re-render 干扰
+    setTimeout(() => {
+      trigger(async () => {
+        try {
+          await forumAPI.delete(post.id);
+          toast.success('帖子已删除');
+          window.history.back();
+        } catch (e) { toast.error(e.message); }
+      });
+    }, 100);
   };
 
   const handlePin = async () => {
@@ -274,7 +277,7 @@ export default function PostDetail() {
                   </button>
                   {!isOwner && (
                     <button className="dropdown-item" onClick={() => { setShowMenu(false); setReportTarget({ type: 'post', id: post.id }); }}>
-                      <i className="fa-solid fa-flag" />
+                      <i className="fa-solid fa-shield-halved" style={{ color: 'var(--danger)' }} />
                       举报帖子
                     </button>
                   )}

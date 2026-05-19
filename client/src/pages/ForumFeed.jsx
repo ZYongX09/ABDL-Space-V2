@@ -187,11 +187,11 @@ export default function ForumFeed() {
                 </Link>
                 <button
                   className="flex items-center gap-1.5 text-sm ml-auto"
-                  style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
+                  style={{ color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer' }}
                   onClick={() => setReportTarget({ type: 'post', id: post.id })}
                   title="举报"
                 >
-                  <i className="fa-solid fa-flag" />
+                  <i className="fa-solid fa-shield-halved" />
                 </button>
               </div>
             </div>
