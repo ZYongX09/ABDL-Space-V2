@@ -94,11 +94,11 @@ export async function loadData() {
 // 认证 Auth
 // =====================================================================
 export const authAPI = {
-  register: async ({ username, password, email }) => {
+  register: async ({ username, password, email, code }) => {
     if (USE_API) {
       return apiFetch('/api/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ email: email || `${username}@abdl.local`, password, username }),
+        body: JSON.stringify({ email, password, username, code }),
       });
     }
     const users = LS.get('users') || {};
@@ -114,6 +114,27 @@ export const authAPI = {
     LS.set('users', users);
     LS.set('currentUser', user);
     return { token: 'local-' + user.id, user: { ...user, password: undefined } };
+  },
+
+  sendCode: async ({ email, type }) => {
+    return apiFetch('/api/auth/send-code', {
+      method: 'POST',
+      body: JSON.stringify({ email, type }),
+    });
+  },
+
+  resetPassword: async ({ email, code, newPassword }) => {
+    return apiFetch('/api/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, code, newPassword }),
+    });
+  },
+
+  bindEmail: async ({ email, code }) => {
+    return apiFetch('/api/auth/bind-email', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    });
   },
 
   login: async ({ login, password }) => {

@@ -32,6 +32,7 @@ const Settings = lazy(() => import('./pages/Settings'));
 
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const ExternalLink = lazy(() => import('./pages/ExternalLink'));
 const CreatePost = lazy(() => import('./pages/CreatePost'));
@@ -55,6 +56,7 @@ const ROUTE_TITLES = {
   '/profile': '个人中心 — ABDL Space',
   '/login': '登录 — ABDL Space',
   '/register': '注册 — ABDL Space',
+  '/forgot-password': '找回密码 — ABDL Space',
   '/messages': '私信 — ABDL Space',
   '/notifications': '通知 — ABDL Space',
   '/admin': '管理后台 — ABDL Space',
@@ -134,6 +136,7 @@ export default function App() {
                 <Route path="/messages" element={<MessagesPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/admin" element={<AdminPage />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/external" element={<ExternalLink />} />
                 <Route path="/create-post" element={<CreatePost />} />
               </Routes>

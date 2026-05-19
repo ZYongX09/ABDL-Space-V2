@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PageLayout from '../components/PageLayout';
 import MobileHeader from '../components/MobileHeader';
+import VerificationInput from '../components/VerificationInput';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNsfw } from '../contexts/NsfwContext';
+import { authAPI } from '../api';
 
 
 export default function Settings() {
@@ -143,6 +145,9 @@ export default function Settings() {
         </div>
       </div>
 
+      {/* 邮箱管理 */}
+      {user && <EmailSection user={user} toast={toast} />}
+
       {/* 快捷键 */}
       <div className="card">
         <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
@@ -167,5 +172,109 @@ export default function Settings() {
       </div>
     </PageLayout>
     </>
+  );
+}
+
+function EmailSection({ user, toast }) {
+  const [showBind, setShowBind] = useState(false);
+  const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown(v => v - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  const handleSendCode = useCallback(async () => {
+    if (!email.trim() || !email.includes('@')) { toast.error('请输入合法邮箱'); return; }
+    setLoading(true);
+    try {
+      await authAPI.sendCode({ email: email.trim(), type: 'bind' });
+      toast.success('验证码已发送');
+      setCodeSent(true);
+      setCooldown(60);
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [email, toast]);
+
+  const handleBind = useCallback(async () => {
+    if (code.length < 6) { toast.error('请输入完整验证码'); return; }
+    setLoading(true);
+    try {
+      await authAPI.bindEmail({ email: email.trim(), code });
+      toast.success('邮箱绑定成功');
+      setShowBind(false);
+      setEmail('');
+      setCode('');
+      setCodeSent(false);
+      // 刷新用户信息
+      window.location.reload();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [email, code, toast]);
+
+  const maskedEmail = user.email ? 
+    user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3') : '未绑定';
+
+  return (
+    <div className="card mb-5">
+      <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
+        <i className="fa-solid fa-envelope mr-2" style={{ color: 'var(--primary-dark)' }} />
+        邮箱管理
+      </h3>
+
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+            当前邮箱：{user.email ? maskedEmail : '未绑定'}
+          </div>
+          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+            {user.email ? '用于找回密码和接收通知' : '绑定邮箱后可用于找回密码'}
+          </div>
+        </div>
+        <button className="btn btn-outline btn-sm" onClick={() => setShowBind(!showBind)}>
+          {user.email ? '换绑' : '绑定'}
+        </button>
+      </div>
+
+      {showBind && (
+        <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+          <div className="mb-3">
+            <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>新邮箱地址</label>
+            <div className="flex gap-2">
+              <input type="email" className="form-control flex-1" value={email} onChange={e => { setEmail(e.target.value); setCodeSent(false); setCode(''); }} placeholder="your@email.com" />
+              <button className="btn btn-outline btn-sm whitespace-nowrap" onClick={handleSendCode} disabled={loading || cooldown > 0}>
+                {loading ? <i className="fa-solid fa-spinner fa-spin" />
+                  : cooldown > 0 ? `${cooldown}s`
+                  : codeSent ? '重发' : '发送验证码'}
+              </button>
+            </div>
+          </div>
+
+          {codeSent && (
+            <>
+              <div className="mb-3">
+                <label className="block text-xs font-semibold mb-2" style={{ color: 'var(--text-light)' }}>验证码</label>
+                <VerificationInput value={code} onChange={setCode} />
+              </div>
+              <button className="btn btn-primary btn-sm w-full" onClick={handleBind} disabled={loading || code.length < 6}>
+                {loading ? <i className="fa-solid fa-spinner fa-spin mr-2" /> : null}
+                确认绑定
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

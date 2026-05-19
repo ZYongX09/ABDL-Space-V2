@@ -127,6 +127,8 @@ export default function Login() {
         </form>
         <p className="text-center mt-4 text-sm" style={{ color: 'var(--text-light)' }}>
           还没有账号？ <Link to="/register" style={{ color: 'var(--link-color)' }}>注册</Link>
+          <span style={{ color: 'var(--text-muted)', margin: '0 8px' }}>|</span>
+          <Link to="/forgot-password" style={{ color: 'var(--link-color)' }}>忘记密码？</Link>
         </p>
       </div>
     </PageLayout>
