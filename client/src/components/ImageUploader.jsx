@@ -117,21 +117,33 @@ const ImageUploader = forwardRef(function ImageUploader({ max = 4, onError }, re
     setUploading(true);
 
     try {
-      // 第一步：NSFW 检测
+      // 第一步：确保模型已加载
       if (!modelReady) {
-        setProgress('正在加载安全检测模型...');
-        await loadModel();
+        setProgress('正在加载安全检测模型（首次约需 10 秒）...');
+        try {
+          await loadModel();
+        } catch (e) {
+          throw new Error('安全检测模型加载失败，请检查网络后重试');
+        }
       }
 
+      if (!modelReady) {
+        throw new Error('安全检测模型未就绪，请稍后重试');
+      }
+
+      // 第二步：NSFW 检测
       const results = {};
       for (let i = 0; i < previews.length; i++) {
         setProgress(`正在检测图片 ${i + 1}/${previews.length}...`);
         const isNsfw = await classifyFile(previews[i].file);
         results[i] = isNsfw === true;
+        if (results[i]) {
+          setProgress(`图片 ${i + 1} 检测到敏感内容，已标记`);
+        }
       }
       setNsfwResults(results);
 
-      // 第二步：上传
+      // 第三步：上传
       const uploaded = [];
       for (let i = 0; i < previews.length; i++) {
         setProgress(`正在上传图片 ${i + 1}/${previews.length}...`);

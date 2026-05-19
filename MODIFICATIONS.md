@@ -17,6 +17,16 @@
   5. 设置页新增「内容安全」说明
 - **涉及文件**：NsfwContext.jsx（新建）、NsfwGuard.jsx（新建）、ImageGrid.jsx、App.jsx、Settings.jsx、package.json
 
+### 20:14 — 敏感内容屏蔽：强制检测 + 开关控制 blur
+- **类型**：需求调整
+- **内容**：
+  1. 所有图片强制检测（后端 is_nsfw 标记优先，无标记时客户端实时检测）
+  2. 设置开关改为「敏感内容屏蔽」，仅控制是否应用高斯模糊
+  3. 关闭开关 → 所有图片正常显示（不 blur），但检测仍在跑
+  4. 开关状态持久化到 localStorage，默认开启
+- **涉及文件**：NsfwContext.jsx、NsfwGuard.jsx、Settings.jsx
+- **用户需求**：开关不是控制是否检测，而是控制是否 blur
+
 ### 19:53 — NSFW 检测重构：上传时检测 + 后端标记
 - **类型**：架构重构
 - **内容**：

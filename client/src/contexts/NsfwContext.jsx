@@ -23,6 +23,8 @@ export function NsfwProvider({ children }) {
   const [blurEnabled, setBlurEnabled] = useState(() => {
     try { return localStorage.getItem(STORAGE_KEY) !== 'false'; } catch { return true; }
   });
+  const modelRef = useRef(null);
+  const loadPromiseRef = useRef(null); // 用于等待加载完成
   const queueRef = useRef([]);
   const runningRef = useRef(0);
   const MAX_CONCURRENT = 2;
@@ -35,23 +37,36 @@ export function NsfwProvider({ children }) {
     });
   }, []);
 
-  // 加载模型（上传图片时自动调用）
+  // 加载模型 — 使用 promise 缓存避免重复加载
   const loadModel = useCallback(async () => {
-    if (model || loading) return;
-    setLoading(true);
-    setError(null);
-    try {
-      await import('@tensorflow/tfjs');
-      const nsfwjs = await import('nsfwjs');
-      const loadedModel = await nsfwjs.load();
-      setModel(loadedModel);
-      setLoaded(true);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [model, loading]);
+    // 已加载
+    if (modelRef.current) return modelRef.current;
+    // 正在加载 — 等待同一个 promise
+    if (loadPromiseRef.current) return loadPromiseRef.current;
+
+    const promise = (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        await import('@tensorflow/tfjs');
+        const nsfwjs = await import('nsfwjs');
+        const loadedModel = await nsfwjs.load();
+        modelRef.current = loadedModel;
+        setModel(loadedModel);
+        setLoaded(true);
+        return loadedModel;
+      } catch (e) {
+        setError(e.message);
+        throw e;
+      } finally {
+        setLoading(false);
+        loadPromiseRef.current = null;
+      }
+    })();
+
+    loadPromiseRef.current = promise;
+    return promise;
+  }, []);
 
   // 分类队列处理
   const processQueue = useCallback(async () => {
@@ -59,8 +74,9 @@ export function NsfwProvider({ children }) {
     runningRef.current++;
     const { imgElement, resolve } = queueRef.current.shift();
     try {
-      if (!model) { resolve(null); return; }
-      const predictions = await model.classify(imgElement);
+      const m = modelRef.current;
+      if (!m) { resolve(null); return; }
+      const predictions = await m.classify(imgElement);
       const nsfwScore = predictions
         .filter(p => NSFW_LABELS.includes(p.className))
         .reduce((sum, p) => sum + p.probability, 0);
@@ -71,26 +87,28 @@ export function NsfwProvider({ children }) {
       runningRef.current--;
       processQueue();
     }
-  }, [model]);
+  }, []);
 
   // 对已加载的 <img> 元素分类
   const classify = useCallback((imgElement) => {
-    if (!model) return Promise.resolve(null);
+    const m = modelRef.current;
+    if (!m) return Promise.resolve(null);
     return new Promise(resolve => {
       queueRef.current.push({ imgElement, resolve });
       processQueue();
     });
-  }, [model, processQueue]);
+  }, [processQueue]);
 
   // 对 File 对象分类（上传时用）
   const classifyFile = useCallback((file) => {
-    if (!model) return Promise.resolve(null);
+    const m = modelRef.current;
+    if (!m) return Promise.resolve(null);
     return new Promise(resolve => {
       const img = new Image();
       const url = URL.createObjectURL(file);
       img.onload = async () => {
         try {
-          const predictions = await model.classify(img);
+          const predictions = await m.classify(img);
           const nsfwScore = predictions
             .filter(p => NSFW_LABELS.includes(p.className))
             .reduce((sum, p) => sum + p.probability, 0);
@@ -104,7 +122,7 @@ export function NsfwProvider({ children }) {
       img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
       img.src = url;
     });
-  }, [model]);
+  }, []);
 
   return (
     <NsfwContext.Provider value={{ model, loading, loaded, error, blurEnabled, loadModel, classify, classifyFile, toggleBlur }}>
