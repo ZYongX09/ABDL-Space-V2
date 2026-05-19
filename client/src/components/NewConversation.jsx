@@ -17,19 +17,14 @@ export default function NewConversation({ onClose }) {
     try {
       const API_BASE = import.meta.env.VITE_API_BASE || '';
       if (API_BASE) {
-        try {
-          const res = await fetch(`${API_BASE}/api/users/search?q=${encodeURIComponent(q)}`);
-          if (res.ok) {
-            const data = await res.json();
-            setResults(data.users || []);
-          } else {
-            setResults([]);
-          }
-        } catch {
+        const res = await fetch(`${API_BASE}/api/users/search?q=${encodeURIComponent(q)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setResults(data.users || []);
+        } else {
           setResults([]);
         }
       } else {
-        // 离线模式：搜索本地用户
         const users = JSON.parse(localStorage.getItem('abdl_users') || '{}');
         const list = Object.values(users)
           .filter(u => u.username?.toLowerCase().includes(q.toLowerCase()))
@@ -59,7 +54,7 @@ export default function NewConversation({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: 'var(--overlay-bg)' }}>
+    <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center" style={{ background: 'var(--overlay-bg)' }}>
       <div
         className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl animate-slide-up"
         style={{ background: 'var(--bg-card)', maxHeight: '80vh', overflow: 'auto' }}
