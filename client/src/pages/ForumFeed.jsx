@@ -160,9 +160,7 @@ export default function ForumFeed() {
               </Link>
               {/* Line 4: images */}
               {post.images && post.images.length > 0 && (
-                <Link to={`/forum/${post.id}`} style={{ textDecoration: 'none' }}>
-                  <ImageGrid images={post.images} />
-                </Link>
+                <ImageGrid images={post.images} />
               )}
               {/* NSFW tag */}
               {post.has_nsfw === 1 && (
