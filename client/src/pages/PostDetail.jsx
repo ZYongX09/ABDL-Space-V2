@@ -258,7 +258,9 @@ export default function PostDetail() {
                 <i className="fa-solid fa-ellipsis-vertical" />
               </button>
               {showMenu && (
-                <div className="dropdown-menu animate-fade-in-scale">
+                <>
+                  <div className="fixed inset-0 z-40" style={{ background: 'rgba(0,0,0,0.3)' }} onClick={() => setShowMenu(false)} />
+                  <div className="dropdown-menu animate-sheet-up z-50">
                   {isAdmin && (
                     <button className="dropdown-item" onClick={handlePin}>
                       <i className={`fa-solid fa-thumbtack ${post.pinned ? '' : 'opacity-50'}`} />
@@ -282,6 +284,7 @@ export default function PostDetail() {
                     </button>
                   )}
                 </div>
+                </>
               )}
             </div>
           )}
