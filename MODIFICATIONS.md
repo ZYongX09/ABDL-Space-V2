@@ -7,20 +7,34 @@
 
 ## 2026-05-19
 
-### 19:34 — NSFW 敏感图片检测功能
+### 19:34 — NSFW 敏感图片检测功能（v1：客户端全量检测）
 - **类型**：新功能
 - **内容**：
   1. 接入 NSFWJS + TensorFlow.js，浏览器端 AI 图片分类
-  2. 新增 NsfwContext（模型加载、分类队列、开关状态持久化）
+  2. 新增 NsfwContext（模型加载、分类队列）
   3. 新增 NsfwGuard 组件（高斯模糊遮罩 + 警告提示 + 显示图片按钮）
   4. ImageGrid 集成 NsfwGuard，所有帖子图片自动检测
-  5. 设置页新增「敏感图片检测」开关，说明需加载约 3MB 模型
+  5. 设置页新增「内容安全」说明
 - **涉及文件**：NsfwContext.jsx（新建）、NsfwGuard.jsx（新建）、ImageGrid.jsx、App.jsx、Settings.jsx、package.json
+
+### 19:53 — NSFW 检测重构：上传时检测 + 后端标记
+- **类型**：架构重构
+- **内容**：
+  1. NSFW 检测从「浏览时全量检测」改为「上传时一次性检测」
+  2. ImageUploader 上传前自动加载模型并分类，结果随图片上传到后端
+  3. 后端存储 `is_nsfw` 标记到数据库
+  4. 前端 ImageGrid 优先读取后端标记，无标记时降级为客户端检测
+  5. 图片预览网格中标记已检测的敏感图片（红色盾牌 badge）
+  6. 设置页移除开关，改为功能说明
+- **涉及文件**：NsfwContext.jsx、NsfwGuard.jsx、ImageGrid.jsx、ImageUploader.jsx、CreatePost.jsx、Settings.jsx、global.css
+- **后端待配合**：
+  - images 表新增 `is_nsfw` 列（BOOLEAN，默认 false）
+  - `/api/images/upload` 接口接收 FormData 中的 `is_nsfw` 字段并存储
+  - 帖子/评论接口返回图片数据时包含 `is_nsfw` 字段
 - **技术细节**：
-  - 动态 import 实现懒加载，不影响首屏性能
-  - 分类队列限制并发 2 个，避免同时推理多张图片卡顿
+  - 动态 import 实现懒加载，模型仅在首次上传时下载
   - NSFW 阈值 0.6（Porn + Hentai + Sexy 概率之和）
-  - 用户可按需开关，状态存 localStorage
+  - 前向兼容：旧图片无标记时自动降级为客户端实时检测
 
 ### 19:26 — 移动端图标修复 + 私信页面全屏布局
 - **类型**：Bug 修复 + 布局优化

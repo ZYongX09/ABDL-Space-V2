@@ -26,7 +26,8 @@ export default function CreatePost() {
       let imageUrls = [];
       if (imgRef.current?.hasPending()) {
         toast.info('正在上传图片...');
-        imageUrls = await imgRef.current.uploadAll();
+        const uploaded = await imgRef.current.uploadAll();
+        imageUrls = uploaded.map(item => typeof item === 'string' ? item : item.url);
       }
       const result = await forumAPI.create({
         content: content.trim(),

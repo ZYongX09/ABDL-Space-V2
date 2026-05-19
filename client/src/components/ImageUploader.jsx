@@ -1,4 +1,5 @@
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react';
+import { useNsfw } from '../contexts/NsfwContext';
 
 // 图床 API（通过后端代理，API Key 不暴露到前端）
 const API_BASE = import.meta.env.VITE_API_BASE || '';
@@ -24,13 +25,13 @@ function createPreview(file) {
   });
 }
 
-// 上传单张图片（通过后端代理）
-async function uploadImage(file) {
+// 上传单张图片（通过后端代理），附带 NSFW 标记
+async function uploadImage(file, isNsfw) {
   // 离线模式：返回 base64
   if (!API_BASE) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
+      reader.onload = () => resolve({ url: reader.result, is_nsfw: isNsfw });
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
@@ -38,6 +39,7 @@ async function uploadImage(file) {
 
   const form = new FormData();
   form.append('file', file);
+  if (isNsfw) form.append('is_nsfw', 'true');
   const token = localStorage.getItem('token');
 
   const controller = new AbortController();
@@ -53,7 +55,7 @@ async function uploadImage(file) {
     clearTimeout(timer);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || '上传失败');
-    return data.url;
+    return { url: data.url, is_nsfw: isNsfw };
   } catch (e) {
     clearTimeout(timer);
     if (e.name === 'AbortError') {
@@ -66,13 +68,16 @@ async function uploadImage(file) {
 /**
  * ImageUploader
  * 选择图片后仅本地预览，不自动上传
- * 调用 uploadAll() 返回已上传的 URL 数组
+ * 调用 uploadAll() 返回已上传的 [{ url, is_nsfw }] 数组
  */
 const ImageUploader = forwardRef(function ImageUploader({ max = 4, onError }, ref) {
   const [previews, setPreviews] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState('');
+  const [nsfwResults, setNsfwResults] = useState({}); // { [index]: boolean }
   const fileRef = useRef(null);
+
+  const { loaded: modelReady, loading: modelLoading, loadModel, classifyFile } = useNsfw();
 
   const addFiles = async (files) => {
     const fileList = Array.from(files).filter(f => f.type.startsWith('image/'));
@@ -95,22 +100,46 @@ const ImageUploader = forwardRef(function ImageUploader({ max = 4, onError }, re
 
   const remove = (idx) => {
     setPreviews(prev => prev.filter((_, i) => i !== idx));
+    setNsfwResults(prev => {
+      const next = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        const ki = Number(k);
+        if (ki < idx) next[ki] = v;
+        else if (ki > idx) next[ki - 1] = v;
+      });
+      return next;
+    });
   };
 
-  // 上传全部待上传图片，返回 URL 数组
+  // 上传全部待上传图片，返回 [{ url, is_nsfw }] 数组
   const uploadAll = async () => {
     if (previews.length === 0) return [];
     setUploading(true);
-    setProgress('正在上传图片...');
-    const urls = [];
+
     try {
+      // 第一步：NSFW 检测
+      if (!modelReady) {
+        setProgress('正在加载安全检测模型...');
+        await loadModel();
+      }
+
+      const results = {};
+      for (let i = 0; i < previews.length; i++) {
+        setProgress(`正在检测图片 ${i + 1}/${previews.length}...`);
+        const isNsfw = await classifyFile(previews[i].file);
+        results[i] = isNsfw === true;
+      }
+      setNsfwResults(results);
+
+      // 第二步：上传
+      const uploaded = [];
       for (let i = 0; i < previews.length; i++) {
         setProgress(`正在上传图片 ${i + 1}/${previews.length}...`);
-        const url = await uploadImage(previews[i].file);
-        urls.push(url);
+        const result = await uploadImage(previews[i].file, results[i] === true);
+        uploaded.push(result);
       }
       setProgress('图片上传完成');
-      return urls;
+      return uploaded;
     } catch (e) {
       setProgress('');
       throw e;
@@ -124,7 +153,7 @@ const ImageUploader = forwardRef(function ImageUploader({ max = 4, onError }, re
     uploadAll,
     hasPending: () => previews.length > 0,
     isUploading: () => uploading,
-    clear: () => { setPreviews([]); setProgress(''); },
+    clear: () => { setPreviews([]); setProgress(''); setNsfwResults({}); },
   }));
 
   const handleDrop = (e) => {
@@ -139,6 +168,11 @@ const ImageUploader = forwardRef(function ImageUploader({ max = 4, onError }, re
           {previews.map((item, i) => (
             <div key={i} className="img-preview-item">
               <img src={item.preview} alt="" />
+              {nsfwResults[i] === true && (
+                <div className="img-nsfw-badge">
+                  <i className="fa-solid fa-shield-halved" />
+                </div>
+              )}
               {!uploading && (
                 <button className="img-remove" onClick={() => remove(i)}>
                   <i className="fa-solid fa-xmark" />
@@ -156,6 +190,13 @@ const ImageUploader = forwardRef(function ImageUploader({ max = 4, onError }, re
         </div>
       )}
 
+      {!uploading && modelLoading && (
+        <div className="flex items-center gap-2 text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+          <i className="fa-solid fa-spinner fa-spin" />
+          安全检测模型加载中...
+        </div>
+      )}
+
       {previews.length < max && !uploading && (
         <>
           <div
@@ -164,7 +205,7 @@ const ImageUploader = forwardRef(function ImageUploader({ max = 4, onError }, re
             onDrop={handleDrop}
             onDragOver={e => e.preventDefault()}
           >
-            <i className="fa-regular fa-image" />
+            <i className="fa-solid fa-image" />
             <span>添加图片</span>
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{previews.length}/{max}</span>
           </div>

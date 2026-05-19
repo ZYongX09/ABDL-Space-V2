@@ -1,44 +1,58 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNsfw } from '../contexts/NsfwContext';
 
-export default function NsfwGuard({ src, className, style, onClick, onLoad: onLoadProp, onError: onErrorProp, alt, loading }) {
-  const { classify, enabled } = useNsfw();
+export default function NsfwGuard({ src, backendNsfw, className, style, onClick, onLoad: onLoadProp, onError: onErrorProp, alt, loading }) {
+  const { classify, loaded: modelReady } = useNsfw();
   const [nsfw, setNsfw] = useState(false);
-  const [checking, setChecking] = useState(true);
+  const [checking, setChecking] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const imgRef = useRef(null);
-  const calledRef = useRef(false);
+  const triedRef = useRef(false);
+
+  // 优先使用后端标记
+  useEffect(() => {
+    if (backendNsfw === true) {
+      setNsfw(true);
+      setChecking(false);
+    }
+  }, [backendNsfw]);
+
+  // 图片加载完成后，如果没有后端标记且模型已就绪，则客户端检测
+  useEffect(() => {
+    if (backendNsfw !== undefined || triedRef.current || !modelReady) return;
+    const img = imgRef.current;
+    if (!img || !img.complete || !img.naturalWidth) return;
+
+    triedRef.current = true;
+    setChecking(true);
+    classify(img).then(score => {
+      if (score != null && score >= 0.6) setNsfw(true);
+      setChecking(false);
+    }).catch(() => setChecking(false));
+  }, [backendNsfw, modelReady, classify]);
 
   const handleLoad = useCallback(() => {
     onLoadProp?.();
-    if (calledRef.current || !enabled) { setChecking(false); return; }
-    calledRef.current = true;
-    setChecking(true);
-
-    const img = imgRef.current;
-    if (!img || !img.complete || !img.naturalWidth) { setChecking(false); return; }
-
-    classify(img).then(score => {
-      if (score != null && score >= 0.6) {
-        setNsfw(true);
+    // 如果没有后端标记且模型已就绪，立即检测
+    if (backendNsfw === undefined && modelReady && !triedRef.current) {
+      const img = imgRef.current;
+      if (img && img.complete && img.naturalWidth) {
+        triedRef.current = true;
+        setChecking(true);
+        classify(img).then(score => {
+          if (score != null && score >= 0.6) setNsfw(true);
+          setChecking(false);
+        }).catch(() => setChecking(false));
       }
-      setChecking(false);
-    }).catch(() => setChecking(false));
-  }, [classify, enabled, onLoadProp]);
+    }
+  }, [onLoadProp, backendNsfw, modelReady, classify]);
 
   const handleError = useCallback(() => {
     onErrorProp?.();
     setChecking(false);
   }, [onErrorProp]);
 
-  // Reset when src changes
-  if (imgRef.current && imgRef.current.src !== src) {
-    calledRef.current = false;
-    if (nsfw) setNsfw(false);
-    if (revealed) setRevealed(false);
-  }
-
-  const showBlur = enabled && nsfw && !revealed;
+  const showBlur = nsfw && !revealed;
 
   return (
     <div style={{ position: 'relative', display: 'contents' }}>
@@ -95,7 +109,7 @@ export default function NsfwGuard({ src, className, style, onClick, onLoad: onLo
           </button>
         </div>
       )}
-      {enabled && checking && (
+      {checking && (
         <div
           style={{
             position: 'absolute',

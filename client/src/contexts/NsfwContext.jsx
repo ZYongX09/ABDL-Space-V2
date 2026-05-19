@@ -3,61 +3,43 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 const NsfwContext = createContext({
   model: null,
   loading: false,
-  enabled: false,
+  loaded: false,
   error: null,
+  loadModel: async () => {},
   classify: async () => null,
-  toggle: () => {},
+  classifyFile: async () => null,
 });
 
-const STORAGE_KEY = 'abdl_nsfw_enabled';
 const NSFW_LABELS = ['Porn', 'Hentai', 'Sexy'];
 
 export function NsfwProvider({ children }) {
   const [model, setModel] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [enabled, setEnabled] = useState(() => {
-    try { return localStorage.getItem(STORAGE_KEY) === 'true'; } catch { return false; }
-  });
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(null);
   const queueRef = useRef([]);
   const runningRef = useRef(0);
   const MAX_CONCURRENT = 2;
 
-  const toggle = useCallback(() => {
-    setEnabled(prev => {
-      const next = !prev;
-      try { localStorage.setItem(STORAGE_KEY, String(next)); } catch {}
-      return next;
-    });
-  }, []);
+  // 手动触发加载模型
+  const loadModel = useCallback(async () => {
+    if (model || loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const tf = await import('@tensorflow/tfjs');
+      const nsfwjs = await import('nsfwjs');
+      const loadedModel = await nsfwjs.load();
+      setModel(loadedModel);
+      setLoaded(true);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [model, loading]);
 
-  // Load model when enabled
-  useEffect(() => {
-    if (!enabled || model) return;
-    let cancelled = false;
-
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Dynamic import TF.js + NSFWJS
-        const tf = await import('@tensorflow/tfjs');
-        const nsfwjs = await import('nsfwjs');
-        if (cancelled) return;
-        const loaded = await nsfwjs.load();
-        if (cancelled) return;
-        setModel(loaded);
-      } catch (e) {
-        if (!cancelled) setError(e.message);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [enabled, model]);
-
-  // Process classification queue
+  // 分类队列处理
   const processQueue = useCallback(async () => {
     if (runningRef.current >= MAX_CONCURRENT || queueRef.current.length === 0) return;
     runningRef.current++;
@@ -77,16 +59,41 @@ export function NsfwProvider({ children }) {
     }
   }, [model]);
 
+  // 对已加载的 <img> 元素分类
   const classify = useCallback((imgElement) => {
-    if (!model || !enabled) return Promise.resolve(null);
+    if (!model) return Promise.resolve(null);
     return new Promise(resolve => {
       queueRef.current.push({ imgElement, resolve });
       processQueue();
     });
-  }, [model, enabled, processQueue]);
+  }, [model, processQueue]);
+
+  // 对 File 对象分类（上传时用）
+  const classifyFile = useCallback((file) => {
+    if (!model) return Promise.resolve(null);
+    return new Promise(resolve => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = async () => {
+        try {
+          const predictions = await model.classify(img);
+          const nsfwScore = predictions
+            .filter(p => NSFW_LABELS.includes(p.className))
+            .reduce((sum, p) => sum + p.probability, 0);
+          resolve(nsfwScore >= 0.6);
+        } catch {
+          resolve(null);
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+  }, [model]);
 
   return (
-    <NsfwContext.Provider value={{ model, loading, enabled, error, classify, toggle }}>
+    <NsfwContext.Provider value={{ model, loading, loaded, error, loadModel, classify, classifyFile }}>
       {children}
     </NsfwContext.Provider>
   );

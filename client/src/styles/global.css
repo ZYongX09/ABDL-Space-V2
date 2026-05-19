@@ -959,6 +959,12 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   font-size: 10px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
+.img-nsfw-badge {
+  position: absolute; top: 2px; left: 2px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(232,131,124,0.9); color: #fff;
+  font-size: 9px; display: flex; align-items: center; justify-content: center;
+}
 .img-drop-zone {
   display: flex; align-items: center; gap: 8px;
   padding: 8px 14px; border-radius: 10px;
