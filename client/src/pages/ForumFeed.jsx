@@ -78,8 +78,8 @@ export default function ForumFeed() {
     <MobileHeader
       title="广场"
       actions={[
-        { icon: 'fa-regular fa-envelope', onClick: () => navigate('/messages'), title: '私信' },
-        ...(user ? [{ icon: 'fa-regular fa-square-plus', onClick: () => navigate('/create-post'), title: '发帖' }] : []),
+        { icon: 'fa-solid fa-envelope', onClick: () => navigate('/messages'), title: '私信' },
+        ...(user ? [{ icon: 'fa-solid fa-square-plus', onClick: () => navigate('/create-post'), title: '发帖' }] : []),
       ]}
     />
     <PageLayout hero={{ icon: 'fa-comments', title: '广场', subtitle: '分享你的 ABDL 生活' }}>

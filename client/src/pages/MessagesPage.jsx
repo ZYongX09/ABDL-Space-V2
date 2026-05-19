@@ -146,7 +146,7 @@ export default function MessagesPage() {
     <MobileHeader
       title="私信"
       actions={[
-        { icon: 'fa-user-plus', onClick: () => setShowNewConvo(true), title: '新私信' },
+        { icon: 'fa-solid fa-user-plus', onClick: () => setShowNewConvo(true), title: '新私信' },
       ]}
     />
       <div className="msg-container">
@@ -159,7 +159,7 @@ export default function MessagesPage() {
               onClick={() => setShowNewConvo(true)}
               title="新私信"
             >
-              <i className="fa-regular fa-square-plus" />
+              <i className="fa-solid fa-square-plus" />
             </button>
           </div>
 
@@ -228,7 +228,7 @@ export default function MessagesPage() {
                   <div className="flex items-center justify-center h-full"><Spinner /></div>
                 ) : messages.length === 0 ? (
                   <div className="msg-empty">
-                    <i className="fa-regular fa-paper-plane text-3xl mb-2 block opacity-40" />
+                    <i className="fa-solid fa-paper-plane text-3xl mb-2 block opacity-40" />
                     <p className="text-sm">发送第一条消息吧</p>
                   </div>
                 ) : (
@@ -279,7 +279,7 @@ export default function MessagesPage() {
           className="msg-fab"
           onClick={() => setShowNewConvo(true)}
         >
-          <i className="fa-regular fa-square-plus" />
+          <i className="fa-solid fa-square-plus" />
         </button>
       )}
 

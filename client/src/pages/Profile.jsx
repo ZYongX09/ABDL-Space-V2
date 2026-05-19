@@ -200,7 +200,7 @@ export default function Profile() {
         )}
         {isSelf && (
           <button className="mobile-header-btn" onClick={() => setShowDrawer(true)} title="菜单">
-            <i className="fa-regular fa-bars" />
+            <i className="fa-solid fa-bars" />
           </button>
         )}
       </div>
@@ -210,7 +210,7 @@ export default function Profile() {
       <div className="mobile-header-right">
         {isSelf ? (
           <button className="mobile-header-btn" onClick={startEdit} title="编辑资料">
-            <i className="fa-regular fa-pen-to-square" />
+            <i className="fa-solid fa-pen-to-square" />
           </button>
         ) : (
           <button
@@ -244,15 +244,15 @@ export default function Profile() {
           </div>
           <nav className="profile-drawer-nav">
             <button className="profile-drawer-item" onClick={() => { setShowDrawer(false); navigate('/settings'); }}>
-              <i className="fa-regular fa-gear" />
+              <i className="fa-solid fa-gear" />
               <span>设置</span>
             </button>
             <button className="profile-drawer-item" onClick={() => { setShowDrawer(false); navigate('/about'); }}>
-              <i className="fa-regular fa-circle-question" />
+              <i className="fa-solid fa-circle-question" />
               <span>关于</span>
             </button>
             <button className="profile-drawer-item" onClick={() => { setShowDrawer(false); navigate('/notifications'); }}>
-              <i className="fa-regular fa-bell" />
+              <i className="fa-solid fa-bell" />
               <span>通知</span>
             </button>
           </nav>
@@ -263,7 +263,7 @@ export default function Profile() {
               navigate('/');
               toast.success(accounts.length > 1 ? '已切换到其他账户' : '已退出登录');
             }}>
-              <i className="fa-regular fa-right-from-bracket" />
+              <i className="fa-solid fa-right-from-bracket" />
               <span>退出登录</span>
             </button>
           </div>
@@ -408,7 +408,7 @@ export default function Profile() {
             <p><i className="fa-solid fa-calendar mr-2" />注册于 {new Date(displayUser.created_at).toLocaleDateString('zh-CN')}</p>
             {isSelf && (
               <button className="btn btn-outline btn-sm mt-2" onClick={startEdit}>
-                <i className="fa-regular fa-pen-to-square" /> 编辑资料
+                <i className="fa-solid fa-pen-to-square" /> 编辑资料
               </button>
             )}
           </div>

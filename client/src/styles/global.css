@@ -1154,7 +1154,14 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   box-shadow: 0 4px 16px rgba(168, 216, 240, 0.4);
 }
 @media (max-width: 768px) {
-  .msg-container { height: calc(100vh - 48px - 60px); border-radius: 0; border: none; }
+  .msg-container {
+    height: calc(100vh - 48px - 60px);
+    border-radius: 0; border: none;
+    margin-left: -20px; margin-right: -20px;
+    margin-top: -24px;
+    width: calc(100% + 40px);
+    max-width: none;
+  }
   .msg-sidebar { width: 100%; display: none; border-right: none; }
   .msg-sidebar.show { display: flex; }
   .msg-chat { display: none; }
