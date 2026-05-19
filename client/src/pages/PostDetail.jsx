@@ -115,12 +115,16 @@ export default function PostDetail() {
     trigger(async () => {
       setPublishing(true);
       try {
-        let imageUrls = [];
+        let imageData = [];
         if (imgRef.current?.hasPending()) {
           toast.info('正在上传图片...');
-          imageUrls = await imgRef.current.uploadAll();
+          const uploaded = await imgRef.current.uploadAll();
+          imageData = uploaded.map(item => {
+            if (typeof item === 'string') return { url: item, is_nsfw: false };
+            return { url: item.url, is_nsfw: !!item.is_nsfw };
+          });
         }
-        await forumAPI.comment(id, { content: commentText.trim(), images: imageUrls.length > 0 ? imageUrls : undefined });
+        await forumAPI.comment(id, { content: commentText.trim(), images: imageData.length > 0 ? imageData : undefined });
         lastCommentTime.current = Date.now();
         setCooldown(15);
         setCommentText('');

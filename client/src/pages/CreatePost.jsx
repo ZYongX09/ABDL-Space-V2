@@ -23,17 +23,20 @@ export default function CreatePost() {
     if (!content.trim() && !imgRef.current?.hasPending()) return;
     setPublishing(true);
     try {
-      let imageUrls = [];
+      let imageData = [];
       if (imgRef.current?.hasPending()) {
         toast.info('正在上传图片...');
         const uploaded = await imgRef.current.uploadAll();
-        imageUrls = uploaded.map(item => typeof item === 'string' ? item : item.url);
+        imageData = uploaded.map(item => {
+          if (typeof item === 'string') return { url: item, is_nsfw: false };
+          return { url: item.url, is_nsfw: !!item.is_nsfw };
+        });
       }
       const result = await forumAPI.create({
         content: content.trim(),
-        images: imageUrls.length > 0 ? imageUrls : undefined,
+        images: imageData.length > 0 ? imageData : undefined,
       });
-      toast.success(imageUrls.length > 0 ? '图片上传完成，发布成功！' : '发布成功');
+      toast.success(imageData.length > 0 ? '图片上传完成，发布成功！' : '发布成功');
       navigate(`/forum/${result.id}`, { replace: true });
     } catch (e) {
       toast.error(e.message);
