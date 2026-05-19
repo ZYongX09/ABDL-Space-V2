@@ -13,7 +13,7 @@ export default function ChatMessage({ message, showAvatar = true }) {
         </div>
       )}
       {!isOwn && !showAvatar && <div className="w-8 mr-2 flex-shrink-0" />}
-      <div className="flex flex-col" style={{ maxWidth: '75%' }}>
+      <div className="flex flex-col" style={{ maxWidth: '75%', minWidth: 0 }}>
         <div className={isOwn ? 'chat-bubble-own' : 'chat-bubble-other'}>
           {message.content}
         </div>
