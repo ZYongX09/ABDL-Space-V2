@@ -1,10 +1,13 @@
 import PageLayout from '../components/PageLayout';
+import MobileHeader from '../components/MobileHeader';
 
 export default function TermsOfService() {
   const s = { color: 'var(--text-light)' };
   const h = { color: 'var(--text)' };
 
   return (
+    <>
+    <MobileHeader title="用户协议" />
     <PageLayout hero={{ icon: 'fa-file-contract', title: '用户协议', subtitle: '最后更新：2026年5月16日' }}>
       <div className="card space-y-4 text-sm leading-relaxed" style={s}>
         <p><strong>生效日期：</strong>2026年5月16日</p>
@@ -150,5 +153,6 @@ export default function TermsOfService() {
         </div>
       </div>
     </PageLayout>
+    </>
   );
 }

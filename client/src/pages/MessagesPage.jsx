@@ -164,7 +164,12 @@ export default function MessagesPage() {
           </div>
 
           <div className="msg-list">
-            {conversations.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-12" style={{ color: 'var(--text-muted)' }}>
+                <Spinner />
+                <p className="text-sm mt-3">加载中...</p>
+              </div>
+            ) : conversations.length === 0 ? (
               <div className="text-center py-12" style={{ color: 'var(--text-muted)' }}>
                 <i className="fa-solid fa-inbox text-3xl mb-3 block opacity-40" />
                 <p className="text-sm">暂无会话</p>
