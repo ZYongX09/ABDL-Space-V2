@@ -54,10 +54,20 @@ export default function NewConversation({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center" style={{ background: 'var(--overlay-bg)' }}>
+    <div className="fixed inset-0 z-[150] flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)' }}>
       <div
-        className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl animate-slide-up"
-        style={{ background: 'var(--bg-card)', maxHeight: '80vh', overflow: 'auto' }}
+        className="w-full sm:max-w-md animate-sheet-up"
+        style={{
+          background: 'var(--bg-card)',
+          maxHeight: '80vh',
+          overflow: 'auto',
+          borderRadius: '20px 20px 0 0',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          borderTop: '1px solid rgba(255,255,255,0.2)',
+          boxShadow: '0 -8px 40px rgba(0,0,0,0.12)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--border)' }}>
