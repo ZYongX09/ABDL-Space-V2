@@ -8,7 +8,7 @@ import { useNsfw } from '../contexts/NsfwContext';
 
 
 export default function Settings() {
-  const { theme, setTheme, THEMES, THEME_LABELS } = useTheme();
+  const { theme, setTheme, autoTheme, toggleAutoTheme, THEMES, THEME_LABELS } = useTheme();
   const { user } = useAuth();
   const toast = useToast();
   const { blurEnabled, toggleBlur } = useNsfw();
@@ -51,6 +51,37 @@ export default function Settings() {
         <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
           快捷键：Ctrl+Shift+T 循环切换主题
         </p>
+        {/* 自动切换深浅色 */}
+        <div className="flex items-center justify-between mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+          <div>
+            <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>根据时间自动切换</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+              19:00~7:00 深色模式，其余时间浅色模式
+            </div>
+          </div>
+          <button
+            onClick={toggleAutoTheme}
+            style={{
+              width: '48px', height: '26px', borderRadius: '13px',
+              border: 'none', cursor: 'pointer',
+              background: autoTheme ? 'var(--primary)' : 'var(--border)',
+              position: 'relative', transition: 'background 0.2s',
+            }}
+          >
+            <div style={{
+              width: '22px', height: '22px', borderRadius: '50%',
+              background: 'white', position: 'absolute', top: '2px',
+              left: autoTheme ? '24px' : '2px',
+              transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            }} />
+          </button>
+        </div>
+        {autoTheme && (
+          <p className="text-xs mt-2" style={{ color: 'var(--primary-dark)' }}>
+            <i className="fa-solid fa-clock mr-1" />
+            自动模式已开启，手动切换主题已禁用
+          </p>
+        )}
       </div>
 
 
