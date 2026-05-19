@@ -1,0 +1,5 @@
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://hm.baidu.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://img.abdl-space.top https://raw.githubusercontent.com https://pic1.afdiancdn.com https://static.afdiancdn.com; connect-src 'self' https://api.abdl-space.top https://img.abdl-space.top https://hm.baidu.com https://abdl-space-api.zhx589.workers.dev; font-src 'self' https://fonts.gstatic.com; frame-src 'none';
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Access-Control-Allow-Origin: *

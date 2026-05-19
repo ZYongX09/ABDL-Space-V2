@@ -61,6 +61,7 @@ export default function NsfwGuard({ src, backendNsfw, backendNsfwType, className
         src={src}
         alt={alt || ''}
         loading={loading}
+        crossOrigin="anonymous"
         className={className}
         style={{
           ...style,
