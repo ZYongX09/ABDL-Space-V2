@@ -3,9 +3,9 @@ import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import MobileHeader from '../components/MobileHeader';
 import OfficialBadge from '../components/OfficialBadge';
+import EditProfile from '../components/EditProfile';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { useNsfw } from '../contexts/NsfwContext';
 import { authAPI, usersAPI, followsAPI, forumAPI } from '../api';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
@@ -16,16 +16,14 @@ export default function Profile() {
   const { user: currentUser, accounts, updateProfile, logout } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
-  const { classifyFile, loaded: modelReady, loadModel } = useNsfw();
-  const [avatarUploading, setAvatarUploading] = useState(false);
+
 
   const isSelf = !paramId || (currentUser && String(currentUser.id) === String(paramId));
   const targetId = isSelf ? currentUser?.id : paramId;
 
   const [profileUser, setProfileUser] = useState(null);
   const [loading, setLoading] = useState(!isSelf);
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({});
+  const [showEdit, setShowEdit] = useState(false);
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
@@ -128,81 +126,9 @@ export default function Profile() {
     }
   };
 
-  const startEdit = () => {
-    setForm({
-      bio: currentUser.bio || '',
-      region: currentUser.region || '',
-      age: currentUser.age || '',
-      weight: currentUser.weight || '',
-      waist: currentUser.waist || '',
-      hip: currentUser.hip || '',
-      style_preference: currentUser.style_preference || '',
-    });
-    setEditing(true);
-  };
 
-  const handleSave = async () => {
-    try {
-      const body = { ...form };
-      if (body.age) body.age = Number(body.age); else body.age = null;
-      if (body.weight) body.weight = Number(body.weight); else body.weight = null;
-      if (body.waist) body.waist = Number(body.waist); else body.waist = null;
-      if (body.hip) body.hip = Number(body.hip); else body.hip = null;
-      if (!body.style_preference) body.style_preference = null;
-      if (!body.bio) body.bio = null;
-      if (!body.region) body.region = null;
-      await updateProfile(body);
-      toast.success('资料已更新');
-      setEditing(false);
-    } catch (e) {
-      toast.error(e.message);
-    }
-  };
 
-  const update = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
-  // 头像上传
-  const handleAvatarUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { toast.error('请选择图片文件'); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error('图片不能超过 5MB'); return; }
-
-    setAvatarUploading(true);
-    try {
-      // NSFW 检测
-      if (!modelReady) {
-        toast.info('正在加载安全检测模型...');
-        await loadModel();
-      }
-      const result = await classifyFile(file);
-      if (result && result.level === 'high') {
-        toast.error(`头像不允许包含${result.type}`);
-        setAvatarUploading(false);
-        return;
-      }
-
-      // 上传
-      const form = new FormData();
-      form.append('file', file);
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE}/api/images/upload?returnFormat=full`, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: form,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '上传失败');
-
-      update('avatar', data.url);
-      toast.success('头像已上传，记得保存');
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setAvatarUploading(false);
-      e.target.value = '';
-    }
-  };
 
   // Not logged in and no param → prompt login
   if (!currentUser && !paramId) {
@@ -259,7 +185,7 @@ export default function Profile() {
       </span>
       <div className="mobile-header-right">
         {isSelf ? (
-          <button className="mobile-header-btn" onClick={startEdit} title="编辑资料">
+          <button className="mobile-header-btn" onClick={() => setShowEdit(true)} title="编辑资料">
             <i className="fa-solid fa-pen-to-square" />
           </button>
         ) : (
@@ -378,106 +304,8 @@ export default function Profile() {
           </Link>
         </div>
 
-        {editing ? (
-          <div className="space-y-4">
-            {/* 头像上传 */}
-            <div>
-              <h4 className="text-sm font-bold mb-2" style={{ color: 'var(--text)' }}>
-                <i className="fa-solid fa-image mr-1.5" style={{ color: 'var(--primary-dark)' }} />
-                头像
-              </h4>
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold overflow-hidden"
-                    style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
-                    {form.avatar
-                      ? <img src={form.avatar} alt="" className="w-full h-full rounded-full object-cover" />
-                      : currentUser?.username?.[0]?.toUpperCase()
-                    }
-                  </div>
-                  {avatarUploading && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-full" style={{ background: 'rgba(0,0,0,0.4)' }}>
-                      <i className="fa-solid fa-spinner fa-spin text-white" />
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="btn btn-outline btn-sm cursor-pointer" style={{ fontSize: '0.75rem' }}>
-                    <i className="fa-solid fa-upload mr-1" />
-                    {form.avatar ? '更换头像' : '上传头像'}
-                    <input type="file" accept="image/*" hidden onChange={handleAvatarUpload} disabled={avatarUploading} />
-                  </label>
-                  {form.avatar && (
-                    <button className="btn btn-outline btn-sm ml-2" style={{ fontSize: '0.75rem', color: 'var(--danger)', borderColor: 'var(--danger)' }}
-                      onClick={() => update('avatar', null)}>
-                      <i className="fa-solid fa-trash mr-1" />移除
-                    </button>
-                  )}
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>支持 JPG/PNG/GIF/WEBP，最大 5MB</p>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-bold mb-2" style={{ color: 'var(--text)' }}>
-                <i className="fa-solid fa-circle-user mr-1.5" style={{ color: 'var(--primary-dark)' }} />
-                基本信息
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>地区</label>
-                  <input className="form-control" value={form.region} onChange={e => update('region', e.target.value)} placeholder="如：北京" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>年龄</label>
-                  <input type="number" className="form-control" value={form.age} onChange={e => update('age', e.target.value)} placeholder="如：25" min="1" max="150" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>个人简介</label>
-                <textarea className="form-control" value={form.bio} onChange={e => update('bio', e.target.value)} rows={2} placeholder="介绍一下自己..." />
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-bold mb-2" style={{ color: 'var(--text)' }}>
-                <i className="fa-solid fa-ruler mr-1.5" style={{ color: 'var(--primary-dark)' }} />
-                身体数据
-                <span className="text-xs font-normal ml-2" style={{ color: 'var(--text-muted)' }}>用于 AI 推荐尺码，可选填</span>
-              </h4>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>体重 (kg)</label>
-                  <input type="number" className="form-control" value={form.weight} onChange={e => update('weight', e.target.value)} placeholder="65" min="1" max="500" step="0.1" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>腰围 (cm)</label>
-                  <input type="number" className="form-control" value={form.waist} onChange={e => update('waist', e.target.value)} placeholder="75" min="1" max="300" step="0.1" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>臀围 (cm)</label>
-                  <input type="number" className="form-control" value={form.hip} onChange={e => update('hip', e.target.value)} placeholder="95" min="1" max="300" step="0.1" />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-bold mb-2" style={{ color: 'var(--text)' }}>
-                <i className="fa-solid fa-heart mr-1.5" style={{ color: 'var(--accent)' }} />
-                偏好
-              </h4>
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>风格偏好</label>
-                <input className="form-control" value={form.style_preference} onChange={e => update('style_preference', e.target.value)} placeholder="如：日系、可爱风、简约" />
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-1">
-              <button className="btn btn-primary btn-sm" onClick={handleSave}>保存</button>
-              <button className="btn btn-outline btn-sm" onClick={() => setEditing(false)}>取消</button>
-            </div>
-          </div>
-        ) : (
+        {showEdit && <EditProfile onClose={() => setShowEdit(false)} />}
+        {!showEdit && (
           <div className="space-y-2 text-sm" style={{ color: 'var(--text-light)' }}>
             {displayUser.bio && <p>{displayUser.bio}</p>}
             {displayUser.region && <p><i className="fa-solid fa-location-dot mr-2" />{displayUser.region}</p>}
@@ -495,7 +323,7 @@ export default function Profile() {
             {displayUser.style_preference && <p><i className="fa-solid fa-heart mr-2" />偏好: {displayUser.style_preference}</p>}
             <p><i className="fa-solid fa-calendar mr-2" />注册于 {new Date(displayUser.created_at).toLocaleDateString('zh-CN')}</p>
             {isSelf && (
-              <button className="btn btn-outline btn-sm mt-2" onClick={startEdit}>
+              <button className="btn btn-outline btn-sm mt-2" onClick={() => setShowEdit(true)}>
                 <i className="fa-solid fa-pen-to-square" /> 编辑资料
               </button>
             )}

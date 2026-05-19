@@ -2028,6 +2028,35 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
   animation: sheetUp 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* 编辑资料全屏面板 */
+.edit-profile-sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  background: var(--bg-card);
+  border-radius: 20px 20px 0 0;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.12);
+  animation: sheetUp 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+}
+.edit-profile-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+@media (max-width: 768px) {
+  .edit-profile-sheet {
+    max-width: none;
+    max-height: 100vh;
+    border-radius: 0;
+    height: 100vh;
+  }
+}
+
 /* ====== 移动端细节打磨 ====== */
 @media (max-width: 768px) {
   /* Toast 移动端居中 + 安全区 */
