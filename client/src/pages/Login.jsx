@@ -14,6 +14,7 @@ export default function Login() {
   const [captchaOk, setCaptchaOk] = useState(false);
   const [captchaStarted, setCaptchaStarted] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [failCount, setFailCount] = useState(0);
   const verifyRef = useRef(null);
@@ -58,7 +59,12 @@ export default function Login() {
           </div>
           <div className="mb-5">
             <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>密码</label>
-            <input type="password" className="form-control" value={password} onChange={e => setPassword(e.target.value)} placeholder="输入密码" />
+            <div className="relative">
+              <input type={showPassword ? 'text' : 'password'} className="form-control pr-10" value={password} onChange={e => setPassword(e.target.value)} placeholder="输入密码" />
+              <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0 }}>
+                <i className={`fa-solid ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`} />
+              </button>
+            </div>
           </div>
 
           {/* 安全验证：失败次数达到阈值才显示 */}

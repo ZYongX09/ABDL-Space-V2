@@ -10,6 +10,8 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [captchaOk, setCaptchaOk] = useState(false);
@@ -58,11 +60,21 @@ export default function Register() {
           </div>
           <div className="mb-4">
             <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>密码</label>
-            <input type="password" className="form-control" value={password} onChange={e => setPassword(e.target.value)} placeholder="至少 8 位" />
+            <div className="relative">
+              <input type={showPassword ? 'text' : 'password'} className="form-control pr-10" value={password} onChange={e => setPassword(e.target.value)} placeholder="至少 8 位" />
+              <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0 }}>
+                <i className={`fa-solid ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`} />
+              </button>
+            </div>
           </div>
           <div className="mb-5">
             <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>确认密码</label>
-            <input type="password" className="form-control" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="再次输入密码" />
+            <div className="relative">
+              <input type={showConfirm ? 'text' : 'password'} className="form-control pr-10" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="再次输入密码" />
+              <button type="button" onClick={() => setShowConfirm(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0 }}>
+                <i className={`fa-solid ${showConfirm ? 'fa-eye-slash' : 'fa-eye'}`} />
+              </button>
+            </div>
           </div>
 
           {/* 安全验证 */}
