@@ -142,7 +142,7 @@
   border-top-color: var(--border);
 }
 [data-theme="dark"] .bottom-nav-floating a.active {
-  background: rgba(126, 184, 212, 0.15);
+  /* 仅图标变色，无背景 */
 }
 
 [data-theme="colorful"] .bottom-nav-floating {
@@ -150,7 +150,7 @@
   border-top-color: var(--border);
 }
 [data-theme="colorful"] .bottom-nav-floating a.active {
-  background: rgba(168, 216, 240, 0.25);
+  /* 仅图标变色，无背景 */
 }
 
 /* ====== 基础重置 ====== */
