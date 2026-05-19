@@ -5,6 +5,16 @@
 
 ## 2026-05-20
 
+### 04:21 — 编辑资料拆分为独立组件
+- **类型**：重构
+- **内容**：
+  1. 编辑资料功能从 Profile.jsx 拆分为独立 EditProfile 组件
+  2. MIUI 底部弹出 sheet 风格，移动端全屏，PC 端 max-width 520px
+  3. 毛玻璃背景 + 弹性动画
+  4. 清理 Profile.jsx 中未使用的导入和状态
+- **涉及文件**：Profile.jsx、EditProfile.jsx（新建）、global.css
+- **Git**：commit 8cf7741
+
 ### 00:00-01:32 — v2.8.0 收工发布
 
 #### NSFW 敏感内容智能检测体系

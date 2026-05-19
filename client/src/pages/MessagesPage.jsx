@@ -180,7 +180,10 @@ export default function MessagesPage() {
                   onClick={() => openConversation(c.user_id)}
                 >
                   <div className="msg-avatar">
-                    {(c.username || '?')[0]?.toUpperCase()}
+                    {c.avatar
+                      ? <img src={c.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                      : (c.username || '?')[0]?.toUpperCase()
+                    }
                   </div>
                   <div className="msg-convo-info">
                     <div className="msg-convo-top">
@@ -214,7 +217,10 @@ export default function MessagesPage() {
                       to={`/user/${otherUser.id}`}
                       className="msg-avatar msg-avatar-sm"
                     >
-                      {otherUser.username?.[0]?.toUpperCase() || '?'}
+                      {otherUser.avatar
+                        ? <img src={otherUser.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                        : otherUser.username?.[0]?.toUpperCase() || '?'
+                      }
                     </Link>
                     <Link to={`/user/${otherUser.id}`} className="msg-chat-name">
                       {otherUser.username}

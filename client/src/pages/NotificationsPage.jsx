@@ -23,6 +23,13 @@ export default function NotificationsPage() {
         const data = await notificationsAPI.list();
         setNotifications(data.notifications || []);
         setUnreadCount(data.unread_count || 0);
+        // 打开页面自动标记已读
+        if (data.unread_count > 0) {
+          await notificationsAPI.readAll();
+          clearUnread();
+          setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+          setUnreadCount(0);
+        }
       } catch (e) {
         toast.error(e.message);
       } finally {
@@ -31,17 +38,7 @@ export default function NotificationsPage() {
     })();
   }, [user]);
 
-  const handleReadAll = async () => {
-    try {
-      await notificationsAPI.readAll();
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      setUnreadCount(0);
-      clearUnread();
-      toast.success('已全部标为已读');
-    } catch (e) {
-      toast.error(e.message);
-    }
-  };
+
 
   if (!user) {
     return (
@@ -62,14 +59,6 @@ export default function NotificationsPage() {
     <>
     <MobileHeader title="通知" />
     <PageLayout hero={{ icon: 'fa-bell', title: '通知', subtitle: unreadCount > 0 ? `${unreadCount} 条未读` : undefined }}>
-      {unreadCount > 0 && (
-        <div className="flex justify-end mb-4">
-          <button className="btn btn-outline btn-sm" onClick={handleReadAll}>
-            <i className="fa-solid fa-check-double" /> 全部标为已读
-          </button>
-        </div>
-      )}
-
       {loading ? (
         <LoadingSkeleton count={4} height={70} />
       ) : notifications.length === 0 ? (

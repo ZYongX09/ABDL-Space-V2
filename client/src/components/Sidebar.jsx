@@ -16,7 +16,7 @@ const EXPAND_DELAY = 200; // ms
 
 export default function Sidebar() {
   const { user } = useAuth();
-  const { unreadCount } = useNotifications();
+  const { unreadCount, messageUnread } = useNotifications();
   const [expanded, setExpanded] = useState(false);
   const timerRef = useRef(null);
 
@@ -66,9 +66,21 @@ export default function Sidebar() {
               end={item.end}
               className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
               title={item.label}
+              style={{ position: 'relative' }}
             >
               <i className={`fa-solid ${item.icon} sidebar-link-icon`} />
               <span className="sidebar-link-label">{item.label}</span>
+              {item.to === '/messages' && messageUnread > 0 && (
+                <span className="notif-badge" style={{
+                  position: 'absolute', top: '8px', right: '12px',
+                  minWidth: '16px', height: '16px', borderRadius: '8px',
+                  fontSize: '10px', lineHeight: '16px', textAlign: 'center',
+                  padding: '0 4px', background: 'var(--danger)', color: '#fff',
+                  fontWeight: 700,
+                }}>
+                  {messageUnread > 99 ? '99+' : messageUnread}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

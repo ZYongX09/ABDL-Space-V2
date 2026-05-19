@@ -44,9 +44,12 @@ export default function AccountSwitcher({ collapsed = false }) {
         style={{ background: showPanel ? 'var(--primary-light)' : 'transparent' }}
         title="切换账户"
       >
-        <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+        <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 overflow-hidden"
           style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
-          {user.username?.[0]?.toUpperCase()}
+          {user.avatar
+            ? <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+            : user.username?.[0]?.toUpperCase()
+          }
         </div>
         {!collapsed && (
           <>
@@ -87,9 +90,12 @@ export default function AccountSwitcher({ collapsed = false }) {
                   onMouseEnter={e => { if (acc.id !== user.id) e.currentTarget.style.background = 'var(--hover-bg)'; }}
                   onMouseLeave={e => { if (acc.id !== user.id) e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 overflow-hidden"
                     style={{ background: acc.id === user.id ? 'var(--primary)' : 'var(--primary-light)', color: acc.id === user.id ? 'white' : 'var(--primary-dark)' }}>
-                    {acc.username?.[0]?.toUpperCase() || '?'}
+                    {acc.avatar
+                      ? <img src={acc.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                      : acc.username?.[0]?.toUpperCase() || '?'
+                    }
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{acc.username}</div>

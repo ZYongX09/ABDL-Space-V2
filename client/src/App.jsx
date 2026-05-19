@@ -7,6 +7,7 @@ import Sidebar from './components/Sidebar';
 import MobileBottomNav from './components/MobileBottomNav';
 import CookieConsent from './components/CookieConsent';
 import BackToTop from './components/BackToTop';
+import ToastPopup from './components/ToastPopup';
 import ScrollProgress from './components/ScrollProgress';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useExternalLinkInterceptor } from './hooks/useExternalLinkInterceptor';
@@ -156,6 +157,7 @@ export default function App() {
         </footer>
       </div>
       </NsfwProvider>
+      <ToastPopup />
       </NotificationProvider>
       <MobileBottomNav />
       <CookieConsent />

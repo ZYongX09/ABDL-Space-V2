@@ -122,10 +122,13 @@ export default function ForumFeed() {
               {/* Line 1: avatar | username + follow + badge */}
               <div className="flex items-center gap-3 mb-2">
                 <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 overflow-hidden"
                   style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}
                 >
-                  {post.user?.username?.[0]?.toUpperCase() || '?'}
+                  {post.user?.avatar
+                    ? <img src={post.user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                    : post.user?.username?.[0]?.toUpperCase() || '?'
+                  }
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
