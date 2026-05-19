@@ -1960,3 +1960,184 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
     opacity: 1;
   }
 }
+
+/* ====== 移动端细节打磨 ====== */
+@media (max-width: 768px) {
+  /* Toast 移动端居中 + 安全区 */
+  .toast-container {
+    top: auto;
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    left: 16px;
+    right: 16px;
+    align-items: stretch;
+  }
+  .toast {
+    max-width: none;
+    border-radius: 14px;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    justify-content: center;
+    animation: miuiToastIn 0.3s cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  /* 骨架屏更丝滑 */
+  .skeleton {
+    border-radius: 10px;
+    animation: miuiShimmer 1.8s ease-in-out infinite;
+  }
+
+  /* 隐藏全局滚动条 */
+  ::-webkit-scrollbar { width: 0; height: 0; }
+
+  /* Tag 移动端 */
+  .tag {
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    border-radius: 8px;
+  }
+
+  /* 通知徽章脉冲 */
+  .notif-badge {
+    animation: notifPulse 2s ease-in-out infinite;
+  }
+
+  /* 搜索输入框 MIUI */
+  input[type="search"],
+  input[placeholder*="搜索"] {
+    border-radius: 12px;
+    padding: 10px 14px 10px 36px;
+    font-size: 15px;
+    background: var(--input-bg);
+    border: 1.5px solid transparent;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  input[type="search"]:focus,
+  input[placeholder*="搜索"]:focus {
+    border-color: var(--primary);
+    background: var(--bg-card);
+  }
+
+  /* 帖子操作栏触控区加大 */
+  .post-actions button,
+  .post-actions a {
+    min-height: 40px;
+    min-width: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 评论区移动端间距 */
+  .comment-card {
+    border-radius: 14px;
+    padding: 12px;
+  }
+
+  /* 链接触控反馈 */
+  a:active {
+    opacity: 0.7;
+    transition: opacity 0.1s ease;
+  }
+
+  /* 个人中心头像区 */
+  .profile-avatar {
+    width: 64px;
+    height: 64px;
+    font-size: 1.5rem;
+  }
+
+  /* 关注按钮移动端 */
+  .btn-follow {
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    border-radius: 20px;
+  }
+
+  /* 空状态居中 */
+  .empty-state {
+    padding: 40px 20px;
+    text-align: center;
+  }
+  .empty-state i {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    opacity: 0.3;
+  }
+
+  /* 加载动画 MIUI 风格 */
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border-width: 2.5px;
+    animation: miuiSpin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  /* 图片预览网格移动端 */
+  .img-preview-grid {
+    gap: 4px;
+  }
+  .img-preview-item {
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+  }
+
+  /* 管理后台统计卡片移动端 */
+  .admin-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* 发帖页面移动端 */
+  textarea.form-control {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* 举报弹窗移动端 */
+  .modal {
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* 侧边栏移动端 */
+  .sidebar-mobile {
+    border-radius: 0 20px 20px 0;
+    box-shadow: 8px 0 30px rgba(0,0,0,0.15);
+  }
+
+  /* 设置页开关触控区 */
+  .settings-toggle {
+    min-width: 48px;
+    min-height: 26px;
+  }
+
+  /* 快捷键区域隐藏（移动端无键盘） */
+  kbd {
+    display: none;
+  }
+}
+
+@keyframes miuiToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes miuiShimmer {
+  0% { background-position: -200px 0; }
+  50% { background-position: calc(200px + 100%) 0; }
+  100% { background-position: -200px 0; }
+}
+
+@keyframes notifPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+@keyframes miuiSpin {
+  to { transform: rotate(360deg); }
+}
