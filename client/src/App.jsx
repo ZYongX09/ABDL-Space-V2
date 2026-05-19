@@ -161,8 +161,8 @@ export default function App() {
       </div>
       </NsfwProvider>
       <ToastPopup />
-      </NotificationProvider>
       <MobileBottomNav />
+      </NotificationProvider>
       <CookieConsent />
       <ScrollProgress />
       <BackToTop />

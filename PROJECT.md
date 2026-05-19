@@ -32,7 +32,9 @@ ABDL Space V2 是一个面向 ABDL（Adult Baby Diaper Lover）社区的中文 W
 ### 后端
 - **API 地址**：`api.abdl-space.top`（Cloudflare Worker）
 - **后端仓库**：`zhx589/abdl-space`（朋友的仓库，与 wiki 前端共用）
+- **后端本地目录**：`/home/ZYongX/projects/git/abdl-space/`
 - **本地 server/ 目录**：当前为空，后端不在本项目中
+- **后端本地目录**：`/home/ZYongX/projects/git/abdl-space/`（zhx589/abdl-space 仓库）
 
 ### 外部服务
 - **DeepSeek AI**：用于智能推荐功能
