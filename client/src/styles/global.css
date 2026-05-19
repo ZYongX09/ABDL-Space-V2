@@ -1820,6 +1820,7 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
   word-break: break-word;
   white-space: pre-wrap;
   min-width: 0;
+  max-width: 100%;
   animation: chatFadeIn 0.2s ease;
 }
 .chat-bubble-other {
@@ -1830,6 +1831,7 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
   word-break: break-word;
   white-space: pre-wrap;
   min-width: 0;
+  max-width: 100%;
   animation: chatFadeIn 0.2s ease;
 }
 @keyframes chatFadeIn {

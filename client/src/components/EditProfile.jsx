@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNsfw } from '../contexts/NsfwContext';
@@ -22,6 +22,22 @@ export default function EditProfile({ onClose }) {
     style_preference: currentUser?.style_preference || '',
     avatar: currentUser?.avatar || null,
   });
+
+  // currentUser 加载后同步表单
+  useEffect(() => {
+    if (currentUser) {
+      setForm({
+        bio: currentUser.bio || '',
+        region: currentUser.region || '',
+        age: currentUser.age || '',
+        weight: currentUser.weight || '',
+        waist: currentUser.waist || '',
+        hip: currentUser.hip || '',
+        style_preference: currentUser.style_preference || '',
+        avatar: currentUser.avatar || null,
+      });
+    }
+  }, [currentUser]);
 
   const update = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
