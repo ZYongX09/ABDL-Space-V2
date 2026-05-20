@@ -687,7 +687,6 @@ export default function ProfilePageV2() {
             去登录
           </button>
         </div>
-        <BottomNav currentTab="profile" onNavigate={navigate} />
       </div>
     );
   }
@@ -809,8 +808,7 @@ export default function ProfilePageV2() {
         </div>
       )}
 
-      {/* 6. 底部导航栏 */}
-      <BottomNav currentTab="profile" onNavigate={navigate} />
+      {/* 6. 底部导航栏（使用全局 MobileBottomNav，不重复渲染） */}
     </div>
   );
 }
