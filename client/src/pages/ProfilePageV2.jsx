@@ -16,7 +16,6 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { forumAPI, followsAPI, authAPI } from '../api';
-import MobileHeader from '../components/MobileHeader';
 import OfficialBadge from '../components/OfficialBadge';
 import NsfwGuard from '../components/NsfwGuard';
 import { LoadingSkeleton } from '../components/Feedback';
@@ -31,7 +30,8 @@ const S = {
     background: 'var(--bg)',
     fontFamily: 'var(--font)',
     paddingBottom: '80px',
-    margin: '-24px -20px 0', // 抵消 App 容器的 py-6 px-5
+    margin: '-24px -20px -24px', // 抵消 App 容器的 py-6 px-5
+    padding: '0',
   },
 
   // 1. 顶部标题栏
@@ -39,7 +39,7 @@ const S = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '20px 20px 8px',
+    padding: '24px 20px 8px',
   },
   topTitle: {
     fontSize: '20px',
@@ -253,6 +253,7 @@ const S = {
     marginBottom: '10px',
     overflow: 'hidden',
     borderRadius: '10px',
+    position: 'relative',
   },
   postImg: {
     width: '50%',
@@ -260,6 +261,7 @@ const S = {
     objectFit: 'cover',
     borderRadius: '8px',
     background: 'var(--skeleton-base)',
+    display: 'block',
   },
   postMeta: {
     display: 'flex',
