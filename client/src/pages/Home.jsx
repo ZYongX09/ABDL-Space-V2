@@ -76,10 +76,10 @@ export default function Home() {
               className="card stagger-item block hover:shadow-hover transition-all overflow-hidden"
               style={{ textDecoration: 'none', color: 'var(--text)' }}
             >
-              {(d.image || d.image_url) && /^(https?:\/\/)/.test(d.image || d.image_url) && (
+              {(d.images?.length > 0 || d.image || d.image_url) && /^(https?:\/\/)/.test(d.images?.[0] || d.image || d.image_url) && (
                 <div className="mb-3 -mx-8 -mt-8 overflow-hidden" style={{ maxHeight: 160 }}>
                   <img
-                    src={d.image || d.image_url}
+                    src={d.images?.[0] || d.image || d.image_url}
                     alt={`${d.brand} ${d.model}`}
                     className="w-full h-full object-cover"
                     style={{ maxHeight: 160 }}

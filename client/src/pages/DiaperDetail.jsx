@@ -90,10 +90,10 @@ export default function DiaperDetail() {
       {/* 产品图片 + 信息卡片 */}
       <div className="card mb-5">
         {/* 产品图片（有则显示） */}
-        {(diaper.image || diaper.image_url) && /^(https?:\/\/)/.test(diaper.image || diaper.image_url) && (
+        {(diaper.images?.length > 0 || diaper.image || diaper.image_url) && /^(https?:\/\/)/.test(diaper.images?.[0] || diaper.image || diaper.image_url) && (
           <div className="mb-4 rounded-xl overflow-hidden" style={{ maxHeight: 300 }}>
             <img
-              src={diaper.image || diaper.image_url}
+              src={diaper.images?.[0] || diaper.image || diaper.image_url}
               alt={`${diaper.brand} ${diaper.model}`}
               className="w-full h-auto object-contain"
               style={{ maxHeight: 300, background: 'var(--input-bg)' }}
