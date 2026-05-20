@@ -90,15 +90,30 @@ export default function DiaperDetail() {
       {/* 产品图片 + 信息卡片 */}
       <div className="card mb-5">
         {/* 产品图片（有则显示） */}
-        {(diaper.images?.length > 0 || diaper.image || diaper.image_url) && /^(https?:\/\/)/.test(diaper.images?.[0] || diaper.image || diaper.image_url) && (
-          <div className="mb-4 rounded-xl overflow-hidden" style={{ maxHeight: 300 }}>
-            <img
-              src={diaper.images?.[0] || diaper.image || diaper.image_url}
-              alt={`${diaper.brand} ${diaper.model}`}
-              className="w-full h-auto object-contain"
-              style={{ maxHeight: 300, background: 'var(--input-bg)' }}
-              onError={e => { e.target.style.display = 'none'; }}
-            />
+        {diaper.images?.length > 0 && (
+          <div className="mb-4 rounded-xl overflow-hidden">
+            {diaper.images.length === 1 ? (
+              <img
+                src={diaper.images[0]}
+                alt={`${diaper.brand} ${diaper.model}`}
+                className="w-full h-auto object-contain"
+                style={{ maxHeight: 300, background: 'var(--input-bg)' }}
+                onError={e => { e.target.style.display = 'none'; }}
+              />
+            ) : (
+              <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+                {diaper.images.map((img, i) => (
+                  <img
+                    key={i}
+                    src={img}
+                    alt=""
+                    className="h-48 object-cover rounded-lg flex-shrink-0"
+                    style={{ background: 'var(--input-bg)' }}
+                    onError={e => { e.target.style.display = 'none'; }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

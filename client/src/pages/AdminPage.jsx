@@ -33,9 +33,10 @@ export default function AdminPage() {
   const [showDiaperForm, setShowDiaperForm] = useState(false);
   const [editingDiaper, setEditingDiaper] = useState(null);
   const [diaperForm, setDiaperForm] = useState({
-    brand: '', model: '', product_type: '纸尿裤', thickness: 3,
+    brand: '', model: '', product_type: '纸尿裤',
     absorbency_mfr: '', absorbency_adult: '', is_baby_diaper: 0,
     material: '', features: '', avg_price: '', images: [],
+    sizes: [],
   });
   const [diaperSaving, setDiaperSaving] = useState(false);
 
@@ -132,7 +133,7 @@ export default function AdminPage() {
       }
       setShowDiaperForm(false);
       setEditingDiaper(null);
-      setDiaperForm({ brand: '', model: '', product_type: '纸尿裤', thickness: 3, absorbency_mfr: '', absorbency_adult: '', is_baby_diaper: 0, material: '', features: '', avg_price: '', images: [] });
+      setDiaperForm({ brand: '', model: '', product_type: '纸尿裤', absorbency_mfr: '', absorbency_adult: '', is_baby_diaper: 0, material: '', features: '', avg_price: '', images: [], sizes: [] });
       loadTab('diapers');
     } catch (e) { toast.error(e.message); }
     finally { setDiaperSaving(false); }
@@ -142,9 +143,9 @@ export default function AdminPage() {
     setEditingDiaper(d);
     setDiaperForm({
       brand: d.brand || '', model: d.model || '', product_type: d.product_type || '纸尿裤',
-      thickness: d.thickness || 3, absorbency_mfr: d.absorbency_mfr || '', absorbency_adult: d.absorbency_adult || '',
+      absorbency_mfr: d.absorbency_mfr || '', absorbency_adult: d.absorbency_adult || '',
       is_baby_diaper: d.is_baby_diaper || 0, material: d.material || '', features: d.features || '',
-      avg_price: d.avg_price || '', images: d.images || [],
+      avg_price: d.avg_price || '', images: d.images || [], sizes: d.sizes || [],
     });
     setShowDiaperForm(true);
   };
@@ -323,7 +324,7 @@ export default function AdminPage() {
         <>
           <div className="flex justify-between items-center mb-4">
             <span className="text-sm" style={{ color: 'var(--text-light)' }}>共 {diapers.length} 款产品</span>
-            <button className="btn btn-primary btn-sm" onClick={() => { setShowDiaperForm(true); setEditingDiaper(null); setDiaperForm({ brand: '', model: '', product_type: '纸尿裤', thickness: 3, absorbency_mfr: '', absorbency_adult: '', is_baby_diaper: 0, material: '', features: '', avg_price: '', images: [] }); }}>
+            <button className="btn btn-primary btn-sm" onClick={() => { setShowDiaperForm(true); setEditingDiaper(null); setDiaperForm({ brand: '', model: '', product_type: '纸尿裤', absorbency_mfr: '', absorbency_adult: '', is_baby_diaper: 0, material: '', features: '', avg_price: '', images: [], sizes: [] }); }}>
               <i className="fa-solid fa-plus mr-1" /> 添加产品
             </button>
           </div>
@@ -348,10 +349,6 @@ export default function AdminPage() {
                     <option value="拉拉裤">拉拉裤</option>
                     <option value="一体裤">一体裤</option>
                   </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>厚度 (1-5)</label>
-                  <input type="number" className="form-control" value={diaperForm.thickness} onChange={e => setDiaperForm(f => ({ ...f, thickness: Number(e.target.value) }))} min={1} max={5} />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>厂家标称吸水量</label>
@@ -403,6 +400,40 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              {/* 尺码设置 */}
+              <div className="mb-3">
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>尺码</label>
+                <div className="space-y-2 mb-2">
+                  {diaperForm.sizes.map((s, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <input className="form-control" style={{ width: '60px', flexShrink: 0 }} value={s.label} onChange={e => {
+                        const newSizes = [...diaperForm.sizes]; newSizes[i] = { ...s, label: e.target.value }; setDiaperForm(f => ({ ...f, sizes: newSizes }));
+                      }} placeholder="M" />
+                      <input type="number" className="form-control" style={{ width: '70px', flexShrink: 0 }} value={s.waist_min} onChange={e => {
+                        const newSizes = [...diaperForm.sizes]; newSizes[i] = { ...s, waist_min: Number(e.target.value) }; setDiaperForm(f => ({ ...f, sizes: newSizes }));
+                      }} placeholder="腰min" />
+                      <input type="number" className="form-control" style={{ width: '70px', flexShrink: 0 }} value={s.waist_max} onChange={e => {
+                        const newSizes = [...diaperForm.sizes]; newSizes[i] = { ...s, waist_max: Number(e.target.value) }; setDiaperForm(f => ({ ...f, sizes: newSizes }));
+                      }} placeholder="腰max" />
+                      <input type="number" className="form-control" style={{ width: '70px', flexShrink: 0 }} value={s.hip_min} onChange={e => {
+                        const newSizes = [...diaperForm.sizes]; newSizes[i] = { ...s, hip_min: Number(e.target.value) }; setDiaperForm(f => ({ ...f, sizes: newSizes }));
+                      }} placeholder="臀min" />
+                      <input type="number" className="form-control" style={{ width: '70px', flexShrink: 0 }} value={s.hip_max} onChange={e => {
+                        const newSizes = [...diaperForm.sizes]; newSizes[i] = { ...s, hip_max: Number(e.target.value) }; setDiaperForm(f => ({ ...f, sizes: newSizes }));
+                      }} placeholder="臀max" />
+                      <button className="btn btn-outline btn-sm" style={{ padding: '4px 8px', color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                        onClick={() => setDiaperForm(f => ({ ...f, sizes: f.sizes.filter((_, j) => j !== i) }))}>
+                        <i className="fa-solid fa-xmark" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button className="btn btn-outline btn-sm" style={{ fontSize: '0.75rem' }}
+                  onClick={() => setDiaperForm(f => ({ ...f, sizes: [...f.sizes, { label: '', waist_min: 0, waist_max: 0, hip_min: 0, hip_max: 0 }] }))}>
+                  <i className="fa-solid fa-plus mr-1" /> 添加尺码
+                </button>
+              </div>
+
               <div className="flex gap-2">
                 <button className="btn btn-primary btn-sm" onClick={handleSaveDiaper} disabled={diaperSaving}>
                   {diaperSaving ? <i className="fa-solid fa-spinner fa-spin mr-1" /> : null}
@@ -431,7 +462,7 @@ export default function AdminPage() {
                         {d.is_baby_diaper ? <span className="tag" style={{ background: 'rgba(255,183,197,0.2)', color: 'var(--accent-dark)', fontSize: '0.65rem', padding: '1px 6px' }}>婴儿</span> : null}
                       </div>
                       <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        厚度: {d.thickness}/5 · {d.avg_price || '未设置价格'} · ID: {d.id}
+                        厚度: {d.thickness}/5 · {d.sizes?.length > 0 ? d.sizes.map(s => s.label).join('/') : '未设尺码'} · {d.avg_price || '未设置价格'} · ID: {d.id}
                       </div>
                       {d.features && <p className="text-xs mt-1 truncate" style={{ color: 'var(--text-light)' }}>{d.features}</p>}
                     </div>
