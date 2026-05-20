@@ -68,7 +68,7 @@ export default function Home() {
       ) : diapers.length === 0 ? (
         <EmptyState icon="fa-baby" title="暂无纸尿裤" description="试试其他搜索条件" />
       ) : (
-        <div style={{ columnCount: 1, columnGap: '16px' }} className="sm:columns-2 lg:columns-3">
+        <div className="columns-1 sm:columns-2 lg:columns-3 gap-4">
           {diapers.map((d, i) => (
             <Link
               key={d.id}
