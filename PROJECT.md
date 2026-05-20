@@ -10,7 +10,7 @@
 ABDL Space V2 是一个面向 ABDL（Adult Baby Diaper Lover）社区的中文 Web 平台，核心功能包括纸尿裤评价、排行榜、AI 智能推荐、社区论坛、私信系统等。
 
 - **项目名称**：ABDL Space v2
-- **当前版本**：v2.8.0
+- **当前版本**：v2.9.0
 - **部署平台**：Vercel（前端）、Cloudflare Pages（备用）
 - **生产域名**：`abdl-space.top`（前端），`api.abdl-space.top`（后端 API）
 - **代码仓库**：`/home/ZYongX/projects/abdl-space-v2/`（本地），GitHub 由用户管理
@@ -49,7 +49,7 @@ ABDL Space V2 是一个面向 ABDL（Adult Baby Diaper Lover）社区的中文 W
 abdl-space-v2/
 ├── client/                      # 前端项目
 │   ├── src/
-│   │   ├── pages/               # 页面组件（22 个）
+│   │   ├── pages/               # 页面组件（26 个）
 │   │   │   ├── ForumFeed.jsx    # 广场/论坛首页（默认首页 /）
 │   │   │   ├── PostDetail.jsx   # 帖子详情
 │   │   │   ├── CreatePost.jsx   # 发帖页
@@ -73,7 +73,7 @@ abdl-space-v2/
 │   │   │   ├── CookiePolicy.jsx # Cookie 政策
 │   │   │   ├── PrivacyPolicy.jsx # 隐私政策
 │   │   │   └── TermsOfService.jsx # 用户协议
-│   │   ├── components/          # 通用组件（20 个）
+│   │   ├── components/          # 通用组件（26 个）
 │   │   │   ├── Sidebar.jsx      # PC 端侧边栏（可折叠，hover 展开，200ms 延迟）
 │   │   │   ├── MobileBottomNav.jsx # 移动端底部导航栏
 │   │   │   ├── MobileHeader.jsx # 移动端顶部标题栏（毛玻璃效果）

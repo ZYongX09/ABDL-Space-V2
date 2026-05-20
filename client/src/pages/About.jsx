@@ -5,10 +5,26 @@ import { externalLinkUrl } from '../utils/externalLink';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
-const VERSION = '2.8.0';
-const LAST_UPDATE = '2026-05-20';
+const VERSION = '2.9.0';
+const LAST_UPDATE = '2026-05-21';
 
 const CHANGELOG = [
+  {
+    version: '2.9.0',
+    date: '2026-05-21',
+    changes: [
+      '新增邮件验证码注册，强化账户安全',
+      '新增找回密码功能，支持邮箱验证码重置',
+      '新增账户隐私页，集中管理个人资料与邮箱',
+      '新增管理后台纸尿裤商品管理，支持图片上传与尺码设置',
+      '新增新版个人主页预览（/profile-v2）',
+      '优化个人资料编辑，数据实时同步',
+      '优化通知与私信，新增实时消息弹窗与未读提醒',
+      '纸尿裤列表改为瀑布流布局，支持产品图片展示',
+      '密码输入框支持查看明文',
+      '提升账户安全，验证码防暴力破解与邮箱枚举防护',
+    ],
+  },
   {
     version: '2.8.0',
     date: '2026-05-20',
