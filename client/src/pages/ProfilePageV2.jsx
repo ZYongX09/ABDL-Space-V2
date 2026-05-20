@@ -15,7 +15,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { usersAPI, followsAPI, forumAPI } from '../api';
+import { forumAPI, followsAPI, authAPI } from '../api';
 import MobileHeader from '../components/MobileHeader';
 import OfficialBadge from '../components/OfficialBadge';
 import { LoadingSkeleton } from '../components/Feedback';
@@ -596,7 +596,7 @@ export default function ProfilePageV2() {
     (async () => {
       try {
         setLoading(true);
-        const data = await usersAPI.get(targetId);
+        const data = await authAPI.getUser(targetId);
         setProfileUser(data.user || data);
       } catch (e) {
         toast.error(e.message);
@@ -612,7 +612,7 @@ export default function ProfilePageV2() {
     (async () => {
       try {
         setPostsLoading(true);
-        const data = await forumAPI.list({ user_id: targetId });
+        const data = await forumAPI.feed({ user_id: targetId, limit: 20 });
         setPosts(data.posts || []);
       } catch (e) {
         console.error(e);
@@ -622,21 +622,8 @@ export default function ProfilePageV2() {
     })();
   }, [targetId, activeTab]);
 
-  // 加载喜欢的帖子
-  useEffect(() => {
-    if (!targetId || activeTab !== 'liked') return;
-    (async () => {
-      try {
-        setLikedLoading(true);
-        const data = await usersAPI.liked(targetId);
-        setLikedPosts(data.posts || []);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLikedLoading(false);
-      }
-    })();
-  }, [targetId, activeTab]);
+  // 加载喜欢的帖子（暂无独立 API，隐藏此 Tab）
+  // useEffect(() => { ... }, [targetId, activeTab]);
 
   // 加载计数
   useEffect(() => {
@@ -754,7 +741,6 @@ export default function ProfilePageV2() {
       <PillTabs
         tabs={[
           { key: 'posts', label: '帖子' },
-          { key: 'liked', label: '喜欢' },
         ]}
         active={currentActiveTab}
         onChange={setActiveTab}
