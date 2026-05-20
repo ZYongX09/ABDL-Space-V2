@@ -30,7 +30,8 @@ const S = {
     minHeight: '100vh',
     background: 'var(--bg)',
     fontFamily: 'var(--font)',
-    paddingBottom: '80px', // 为底部导航留空间
+    paddingBottom: '80px',
+    margin: '-24px -20px 0', // 抵消 App 容器的 py-6 px-5
   },
 
   // 1. 顶部标题栏
@@ -38,7 +39,7 @@ const S = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '16px 20px 8px',
+    padding: '20px 20px 8px',
   },
   topTitle: {
     fontSize: '20px',
@@ -453,17 +454,13 @@ function PostCard({ post, onClick }) {
           {images.map((img, i) => (
             <NsfwGuard
               key={i}
-              imageUrl={img.url}
+              src={img.url}
               backendNsfw={img.isNsfw}
               backendNsfwType={img.nsfwType}
-            >
-              <img
-                src={img.url}
-                alt=""
-                style={{ ...S.postImg, width: '100%' }}
-                loading="lazy"
-              />
-            </NsfwGuard>
+              alt=""
+              loading="lazy"
+              style={{ ...S.postImg, width: '100%' }}
+            />
           ))}
         </div>
       )}
