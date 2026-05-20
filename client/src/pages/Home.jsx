@@ -68,13 +68,13 @@ export default function Home() {
       ) : diapers.length === 0 ? (
         <EmptyState icon="fa-baby" title="暂无纸尿裤" description="试试其他搜索条件" />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div style={{ columnCount: 1, columnGap: '16px' }} className="sm:columns-2 lg:columns-3">
           {diapers.map((d, i) => (
             <Link
               key={d.id}
               to={`/diaper/${d.id}`}
               className="card stagger-item block hover:shadow-hover transition-all overflow-hidden"
-              style={{ textDecoration: 'none', color: 'var(--text)' }}
+              style={{ textDecoration: 'none', color: 'var(--text)', breakInside: 'avoid', marginBottom: '16px', display: 'block' }}
             >
               {(d.images?.length > 0 || d.image || d.image_url) && (
                 <div className="mb-3 -mx-8 -mt-8 overflow-hidden" style={{ maxHeight: 160 }}>
