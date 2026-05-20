@@ -867,6 +867,21 @@ export const adminAPI = {
     return { message: '已删除' };
   },
 
+  listDiapers: async () => {
+    if (USE_API) return apiFetch('/api/admin/diapers');
+    return { diapers: _diapers || [] };
+  },
+
+  createDiaper: async (data) => {
+    if (USE_API) return apiFetch('/api/admin/diapers', { method: 'POST', body: JSON.stringify(data) });
+    return { id: Date.now(), message: '创建成功' };
+  },
+
+  updateDiaper: async (id, data) => {
+    if (USE_API) return apiFetch(`/api/admin/diapers/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    return { message: '更新成功' };
+  },
+
   posts: async () => {
     if (USE_API) return apiFetch('/api/admin/posts');
     return { posts: LS.get('posts') || [] };
