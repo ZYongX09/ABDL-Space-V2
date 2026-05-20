@@ -16,7 +16,6 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { forumAPI, followsAPI, authAPI } from '../api';
-import MobileHeader from '../components/MobileHeader';
 import OfficialBadge from '../components/OfficialBadge';
 import { LoadingSkeleton } from '../components/Feedback';
 
@@ -649,7 +648,9 @@ export default function ProfilePageV2() {
   if (loading) {
     return (
       <div style={S.page}>
-        <MobileHeader title="个人中心" />
+        <div style={S.topBar}>
+          <span style={S.topTitle}>个人中心</span>
+        </div>
         <div style={S.loadingWrap}>
           <LoadingSkeleton count={6} height={80} />
         </div>
