@@ -16,7 +16,9 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { forumAPI, followsAPI, authAPI } from '../api';
+import MobileHeader from '../components/MobileHeader';
 import OfficialBadge from '../components/OfficialBadge';
+import NsfwGuard from '../components/NsfwGuard';
 import { LoadingSkeleton } from '../components/Feedback';
 
 // ============================================================
@@ -405,7 +407,11 @@ function PillTabs({ tabs, active, onChange }) {
 /** 帖子卡片 */
 function PostCard({ post, onClick }) {
   // 提取图片（最多 2 张）
-  const images = (post.images || []).slice(0, 2);
+  const rawImages = (post.images || []).slice(0, 2);
+  const images = rawImages.map(img => {
+    if (typeof img === 'string') return { url: img, isNsfw: false, nsfwType: undefined };
+    return { url: img?.image_url || img?.src || '', isNsfw: !!img?.is_nsfw, nsfwType: img?.nsfw_type };
+  });
   const timeAgo = (dateStr) => {
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
@@ -445,13 +451,19 @@ function PostCard({ post, onClick }) {
       {images.length > 0 && (
         <div style={S.postImages}>
           {images.map((img, i) => (
-            <img
+            <NsfwGuard
               key={i}
-              src={img.image_url || img}
-              alt=""
-              style={S.postImg}
-              loading="lazy"
-            />
+              imageUrl={img.url}
+              backendNsfw={img.isNsfw}
+              backendNsfwType={img.nsfwType}
+            >
+              <img
+                src={img.url}
+                alt=""
+                style={{ ...S.postImg, width: '100%' }}
+                loading="lazy"
+              />
+            </NsfwGuard>
           ))}
         </div>
       )}
