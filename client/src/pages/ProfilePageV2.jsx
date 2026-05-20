@@ -30,8 +30,8 @@ const S = {
     background: 'var(--bg)',
     fontFamily: 'var(--font)',
     paddingBottom: '80px',
-    margin: '-24px -20px -24px', // 抵消 App 容器的 py-6 px-5
-    padding: '0',
+    margin: '-72px -20px 0', // 抵消 app-main-content padding-top(48px) + 容器 py-6(24px) + px-5
+    paddingTop: '48px', // 给 MobileHeader 留空间
   },
 
   // 1. 顶部标题栏
@@ -39,7 +39,7 @@ const S = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '24px 20px 8px',
+    padding: '12px 20px 8px',
   },
   topTitle: {
     fontSize: '20px',
