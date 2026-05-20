@@ -34,6 +34,7 @@ const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const AccountPrivacy = lazy(() => import('./pages/AccountPrivacy'));
+const ProfilePageV2 = lazy(() => import('./pages/ProfilePageV2'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const ExternalLink = lazy(() => import('./pages/ExternalLink'));
 const CreatePost = lazy(() => import('./pages/CreatePost'));
@@ -140,6 +141,8 @@ export default function App() {
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/account" element={<AccountPrivacy />} />
+                <Route path="/profile-v2" element={<ProfilePageV2 />} />
+                <Route path="/profile-v2/:id" element={<ProfilePageV2 />} />
                 <Route path="/external" element={<ExternalLink />} />
                 <Route path="/create-post" element={<CreatePost />} />
               </Routes>
