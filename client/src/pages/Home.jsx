@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
+import { DiaperImage } from '../components/DiaperImage';
 import MobileHeader from '../components/MobileHeader';
 import { LoadingSkeleton, EmptyState } from '../components/Feedback';
 import { diapersAPI } from '../api';
@@ -77,15 +78,12 @@ export default function Home() {
               style={{ textDecoration: 'none', color: 'var(--text)', breakInside: 'avoid', marginBottom: '16px', display: 'block' }}
             >
               {(d.images?.length > 0 || d.image || d.image_url) && (
-                <div className="mb-3 -mx-8 -mt-8 overflow-hidden" style={{ maxHeight: 160 }}>
-                  <img
-                    src={d.images?.[0] || d.image || d.image_url}
-                    alt={`${d.brand} ${d.model}`}
-                    className="w-full h-full object-cover"
-                    style={{ maxHeight: 160 }}
-                    onError={e => { e.target.parentElement.style.display = 'none'; }}
-                  />
-                </div>
+                <DiaperImage
+                  src={d.images?.[0] || d.image || d.image_url}
+                  alt={`${d.brand} ${d.model}`}
+                  maxHeight={160}
+                  onError={e => { e.target.parentElement.style.display = 'none'; }}
+                />
               )}
               <div className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--primary-dark)' }}>
                 {d.brand}

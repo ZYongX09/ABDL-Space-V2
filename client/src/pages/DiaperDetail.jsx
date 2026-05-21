@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { Spinner } from '../components/Feedback';
+import { DiaperImage } from '../components/DiaperImage';
 import { useVerifyModal } from '../components/VerifyModal';
 import { diapersAPI, ratingsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
@@ -93,22 +94,22 @@ export default function DiaperDetail() {
         {diaper.images?.length > 0 && (
           <div className="mb-4 rounded-xl overflow-hidden">
             {diaper.images.length === 1 ? (
-              <img
+              <DiaperImage
                 src={diaper.images[0]}
                 alt={`${diaper.brand} ${diaper.model}`}
-                className="w-full h-auto object-contain"
+                className="w-full"
                 style={{ maxHeight: 300, background: 'var(--input-bg)' }}
                 onError={e => { e.target.style.display = 'none'; }}
               />
             ) : (
               <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
                 {diaper.images.map((img, i) => (
-                  <img
+                  <DiaperImage
                     key={i}
                     src={img}
                     alt=""
-                    className="h-48 object-cover rounded-lg flex-shrink-0"
-                    style={{ background: 'var(--input-bg)' }}
+                    className="h-48 rounded-lg flex-shrink-0"
+                    style={{ background: 'var(--input-bg)', objectFit: 'cover' }}
                     onError={e => { e.target.style.display = 'none'; }}
                   />
                 ))}
