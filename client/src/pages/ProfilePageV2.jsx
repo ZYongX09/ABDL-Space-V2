@@ -30,8 +30,8 @@ const S = {
     background: 'var(--bg)',
     fontFamily: 'var(--font)',
     paddingBottom: '80px',
-    margin: '-72px -20px 0', // 抵消 app-main-content padding-top(48px) + 容器 py-6(24px) + px-5
-    paddingTop: '48px', // 给 MobileHeader 留空间
+    margin: '0 -20px',
+    paddingTop: '0',
   },
 
   // 1. 顶部标题栏
