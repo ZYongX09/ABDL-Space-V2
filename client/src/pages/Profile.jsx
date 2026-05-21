@@ -106,20 +106,16 @@ export default function Profile() {
 
   // Load worn diapers count
   useEffect(() => {
-    if (!targetId) return;
+    const uid = targetId || currentUser?.id;
+    if (!uid) return;
     (async () => {
       try {
-        // 先从 profile 数据拿 worn_count
-        if (profileUser?.worn_count !== undefined) {
-          setWornCount(profileUser.worn_count);
-        }
-        // 加载详细列表
-        const data = await usersAPI.getWorn(targetId);
+        const data = await usersAPI.getWorn(uid);
         setWornDiapers(data.worn || []);
         setWornCount(data.total || 0);
-      } catch {} finally { setWornLoading(false); }
+      } catch {}
     })();
-  }, [targetId, profileUser?.worn_count]);
+  }, [targetId, currentUser?.id]);
 
   // Scroll listener for header title
   useEffect(() => {
