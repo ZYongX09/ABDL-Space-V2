@@ -24,7 +24,7 @@ async function apiFetch(path, options = {}) {
 
 /* ---- 主组件 ---- */
 export default function CaptchaApiPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -40,11 +40,10 @@ export default function CaptchaApiPage() {
 
   /* ---- 未登录 → 弹登录 ---- */
   useEffect(() => {
-    if (user === null) {
-      // 尝试从 URL 恢复，让用户登录后回来
+    if (!authLoading && !user) {
       navigate('/login', { state: { from: '/captcha-api' } });
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   /* ---- 加载 keys ---- */
   const loadKeys = useCallback(async () => {
@@ -126,6 +125,7 @@ export default function CaptchaApiPage() {
     );
   };
 
+  if (authLoading) return null;
   if (!user) return null;
 
   return (
