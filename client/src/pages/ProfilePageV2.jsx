@@ -322,22 +322,27 @@ const S = {
 // ============================================================
 
 /** 数据指标栏 */
-function StatsBar({ posts, followers, following, onFollowers, onFollowing }) {
+function StatsBar({ posts, worn, followers, following, onFollowers, onFollowing }) {
   return (
     <div style={S.statsRow}>
-      <div style={S.statItem} onClick={onFollowers}>
+      <div style={S.statItem}>
         <span style={S.statNum}>{posts ?? 0}</span>
         <span style={S.statLabel}>帖子</span>
       </div>
       <div style={S.statDivider} />
-      <div style={S.statItem} onClick={onFollowing}>
-        <span style={S.statNum}>{following ?? 0}</span>
-        <span style={S.statLabel}>关注</span>
+      <div style={S.statItem}>
+        <span style={S.statNum}>{worn ?? 0}</span>
+        <span style={S.statLabel}>穿过</span>
       </div>
       <div style={S.statDivider} />
       <div style={S.statItem} onClick={onFollowers}>
         <span style={S.statNum}>{followers ?? 0}</span>
         <span style={S.statLabel}>粉丝</span>
+      </div>
+      <div style={S.statDivider} />
+      <div style={S.statItem} onClick={onFollowing}>
+        <span style={S.statNum}>{following ?? 0}</span>
+        <span style={S.statLabel}>关注</span>
       </div>
     </div>
   );
@@ -595,7 +600,7 @@ export default function ProfilePageV2() {
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
-  const [counts, setCounts] = useState({ posts: 0, followers: 0, following: 0 });
+  const [counts, setCounts] = useState({ posts: 0, followers: 0, following: 0, worn: 0 });
   const [activeTab, setActiveTab] = useState('posts');
   const [likedPosts, setLikedPosts] = useState([]);
   const [likedLoading, setLikedLoading] = useState(false);
@@ -640,14 +645,16 @@ export default function ProfilePageV2() {
     if (!targetId) return;
     (async () => {
       try {
-        const [fData, pData] = await Promise.all([
+        const [fData, pData, wData] = await Promise.all([
           followsAPI.status(targetId).catch(() => ({ followers: 0, following: 0 })),
           forumAPI.list({ user_id: targetId, limit: 1 }).catch(() => ({ total: 0 })),
+          usersAPI.getWorn(targetId).catch(() => ({ total: 0 })),
         ]);
         setCounts({
           posts: pData.total ?? pData.posts?.length ?? 0,
           followers: fData.followers ?? 0,
           following: fData.following ?? 0,
+          worn: wData.total ?? 0,
         });
       } catch {}
     })();
@@ -739,6 +746,7 @@ export default function ProfilePageV2() {
         {/* 数据指标栏 */}
         <StatsBar
           posts={counts.posts}
+          worn={counts.worn}
           followers={counts.followers}
           following={counts.following}
           onFollowers={() => navigate(`/user/${targetId}/followers`)}
