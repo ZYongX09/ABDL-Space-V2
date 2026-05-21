@@ -898,6 +898,20 @@ export const adminAPI = {
     return { message: '更新成功' };
   },
 
+  // 品牌管理
+  listBrands: async () => {
+    if (USE_API) return apiFetch('/api/admin/brands');
+    return { brands: [] };
+  },
+  saveBrand: async (data) => {
+    if (USE_API) return apiFetch('/api/admin/brands', { method: 'POST', body: JSON.stringify(data) });
+    return { message: '成功' };
+  },
+  deleteBrand: async (id) => {
+    if (USE_API) return apiFetch(`/api/admin/brands/${id}`, { method: 'DELETE' });
+    return { message: '删除成功' };
+  },
+
   posts: async () => {
     if (USE_API) return apiFetch('/api/admin/posts');
     return { posts: LS.get('posts') || [] };

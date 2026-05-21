@@ -87,8 +87,9 @@ export default function Home() {
                   />
                 </div>
               )}
-              <div className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--primary-dark)' }}>
-                {d.brand}
+              <div className="flex items-center gap-2 mb-1">
+                {d.brand_logo && <img src={d.brand_logo} alt="" className="h-4 object-contain" style={{ maxWidth: 48 }} onError={e => { e.target.style.display = 'none'; }} />}
+                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--primary-dark)' }}>{d.brand}</span>
               </div>
               <div className="text-lg font-bold mb-2">{d.model}</div>
               <div className="flex flex-wrap gap-2 text-sm" style={{ color: 'var(--text-light)' }}>

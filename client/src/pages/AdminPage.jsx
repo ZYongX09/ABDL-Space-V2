@@ -8,12 +8,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useVerifyModal } from '../components/VerifyModal';
 import { Link } from 'react-router-dom';
+import { uploadImage } from '../utils/imageUpload';
 
 const TABS = [
   { key: 'overview', label: '概览', icon: 'fa-chart-pie' },
   { key: 'users', label: '用户', icon: 'fa-users' },
   { key: 'posts', label: '帖子', icon: 'fa-file-lines' },
   { key: 'diapers', label: '纸尿裤', icon: 'fa-baby' },
+  { key: 'brands', label: '品牌', icon: 'fa-copyright' },
   { key: 'reports', label: '举报', icon: 'fa-flag' },
 ];
 
@@ -39,6 +41,11 @@ export default function AdminPage() {
     sizes: [],
   });
   const [diaperSaving, setDiaperSaving] = useState(false);
+  const [brands, setBrands] = useState([]);
+  const [brandForm, setBrandForm] = useState({ name: '', logo: '' });
+  const [showBrandForm, setShowBrandForm] = useState(false);
+  const [editingBrand, setEditingBrand] = useState(null);
+  const [brandSaving, setBrandSaving] = useState(false);
 
   useEffect(() => {
     if (user?.role !== 'admin') { setLoading(false); return; }
@@ -57,6 +64,9 @@ export default function AdminPage() {
       } else if (t === 'posts') {
         const data = await adminAPI.posts();
         setPosts(data.posts || []);
+      } else if (t === 'brands') {
+        const data = await adminAPI.listBrands();
+        setBrands(data.brands || []);
       } else if (t === 'reports') {
         const data = await adminAPI.reports(reportStatus);
         setReports(data.reports || []);
@@ -483,6 +493,67 @@ export default function AdminPage() {
               ))}
             </div>
           )}
+        </>
+      )}
+
+      {/* 品牌管理 */}
+      {tab === 'brands' && (
+        <>
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm" style={{ color: 'var(--text-light)' }}>共 {brands.length} 个品牌</span>
+            <button className="btn btn-primary btn-sm" onClick={() => { setEditingBrand(null); setBrandForm({ name: '', logo: '' }); setShowBrandForm(true); }}>
+              <i className="fa-solid fa-plus mr-1" />添加品牌
+            </button>
+          </div>
+
+          {/* 品牌表单 */}
+          {showBrandForm && (
+            <div className="card mb-4" style={{ padding: '1rem' }}>
+              <h3 className="font-bold mb-3" style={{ color: 'var(--text)' }}>{editingBrand ? '编辑品牌' : '添加品牌'}</h3>
+              <div className="flex flex-col gap-3">
+                <div>
+                  <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>品牌名称 *</label>
+                  <input className="form-control" value={brandForm.name} onChange={e => setBrandForm(f => ({ ...f, name: e.target.value }))} placeholder="如：花王" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>品牌图标</label>
+                  <div className="flex items-center gap-3">
+                    {brandForm.logo && <img src={brandForm.logo} alt="" className="w-12 h-12 object-contain rounded-lg" style={{ background: 'var(--input-bg)' }} />}
+                    <input type="file" accept="image/*" className="text-sm" onChange={async e => {
+                      const file = e.target.files?.[0]; if (!file) return;
+                      try { const url = await uploadImage(file); setBrandForm(f => ({ ...f, logo: url })); toast.success('上传成功'); } catch { toast.error('上传失败'); }
+                    }} />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button className="btn btn-primary" onClick={async () => {
+                    if (!brandForm.name.trim()) { toast.error('品牌名称为必填'); return; }
+                    setBrandSaving(true);
+                    try {
+                      await adminAPI.saveBrand({ name: brandForm.name.trim(), logo: brandForm.logo });
+                      toast.success(editingBrand ? '更新成功' : '创建成功');
+                      setShowBrandForm(false);
+                      loadTab('brands');
+                    } catch (e) { toast.error(e.message); }
+                    finally { setBrandSaving(false); }
+                  }} disabled={brandSaving}>{brandSaving ? '保存中...' : '保存'}</button>
+                  <button className="btn btn-outline" onClick={() => setShowBrandForm(false)}>取消</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            {brands.map(b => (
+              <div key={b.id} className="card flex items-center gap-3" style={{ padding: '0.75rem 1rem' }}>
+                {b.logo ? <img src={b.logo} alt={b.name} className="w-10 h-10 object-contain rounded" style={{ background: 'var(--input-bg)' }} /> : <div className="w-10 h-10 rounded bg-[var(--input-bg)] flex items-center justify-center text-[var(--text-muted)] text-xs">无</div>}
+                <span className="flex-1 font-semibold">{b.name}</span>
+                <button className="btn btn-outline btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => { setEditingBrand(b); setBrandForm({ name: b.name, logo: b.logo || '' }); setShowBrandForm(true); }}>编辑</button>
+                <button className="btn btn-outline btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem', color: 'var(--danger)' }} onClick={() => trigger(async () => { try { await adminAPI.deleteBrand(b.id); setBrands(prev => prev.filter(x => x.id !== b.id)); toast.success('已删除'); } catch (e) { toast.error(e.message); } })}>删除</button>
+              </div>
+            ))}
+            {brands.length === 0 && !loading && <div className="text-center py-8 text-sm" style={{ color: 'var(--text-light)' }}>暂无品牌</div>}
+          </div>
         </>
       )}
 

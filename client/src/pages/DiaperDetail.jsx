@@ -120,7 +120,12 @@ export default function DiaperDetail() {
           <div>
             <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--text)' }}>产品信息</h3>
             <dl className="space-y-2 text-sm">
-              <div className="flex justify-between"><dt style={{ color: 'var(--text-light)' }}>品牌</dt><dd className="font-semibold">{diaper.brand}</dd></div>
+              <div className="flex justify-between items-center"><dt style={{ color: 'var(--text-light)' }}>品牌</dt>
+                <dd className="flex items-center gap-2">
+                  {diaper.brand_logo && <img src={diaper.brand_logo} alt="" className="h-5 object-contain" style={{ maxWidth: 60 }} onError={e => { e.target.style.display = 'none'; }} />}
+                  <span className="font-semibold">{diaper.brand}</span>
+                </dd>
+              </div>
               <div className="flex justify-between"><dt style={{ color: 'var(--text-light)' }}>型号</dt><dd className="font-semibold">{diaper.model}</dd></div>
               {diaper.product_type && <div className="flex justify-between"><dt style={{ color: 'var(--text-light)' }}>类型</dt><dd>{diaper.product_type}</dd></div>}
               {diaper.thickness && <div className="flex justify-between"><dt style={{ color: 'var(--text-light)' }}>厚度</dt><dd>{diaper.thickness}mm</dd></div>}
