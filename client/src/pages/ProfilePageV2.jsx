@@ -15,7 +15,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { forumAPI, followsAPI, authAPI } from '../api';
+import { forumAPI, followsAPI, authAPI, usersAPI } from '../api';
 import OfficialBadge from '../components/OfficialBadge';
 import NsfwGuard from '../components/NsfwGuard';
 import { LoadingSkeleton } from '../components/Feedback';
