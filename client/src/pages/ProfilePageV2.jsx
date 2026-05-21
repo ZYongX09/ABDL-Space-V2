@@ -102,6 +102,24 @@ const S = {
     marginTop: '-72px',
   },
 
+  // 桌面端适配
+  pageDesktop: {
+    maxWidth: '560px',
+    margin: '0 auto',
+    marginTop: '-24px',
+    borderRadius: '0 0 20px 20px',
+  },
+  userCoreDesktop: {
+    padding: '28px 32px 0',
+  },
+  statsRowDesktop: {
+    borderRadius: '12px',
+    padding: '16px 8px',
+  },
+  postCardDesktop: {
+    borderRadius: '14px',
+  },
+
   // 1. 顶部标题栏
   topBar: {
     display: 'flex',
@@ -667,6 +685,13 @@ export default function ProfilePageV2() {
   const [profileUser, setProfileUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  // 监听窗口大小变化
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [counts, setCounts] = useState({ posts: 0, followers: 0, following: 0, worn: 0 });
@@ -764,7 +789,7 @@ export default function ProfilePageV2() {
   // 加载中
   if (loading) {
     return (
-      <div style={{ ...S.page, ...(isMobile ? S.pageMobile : {}) }}>
+      <div style={{ ...S.page, ...(isMobile ? S.pageMobile : S.pageDesktop) }}>
         <div style={S.topBar}>
           <span style={S.topTitle}>个人中心</span>
         </div>
@@ -778,7 +803,7 @@ export default function ProfilePageV2() {
   // 未登录且无 paramId
   if (!currentUser && !paramId) {
     return (
-      <div style={{ ...S.page, ...(isMobile ? S.pageMobile : {}) }}>
+      <div style={{ ...S.page, ...(isMobile ? S.pageMobile : S.pageDesktop) }}>
         <div style={S.topBar}>
           <span style={S.topTitle}>个人中心</span>
         </div>
@@ -803,7 +828,7 @@ export default function ProfilePageV2() {
   const currentLoading = activeTab === 'posts' ? postsLoading : likedLoading;
 
   return (
-    <div style={{ ...S.page, ...(isMobile ? S.pageMobile : {}) }}>
+    <div style={{ ...S.page, ...(isMobile ? S.pageMobile : S.pageDesktop) }}>
       {/* 1. 顶部标题栏 */}
       <div style={S.topBar} className="miui-enter">
         <span style={S.topTitle}>个人中心</span>
@@ -819,9 +844,13 @@ export default function ProfilePageV2() {
       </div>
 
       {/* 2. 用户信息核心区域 */}
-      <div style={S.userCore} className="miui-enter miui-enter-delay-1">
+      <div style={{ ...S.userCore, ...(isMobile ? {} : S.userCoreDesktop) }} className="miui-enter miui-enter-delay-1">
         {/* 头像 */}
-        <div style={S.avatarWrap} className="miui-scale-in">
+        <div
+          style={{ ...S.avatarWrap, ...(isSelf ? { cursor: 'pointer' } : {}) }}
+          className="miui-scale-in"
+          onClick={isSelf ? () => navigate('/settings') : undefined}
+        >
           {displayUser.avatar ? (
             <img src={displayUser.avatar} alt="" style={S.avatar} />
           ) : (
@@ -829,17 +858,35 @@ export default function ProfilePageV2() {
               {displayUser.username?.[0]?.toUpperCase() || '?'}
             </div>
           )}
+          {isSelf && (
+            <div style={{
+              position: 'absolute', bottom: 0, right: 0,
+              width: '24px', height: '24px', borderRadius: '50%',
+              background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: '2px solid var(--bg-card)', fontSize: '10px', color: '#fff',
+            }}>
+              <i className="fa-solid fa-camera" />
+            </div>
+          )}
         </div>
 
         {/* 用户名 */}
-        <div style={S.username}>
+        <div
+          style={{ ...S.username, ...(isSelf ? { cursor: 'pointer' } : {}) }}
+          onClick={isSelf ? () => navigate('/settings') : undefined}
+        >
           <span>{displayUser.username}</span>
           {displayUser.role === 'admin' && <OfficialBadge />}
+          {isSelf && <i className="fa-solid fa-pen" style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '6px' }} />}
         </div>
 
         {/* 个性签名 */}
-        <div style={S.bio}>
+        <div
+          style={{ ...S.bio, ...(isSelf ? { cursor: 'pointer' } : {}) }}
+          onClick={isSelf ? () => navigate('/settings') : undefined}
+        >
           {displayUser.bio || (isSelf ? '点击设置添加个性签名' : '这个人很懒，什么都没写')}
+          {isSelf && !displayUser.bio && <i className="fa-solid fa-pen" style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: '4px' }} />}
         </div>
 
         {/* 数据指标栏 */}
