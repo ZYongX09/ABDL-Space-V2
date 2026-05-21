@@ -971,16 +971,16 @@ export default function ProfilePageV2() {
           {/* 左侧 */}
           <div style={S.desktopSidebar}>
             <div style={S.desktopSidebarCard} className="miui-enter">
-              <div style={{ position: 'relative', ...(isSelf ? { cursor: 'pointer' } : {}) }} onClick={isSelf ? () => navigate('/settings') : undefined}>
+              <div style={{ position: 'relative', ...(isSelf ? { cursor: 'pointer' } : {}) }} onClick={isSelf ? () => navigate('/account') : undefined}>
                 {displayUser.avatar ? <img src={displayUser.avatar} alt="" style={S.desktopAvatar} /> : <div style={S.desktopAvatarFallback}>{displayUser.username?.[0]?.toUpperCase() || '?'}</div>}
                 {isSelf && <div style={{ position: 'absolute', bottom: 2, right: 2, width: '28px', height: '28px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-card)', fontSize: '11px', color: '#fff' }}><i className="fa-solid fa-camera" /></div>}
               </div>
-              <div style={{ ...S.desktopUsername, ...(isSelf ? { cursor: 'pointer' } : {}) }} onClick={isSelf ? () => navigate('/settings') : undefined}>
+              <div style={{ ...S.desktopUsername, ...(isSelf ? { cursor: 'pointer' } : {}) }} onClick={isSelf ? () => navigate('/account') : undefined}>
                 <span>{displayUser.username}</span>
                 {displayUser.role === 'admin' && <OfficialBadge />}
                 {isSelf && <i className="fa-solid fa-pen" style={{ fontSize: '11px', color: 'var(--text-muted)' }} />}
               </div>
-              <div style={{ ...S.desktopBio, ...(isSelf ? { cursor: 'pointer' } : {}) }} onClick={isSelf ? () => navigate('/settings') : undefined}>
+              <div style={{ ...S.desktopBio, ...(isSelf ? { cursor: 'pointer' } : {}) }} onClick={isSelf ? () => navigate('/account') : undefined}>
                 {displayUser.bio || (isSelf ? '点击设置添加个性签名' : '这个人很懒，什么都没写')}
               </div>
               <div style={S.desktopStatsRow}>
@@ -1102,7 +1102,7 @@ export default function ProfilePageV2() {
         <div
           style={{ ...S.avatarWrap, ...(isSelf ? { cursor: 'pointer' } : {}) }}
           className="miui-scale-in"
-          onClick={isSelf ? () => navigate('/settings') : undefined}
+          onClick={isSelf ? () => navigate('/account') : undefined}
         >
           {displayUser.avatar ? (
             <img src={displayUser.avatar} alt="" style={S.avatar} />
@@ -1126,7 +1126,7 @@ export default function ProfilePageV2() {
         {/* 用户名 */}
         <div
           style={{ ...S.username, ...(isSelf ? { cursor: 'pointer' } : {}) }}
-          onClick={isSelf ? () => navigate('/settings') : undefined}
+          onClick={isSelf ? () => navigate('/account') : undefined}
         >
           <span>{displayUser.username}</span>
           {displayUser.role === 'admin' && <OfficialBadge />}
@@ -1136,7 +1136,7 @@ export default function ProfilePageV2() {
         {/* 个性签名 */}
         <div
           style={{ ...S.bio, ...(isSelf ? { cursor: 'pointer' } : {}) }}
-          onClick={isSelf ? () => navigate('/settings') : undefined}
+          onClick={isSelf ? () => navigate('/account') : undefined}
         >
           {displayUser.bio || (isSelf ? '点击设置添加个性签名' : '这个人很懒，什么都没写')}
           {isSelf && !displayUser.bio && <i className="fa-solid fa-pen" style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: '4px' }} />}
