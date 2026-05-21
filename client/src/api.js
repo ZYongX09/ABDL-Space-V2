@@ -826,6 +826,11 @@ export const usersAPI = {
     const feelings = LS.get('feelings') || {};
     return { feelings: Object.values(feelings).filter(f => f.user_id === Number(id)) };
   },
+
+  getWorn: async (id) => {
+    if (USE_API) return apiFetch(`/api/users/${id}/worn`);
+    return { worn: [], total: 0 };
+  },
 };
 
 // =====================================================================

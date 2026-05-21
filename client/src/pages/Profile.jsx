@@ -35,6 +35,12 @@ export default function Profile() {
   const [followLoading, setFollowLoading] = useState(false);
   const [counts, setCounts] = useState({ followers: 0, following: 0 });
 
+  // Worn diapers
+  const [wornDiapers, setWornDiapers] = useState([]);
+  const [wornCount, setWornCount] = useState(0);
+  const [wornLoading, setWornLoading] = useState(false);
+  const [showWorn, setShowWorn] = useState(false);
+
   // Load profile data when viewing others
   useEffect(() => {
     if (isSelf) {
@@ -97,6 +103,23 @@ export default function Profile() {
       } catch {} finally { setPostsLoading(false); }
     })();
   }, [targetId]);
+
+  // Load worn diapers count
+  useEffect(() => {
+    if (!targetId) return;
+    (async () => {
+      try {
+        // 先从 profile 数据拿 worn_count
+        if (profileUser?.worn_count !== undefined) {
+          setWornCount(profileUser.worn_count);
+        }
+        // 加载详细列表
+        const data = await usersAPI.getWorn(targetId);
+        setWornDiapers(data.worn || []);
+        setWornCount(data.total || 0);
+      } catch {} finally { setWornLoading(false); }
+    })();
+  }, [targetId, profileUser?.worn_count]);
 
   // Scroll listener for header title
   useEffect(() => {
@@ -319,6 +342,12 @@ export default function Profile() {
             )}
             {displayUser.style_preference && <p><i className="fa-solid fa-heart mr-2" />偏好: {displayUser.style_preference}</p>}
             <p><i className="fa-solid fa-calendar mr-2" />注册于 {new Date(displayUser.created_at).toLocaleDateString('zh-CN')}</p>
+            {wornCount > 0 && (
+              <p>
+                <i className="fa-solid fa-shirt mr-2" />
+                穿过 <strong>{wornCount}</strong> 款纸尿裤
+              </p>
+            )}
             {isSelf && (
               <Link to="/account" className="btn btn-outline btn-sm mt-2">
                 <i className="fa-solid fa-gear" /> 账户设置
@@ -410,6 +439,52 @@ export default function Profile() {
           </div>
         )}
       </div>
+
+      {/* 穿过的纸尿裤 */}
+      {wornCount > 0 && (
+        <div className="card mb-5">
+          <div
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => setShowWorn(!showWorn)}
+          >
+            <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: 'var(--text)' }}>
+              <i className="fa-solid fa-shirt" style={{ color: 'var(--primary-dark)' }} />
+              穿过的纸尿裤
+              <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>({wornCount})</span>
+            </h3>
+            <i className={`fa-solid fa-chevron-${showWorn ? 'up' : 'down'}`} style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }} />
+          </div>
+          {showWorn && (
+            <div className="mt-3 space-y-2">
+              {wornLoading ? (
+                <div className="text-center py-4">
+                  <i className="fa-solid fa-spinner fa-spin" style={{ color: 'var(--text-muted)' }} />
+                </div>
+              ) : wornDiapers.length === 0 ? (
+                <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>暂无数据</p>
+              ) : (
+                wornDiapers.map((d, i) => (
+                  <div key={i} className="flex items-center justify-between p-2.5 rounded-lg" style={{ background: 'var(--input-bg)' }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{d.diaper_name}</span>
+                        {d.brand && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{d.brand}</span>}
+                      </div>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        评分于 {new Date(d.rated_at).toLocaleDateString('zh-CN')}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0 ml-3">
+                      <span className="text-lg font-bold" style={{ color: 'var(--primary-dark)' }}>{d.avg_score}</span>
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>/5</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </PageLayout>
     </>
   );
