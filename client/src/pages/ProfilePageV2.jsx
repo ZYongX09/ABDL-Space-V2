@@ -845,16 +845,14 @@ export default function ProfilePageV2() {
 
         {/* 数据指标栏 */}
         <div className="miui-enter miui-enter-delay-2">
-        <StatsBar
-          posts={counts.posts}
-          worn={counts.worn}
-          followers={counts.followers}
-          following={counts.following}
-          onFollowers={() => navigate(`/user/${targetId}/followers`)}
-          onFollowing={() => navigate(`/user/${targetId}/following`)}
-        />
-      </div>
-
+          <StatsBar
+            posts={counts.posts}
+            worn={counts.worn}
+            followers={counts.followers}
+            following={counts.following}
+            onFollowers={() => navigate(`/user/${targetId}/followers`)}
+            onFollowing={() => navigate(`/user/${targetId}/following`)}
+          />
         </div>
 
       {/* 3. 简介卡片 */}
