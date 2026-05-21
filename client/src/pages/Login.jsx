@@ -1,12 +1,10 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
-import QuantumVerify from '../components/QuantumVerify';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { captchaAPI } from '../api';
 
-const FAIL_THRESHOLD = 2; // 失败几次后弹验证码
+const FAIL_THRESHOLD = 2;
 
 export default function Login() {
   const [login, setLogin] = useState('');
@@ -14,66 +12,51 @@ export default function Login() {
   const [consented, setConsented] = useState(false);
   const [captchaOk, setCaptchaOk] = useState(false);
   const [captchaStarted, setCaptchaStarted] = useState(false);
-  const [locked, setLocked] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [failCount, setFailCount] = useState(0);
-  const [serverOrder, setServerOrder] = useState(null);
-  const [challengeLoading, setChallengeLoading] = useState(false);
-  const verifyRef = useRef(null);
-  const sessionIdRef = useRef(null);
+  const captchaContainerRef = useRef(null);
   const captchaTokenRef = useRef(null);
   const { login: authLogin, saveConsent } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
   const needCaptcha = failCount >= FAIL_THRESHOLD;
-  const canSubmit = !loading && (!needCaptcha || captchaOk) && !locked;
+  const canSubmit = !loading && (!needCaptcha || captchaOk);
 
-  const startCaptcha = useCallback(async () => {
-    setCaptchaStarted(true);
-    setChallengeLoading(true);
-    try {
-      const res = await captchaAPI.createChallenge('quantum');
-      if (res.session_id) {
-        sessionIdRef.current = res.session_id;
-      }
-      if (res.challenge?.order) {
-        setServerOrder(res.challenge.order);
-      }
-    } catch (err) {
-      console.error('Failed to create captcha challenge:', err);
-      // 降级到本地模式
-      setServerOrder(null);
-    } finally {
-      setChallengeLoading(false);
+  // SDK 加载后渲染
+  useEffect(() => {
+    if (!captchaStarted || !captchaContainerRef.current) return;
+    if (!window.ABDLCaptcha) {
+      const check = setInterval(() => {
+        if (window.ABDLCaptcha) { clearInterval(check); renderCaptcha(); }
+      }, 200);
+      return () => clearInterval(check);
     }
-  }, []);
+    renderCaptcha();
 
-  const handleCaptchaVerified = useCallback(async (answer) => {
-    const sessionId = sessionIdRef.current;
-    if (sessionId && answer) {
-      // 服务端验证
+    function renderCaptcha() {
+      if (!captchaContainerRef.current) return;
+      captchaContainerRef.current.innerHTML = '';
+      const apiKey = window.__ABDL_CAPTCHA_KEY || '';
       try {
-        const res = await captchaAPI.verify(sessionId, answer);
-        if (res.success) {
-          captchaTokenRef.current = res.token;
-          setCaptchaOk(true);
-        } else if (res.locked) {
-          setLocked(true);
-        } else {
-          toast.error(`验证失败，剩余 ${res.attempts_left} 次机会`);
-        }
+        window.ABDLCaptcha.render(captchaContainerRef.current, {
+          apiKey,
+          onSuccess: (token) => {
+            captchaTokenRef.current = token;
+            setCaptchaOk(true);
+          },
+          onError: (err) => {
+            if (err.message?.includes('Locked')) {
+              toast.error('验证已锁定，请稍后再试');
+            }
+          },
+        });
       } catch (err) {
-        console.error('Captcha verify failed:', err);
-        toast.error('验证请求失败，请重试');
+        console.error('Captcha render failed:', err);
       }
-    } else {
-      // 离线/本地模式
-      captchaTokenRef.current = 'local';
-      setCaptchaOk(true);
     }
-  }, [toast]);
+  }, [captchaStarted, toast]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -96,8 +79,6 @@ export default function Login() {
       if (needCaptcha) {
         setCaptchaOk(false);
         setCaptchaStarted(false);
-        setServerOrder(null);
-        sessionIdRef.current = null;
         captchaTokenRef.current = null;
       }
     } finally {
@@ -123,60 +104,40 @@ export default function Login() {
             </div>
           </div>
 
-          {/* 安全验证：失败次数达到阈值才显示 */}
           {needCaptcha && (
-            <div className="mb-5 p-4 rounded-xl flex flex-col" style={{ border: `1.5px solid ${captchaOk ? 'var(--success)' : locked ? 'var(--danger)' : 'var(--border)'}`, background: 'var(--input-bg)', height: 380, overflow: 'hidden' }}>
-              <div className="flex items-center justify-between mb-2 flex-shrink-0">
+            <div className="mb-5 p-4 rounded-xl flex flex-col" style={{ border: `1.5px solid ${captchaOk ? 'var(--success)' : 'var(--border)'}`, background: 'var(--input-bg)' }}>
+              <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
                   <i className="fa-solid fa-shield-halved mr-1.5" style={{ color: 'var(--primary-dark)' }} />
                   安全验证
                 </label>
                 {captchaOk && <span className="text-xs font-semibold" style={{ color: 'var(--success)' }}><i className="fa-solid fa-circle-check mr-1" />已通过</span>}
-                {locked && <span className="text-xs font-semibold" style={{ color: 'var(--danger)' }}><i className="fa-solid fa-lock mr-1" />已锁定</span>}
               </div>
 
-              {!captchaStarted && !captchaOk && !locked && (
-                <div className="flex-1 flex flex-col items-center justify-center">
+              {!captchaStarted && !captchaOk && (
+                <div className="flex flex-col items-center justify-center py-4">
                   <p className="text-xs mb-3 text-center" style={{ color: 'var(--text-light)' }}>
-                    检测到多次登录失败，请完成安全验证<br />每个节点只能点击一次，5次错误将锁定5分钟
+                    检测到多次登录失败，请完成安全验证
                   </p>
-                  <button type="button" className="btn btn-outline" onClick={startCaptcha}>
+                  <button type="button" className="btn btn-outline" onClick={() => setCaptchaStarted(true)}>
                     <i className="fa-solid fa-play" /> 开始验证
                   </button>
                 </div>
               )}
 
-              {captchaStarted && !captchaOk && !locked && (
-                challengeLoading ? (
-                  <div className="flex-1 flex flex-col items-center justify-center">
-                    <div className="cap-loading-ring" />
-                    <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>正在加载验证...</p>
-                  </div>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center overflow-hidden">
-                    <QuantumVerify
-                      ref={verifyRef}
-                      serverOrder={serverOrder}
-                      onVerified={handleCaptchaVerified}
-                      onReset={(reason) => { if (reason === 'locked') setLocked(true); }}
-                    />
-                  </div>
-                )
+              {captchaStarted && !captchaOk && (
+                <div ref={captchaContainerRef} style={{ minHeight: 300 }} />
               )}
 
-              {(captchaOk || locked) && (
-                <div className="flex-1 flex flex-col items-center justify-center">
-                  <i className={`fa-solid ${captchaOk ? 'fa-circle-check' : 'fa-lock'} text-3xl mb-2`} style={{ color: captchaOk ? 'var(--success)' : 'var(--danger)' }} />
-                  <p className="text-sm font-semibold" style={{ color: captchaOk ? 'var(--success)' : 'var(--danger)' }}>
-                    {captchaOk ? '验证已通过' : '验证已锁定'}
-                  </p>
-                  {locked && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>请5分钟后刷新页面重试</p>}
+              {captchaOk && (
+                <div className="flex flex-col items-center justify-center py-4">
+                  <i className="fa-solid fa-circle-check text-3xl mb-2" style={{ color: 'var(--success)' }} />
+                  <p className="text-sm font-semibold" style={{ color: 'var(--success)' }}>验证已通过</p>
                 </div>
               )}
             </div>
           )}
 
-          {/* 隐私政策同意 */}
           <label className="flex items-start gap-2.5 mb-5 cursor-pointer">
             <input type="checkbox" checked={consented} onChange={e => setConsented(e.target.checked)}
               className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[var(--primary-dark)]" />
@@ -186,7 +147,7 @@ export default function Login() {
           </label>
 
           <button type="submit" className="btn btn-primary w-full" disabled={!canSubmit}>
-            {loading ? '登录中...' : locked ? '已锁定' : '登录'}
+            {loading ? '登录中...' : '登录'}
           </button>
         </form>
         <p className="text-center mt-4 text-sm" style={{ color: 'var(--text-light)' }}>

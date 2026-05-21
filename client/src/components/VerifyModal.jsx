@@ -1,83 +1,63 @@
-import { useState, useRef, useCallback } from 'react';
-import QuantumVerify from './QuantumVerify';
-import { captchaAPI } from '../api';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 /**
- * useVerifyModal — 验证码弹窗 Hook（服务端模式 + 离线降级）
+ * useVerifyModal — 验证码弹窗 Hook（使用 ABDLCaptcha 嵌入式 SDK）
  *
  * 流程:
- *   1. trigger(onPass) → 向后端请求 challenge
- *   2. 渲染 QuantumVerify，传入服务端 order
- *   3. 用户完成后 → 提交 answer 到后端 verify
- *   4. 成功 → 存 token → 执行 onPass
+ *   1. trigger(onPass) → 弹出弹窗
+ *   2. ABDLCaptcha.render() 渲染验证组件
+ *   3. 用户完成验证 → onSuccess(token)
+ *   4. 存 token → 执行 onPass
  *
  * 返回: { trigger, VerifyModal, captchaToken }
  */
 export function useVerifyModal() {
   const [show, setShow] = useState(false);
-  const [started, setStarted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [locked, setLocked] = useState(false);
   const [animState, setAnimState] = useState('hidden');
-  const [serverOrder, setServerOrder] = useState(null);
-  const [error, setError] = useState(null);
-
+  const [sdkReady, setSdkReady] = useState(false);
   const actionRef = useRef(null);
-  const sessionIdRef = useRef(null);
   const tokenRef = useRef(null);
+  const containerRef = useRef(null);
+  const rendererRef = useRef(null);
+
+  // 检测 SDK 是否加载
+  useEffect(() => {
+    if (window.ABDLCaptcha) { setSdkReady(true); return; }
+    const check = setInterval(() => {
+      if (window.ABDLCaptcha) { setSdkReady(true); clearInterval(check); }
+    }, 200);
+    return () => clearInterval(check);
+  }, []);
 
   const cleanup = useCallback(() => {
-    setShow(false); setStarted(false); setLoading(false);
-    setLocked(false); setAnimState('hidden');
-    setServerOrder(null); setError(null);
-    sessionIdRef.current = null;
+    setShow(false); setAnimState('hidden');
     actionRef.current = null;
+    if (containerRef.current) containerRef.current.innerHTML = '';
   }, []);
 
-  const trigger = useCallback(async (onPass) => {
+  const trigger = useCallback((onPass) => {
     actionRef.current = onPass;
-    setLocked(false);
-    setError(null);
+    tokenRef.current = null;
     setShow(true);
-    setStarted(false);
     setAnimState('entering');
     requestAnimationFrame(() => setAnimState('visible'));
-
-    // 请求后端 challenge
-    try {
-      setLoading(true);
-      const res = await captchaAPI.createChallenge('quantum');
-      if (res.session_id) {
-        // 服务端模式
-        sessionIdRef.current = res.session_id;
-      }
-      // challenge.order 是服务端下发的正确节点顺序
-      if (res.challenge?.order) {
-        setServerOrder(res.challenge.order);
-      } else if (res.session_id === null) {
-        // 离线模式
-        setServerOrder(null);
-      }
-    } catch (err) {
-      console.error('Failed to create captcha challenge:', err);
-      // 降级到本地模式
-      setServerOrder(null);
-    } finally {
-      setLoading(false);
-    }
   }, []);
 
-  const handleVerified = useCallback(async (answer) => {
-    const sessionId = sessionIdRef.current;
+  // 弹窗显示后渲染 SDK
+  useEffect(() => {
+    if (!show || !sdkReady || !containerRef.current) return;
 
-    if (sessionId && answer) {
-      // 服务端验证
-      try {
-        setLoading(true);
-        const res = await captchaAPI.verify(sessionId, answer);
-        if (res.success) {
-          tokenRef.current = res.token;
-          // 验证通过动画
+    // 清空容器
+    containerRef.current.innerHTML = '';
+
+    // 从环境变量或配置获取 API Key
+    const apiKey = window.__ABDL_CAPTCHA_KEY || '';
+
+    try {
+      rendererRef.current = window.ABDLCaptcha.render(containerRef.current, {
+        apiKey,
+        onSuccess: (token) => {
+          tokenRef.current = token;
           setTimeout(() => {
             setAnimState('exiting');
             setTimeout(() => {
@@ -85,39 +65,19 @@ export function useVerifyModal() {
               if (actionRef.current) { actionRef.current(); actionRef.current = null; }
             }, 250);
           }, 600);
-        } else if (res.locked) {
-          setLocked(true);
-        } else {
-          setError(`验证失败，剩余 ${res.attempts_left} 次机会`);
-        }
-      } catch (err) {
-        console.error('Captcha verify failed:', err);
-        setError('验证请求失败，请重试');
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // 离线模式 / 本地验证 — 直接通过
-      tokenRef.current = 'local';
-      setTimeout(() => {
-        setAnimState('exiting');
-        setTimeout(() => {
-          cleanup();
-          if (actionRef.current) { actionRef.current(); actionRef.current = null; }
-        }, 250);
-      }, 600);
+        },
+        onError: (err) => {
+          console.error('Captcha error:', err);
+        },
+      });
+    } catch (err) {
+      console.error('ABDLCaptcha.render failed:', err);
     }
-  }, [cleanup]);
-
-  const handleLocked = useCallback(() => {
-    setLocked(true);
-  }, []);
+  }, [show, sdkReady, cleanup]);
 
   const handleClose = useCallback(() => {
     setAnimState('exiting');
-    setTimeout(() => {
-      cleanup();
-    }, 200);
+    setTimeout(() => cleanup(), 200);
   }, [cleanup]);
 
   if (!show) return { trigger, VerifyModal: null, captchaToken: tokenRef };
@@ -152,40 +112,9 @@ export function useVerifyModal() {
             <i className="fa-solid fa-xmark" />
           </button>
         </div>
-
-        {!started ? (
-          <div className="flex flex-col items-center py-4">
-            <p className="text-xs mb-4 text-center" style={{ color: 'var(--text-light)' }}>
-              {locked
-                ? '验证已锁定，请5分钟后再试'
-                : '请按照高亮提示的顺序依次点击节点\n每个节点只能点击一次，5次错误将锁定5分钟'}
-            </p>
-            {!locked && (
-              <button type="button" className="btn btn-outline" onClick={() => { setStarted(true); }}>
-                <i className="fa-solid fa-play" /> 开始验证
-              </button>
-            )}
-          </div>
-        ) : loading && !serverOrder ? (
-          <div className="flex flex-col items-center justify-center" style={{ minHeight: 200 }}>
-            <div className="cap-loading-ring" />
-            <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>正在加载验证...</p>
-          </div>
-        ) : (
-          <div style={{ border: '1.5px solid var(--border)', borderRadius: '1rem', overflow: 'hidden' }}>
-            <QuantumVerify
-              serverOrder={serverOrder}
-              onVerified={handleVerified}
-              onReset={handleLocked}
-            />
-          </div>
-        )}
-
-        {error && (
-          <p className="text-xs text-center mt-2" style={{ color: 'var(--danger)' }}>
-            <i className="fa-solid fa-triangle-exclamation mr-1" />{error}
-          </p>
-        )}
+        <div style={{ border: '1.5px solid var(--border)', borderRadius: '1rem', overflow: 'hidden', padding: '12px' }}>
+          <div ref={containerRef} style={{ minHeight: 280 }} />
+        </div>
       </div>
     </div>
   );

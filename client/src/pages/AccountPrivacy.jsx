@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import MobileHeader from '../components/MobileHeader';
 import EditProfile from '../components/EditProfile';
 import VerificationInput from '../components/VerificationInput';
-import QuantumVerify from '../components/QuantumVerify';
+
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { authAPI } from '../api';
@@ -133,12 +133,30 @@ function EmailSection({ user, toast }) {
   const [sendCodeCount, setSendCodeCount] = useState(0);
   const [sendCodeCaptchaOk, setSendCodeCaptchaOk] = useState(false);
   const [sendCodeCaptchaStarted, setSendCodeCaptchaStarted] = useState(false);
+  const sendCodeContainerRef = useRef(null);
+  const sendCodeTokenRef = useRef(null);
 
   useEffect(() => {
     if (cooldown <= 0) return;
     const t = setTimeout(() => setCooldown(v => v - 1), 1000);
     return () => clearTimeout(t);
   }, [cooldown]);
+
+  // SDK 渲染
+  useEffect(() => {
+    if (!sendCodeCaptchaStarted || !sendCodeContainerRef.current) return;
+    const wait = setInterval(() => {
+      if (window.ABDLCaptcha) {
+        clearInterval(wait);
+        sendCodeContainerRef.current.innerHTML = '';
+        window.ABDLCaptcha.render(sendCodeContainerRef.current, {
+          apiKey: window.__ABDL_CAPTCHA_KEY || '',
+          onSuccess: (token) => { sendCodeTokenRef.current = token; setSendCodeCaptchaOk(true); },
+        });
+      }
+    }, 200);
+    return () => clearInterval(wait);
+  }, [sendCodeCaptchaStarted]);
 
   const handleSendCode = useCallback(async () => {
     if (!email.trim() || !email.includes('@')) { toast.error('请输入合法邮箱'); return; }
@@ -227,12 +245,7 @@ function EmailSection({ user, toast }) {
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center justify-center overflow-hidden" style={{ height: 280 }}>
-                  <QuantumVerify
-                    onVerified={() => setSendCodeCaptchaOk(true)}
-                    onReset={() => {}}
-                  />
-                </div>
+                <div ref={sendCodeContainerRef} style={{ minHeight: 280 }} />
               )}
             </div>
           )}

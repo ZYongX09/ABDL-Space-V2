@@ -2,9 +2,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import MobileHeader from '../components/MobileHeader';
-import QuantumVerify from '../components/QuantumVerify';
 import VerificationInput from '../components/VerificationInput';
-import { authAPI, captchaAPI } from '../api';
+import { authAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
@@ -25,16 +24,10 @@ export default function Register() {
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [captchaOk, setCaptchaOk] = useState(false);
   const [captchaStarted, setCaptchaStarted] = useState(false);
-  const [locked, setLocked] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [regServerOrder, setRegServerOrder] = useState(null);
-  const [sendCodeServerOrder, setSendCodeServerOrder] = useState(null);
-  const [regChallengeLoading, setRegChallengeLoading] = useState(false);
-  const [sendCodeChallengeLoading, setSendCodeChallengeLoading] = useState(false);
-  const verifyRef = useRef(null);
-  const regSessionIdRef = useRef(null);
+  const regContainerRef = useRef(null);
+  const sendCodeContainerRef = useRef(null);
   const regTokenRef = useRef(null);
-  const sendCodeSessionIdRef = useRef(null);
   const sendCodeTokenRef = useRef(null);
   const { register, saveConsent } = useAuth();
   const toast = useToast();
@@ -46,109 +39,59 @@ export default function Register() {
     return () => clearTimeout(t);
   }, [cooldown]);
 
-  /* ---- 发送验证码相关 ---- */
-
-  const startSendCodeCaptcha = useCallback(async () => {
-    setSendCodeCaptchaStarted(true);
-    setSendCodeChallengeLoading(true);
+  // 渲染 SDK 的通用函数
+  const renderSDK = useCallback((container, onVerified) => {
+    if (!container || !window.ABDLCaptcha) return;
+    container.innerHTML = '';
+    const apiKey = window.__ABDL_CAPTCHA_KEY || '';
     try {
-      const res = await captchaAPI.createChallenge('quantum');
-      if (res.session_id) sendCodeSessionIdRef.current = res.session_id;
-      if (res.challenge?.order) setSendCodeServerOrder(res.challenge.order);
+      window.ABDLCaptcha.render(container, {
+        apiKey,
+        onSuccess: (token) => onVerified(token),
+        onError: (err) => {
+          if (err.message?.includes('Locked')) toast.error('验证已锁定');
+        },
+      });
     } catch (err) {
-      console.error('Failed to create captcha challenge:', err);
-      setSendCodeServerOrder(null);
-    } finally {
-      setSendCodeChallengeLoading(false);
-    }
-  }, []);
-
-  const handleSendCodeVerified = useCallback(async (answer) => {
-    const sessionId = sendCodeSessionIdRef.current;
-    if (sessionId && answer) {
-      try {
-        const res = await captchaAPI.verify(sessionId, answer);
-        if (res.success) {
-          sendCodeTokenRef.current = res.token;
-          setSendCodeCaptchaOk(true);
-        } else if (res.locked) {
-          toast.error('验证已锁定，请稍后再试');
-        } else {
-          toast.error(`验证失败，剩余 ${res.attempts_left} 次机会`);
-        }
-      } catch (err) {
-        toast.error('验证请求失败，请重试');
-      }
-    } else {
-      sendCodeTokenRef.current = 'local';
-      setSendCodeCaptchaOk(true);
+      console.error('Captcha render failed:', err);
     }
   }, [toast]);
+
+  // 注册验证码 SDK
+  useEffect(() => {
+    if (!captchaStarted || !regContainerRef.current) return;
+    const wait = setInterval(() => {
+      if (window.ABDLCaptcha) { clearInterval(wait); renderSDK(regContainerRef.current, (token) => { regTokenRef.current = token; setCaptchaOk(true); }); }
+    }, 200);
+    return () => clearInterval(wait);
+  }, [captchaStarted, renderSDK]);
+
+  // 发送验证码 SDK
+  useEffect(() => {
+    if (!sendCodeCaptchaStarted || !sendCodeContainerRef.current) return;
+    const wait = setInterval(() => {
+      if (window.ABDLCaptcha) { clearInterval(wait); renderSDK(sendCodeContainerRef.current, (token) => { sendCodeTokenRef.current = token; setSendCodeCaptchaOk(true); }); }
+    }, 200);
+    return () => clearInterval(wait);
+  }, [sendCodeCaptchaStarted, renderSDK]);
 
   const handleSendCode = useCallback(async () => {
     if (!email.trim()) { toast.error('请输入邮箱'); return; }
     if (!email.includes('@')) { toast.error('请输入合法邮箱'); return; }
-    if (sendCodeCount >= 2 && !sendCodeCaptchaOk) {
-      toast.error('请先完成安全验证');
-      return;
-    }
+    if (sendCodeCount >= 2 && !sendCodeCaptchaOk) { toast.error('请先完成安全验证'); return; }
     setLoading(true);
     try {
-      await authAPI.sendCode({ email: email.trim(), type: 'register' });
+      await authAPI.sendCode({ email: email.trim(), type: 'register', captchaToken: sendCodeTokenRef.current || undefined });
       toast.success('验证码已发送至邮箱');
       setCodeSent(true);
       setSendCodeCount(v => v + 1);
       setCooldown(60);
       setSendCodeCaptchaOk(false);
       setSendCodeCaptchaStarted(false);
-      setSendCodeServerOrder(null);
-      sendCodeSessionIdRef.current = null;
       sendCodeTokenRef.current = null;
-    } catch (e) {
-      toast.error(e.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { toast.error(e.message); }
+    finally { setLoading(false); }
   }, [email, sendCodeCount, sendCodeCaptchaOk, toast]);
-
-  /* ---- 注册验证相关 ---- */
-
-  const startRegCaptcha = useCallback(async () => {
-    setCaptchaStarted(true);
-    setRegChallengeLoading(true);
-    try {
-      const res = await captchaAPI.createChallenge('quantum');
-      if (res.session_id) regSessionIdRef.current = res.session_id;
-      if (res.challenge?.order) setRegServerOrder(res.challenge.order);
-    } catch (err) {
-      console.error('Failed to create captcha challenge:', err);
-      setRegServerOrder(null);
-    } finally {
-      setRegChallengeLoading(false);
-    }
-  }, []);
-
-  const handleRegVerified = useCallback(async (answer) => {
-    const sessionId = regSessionIdRef.current;
-    if (sessionId && answer) {
-      try {
-        const res = await captchaAPI.verify(sessionId, answer);
-        if (res.success) {
-          regTokenRef.current = res.token;
-          setCaptchaOk(true);
-        } else if (res.locked) {
-          setLocked(true);
-        } else {
-          toast.error(`验证失败，剩余 ${res.attempts_left} 次机会`);
-        }
-      } catch (err) {
-        toast.error('验证请求失败，请重试');
-      }
-    } else {
-      regTokenRef.current = 'local';
-      setCaptchaOk(true);
-    }
-  }, [toast]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -162,23 +105,17 @@ export default function Register() {
     try {
       setLoading(true);
       await register({
-        username: username.trim(),
-        email: email.trim(),
-        password,
-        code,
+        username: username.trim(), email: email.trim(), password, code,
         captchaToken: regTokenRef.current || undefined,
       });
       saveConsent({ privacy: true, terms: true });
       toast.success('注册成功');
       navigate('/');
-    } catch (e) {
-      toast.error(e.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { toast.error(e.message); }
+    finally { setLoading(false); }
   };
 
-  const allReady = agreeTerms && agreePrivacy && captchaOk && !locked && codeSent && code.length >= 6;
+  const allReady = agreeTerms && agreePrivacy && captchaOk && codeSent && code.length >= 6;
 
   return (
     <>
@@ -191,62 +128,37 @@ export default function Register() {
               <input className="form-control" value={username} onChange={e => setUsername(e.target.value)} placeholder="3-30 个字符" autoFocus />
             </div>
 
-            {/* 邮箱 + 验证码 */}
             <div className="mb-4">
               <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>
-                <i className="fa-solid fa-envelope mr-1.5" style={{ color: 'var(--primary-dark)' }} />
-                邮箱
+                <i className="fa-solid fa-envelope mr-1.5" style={{ color: 'var(--primary-dark)' }} />邮箱
               </label>
               <div className="flex gap-2">
                 <input type="email" className="form-control flex-1" value={email} onChange={e => { setEmail(e.target.value); setCodeSent(false); setCode(''); }} placeholder="your@email.com" />
-                <button
-                  type="button"
-                  className="btn btn-outline whitespace-nowrap"
-                  onClick={handleSendCode}
-                  disabled={loading || cooldown > 0}
-                  style={{ fontSize: '0.8rem', padding: '0 16px', minWidth: '100px' }}
-                >
-                  {loading ? <i className="fa-solid fa-spinner fa-spin" />
-                    : cooldown > 0 ? `${cooldown}s`
-                    : codeSent ? '重新发送' : '发送验证码'}
+                <button type="button" className="btn btn-outline whitespace-nowrap" onClick={handleSendCode} disabled={loading || cooldown > 0}
+                  style={{ fontSize: '0.8rem', padding: '0 16px', minWidth: '100px' }}>
+                  {loading ? <i className="fa-solid fa-spinner fa-spin" /> : cooldown > 0 ? `${cooldown}s` : codeSent ? '重新发送' : '发送验证码'}
                 </button>
               </div>
             </div>
 
-            {/* 发送验证码安全验证（第 2 次起） */}
             {sendCodeCount >= 2 && !sendCodeCaptchaOk && (
               <div className="mb-4 p-3 rounded-xl" style={{ border: '1.5px solid var(--border)', background: 'var(--input-bg)' }}>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold" style={{ color: 'var(--text)' }}>
-                    <i className="fa-solid fa-shield-halved mr-1" style={{ color: 'var(--primary-dark)' }} />
-                    安全验证
-                  </label>
-                </div>
+                <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--text)' }}>
+                  <i className="fa-solid fa-shield-halved mr-1" style={{ color: 'var(--primary-dark)' }} />安全验证
+                </label>
                 {!sendCodeCaptchaStarted ? (
                   <div className="text-center">
                     <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>频繁获取验证码需要安全验证</p>
-                    <button type="button" className="btn btn-outline btn-sm" onClick={startSendCodeCaptcha}>
+                    <button type="button" className="btn btn-outline btn-sm" onClick={() => setSendCodeCaptchaStarted(true)}>
                       <i className="fa-solid fa-play" /> 开始验证
                     </button>
                   </div>
-                ) : sendCodeChallengeLoading ? (
-                  <div className="flex flex-col items-center justify-center" style={{ height: 280 }}>
-                    <div className="cap-loading-ring" />
-                    <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>正在加载验证...</p>
-                  </div>
                 ) : (
-                  <div className="flex items-center justify-center overflow-hidden" style={{ height: 280 }}>
-                    <QuantumVerify
-                      serverOrder={sendCodeServerOrder}
-                      onVerified={handleSendCodeVerified}
-                      onReset={() => {}}
-                    />
-                  </div>
+                  <div ref={sendCodeContainerRef} style={{ minHeight: 280 }} />
                 )}
               </div>
             )}
 
-            {/* 验证码输入 */}
             {codeSent && (
               <div className="mb-4">
                 <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--text)' }}>验证码</label>
@@ -276,69 +188,46 @@ export default function Register() {
               </div>
             </div>
 
-            {/* 安全验证 */}
-            <div className="mb-5 p-4 rounded-xl flex flex-col" style={{ border: `1.5px solid ${captchaOk ? 'var(--success)' : locked ? 'var(--danger)' : 'var(--border)'}`, background: 'var(--input-bg)', height: 380, overflow: 'hidden' }}>
-              <div className="flex items-center justify-between mb-2 flex-shrink-0">
+            <div className="mb-5 p-4 rounded-xl flex flex-col" style={{ border: `1.5px solid ${captchaOk ? 'var(--success)' : 'var(--border)'}`, background: 'var(--input-bg)' }}>
+              <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
-                  <i className="fa-solid fa-shield-halved mr-1.5" style={{ color: 'var(--primary-dark)' }} />
-                  安全验证
+                  <i className="fa-solid fa-shield-halved mr-1.5" style={{ color: 'var(--primary-dark)' }} />安全验证
                 </label>
                 {captchaOk && <span className="text-xs font-semibold" style={{ color: 'var(--success)' }}><i className="fa-solid fa-circle-check mr-1" />已通过</span>}
-                {locked && <span className="text-xs font-semibold" style={{ color: 'var(--danger)' }}><i className="fa-solid fa-lock mr-1" />已锁定</span>}
               </div>
 
-              {!captchaStarted && !captchaOk && !locked && (
-                <div className="flex-1 flex flex-col items-center justify-center">
+              {!captchaStarted && !captchaOk && (
+                <div className="flex flex-col items-center justify-center py-4">
                   <p className="text-xs mb-3 text-center" style={{ color: 'var(--text-light)' }}>
-                    请按照高亮提示的顺序依次点击节点<br />每个节点只能点击一次，5次错误将锁定5分钟
+                    请完成安全验证<br />每个节点只能点击一次，5次错误将锁定5分钟
                   </p>
-                  <button type="button" className="btn btn-outline" onClick={startRegCaptcha}>
+                  <button type="button" className="btn btn-outline" onClick={() => setCaptchaStarted(true)}>
                     <i className="fa-solid fa-play" /> 开始验证
                   </button>
                 </div>
               )}
 
-              {captchaStarted && !captchaOk && !locked && (
-                regChallengeLoading ? (
-                  <div className="flex-1 flex flex-col items-center justify-center">
-                    <div className="cap-loading-ring" />
-                    <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>正在加载验证...</p>
-                  </div>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center overflow-hidden">
-                    <QuantumVerify
-                      ref={verifyRef}
-                      serverOrder={regServerOrder}
-                      onVerified={handleRegVerified}
-                      onReset={(reason) => { if (reason === 'locked') setLocked(true); }}
-                    />
-                  </div>
-                )
+              {captchaStarted && !captchaOk && (
+                <div ref={regContainerRef} style={{ minHeight: 300 }} />
               )}
 
-              {(captchaOk || locked) && (
-                <div className="flex-1 flex flex-col items-center justify-center">
-                  <i className={`fa-solid ${captchaOk ? 'fa-circle-check' : 'fa-lock'} text-3xl mb-2`} style={{ color: captchaOk ? 'var(--success)' : 'var(--danger)' }} />
-                  <p className="text-sm font-semibold" style={{ color: captchaOk ? 'var(--success)' : 'var(--danger)' }}>
-                    {captchaOk ? '验证已通过' : '验证已锁定'}
-                  </p>
-                  {locked && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>请5分钟后刷新页面重试</p>}
+              {captchaOk && (
+                <div className="flex flex-col items-center justify-center py-4">
+                  <i className="fa-solid fa-circle-check text-3xl mb-2" style={{ color: 'var(--success)' }} />
+                  <p className="text-sm font-semibold" style={{ color: 'var(--success)' }}>验证已通过</p>
                 </div>
               )}
             </div>
 
-            {/* 协议同意 */}
             <div className="mb-5 space-y-2.5">
               <label className="flex items-start gap-2.5 cursor-pointer">
-                <input type="checkbox" checked={agreeTerms} onChange={e => setAgreeTerms(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[var(--primary-dark)]" />
+                <input type="checkbox" checked={agreeTerms} onChange={e => setAgreeTerms(e.target.checked)} className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[var(--primary-dark)]" />
                 <span className="text-xs leading-relaxed" style={{ color: 'var(--text-light)' }}>
                   我已阅读并同意 <Link to="/terms" target="_blank" style={{ color: 'var(--link-color)' }}>用户协议</Link>
                 </span>
               </label>
               <label className="flex items-start gap-2.5 cursor-pointer">
-                <input type="checkbox" checked={agreePrivacy} onChange={e => setAgreePrivacy(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[var(--primary-dark)]" />
+                <input type="checkbox" checked={agreePrivacy} onChange={e => setAgreePrivacy(e.target.checked)} className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[var(--primary-dark)]" />
                 <span className="text-xs leading-relaxed" style={{ color: 'var(--text-light)' }}>
                   我已阅读并同意 <Link to="/privacy" target="_blank" style={{ color: 'var(--link-color)' }}>隐私政策</Link>
                 </span>
@@ -346,7 +235,7 @@ export default function Register() {
             </div>
 
             <button type="submit" className="btn btn-primary w-full" disabled={loading || !allReady}>
-              {loading ? '注册中...' : locked ? '已锁定' : '注册'}
+              {loading ? '注册中...' : '注册'}
             </button>
           </form>
           <p className="text-center mt-4 text-sm" style={{ color: 'var(--text-light)' }}>
