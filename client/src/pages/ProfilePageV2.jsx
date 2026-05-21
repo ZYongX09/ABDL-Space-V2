@@ -104,26 +104,32 @@ const S = {
 
   // 桌面端适配
   pageDesktop: {
-    maxWidth: '900px',
-    margin: '0 auto',
-    padding: '24px 0',
+    margin: '-24px -20px 0 -20px',
+    padding: '32px 40px',
+    minHeight: '100vh',
+    background: 'var(--bg)',
   },
-  desktopLayout: {
+  desktopContainer: {
+    maxWidth: '960px',
+    margin: '0 auto',
     display: 'flex',
-    gap: '24px',
+    gap: '28px',
     alignItems: 'flex-start',
   },
   desktopSidebar: {
-    width: '320px',
+    width: '300px',
     flexShrink: 0,
     position: 'sticky',
-    top: '24px',
+    top: '32px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
   },
   desktopSidebarCard: {
     background: 'var(--bg-card)',
     borderRadius: '16px',
-    padding: '28px 24px',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+    padding: '32px 24px 24px',
+    boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -131,38 +137,34 @@ const S = {
   desktopMain: {
     flex: 1,
     minWidth: 0,
-  },
-  desktopMainCard: {
-    background: 'var(--bg-card)',
-    borderRadius: '16px',
-    padding: '20px 24px',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-    marginBottom: '16px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
   },
   desktopAvatar: {
-    width: '120px',
-    height: '120px',
+    width: '110px',
+    height: '110px',
     borderRadius: '50%',
     objectFit: 'cover',
-    border: '3px solid var(--bg-card)',
-    boxShadow: '0 4px 24px rgba(168, 216, 240, 0.35)',
+    border: '3px solid var(--bg)',
+    boxShadow: '0 4px 24px rgba(168, 216, 240, 0.3)',
   },
   desktopAvatarFallback: {
-    width: '120px',
-    height: '120px',
+    width: '110px',
+    height: '110px',
     borderRadius: '50%',
     background: 'linear-gradient(135deg, var(--primary-light), var(--accent))',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '44px',
+    fontSize: '42px',
     fontWeight: 700,
     color: 'var(--primary-dark)',
-    border: '3px solid var(--bg-card)',
-    boxShadow: '0 4px 24px rgba(168, 216, 240, 0.35)',
+    border: '3px solid var(--bg)',
+    boxShadow: '0 4px 24px rgba(168, 216, 240, 0.3)',
   },
   desktopUsername: {
-    fontSize: '26px',
+    fontSize: '24px',
     fontWeight: 700,
     color: 'var(--text)',
     marginTop: '16px',
@@ -171,12 +173,12 @@ const S = {
     gap: '8px',
   },
   desktopBio: {
-    fontSize: '14px',
+    fontSize: '13px',
     color: 'var(--text-muted)',
     marginTop: '8px',
     textAlign: 'center',
-    maxWidth: '260px',
     lineHeight: '1.6',
+    maxWidth: '240px',
   },
   desktopStatsRow: {
     display: 'flex',
@@ -184,7 +186,7 @@ const S = {
     marginTop: '20px',
     background: 'var(--input-bg)',
     borderRadius: '12px',
-    padding: '12px 0',
+    padding: '14px 0',
   },
   desktopStatItem: {
     flex: 1,
@@ -193,22 +195,60 @@ const S = {
     alignItems: 'center',
     gap: '2px',
     cursor: 'pointer',
+    transition: 'opacity 0.15s',
   },
   desktopStatNum: {
-    fontSize: '20px',
+    fontSize: '18px',
     fontWeight: 700,
     color: 'var(--text)',
   },
   desktopStatLabel: {
-    fontSize: '12px',
+    fontSize: '11px',
     color: 'var(--text-muted)',
   },
-  desktopInfoCard: {
+  desktopCard: {
     background: 'var(--bg-card)',
     borderRadius: '16px',
-    padding: '20px 24px',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-    marginTop: '16px',
+    boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
+    overflow: 'hidden',
+  },
+  desktopTabs: {
+    display: 'flex',
+    gap: '0',
+    padding: '0 20px',
+    borderBottom: '1px solid var(--border)',
+  },
+  desktopTab: {
+    padding: '14px 20px',
+    fontSize: '14px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    border: 'none',
+    background: 'none',
+    color: 'var(--text-muted)',
+    borderBottom: '2px solid transparent',
+    marginBottom: '-1px',
+    transition: 'all 0.2s',
+  },
+  desktopTabActive: {
+    color: 'var(--primary)',
+    borderBottomColor: 'var(--primary)',
+  },
+  desktopContent: {
+    padding: '16px 20px',
+  },
+  desktopPostCard: {
+    padding: '16px 20px',
+    borderRadius: '12px',
+    background: 'var(--input-bg)',
+    marginBottom: '10px',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+  },
+  desktopEmpty: {
+    textAlign: 'center',
+    padding: '60px 24px',
+    color: 'var(--text-muted)',
   },
 
   // 1. 顶部标题栏
@@ -920,130 +960,114 @@ export default function ProfilePageV2() {
 
   // ======== 桌面端布局 ========
   if (!isMobile) {
+    const desktopTabs = [
+      { key: 'posts', label: `帖子 (${counts.posts || 0})` },
+      { key: 'worn', label: `穿过 (${counts.worn || 0})` },
+    ];
+
     return (
       <div style={S.pageDesktop}>
-        <div style={S.desktopLayout}>
-          {/* 左侧用户卡片 */}
+        <div style={S.desktopContainer}>
+          {/* 左侧 */}
           <div style={S.desktopSidebar}>
             <div style={S.desktopSidebarCard} className="miui-enter">
-              <div
-                style={{ position: 'relative', ...(isSelf ? { cursor: 'pointer' } : {}) }}
-                onClick={isSelf ? () => navigate('/settings') : undefined}
-              >
-                {displayUser.avatar ? (
-                  <img src={displayUser.avatar} alt="" style={S.desktopAvatar} />
-                ) : (
-                  <div style={S.desktopAvatarFallback}>{displayUser.username?.[0]?.toUpperCase() || '?'}</div>
-                )}
-                {isSelf && (
-                  <div style={{ position: 'absolute', bottom: 4, right: 4, width: '28px', height: '28px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-card)', fontSize: '12px', color: '#fff' }}>
-                    <i className="fa-solid fa-camera" />
-                  </div>
-                )}
+              <div style={{ position: 'relative', ...(isSelf ? { cursor: 'pointer' } : {}) }} onClick={isSelf ? () => navigate('/settings') : undefined}>
+                {displayUser.avatar ? <img src={displayUser.avatar} alt="" style={S.desktopAvatar} /> : <div style={S.desktopAvatarFallback}>{displayUser.username?.[0]?.toUpperCase() || '?'}</div>}
+                {isSelf && <div style={{ position: 'absolute', bottom: 2, right: 2, width: '28px', height: '28px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-card)', fontSize: '11px', color: '#fff' }}><i className="fa-solid fa-camera" /></div>}
               </div>
-
-              <div
-                style={{ ...S.desktopUsername, ...(isSelf ? { cursor: 'pointer' } : {}) }}
-                onClick={isSelf ? () => navigate('/settings') : undefined}
-              >
+              <div style={{ ...S.desktopUsername, ...(isSelf ? { cursor: 'pointer' } : {}) }} onClick={isSelf ? () => navigate('/settings') : undefined}>
                 <span>{displayUser.username}</span>
                 {displayUser.role === 'admin' && <OfficialBadge />}
-                {isSelf && <i className="fa-solid fa-pen" style={{ fontSize: '12px', color: 'var(--text-muted)' }} />}
+                {isSelf && <i className="fa-solid fa-pen" style={{ fontSize: '11px', color: 'var(--text-muted)' }} />}
               </div>
-
-              <div
-                style={{ ...S.desktopBio, ...(isSelf ? { cursor: 'pointer' } : {}) }}
-                onClick={isSelf ? () => navigate('/settings') : undefined}
-              >
+              <div style={{ ...S.desktopBio, ...(isSelf ? { cursor: 'pointer' } : {}) }} onClick={isSelf ? () => navigate('/settings') : undefined}>
                 {displayUser.bio || (isSelf ? '点击设置添加个性签名' : '这个人很懒，什么都没写')}
               </div>
-
-              {/* 统计栏 */}
               <div style={S.desktopStatsRow}>
-                {[
-                  { label: '帖子', value: counts.posts },
-                  { label: '穿过', value: counts.worn },
-                  { label: '粉丝', value: counts.followers, onClick: () => navigate(`/user/${targetId}/followers`) },
-                  { label: '关注', value: counts.following, onClick: () => navigate(`/user/${targetId}/following`) },
-                ].map((s, i) => (
-                  <div key={i} style={S.desktopStatItem} onClick={s.onClick}>
-                    <span style={S.desktopStatNum}>{s.value ?? 0}</span>
-                    <span style={S.desktopStatLabel}>{s.label}</span>
+                {[{ l: '帖子', v: counts.posts }, { l: '穿过', v: counts.worn }, { l: '粉丝', v: counts.followers, fn: () => navigate(`/user/${targetId}/followers`) }, { l: '关注', v: counts.following, fn: () => navigate(`/user/${targetId}/following`) }].map((s, i) => (
+                  <div key={i} style={S.desktopStatItem} onClick={s.fn}>
+                    <span style={S.desktopStatNum}>{s.v ?? 0}</span>
+                    <span style={S.desktopStatLabel}>{s.l}</span>
                   </div>
                 ))}
               </div>
-
-              {/* 设置按钮 */}
               {isSelf && (
-                <button
-                  style={{ marginTop: '16px', width: '100%', padding: '10px', borderRadius: '10px', border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                  onClick={() => navigate('/settings')}
-                >
+                <button style={{ marginTop: '16px', width: '100%', padding: '10px', borderRadius: '10px', border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={() => navigate('/settings')}>
                   <i className="fa-solid fa-gear" /> 编辑资料
                 </button>
               )}
             </div>
-
-            {/* 简介卡片 */}
-            <div style={S.desktopInfoCard} className="miui-enter miui-enter-delay-1">
-              <InfoCard user={displayUser} />
+            <div style={S.desktopCard} className="miui-enter miui-enter-delay-1">
+              <div style={{ padding: '16px 20px' }}>
+                <InfoCard user={displayUser} />
+              </div>
             </div>
           </div>
 
-          {/* 右侧内容区 */}
+          {/* 右侧 */}
           <div style={S.desktopMain}>
-            {/* 标签栏 */}
-            <div className="miui-enter miui-enter-delay-2">
-              <PillTabs
-                tabs={[{ key: 'posts', label: '帖子' }, { key: 'worn', label: '穿过' }]}
-                active={currentActiveTab}
-                onChange={setActiveTab}
-              />
-            </div>
-
-            {/* 内容列表 */}
-            <div className="miui-enter miui-enter-delay-3">
-              {activeTab === 'worn' ? (
-                wornLoading ? <LoadingSkeleton count={3} height={80} />
-                : wornDiapers.length === 0 ? (
-                  <div style={{ ...S.emptyState, background: 'var(--bg-card)', borderRadius: '16px', padding: '48px 24px' }}>
-                    <i className="fa-solid fa-shirt" style={{ fontSize: '36px', marginBottom: '12px', opacity: 0.3, display: 'block' }} />
-                    <p style={{ fontSize: '14px' }}>{isSelf ? '还没有穿过纸尿裤' : 'TA 还没有穿过纸尿裤'}</p>
-                  </div>
-                ) : wornDiapers.map((d, i) => (
-                  <div key={i} className="miui-enter" style={{ background: 'var(--bg-card)', borderRadius: '14px', padding: '16px 20px', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', animationDelay: `${0.06 * i}s` }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>{d.diaper_name}</span>
-                        {d.brand && <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{d.brand}</span>}
+            <div style={S.desktopCard} className="miui-enter miui-enter-delay-2">
+              {/* Tabs */}
+              <div style={S.desktopTabs}>
+                {desktopTabs.map(tab => (
+                  <button key={tab.key} style={{ ...S.desktopTab, ...(currentActiveTab === tab.key ? S.desktopTabActive : {}) }} onClick={() => setActiveTab(tab.key)}>
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              {/* Content */}
+              <div style={S.desktopContent}>
+                {activeTab === 'worn' ? (
+                  wornLoading ? <LoadingSkeleton count={3} height={72} />
+                  : wornDiapers.length === 0 ? (
+                    <div style={S.desktopEmpty}>
+                      <i className="fa-solid fa-shirt" style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.3, display: 'block' }} />
+                      <p>{isSelf ? '还没有穿过纸尿裤' : 'TA 还没有穿过纸尿裤'}</p>
+                    </div>
+                  ) : wornDiapers.map((d, i) => (
+                    <div key={i} className="miui-enter" style={{ ...S.desktopPostCard, animationDelay: `${0.06 * i}s` }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>{d.diaper_name}</span>
+                            {d.brand && <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{d.brand}</span>}
+                          </div>
+                          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>评分于 {new Date(d.rated_at).toLocaleDateString('zh-CN')}</p>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--primary-dark)' }}>{d.avg_score}</span>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>/5</span>
+                        </div>
                       </div>
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>评分于 {new Date(d.rated_at).toLocaleDateString('zh-CN')}</p>
                     </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '16px' }}>
-                      <span style={{ fontSize: '22px', fontWeight: 700, color: 'var(--primary-dark)' }}>{d.avg_score}</span>
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>/5</span>
+                  ))
+                ) : currentLoading ? <LoadingSkeleton count={3} height={100} />
+                : currentPosts.length === 0 ? (
+                  <div style={S.desktopEmpty}>
+                    <i className={`fa-solid ${activeTab === 'posts' ? 'fa-file-lines' : 'fa-heart'}`} style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.3, display: 'block' }} />
+                    <p>{activeTab === 'posts' ? (isSelf ? '还没有发过帖子' : 'TA 还没有发过帖子') : (isSelf ? '还没有喜欢的帖子' : 'TA 还没有喜欢的帖子')}</p>
+                    {isSelf && activeTab === 'posts' && (
+                      <button style={{ ...S.actionBtn, display: 'inline-flex', width: 'auto', padding: '10px 24px', marginTop: '12px' }} onClick={() => navigate('/create-post')}>
+                        <i className="fa-solid fa-plus" /> 去发帖
+                      </button>
+                    )}
+                  </div>
+                ) : currentPosts.map((post, i) => (
+                  <div key={post.id} className="miui-enter" style={{ ...S.desktopPostCard, animationDelay: `${0.06 * i}s` }} onClick={() => navigate(`/forum/${post.id}`)}>
+                    {post.title && <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text)', marginBottom: '6px' }}>{post.title}</div>}
+                    <p style={{ fontSize: '13px', color: 'var(--text)', lineHeight: 1.6, marginBottom: '8px' }} className="line-clamp-2">{post.content}</p>
+                    <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                      <span><i className="fa-regular fa-heart mr-1" />{post.like_count || 0}</span>
+                      <span><i className="fa-regular fa-comment mr-1" />{post.comment_count || 0}</span>
+                      <span>{post.created_at ? new Date(post.created_at).toLocaleDateString('zh-CN') : ''}</span>
                     </div>
                   </div>
-                ))
-              ) : currentLoading ? <LoadingSkeleton count={3} height={120} />
-              : currentPosts.length === 0 ? (
-                <div style={{ ...S.emptyState, background: 'var(--bg-card)', borderRadius: '16px', padding: '48px 24px' }}>
-                  <i className={`fa-solid ${activeTab === 'posts' ? 'fa-file-lines' : 'fa-heart'}`} style={{ fontSize: '36px', marginBottom: '12px', opacity: 0.3, display: 'block' }} />
-                  <p style={{ fontSize: '14px' }}>{activeTab === 'posts' ? (isSelf ? '还没有发过帖子' : 'TA 还没有发过帖子') : (isSelf ? '还没有喜欢的帖子' : 'TA 还没有喜欢的帖子')}</p>
-                  {isSelf && activeTab === 'posts' && (
-                    <button style={{ ...S.actionBtn, display: 'inline-flex', width: 'auto', padding: '10px 24px', marginTop: '12px' }} onClick={() => navigate('/create-post')}>
-                      <i className="fa-solid fa-plus" /> 去发帖
-                    </button>
-                  )}
-                </div>
-              ) : currentPosts.map((post, i) => (
-                <PostCard key={post.id} post={post} index={i} onClick={() => navigate(`/forum/${post.id}`)} />
-              ))}
+                ))}
+              </div>
             </div>
 
-            {/* 底部操作 */}
             {!isSelf && (
-              <div style={{ ...S.bottomAction, background: 'var(--bg-card)', borderRadius: '16px', padding: '16px 24px' }}>
+              <div style={{ ...S.desktopCard, padding: '16px 20px', display: 'flex', gap: '12px' }} className="miui-enter miui-enter-delay-3">
                 <button style={S.actionBtn} onClick={() => navigate('/messages')}>
                   <i className="fa-solid fa-envelope" /> 发私信
                 </button>
