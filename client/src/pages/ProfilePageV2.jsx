@@ -104,20 +104,111 @@ const S = {
 
   // 桌面端适配
   pageDesktop: {
-    maxWidth: '560px',
+    maxWidth: '900px',
     margin: '0 auto',
-    marginTop: '-24px',
-    borderRadius: '0 0 20px 20px',
+    padding: '24px 0',
   },
-  userCoreDesktop: {
-    padding: '28px 32px 0',
+  desktopLayout: {
+    display: 'flex',
+    gap: '24px',
+    alignItems: 'flex-start',
   },
-  statsRowDesktop: {
+  desktopSidebar: {
+    width: '320px',
+    flexShrink: 0,
+    position: 'sticky',
+    top: '24px',
+  },
+  desktopSidebarCard: {
+    background: 'var(--bg-card)',
+    borderRadius: '16px',
+    padding: '28px 24px',
+    boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  desktopMain: {
+    flex: 1,
+    minWidth: 0,
+  },
+  desktopMainCard: {
+    background: 'var(--bg-card)',
+    borderRadius: '16px',
+    padding: '20px 24px',
+    boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+    marginBottom: '16px',
+  },
+  desktopAvatar: {
+    width: '120px',
+    height: '120px',
+    borderRadius: '50%',
+    objectFit: 'cover',
+    border: '3px solid var(--bg-card)',
+    boxShadow: '0 4px 24px rgba(168, 216, 240, 0.35)',
+  },
+  desktopAvatarFallback: {
+    width: '120px',
+    height: '120px',
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, var(--primary-light), var(--accent))',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '44px',
+    fontWeight: 700,
+    color: 'var(--primary-dark)',
+    border: '3px solid var(--bg-card)',
+    boxShadow: '0 4px 24px rgba(168, 216, 240, 0.35)',
+  },
+  desktopUsername: {
+    fontSize: '26px',
+    fontWeight: 700,
+    color: 'var(--text)',
+    marginTop: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  desktopBio: {
+    fontSize: '14px',
+    color: 'var(--text-muted)',
+    marginTop: '8px',
+    textAlign: 'center',
+    maxWidth: '260px',
+    lineHeight: '1.6',
+  },
+  desktopStatsRow: {
+    display: 'flex',
+    width: '100%',
+    marginTop: '20px',
+    background: 'var(--input-bg)',
     borderRadius: '12px',
-    padding: '16px 8px',
+    padding: '12px 0',
   },
-  postCardDesktop: {
-    borderRadius: '14px',
+  desktopStatItem: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '2px',
+    cursor: 'pointer',
+  },
+  desktopStatNum: {
+    fontSize: '20px',
+    fontWeight: 700,
+    color: 'var(--text)',
+  },
+  desktopStatLabel: {
+    fontSize: '12px',
+    color: 'var(--text-muted)',
+  },
+  desktopInfoCard: {
+    background: 'var(--bg-card)',
+    borderRadius: '16px',
+    padding: '20px 24px',
+    boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+    marginTop: '16px',
   },
 
   // 1. 顶部标题栏
@@ -827,8 +918,146 @@ export default function ProfilePageV2() {
   const currentPosts = activeTab === 'posts' ? posts : likedPosts;
   const currentLoading = activeTab === 'posts' ? postsLoading : likedLoading;
 
+  // ======== 桌面端布局 ========
+  if (!isMobile) {
+    return (
+      <div style={S.pageDesktop}>
+        <div style={S.desktopLayout}>
+          {/* 左侧用户卡片 */}
+          <div style={S.desktopSidebar}>
+            <div style={S.desktopSidebarCard} className="miui-enter">
+              <div
+                style={{ position: 'relative', ...(isSelf ? { cursor: 'pointer' } : {}) }}
+                onClick={isSelf ? () => navigate('/settings') : undefined}
+              >
+                {displayUser.avatar ? (
+                  <img src={displayUser.avatar} alt="" style={S.desktopAvatar} />
+                ) : (
+                  <div style={S.desktopAvatarFallback}>{displayUser.username?.[0]?.toUpperCase() || '?'}</div>
+                )}
+                {isSelf && (
+                  <div style={{ position: 'absolute', bottom: 4, right: 4, width: '28px', height: '28px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-card)', fontSize: '12px', color: '#fff' }}>
+                    <i className="fa-solid fa-camera" />
+                  </div>
+                )}
+              </div>
+
+              <div
+                style={{ ...S.desktopUsername, ...(isSelf ? { cursor: 'pointer' } : {}) }}
+                onClick={isSelf ? () => navigate('/settings') : undefined}
+              >
+                <span>{displayUser.username}</span>
+                {displayUser.role === 'admin' && <OfficialBadge />}
+                {isSelf && <i className="fa-solid fa-pen" style={{ fontSize: '12px', color: 'var(--text-muted)' }} />}
+              </div>
+
+              <div
+                style={{ ...S.desktopBio, ...(isSelf ? { cursor: 'pointer' } : {}) }}
+                onClick={isSelf ? () => navigate('/settings') : undefined}
+              >
+                {displayUser.bio || (isSelf ? '点击设置添加个性签名' : '这个人很懒，什么都没写')}
+              </div>
+
+              {/* 统计栏 */}
+              <div style={S.desktopStatsRow}>
+                {[
+                  { label: '帖子', value: counts.posts },
+                  { label: '穿过', value: counts.worn },
+                  { label: '粉丝', value: counts.followers, onClick: () => navigate(`/user/${targetId}/followers`) },
+                  { label: '关注', value: counts.following, onClick: () => navigate(`/user/${targetId}/following`) },
+                ].map((s, i) => (
+                  <div key={i} style={S.desktopStatItem} onClick={s.onClick}>
+                    <span style={S.desktopStatNum}>{s.value ?? 0}</span>
+                    <span style={S.desktopStatLabel}>{s.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* 设置按钮 */}
+              {isSelf && (
+                <button
+                  style={{ marginTop: '16px', width: '100%', padding: '10px', borderRadius: '10px', border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  onClick={() => navigate('/settings')}
+                >
+                  <i className="fa-solid fa-gear" /> 编辑资料
+                </button>
+              )}
+            </div>
+
+            {/* 简介卡片 */}
+            <div style={S.desktopInfoCard} className="miui-enter miui-enter-delay-1">
+              <InfoCard user={displayUser} />
+            </div>
+          </div>
+
+          {/* 右侧内容区 */}
+          <div style={S.desktopMain}>
+            {/* 标签栏 */}
+            <div className="miui-enter miui-enter-delay-2">
+              <PillTabs
+                tabs={[{ key: 'posts', label: '帖子' }, { key: 'worn', label: '穿过' }]}
+                active={currentActiveTab}
+                onChange={setActiveTab}
+              />
+            </div>
+
+            {/* 内容列表 */}
+            <div className="miui-enter miui-enter-delay-3">
+              {activeTab === 'worn' ? (
+                wornLoading ? <LoadingSkeleton count={3} height={80} />
+                : wornDiapers.length === 0 ? (
+                  <div style={{ ...S.emptyState, background: 'var(--bg-card)', borderRadius: '16px', padding: '48px 24px' }}>
+                    <i className="fa-solid fa-shirt" style={{ fontSize: '36px', marginBottom: '12px', opacity: 0.3, display: 'block' }} />
+                    <p style={{ fontSize: '14px' }}>{isSelf ? '还没有穿过纸尿裤' : 'TA 还没有穿过纸尿裤'}</p>
+                  </div>
+                ) : wornDiapers.map((d, i) => (
+                  <div key={i} className="miui-enter" style={{ background: 'var(--bg-card)', borderRadius: '14px', padding: '16px 20px', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', animationDelay: `${0.06 * i}s` }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>{d.diaper_name}</span>
+                        {d.brand && <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{d.brand}</span>}
+                      </div>
+                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>评分于 {new Date(d.rated_at).toLocaleDateString('zh-CN')}</p>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '16px' }}>
+                      <span style={{ fontSize: '22px', fontWeight: 700, color: 'var(--primary-dark)' }}>{d.avg_score}</span>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>/5</span>
+                    </div>
+                  </div>
+                ))
+              ) : currentLoading ? <LoadingSkeleton count={3} height={120} />
+              : currentPosts.length === 0 ? (
+                <div style={{ ...S.emptyState, background: 'var(--bg-card)', borderRadius: '16px', padding: '48px 24px' }}>
+                  <i className={`fa-solid ${activeTab === 'posts' ? 'fa-file-lines' : 'fa-heart'}`} style={{ fontSize: '36px', marginBottom: '12px', opacity: 0.3, display: 'block' }} />
+                  <p style={{ fontSize: '14px' }}>{activeTab === 'posts' ? (isSelf ? '还没有发过帖子' : 'TA 还没有发过帖子') : (isSelf ? '还没有喜欢的帖子' : 'TA 还没有喜欢的帖子')}</p>
+                  {isSelf && activeTab === 'posts' && (
+                    <button style={{ ...S.actionBtn, display: 'inline-flex', width: 'auto', padding: '10px 24px', marginTop: '12px' }} onClick={() => navigate('/create-post')}>
+                      <i className="fa-solid fa-plus" /> 去发帖
+                    </button>
+                  )}
+                </div>
+              ) : currentPosts.map((post, i) => (
+                <PostCard key={post.id} post={post} index={i} onClick={() => navigate(`/forum/${post.id}`)} />
+              ))}
+            </div>
+
+            {/* 底部操作 */}
+            {!isSelf && (
+              <div style={{ ...S.bottomAction, background: 'var(--bg-card)', borderRadius: '16px', padding: '16px 24px' }}>
+                <button style={S.actionBtn} onClick={() => navigate('/messages')}>
+                  <i className="fa-solid fa-envelope" /> 发私信
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ======== 移动端布局 ========
   return (
-    <div style={{ ...S.page, ...(isMobile ? S.pageMobile : S.pageDesktop) }}>
+    <div style={{ ...S.page, ...S.pageMobile }}>
       {/* 1. 顶部标题栏 */}
       <div style={S.topBar} className="miui-enter">
         <span style={S.topTitle}>个人中心</span>
@@ -844,7 +1073,7 @@ export default function ProfilePageV2() {
       </div>
 
       {/* 2. 用户信息核心区域 */}
-      <div style={{ ...S.userCore, ...(isMobile ? {} : S.userCoreDesktop) }} className="miui-enter miui-enter-delay-1">
+      <div style={S.userCore} className="miui-enter miui-enter-delay-1">
         {/* 头像 */}
         <div
           style={{ ...S.avatarWrap, ...(isSelf ? { cursor: 'pointer' } : {}) }}
