@@ -3,6 +3,18 @@
 > 每次对项目进行修改后，由 AI 助手自动更新此文件
 > 记录格式：日期时间、版本、修改内容、涉及文件、原因/背景
 
+## 2026-05-22
+
+### 00:45 — 修复评论功能 4 个 Bug
+- **类型**：Bug 修复
+- **内容**：
+  1. `PostDetail.jsx`：`imageUrls` undefined typo → `imageData`，修复带图评论 toast 报错
+  2. `api.js`：`forumAPI.comment` 新增 `captchaToken` 参数，附加到 `X-Captcha-Token` 请求头
+  3. `PostDetail.jsx`：`handleComment` 将 `tokenRef.current` 传入 `forumAPI.comment`，验证码 token 不再丢失
+  4. `VerifyModal.jsx`：`cleanup` 时调用 `renderer.destroy()`，防止内存泄漏
+- **涉及文件**：PostDetail.jsx、api.js、VerifyModal.jsx
+- **Git**：commit 60bca6f，已 push
+
 ## 2026-05-20
 
 ### 04:21 — 编辑资料拆分为独立组件
