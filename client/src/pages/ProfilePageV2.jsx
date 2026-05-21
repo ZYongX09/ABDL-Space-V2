@@ -189,7 +189,6 @@ const S = {
     justifyContent: 'center',
     gap: '0',
     width: '100%',
-    maxWidth: '320px',
     background: 'var(--bg-card)',
     borderRadius: '16px',
     padding: '14px 0',
