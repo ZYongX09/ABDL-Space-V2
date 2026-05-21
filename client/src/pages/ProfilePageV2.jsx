@@ -30,8 +30,15 @@ const S = {
     background: 'var(--bg)',
     fontFamily: 'var(--font)',
     paddingBottom: '80px',
-    margin: '0 -20px',
+    marginLeft: '-20px',
+    marginRight: '-20px',
+    marginTop: '-24px',
     paddingTop: '0',
+  },
+
+  // 移动端额外偏移（在组件内通过 JS 检测）
+  pageMobile: {
+    marginTop: '-72px',
   },
 
   // 1. 顶部标题栏
@@ -598,6 +605,7 @@ export default function ProfilePageV2() {
 
   const [profileUser, setProfileUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [counts, setCounts] = useState({ posts: 0, followers: 0, following: 0, worn: 0 });
@@ -684,7 +692,7 @@ export default function ProfilePageV2() {
   // 加载中
   if (loading) {
     return (
-      <div style={S.page}>
+      <div style={{ ...S.page, ...(isMobile ? S.pageMobile : {}) }}>
         <div style={S.topBar}>
           <span style={S.topTitle}>个人中心</span>
         </div>
@@ -698,7 +706,7 @@ export default function ProfilePageV2() {
   // 未登录且无 paramId
   if (!currentUser && !paramId) {
     return (
-      <div style={S.page}>
+      <div style={{ ...S.page, ...(isMobile ? S.pageMobile : {}) }}>
         <div style={S.topBar}>
           <span style={S.topTitle}>个人中心</span>
         </div>
@@ -723,7 +731,7 @@ export default function ProfilePageV2() {
   const currentLoading = activeTab === 'posts' ? postsLoading : likedLoading;
 
   return (
-    <div style={S.page}>
+    <div style={{ ...S.page, ...(isMobile ? S.pageMobile : {}) }}>
       {/* 1. 顶部标题栏 */}
       <div style={S.topBar}>
         <span style={S.topTitle}>个人中心</span>
