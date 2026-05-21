@@ -843,7 +843,7 @@ export default function ProfilePageV2() {
         </div>
 
         {/* 数据指标栏 */}
-        <div className="miui-enter miui-enter-delay-2">
+        <div className="miui-enter miui-enter-delay-2" style={{ alignSelf: 'stretch' }}>
           <StatsBar
             posts={counts.posts}
             worn={counts.worn}
