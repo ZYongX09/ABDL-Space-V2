@@ -35,7 +35,7 @@ export default function AdminPage() {
   const [diaperForm, setDiaperForm] = useState({
     brand: '', model: '', product_type: '纸尿裤',
     absorbency_mfr: '', absorbency_adult: '', is_baby_diaper: 0,
-    material: '', features: '', avg_price: '', images: [],
+    material: '', features: '', avg_price: '', official_url: '', images: [],
     sizes: [],
   });
   const [diaperSaving, setDiaperSaving] = useState(false);
@@ -133,7 +133,7 @@ export default function AdminPage() {
       }
       setShowDiaperForm(false);
       setEditingDiaper(null);
-      setDiaperForm({ brand: '', model: '', product_type: '纸尿裤', absorbency_mfr: '', absorbency_adult: '', is_baby_diaper: 0, material: '', features: '', avg_price: '', images: [], sizes: [] });
+      setDiaperForm({ brand: '', model: '', product_type: '纸尿裤', absorbency_mfr: '', absorbency_adult: '', is_baby_diaper: 0, material: '', features: '', avg_price: '', official_url: '', images: [], sizes: [] });
       loadTab('diapers');
     } catch (e) { toast.error(e.message); }
     finally { setDiaperSaving(false); }
@@ -145,7 +145,7 @@ export default function AdminPage() {
       brand: d.brand || '', model: d.model || '', product_type: d.product_type || '纸尿裤',
       absorbency_mfr: d.absorbency_mfr || '', absorbency_adult: d.absorbency_adult || '',
       is_baby_diaper: d.is_baby_diaper || 0, material: d.material || '', features: d.features || '',
-      avg_price: d.avg_price || '', images: d.images || [], sizes: d.sizes || [],
+      avg_price: d.avg_price || '', official_url: d.official_url || '', images: d.images || [], sizes: d.sizes || [],
     });
     setShowDiaperForm(true);
   };
@@ -361,6 +361,10 @@ export default function AdminPage() {
                 <div>
                   <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>参考价格</label>
                   <input className="form-control" value={diaperForm.avg_price} onChange={e => setDiaperForm(f => ({ ...f, avg_price: e.target.value }))} placeholder="如：￥3.5/片" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>官方网站</label>
+                  <input className="form-control" value={diaperForm.official_url} onChange={e => setDiaperForm(f => ({ ...f, official_url: e.target.value }))} placeholder="https://..." />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>是否婴儿纸尿裤</label>

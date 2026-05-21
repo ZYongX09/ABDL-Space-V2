@@ -127,6 +127,17 @@ export default function DiaperDetail() {
               {diaper.absorbency_adult && <div className="flex justify-between"><dt style={{ color: 'var(--text-light)' }}>成人实际吸收</dt><dd>{diaper.absorbency_adult}</dd></div>}
               {diaper.absorbency_mfr && <div className="flex justify-between"><dt style={{ color: 'var(--text-light)' }}>厂家标称吸收</dt><dd>{diaper.absorbency_mfr}</dd></div>}
               {diaper.avg_price && <div className="flex justify-between"><dt style={{ color: 'var(--text-light)' }}>参考价</dt><dd>{diaper.avg_price}</dd></div>}
+              {diaper.official_url && (
+                <div className="flex justify-between items-center">
+                  <dt style={{ color: 'var(--text-light)' }}>官网</dt>
+                  <a href={diaper.official_url} target="_blank" rel="noopener noreferrer"
+                    className="btn btn-outline btn-sm"
+                    style={{ padding: '3px 10px', fontSize: '0.75rem' }}
+                  >
+                    <i className="fa-solid fa-arrow-up-right-from-square mr-1" />访问官网
+                  </a>
+                </div>
+              )}
             </dl>
           </div>
 
