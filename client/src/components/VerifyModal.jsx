@@ -54,6 +54,7 @@ export function useVerifyModal() {
     const apiKey = window.__ABDL_CAPTCHA_KEY || '';
 
     try {
+      console.log('[VerifyModal] rendering ABDLCaptcha, apiKey:', apiKey ? apiKey.slice(0, 11) + '...' : 'EMPTY');
       rendererRef.current = window.ABDLCaptcha.render(containerRef.current, {
         apiKey,
         onSuccess: (token) => {
