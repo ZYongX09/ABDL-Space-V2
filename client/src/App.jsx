@@ -90,8 +90,6 @@ function ScrollToTop() {
   return null;
 }
 
-export default import { useAuth } from './contexts/AuthContext';
-
 function AdminOnlyProfile() {
   const { user } = useAuth();
   if (!user || user.role !== 'admin') {
