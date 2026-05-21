@@ -105,7 +105,7 @@ function AdminOnlyProfile() {
   return <Profile />;
 }
 
-function App() {
+export default function App() {
   const navigate = useNavigate();
   const { user } = useAuth();
   useExternalLinkInterceptor();
