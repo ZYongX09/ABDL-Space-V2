@@ -125,7 +125,7 @@ export default function ForgotPassword() {
                       </button>
                     </div>
                   ) : (
-                    <div ref={sendCodeContainerRef} style={{ minHeight: 280 }} />
+                    <div ref={sendCodeContainerRef} />
                   )}
                 </div>
               )}

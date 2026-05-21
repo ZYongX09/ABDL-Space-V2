@@ -126,7 +126,7 @@ export default function Login() {
               )}
 
               {captchaStarted && !captchaOk && (
-                <div ref={captchaContainerRef} style={{ minHeight: 300 }} />
+                <div ref={captchaContainerRef} />
               )}
 
               {captchaOk && (

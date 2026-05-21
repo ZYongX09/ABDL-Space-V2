@@ -113,7 +113,7 @@ export function useVerifyModal() {
           </button>
         </div>
         <div style={{ border: '1.5px solid var(--border)', borderRadius: '1rem', overflow: 'hidden', padding: '12px' }}>
-          <div ref={containerRef} style={{ minHeight: 280 }} />
+          <div ref={containerRef} />
         </div>
       </div>
     </div>

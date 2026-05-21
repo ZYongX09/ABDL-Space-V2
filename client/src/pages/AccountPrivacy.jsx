@@ -245,7 +245,7 @@ function EmailSection({ user, toast }) {
                   </button>
                 </div>
               ) : (
-                <div ref={sendCodeContainerRef} style={{ minHeight: 280 }} />
+                <div ref={sendCodeContainerRef} />
               )}
             </div>
           )}

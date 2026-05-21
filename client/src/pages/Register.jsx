@@ -208,7 +208,7 @@ export default function Register() {
               )}
 
               {captchaStarted && !captchaOk && (
-                <div ref={regContainerRef} style={{ minHeight: 300 }} />
+                <div ref={regContainerRef} />
               )}
 
               {captchaOk && (
