@@ -11,7 +11,7 @@
  * - Font Awesome 6 图标
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -19,6 +19,67 @@ import { forumAPI, followsAPI, authAPI, usersAPI } from '../api';
 import OfficialBadge from '../components/OfficialBadge';
 import NsfwGuard from '../components/NsfwGuard';
 import { LoadingSkeleton } from '../components/Feedback';
+
+// ============================================================
+// MIUI 风格动画
+// ============================================================
+const MIUI_STYLES = `
+@keyframes miuiFadeInUp {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes miuiFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes miuiScaleIn {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes miuiSlideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes miuiSlideInLeft {
+  from { opacity: 0; transform: translateX(-30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes miuiCountUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes miuiPulse {
+  0% { box-shadow: 0 4px 20px rgba(168, 216, 240, 0.35); }
+  50% { box-shadow: 0 4px 30px rgba(168, 216, 240, 0.6); }
+  100% { box-shadow: 0 4px 20px rgba(168, 216, 240, 0.35); }
+}
+@keyframes miuiShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.miui-enter { animation: miuiFadeInUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.miui-enter-delay-1 { animation-delay: 0.06s; }
+.miui-enter-delay-2 { animation-delay: 0.12s; }
+.miui-enter-delay-3 { animation-delay: 0.18s; }
+.miui-enter-delay-4 { animation-delay: 0.24s; }
+.miui-enter-delay-5 { animation-delay: 0.30s; }
+.miui-scale-in { animation: miuiScaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.miui-slide-right { animation: miuiSlideInRight 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+.miui-slide-left { animation: miuiSlideInLeft 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+.miui-count-up { animation: miuiCountUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.miui-pulse { animation: miuiPulse 2s ease-in-out infinite; }
+`;
+
+function useMIUIAnim(mounted, delay = 0) {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (mounted) {
+      const t = setTimeout(() => setShow(true), delay);
+      return () => clearTimeout(t);
+    }
+  }, [mounted, delay]);
+  return show;
+}
 
 // ============================================================
 // 样式常量
@@ -420,7 +481,7 @@ function PillTabs({ tabs, active, onChange }) {
 }
 
 /** 帖子卡片 */
-function PostCard({ post, onClick }) {
+function PostCard({ post, onClick, index = 0 }) {
   // 提取图片（最多 2 张）
   const rawImages = (post.images || []).slice(0, 2);
   const images = rawImages.map(img => {
@@ -450,7 +511,8 @@ function PostCard({ post, onClick }) {
 
   return (
     <div
-      style={S.postCard}
+      className="miui-enter"
+      style={{ ...S.postCard, animationDelay: `${0.06 * (index || 0)}s` }}
       onClick={onClick}
       onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
       onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
@@ -688,6 +750,17 @@ export default function ProfilePageV2() {
   }, [targetId]);
 
   const displayUser = profileUser || currentUser;
+  const pageReady = !loading && !!displayUser;
+
+  // 注入动画 CSS
+  useEffect(() => {
+    if (!document.getElementById('miui-anim-style')) {
+      const style = document.createElement('style');
+      style.id = 'miui-anim-style';
+      style.textContent = MIUI_STYLES;
+      document.head.appendChild(style);
+    }
+  }, []);
 
   // 加载中
   if (loading) {
@@ -733,7 +806,7 @@ export default function ProfilePageV2() {
   return (
     <div style={{ ...S.page, ...(isMobile ? S.pageMobile : {}) }}>
       {/* 1. 顶部标题栏 */}
-      <div style={S.topBar}>
+      <div style={S.topBar} className="miui-enter">
         <span style={S.topTitle}>个人中心</span>
         {isSelf && (
           <button
@@ -747,9 +820,9 @@ export default function ProfilePageV2() {
       </div>
 
       {/* 2. 用户信息核心区域 */}
-      <div style={S.userCore}>
+      <div style={S.userCore} className="miui-enter miui-enter-delay-1">
         {/* 头像 */}
-        <div style={S.avatarWrap}>
+        <div style={S.avatarWrap} className="miui-scale-in">
           {displayUser.avatar ? (
             <img src={displayUser.avatar} alt="" style={S.avatar} />
           ) : (
@@ -771,6 +844,7 @@ export default function ProfilePageV2() {
         </div>
 
         {/* 数据指标栏 */}
+        <div className="miui-enter miui-enter-delay-2">
         <StatsBar
           posts={counts.posts}
           worn={counts.worn}
@@ -781,10 +855,15 @@ export default function ProfilePageV2() {
         />
       </div>
 
+        </div>
+
       {/* 3. 简介卡片 */}
+      <div className="miui-enter miui-enter-delay-3">
       <InfoCard user={displayUser} />
+      </div>
 
       {/* 4. 内容切换标签栏 */}
+      <div className="miui-enter miui-enter-delay-4">
       <PillTabs
         tabs={[
           { key: 'posts', label: '帖子' },
@@ -794,8 +873,10 @@ export default function ProfilePageV2() {
         onChange={setActiveTab}
       />
 
+      </div>
+
       {/* 5. 内容列表 */}
-      <div style={S.postList}>
+      <div style={S.postList} className="miui-enter miui-enter-delay-5">
         {activeTab === 'worn' ? (
           wornLoading ? (
             <LoadingSkeleton count={3} height={80} />
@@ -806,7 +887,7 @@ export default function ProfilePageV2() {
             </div>
           ) : (
             wornDiapers.map((d, i) => (
-              <div key={i} style={{ background: 'var(--bg-card)', borderRadius: '12px', padding: '14px 16px', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div key={i} className="miui-enter" style={{ background: 'var(--bg-card)', borderRadius: '12px', padding: '14px 16px', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', animationDelay: `${0.06 * i}s` }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>{d.diaper_name}</span>
@@ -847,10 +928,11 @@ export default function ProfilePageV2() {
             )}
           </div>
         ) : (
-          currentPosts.map(post => (
+          currentPosts.map((post, i) => (
             <PostCard
               key={post.id}
               post={post}
+              index={i}
               onClick={() => navigate(`/forum/${post.id}`)}
             />
           ))
