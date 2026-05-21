@@ -90,7 +90,24 @@ function ScrollToTop() {
   return null;
 }
 
-export default function App() {
+export default import { useAuth } from './contexts/AuthContext';
+
+function AdminOnlyProfile() {
+  const { user } = useAuth();
+  if (!user || user.role !== 'admin') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--text-muted)' }}>
+        <div style={{ textAlign: 'center' }}>
+          <i className="fa-solid fa-lock" style={{ fontSize: '36px', marginBottom: '12px', opacity: 0.3, display: 'block' }} />
+          <p>仅管理员可访问</p>
+        </div>
+      </div>
+    );
+  }
+  return <Profile />;
+}
+
+function App() {
   const navigate = useNavigate();
   const { user } = useAuth();
   useExternalLinkInterceptor();
@@ -133,10 +150,10 @@ export default function App() {
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/profile/:id" element={<Profile />} />
+                <Route path="/profile" element={<ProfilePageV2 />} />
+                <Route path="/profile/:id" element={<ProfilePageV2 />} />
                 <Route path="/settings" element={<Settings />} />
-                <Route path="/user/:id" element={<Profile />} />
+                <Route path="/user/:id" element={<ProfilePageV2 />} />
                 <Route path="/user/:id/followers" element={<FollowersPage />} />
                 <Route path="/user/:id/following" element={<FollowersPage />} />
                 <Route path="/messages" element={<MessagesPage />} />
@@ -147,8 +164,8 @@ export default function App() {
                 <Route path="/oauth-clients" element={<OAuthClientsPage />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/account" element={<AccountPrivacy />} />
-                <Route path="/profile-v2" element={<ProfilePageV2 />} />
-                <Route path="/profile-v2/:id" element={<ProfilePageV2 />} />
+                <Route path="/profile-legacy" element={<AdminOnlyProfile />} />
+                <Route path="/profile-legacy/:id" element={<AdminOnlyProfile />} />
                 <Route path="/external" element={<ExternalLink />} />
                 <Route path="/create-post" element={<CreatePost />} />
               </Routes>
