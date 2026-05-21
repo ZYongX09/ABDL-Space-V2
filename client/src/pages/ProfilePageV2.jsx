@@ -855,6 +855,8 @@ export default function ProfilePageV2() {
           />
         </div>
 
+      </div>
+
       {/* 3. 简介卡片 */}
       <div className="miui-enter miui-enter-delay-3">
       <InfoCard user={displayUser} />
