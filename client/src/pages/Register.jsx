@@ -4,7 +4,7 @@ import PageLayout from '../components/PageLayout';
 import MobileHeader from '../components/MobileHeader';
 import QuantumVerify from '../components/QuantumVerify';
 import VerificationInput from '../components/VerificationInput';
-import { authAPI } from '../api';
+import { authAPI, captchaAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
@@ -27,7 +27,15 @@ export default function Register() {
   const [captchaStarted, setCaptchaStarted] = useState(false);
   const [locked, setLocked] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [regServerOrder, setRegServerOrder] = useState(null);
+  const [sendCodeServerOrder, setSendCodeServerOrder] = useState(null);
+  const [regChallengeLoading, setRegChallengeLoading] = useState(false);
+  const [sendCodeChallengeLoading, setSendCodeChallengeLoading] = useState(false);
   const verifyRef = useRef(null);
+  const regSessionIdRef = useRef(null);
+  const regTokenRef = useRef(null);
+  const sendCodeSessionIdRef = useRef(null);
+  const sendCodeTokenRef = useRef(null);
   const { register, saveConsent } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
@@ -38,10 +46,48 @@ export default function Register() {
     return () => clearTimeout(t);
   }, [cooldown]);
 
+  /* ---- 发送验证码相关 ---- */
+
+  const startSendCodeCaptcha = useCallback(async () => {
+    setSendCodeCaptchaStarted(true);
+    setSendCodeChallengeLoading(true);
+    try {
+      const res = await captchaAPI.createChallenge('quantum');
+      if (res.session_id) sendCodeSessionIdRef.current = res.session_id;
+      if (res.challenge?.order) setSendCodeServerOrder(res.challenge.order);
+    } catch (err) {
+      console.error('Failed to create captcha challenge:', err);
+      setSendCodeServerOrder(null);
+    } finally {
+      setSendCodeChallengeLoading(false);
+    }
+  }, []);
+
+  const handleSendCodeVerified = useCallback(async (answer) => {
+    const sessionId = sendCodeSessionIdRef.current;
+    if (sessionId && answer) {
+      try {
+        const res = await captchaAPI.verify(sessionId, answer);
+        if (res.success) {
+          sendCodeTokenRef.current = res.token;
+          setSendCodeCaptchaOk(true);
+        } else if (res.locked) {
+          toast.error('验证已锁定，请稍后再试');
+        } else {
+          toast.error(`验证失败，剩余 ${res.attempts_left} 次机会`);
+        }
+      } catch (err) {
+        toast.error('验证请求失败，请重试');
+      }
+    } else {
+      sendCodeTokenRef.current = 'local';
+      setSendCodeCaptchaOk(true);
+    }
+  }, [toast]);
+
   const handleSendCode = useCallback(async () => {
     if (!email.trim()) { toast.error('请输入邮箱'); return; }
     if (!email.includes('@')) { toast.error('请输入合法邮箱'); return; }
-    // 第 2 次起需要安全验证
     if (sendCodeCount >= 2 && !sendCodeCaptchaOk) {
       toast.error('请先完成安全验证');
       return;
@@ -55,12 +101,54 @@ export default function Register() {
       setCooldown(60);
       setSendCodeCaptchaOk(false);
       setSendCodeCaptchaStarted(false);
+      setSendCodeServerOrder(null);
+      sendCodeSessionIdRef.current = null;
+      sendCodeTokenRef.current = null;
     } catch (e) {
       toast.error(e.message);
     } finally {
       setLoading(false);
     }
   }, [email, sendCodeCount, sendCodeCaptchaOk, toast]);
+
+  /* ---- 注册验证相关 ---- */
+
+  const startRegCaptcha = useCallback(async () => {
+    setCaptchaStarted(true);
+    setRegChallengeLoading(true);
+    try {
+      const res = await captchaAPI.createChallenge('quantum');
+      if (res.session_id) regSessionIdRef.current = res.session_id;
+      if (res.challenge?.order) setRegServerOrder(res.challenge.order);
+    } catch (err) {
+      console.error('Failed to create captcha challenge:', err);
+      setRegServerOrder(null);
+    } finally {
+      setRegChallengeLoading(false);
+    }
+  }, []);
+
+  const handleRegVerified = useCallback(async (answer) => {
+    const sessionId = regSessionIdRef.current;
+    if (sessionId && answer) {
+      try {
+        const res = await captchaAPI.verify(sessionId, answer);
+        if (res.success) {
+          regTokenRef.current = res.token;
+          setCaptchaOk(true);
+        } else if (res.locked) {
+          setLocked(true);
+        } else {
+          toast.error(`验证失败，剩余 ${res.attempts_left} 次机会`);
+        }
+      } catch (err) {
+        toast.error('验证请求失败，请重试');
+      }
+    } else {
+      regTokenRef.current = 'local';
+      setCaptchaOk(true);
+    }
+  }, [toast]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -73,7 +161,13 @@ export default function Register() {
     if (!captchaOk) { toast.error('请完成安全验证'); return; }
     try {
       setLoading(true);
-      await register({ username: username.trim(), email: email.trim(), password, code });
+      await register({
+        username: username.trim(),
+        email: email.trim(),
+        password,
+        code,
+        captchaToken: regTokenRef.current || undefined,
+      });
       saveConsent({ privacy: true, terms: true });
       toast.success('注册成功');
       navigate('/');
@@ -131,14 +225,20 @@ export default function Register() {
                 {!sendCodeCaptchaStarted ? (
                   <div className="text-center">
                     <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>频繁获取验证码需要安全验证</p>
-                    <button type="button" className="btn btn-outline btn-sm" onClick={() => setSendCodeCaptchaStarted(true)}>
+                    <button type="button" className="btn btn-outline btn-sm" onClick={startSendCodeCaptcha}>
                       <i className="fa-solid fa-play" /> 开始验证
                     </button>
+                  </div>
+                ) : sendCodeChallengeLoading ? (
+                  <div className="flex flex-col items-center justify-center" style={{ height: 280 }}>
+                    <div className="cap-loading-ring" />
+                    <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>正在加载验证...</p>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center overflow-hidden" style={{ height: 280 }}>
                     <QuantumVerify
-                      onVerified={() => setSendCodeCaptchaOk(true)}
+                      serverOrder={sendCodeServerOrder}
+                      onVerified={handleSendCodeVerified}
                       onReset={() => {}}
                     />
                   </div>
@@ -192,20 +292,28 @@ export default function Register() {
                   <p className="text-xs mb-3 text-center" style={{ color: 'var(--text-light)' }}>
                     请按照高亮提示的顺序依次点击节点<br />每个节点只能点击一次，5次错误将锁定5分钟
                   </p>
-                  <button type="button" className="btn btn-outline" onClick={() => setCaptchaStarted(true)}>
+                  <button type="button" className="btn btn-outline" onClick={startRegCaptcha}>
                     <i className="fa-solid fa-play" /> 开始验证
                   </button>
                 </div>
               )}
 
               {captchaStarted && !captchaOk && !locked && (
-                <div className="flex-1 flex items-center justify-center overflow-hidden">
-                  <QuantumVerify
-                    ref={verifyRef}
-                    onVerified={() => setCaptchaOk(true)}
-                    onReset={(reason) => { if (reason === 'locked') setLocked(true); }}
-                  />
-                </div>
+                regChallengeLoading ? (
+                  <div className="flex-1 flex flex-col items-center justify-center">
+                    <div className="cap-loading-ring" />
+                    <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>正在加载验证...</p>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center overflow-hidden">
+                    <QuantumVerify
+                      ref={verifyRef}
+                      serverOrder={regServerOrder}
+                      onVerified={handleRegVerified}
+                      onReset={(reason) => { if (reason === 'locked') setLocked(true); }}
+                    />
+                  </div>
+                )
               )}
 
               {(captchaOk || locked) && (

@@ -88,11 +88,13 @@ export function AuthProvider({ children }) {
   }, []);
 
   // 登录（添加账户到已保存列表）
-  const login = useCallback(async ({ login: loginField, password }) => {
+  const login = useCallback(async ({ login: loginField, password, captchaToken }) => {
     if (USE_API) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
       const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ login: loginField, password }),
       });
       const data = await res.json();
@@ -129,11 +131,13 @@ export function AuthProvider({ children }) {
   }, []);
 
   // 注册
-  const register = useCallback(async ({ username, email, password, code }) => {
+  const register = useCallback(async ({ username, email, password, code, captchaToken }) => {
     if (USE_API) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
       const res = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ email, password, username, code }),
       });
       const data = await res.json();

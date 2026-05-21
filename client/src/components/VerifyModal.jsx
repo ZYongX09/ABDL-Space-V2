@@ -1,65 +1,113 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import QuantumVerify from './QuantumVerify';
+import { captchaAPI } from '../api';
 
-const GRACE_MS = 2 * 60 * 1000;
-const LS_KEY = 'qv_action_ts';
-
-function getRecentActions() {
-  try {
-    const saved = localStorage.getItem(LS_KEY);
-    if (!saved) return [];
-    const arr = JSON.parse(saved);
-    const now = Date.now();
-    return arr.filter(t => now - t < GRACE_MS);
-  } catch { return []; }
-}
-
-function recordAction() {
-  try {
-    const arr = getRecentActions();
-    arr.push(Date.now());
-    localStorage.setItem(LS_KEY, JSON.stringify(arr));
-  } catch {}
-}
-
-function clearActions() {
-  try { localStorage.removeItem(LS_KEY); } catch {}
-}
-
+/**
+ * useVerifyModal — 验证码弹窗 Hook（服务端模式 + 离线降级）
+ *
+ * 流程:
+ *   1. trigger(onPass) → 向后端请求 challenge
+ *   2. 渲染 QuantumVerify，传入服务端 order
+ *   3. 用户完成后 → 提交 answer 到后端 verify
+ *   4. 成功 → 存 token → 执行 onPass
+ *
+ * 返回: { trigger, VerifyModal, captchaToken }
+ */
 export function useVerifyModal() {
   const [show, setShow] = useState(false);
   const [started, setStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [locked, setLocked] = useState(false);
   const [animState, setAnimState] = useState('hidden');
-  const actionRef = useRef(null);
+  const [serverOrder, setServerOrder] = useState(null);
+  const [error, setError] = useState(null);
 
-  const trigger = useCallback((onPass) => {
-    const recent = getRecentActions();
-    if (recent.length === 0) {
-      recordAction();
-      onPass();
-      return;
-    }
+  const actionRef = useRef(null);
+  const sessionIdRef = useRef(null);
+  const tokenRef = useRef(null);
+
+  const cleanup = useCallback(() => {
+    setShow(false); setStarted(false); setLoading(false);
+    setLocked(false); setAnimState('hidden');
+    setServerOrder(null); setError(null);
+    sessionIdRef.current = null;
+    actionRef.current = null;
+  }, []);
+
+  const trigger = useCallback(async (onPass) => {
     actionRef.current = onPass;
     setLocked(false);
+    setError(null);
     setShow(true);
     setStarted(false);
     setAnimState('entering');
     requestAnimationFrame(() => setAnimState('visible'));
+
+    // 请求后端 challenge
+    try {
+      setLoading(true);
+      const res = await captchaAPI.createChallenge('quantum');
+      if (res.session_id) {
+        // 服务端模式
+        sessionIdRef.current = res.session_id;
+      }
+      // challenge.order 是服务端下发的正确节点顺序
+      if (res.challenge?.order) {
+        setServerOrder(res.challenge.order);
+      } else if (res.session_id === null) {
+        // 离线模式
+        setServerOrder(null);
+      }
+    } catch (err) {
+      console.error('Failed to create captcha challenge:', err);
+      // 降级到本地模式
+      setServerOrder(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const handleVerified = useCallback(() => {
-    setTimeout(() => {
-      setAnimState('exiting');
+  const handleVerified = useCallback(async (answer) => {
+    const sessionId = sessionIdRef.current;
+
+    if (sessionId && answer) {
+      // 服务端验证
+      try {
+        setLoading(true);
+        const res = await captchaAPI.verify(sessionId, answer);
+        if (res.success) {
+          tokenRef.current = res.token;
+          // 验证通过动画
+          setTimeout(() => {
+            setAnimState('exiting');
+            setTimeout(() => {
+              cleanup();
+              if (actionRef.current) { actionRef.current(); actionRef.current = null; }
+            }, 250);
+          }, 600);
+        } else if (res.locked) {
+          setLocked(true);
+        } else {
+          setError(`验证失败，剩余 ${res.attempts_left} 次机会`);
+        }
+      } catch (err) {
+        console.error('Captcha verify failed:', err);
+        setError('验证请求失败，请重试');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // 离线模式 / 本地验证 — 直接通过
+      tokenRef.current = 'local';
       setTimeout(() => {
-        setShow(false); setStarted(false); setLoading(false); setLocked(false); setAnimState('hidden');
-        clearActions();
-        recordAction();
-        if (actionRef.current) { actionRef.current(); actionRef.current = null; }
-      }, 250);
-    }, 600);
-  }, []);
+        setAnimState('exiting');
+        setTimeout(() => {
+          cleanup();
+          if (actionRef.current) { actionRef.current(); actionRef.current = null; }
+        }, 250);
+      }, 600);
+    }
+  }, [cleanup]);
 
   const handleLocked = useCallback(() => {
     setLocked(true);
@@ -68,12 +116,11 @@ export function useVerifyModal() {
   const handleClose = useCallback(() => {
     setAnimState('exiting');
     setTimeout(() => {
-      setShow(false); setStarted(false); setLoading(false); setLocked(false); setAnimState('hidden');
-      actionRef.current = null;
+      cleanup();
     }, 200);
-  }, []);
+  }, [cleanup]);
 
-  if (!show) return { trigger, VerifyModal: null };
+  if (!show) return { trigger, VerifyModal: null, captchaToken: tokenRef };
 
   const backdropStyle = {
     position: 'fixed', inset: 0, zIndex: 400,
@@ -105,6 +152,7 @@ export function useVerifyModal() {
             <i className="fa-solid fa-xmark" />
           </button>
         </div>
+
         {!started ? (
           <div className="flex flex-col items-center py-4">
             <p className="text-xs mb-4 text-center" style={{ color: 'var(--text-light)' }}>
@@ -113,24 +161,34 @@ export function useVerifyModal() {
                 : '请按照高亮提示的顺序依次点击节点\n每个节点只能点击一次，5次错误将锁定5分钟'}
             </p>
             {!locked && (
-              <button type="button" className="btn btn-outline" onClick={() => { setStarted(true); setLoading(true); setTimeout(() => setLoading(false), 400); }}>
+              <button type="button" className="btn btn-outline" onClick={() => { setStarted(true); }}>
                 <i className="fa-solid fa-play" /> 开始验证
               </button>
             )}
           </div>
-        ) : loading ? (
+        ) : loading && !serverOrder ? (
           <div className="flex flex-col items-center justify-center" style={{ minHeight: 200 }}>
             <div className="cap-loading-ring" />
             <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>正在加载验证...</p>
           </div>
         ) : (
           <div style={{ border: '1.5px solid var(--border)', borderRadius: '1rem', overflow: 'hidden' }}>
-            <QuantumVerify onVerified={handleVerified} onReset={handleLocked} />
+            <QuantumVerify
+              serverOrder={serverOrder}
+              onVerified={handleVerified}
+              onReset={handleLocked}
+            />
           </div>
+        )}
+
+        {error && (
+          <p className="text-xs text-center mt-2" style={{ color: 'var(--danger)' }}>
+            <i className="fa-solid fa-triangle-exclamation mr-1" />{error}
+          </p>
         )}
       </div>
     </div>
   );
 
-  return { trigger, VerifyModal };
+  return { trigger, VerifyModal, captchaToken: tokenRef };
 }

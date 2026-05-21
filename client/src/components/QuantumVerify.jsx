@@ -9,44 +9,7 @@ const NODES = [
 ];
 
 const MAX_ATTEMPTS = 5;
-const LOCK_DURATION = 300000;
-const CHALLENGE_TTL = 30000;
 const COOLDOWN_MS = 2000;
-const LS_KEYS = ['qv_attempts', 'qv_a', 'qv_t'];
-
-function getSavedAttempts() {
-  try {
-    let maxCount = 0;
-    for (const key of LS_KEYS) {
-      const saved = localStorage.getItem(key);
-      if (saved) {
-        const data = JSON.parse(saved);
-        if (Date.now() - data.ts < LOCK_DURATION) maxCount = Math.max(maxCount, data.count);
-        else localStorage.removeItem(key);
-      }
-    }
-    return maxCount;
-  } catch { return 0; }
-}
-function saveAttempts(count) {
-  const payload = JSON.stringify({ count, ts: Date.now() });
-  try { for (const key of LS_KEYS) localStorage.setItem(key, payload); } catch {}
-}
-function clearAttempts() {
-  try { for (const key of LS_KEYS) localStorage.removeItem(key); } catch {}
-}
-function seededRandom(seed) {
-  let s = seed;
-  return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
-}
-function shuffle(arr, rng) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 /* ====== 粒子系统 ====== */
 class Particle {
@@ -103,16 +66,22 @@ class BgParticle {
   }
 }
 
-const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset }, ref) {
+/**
+ * QuantumVerify — 节点序列验证组件
+ *
+ * Props:
+ *   onVerified(answer?)  — 验证完成回调。本地模式无参数；服务端模式传 answer 字符串
+ *   onReset(reason)      — 锁定/重置回调
+ *   serverOrder          — 服务端下发的正确节点顺序（字符串数组），为 null 则本地生成
+ */
+const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset, serverOrder }, ref) {
   const canvasRef = useRef(null);
-  const initAttempts = useRef(getSavedAttempts()).current;
 
   const stateRef = useRef({
     correctOrder: [], userSequence: [], successfulEdges: [],
-    isVerified: false, attemptCount: initAttempts,
+    isVerified: false, attemptCount: 0,
     expireTime: 0, isDragging: false, lastActiveNodeId: null,
     cooldownUntil: 0, hoveredNode: null,
-    // 动画状态
     particles: [],
     bgParticles: [],
     edgeDashOffset: 0,
@@ -120,10 +89,11 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
     shakeX: 0, shakeY: 0, shakeFrames: 0,
     successBurst: false,
     bgInit: false,
+    isServerMode: false,
   });
 
   const [status, setStatus] = useState('按高亮顺序点击节点');
-  const [attempts, setAttempts] = useState(initAttempts);
+  const [attempts, setAttempts] = useState(0);
   const [verified, setVerified] = useState(false);
 
   /* 生成成功点击粒子 */
@@ -158,24 +128,19 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
     const ctx = canvas.getContext('2d');
     const st = stateRef.current;
 
-    // 检测主题
     const theme = document.documentElement.getAttribute('data-theme') || 'light';
     const isDark = theme === 'dark';
     const isColorful = theme === 'colorful';
-    // 主题适配色
     const gridColor = isDark ? 'rgba(100, 120, 150, 0.12)' : isColorful ? 'rgba(140, 100, 180, 0.12)' : 'rgba(168, 216, 240, 0.1)';
     const labelDefault = isDark ? '#A0AAB8' : isColorful ? '#6B5B8A' : '#7F8C9B';
     const nodeDefaultFill = isDark ? '#4A5568' : isColorful ? 'rgba(140, 100, 180, 0.2)' : 'rgba(168, 216, 240, 0.08)';
     const nodeDefaultInner = isDark ? '#718096' : isColorful ? '#9B7DC8' : '#6AAEC8';
-    const centerDot = isDark ? 'rgba(255,255,255,0.8)' : '#fff';
 
-    // 初始化背景粒子
     if (!st.bgInit) {
       for (let i = 0; i < 20; i++) st.bgParticles.push(new BgParticle(canvas.width, canvas.height));
       st.bgInit = true;
     }
 
-    // 抖动偏移
     let sx = 0, sy = 0;
     if (st.shakeFrames > 0) {
       sx = (Math.random() - 0.5) * 6;
@@ -187,10 +152,8 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
     ctx.translate(sx, sy);
     ctx.clearRect(-10, -10, canvas.width + 20, canvas.height + 20);
 
-    // 背景粒子
     for (const p of st.bgParticles) { p.update(); p.draw(ctx); }
 
-    // 网格
     ctx.strokeStyle = gridColor;
     ctx.lineWidth = 0.5;
     st.edgeDashOffset -= 0.3;
@@ -201,7 +164,6 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
       ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
     }
 
-    // 已连接路径 — 流光效果
     for (const edge of st.successfulEdges) {
       const fromN = NODES.find(n => n.id === edge.from);
       const toN = NODES.find(n => n.id === edge.to);
@@ -219,20 +181,16 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
       }
     }
 
-    // 粒子更新 & 绘制
     st.particles = st.particles.filter(p => { p.update(); p.draw(ctx); return !p.dead; });
 
-    // 获取下一个正确节点
     const nextId = !st.isVerified && st.userSequence.length < st.correctOrder.length
       ? st.correctOrder[st.userSequence.length] : null;
 
-    // 节点
     for (const node of NODES) {
       const activated = st.userSequence.includes(node.id);
       const isNext = node.id === nextId;
       const hovered = st.hoveredNode === node.id && !activated;
 
-      // 节点缩放动画
       if (!st.nodeScales[node.id]) st.nodeScales[node.id] = 1;
       const targetScale = activated ? 1.15 : hovered ? 1.08 : 1;
       st.nodeScales[node.id] += (targetScale - st.nodeScales[node.id]) * 0.2;
@@ -242,7 +200,6 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
       ctx.translate(node.x, node.y);
       ctx.scale(sc, sc);
 
-      // 下一个节点：呼吸光圈
       if (isNext) {
         const t = Date.now() / 250;
         const pulse = Math.sin(t) * 0.5 + 0.5;
@@ -250,37 +207,31 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
         ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
         ctx.strokeStyle = `rgba(255, 183, 197, ${0.3 + pulse * 0.4})`;
         ctx.lineWidth = 2; ctx.stroke();
-        // 外扩散环
         const r2 = 32 + pulse * 8;
         ctx.beginPath(); ctx.arc(0, 0, r2, 0, Math.PI * 2);
         ctx.strokeStyle = `rgba(255, 183, 197, ${0.08 + pulse * 0.1})`;
         ctx.lineWidth = 1; ctx.stroke();
       }
 
-      // 悬停外圈
       if (hovered) {
         ctx.beginPath(); ctx.arc(0, 0, 23, 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(168, 216, 240, 0.5)';
         ctx.lineWidth = 2.5; ctx.stroke();
       }
 
-      // 外圈
       ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2);
       ctx.fillStyle = activated ? 'rgba(168, 216, 240, 0.35)' : isNext ? 'rgba(255, 183, 197, 0.2)' : hovered ? 'rgba(168, 216, 240, 0.25)' : nodeDefaultFill;
       ctx.fill();
 
-      // 内圈
       ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2);
       ctx.fillStyle = activated ? '#A8D8F0' : isNext ? '#F0A0B8' : hovered ? '#8CC8E8' : nodeDefaultInner;
       ctx.fill();
 
-      // 中心点 — 闪烁
       const blink = 0.7 + Math.sin(Date.now() / 300 + node.x) * 0.3;
       ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${isDark ? '255,255,255' : '255,255,255'},${blink})`;
+      ctx.fillStyle = `rgba(255,255,255,${blink})`;
       ctx.fill();
 
-      // 标签
       ctx.font = 'bold 15px sans-serif';
       ctx.fillStyle = activated ? '#A8D8F0' : isNext ? '#FFB7C5' : hovered ? '#A8D8F0' : labelDefault;
       ctx.shadowBlur = (activated || isNext || hovered) ? 8 : 2;
@@ -291,7 +242,6 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
       ctx.restore();
     }
 
-    // 水印
     ctx.font = '10px sans-serif';
     ctx.fillStyle = isDark ? 'rgba(160, 170, 185, 0.3)' : isColorful ? 'rgba(100, 80, 140, 0.3)' : 'rgba(127, 140, 155, 0.35)';
     ctx.textAlign = 'right';
@@ -299,7 +249,6 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
     ctx.textAlign = 'start';
 
     if (st.isVerified) {
-      // 验证通过 — 渐入文字
       const elapsed = Date.now() - (st.verifyTime || 0);
       const alpha = Math.min(1, elapsed / 500);
       ctx.globalAlpha = alpha;
@@ -311,7 +260,6 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
       ctx.globalAlpha = 1;
     }
 
-    // 触发验证通过粒子爆炸
     if (st.isVerified && !st.successBurst) {
       st.successBurst = true;
       st.verifyTime = Date.now();
@@ -328,22 +276,52 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
     return () => { running = false; };
   }, [drawCanvas]);
 
-  const generateChallenge = useCallback(() => {
+  /* 初始化挑战（本地模式） */
+  const generateLocalChallenge = useCallback(() => {
     const st = stateRef.current;
-    const seed = Date.now() + Math.random() * 999999;
-    const rng = seededRandom(seed);
-    st.correctOrder = shuffle(['α', 'β', 'γ', 'δ', 'ε'], rng);
+    st.correctOrder = [...NODES].sort(() => Math.random() - 0.5).map(n => n.id);
     st.userSequence = [];
     st.successfulEdges = [];
     st.isVerified = false;
-    st.expireTime = Date.now() + CHALLENGE_TTL;
+    st.expireTime = Date.now() + 30000;
     st.cooldownUntil = 0;
     st.successBurst = false;
     st.verifyTime = 0;
     st.nodeScales = {};
+    st.isServerMode = false;
+    st.attemptCount = 0;
     setVerified(false);
+    setAttempts(0);
     setStatus('按高亮顺序点击节点');
   }, []);
+
+  /* 初始化挑战（服务端模式） */
+  const applyServerChallenge = useCallback((order) => {
+    const st = stateRef.current;
+    st.correctOrder = order;
+    st.userSequence = [];
+    st.successfulEdges = [];
+    st.isVerified = false;
+    st.expireTime = Date.now() + 300000; // 5 min TTL from server
+    st.cooldownUntil = 0;
+    st.successBurst = false;
+    st.verifyTime = 0;
+    st.nodeScales = {};
+    st.isServerMode = true;
+    st.attemptCount = 0;
+    setVerified(false);
+    setAttempts(0);
+    setStatus('按高亮顺序点击节点');
+  }, []);
+
+  /* 根据 serverOrder prop 切换模式 */
+  useEffect(() => {
+    if (serverOrder && Array.isArray(serverOrder) && serverOrder.length > 0) {
+      applyServerChallenge(serverOrder);
+    } else if (!serverOrder) {
+      generateLocalChallenge();
+    }
+  }, [serverOrder, applyServerChallenge, generateLocalChallenge]);
 
   const resetAttempt = useCallback(() => {
     const st = stateRef.current;
@@ -358,7 +336,7 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
 
   useImperativeHandle(ref, () => ({
     reset: resetAttempt,
-    newChallenge: generateChallenge,
+    newChallenge: generateLocalChallenge,
     isVerified: () => stateRef.current.isVerified,
   }));
 
@@ -367,11 +345,14 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
     if (st.isVerified) return success;
     if (success) {
       st.isVerified = true; setVerified(true); setStatus('验证通过');
-      clearAttempts(); onVerified?.(); return true;
+      // 服务端模式: 传 answer 字符串给父组件去后端验证
+      // 本地模式: 直接回调
+      const answer = st.isServerMode ? st.userSequence.join(',') : undefined;
+      onVerified?.(answer);
+      return true;
     }
     st.attemptCount++;
     setAttempts(st.attemptCount);
-    saveAttempts(st.attemptCount);
     triggerShake();
     if (st.attemptCount >= MAX_ATTEMPTS) {
       setStatus('超过最大尝试次数，请5分钟后再试');
@@ -394,25 +375,26 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
     if (st.isVerified) return false;
     if (st.cooldownUntil && Date.now() < st.cooldownUntil) return false;
     if (Date.now() > st.expireTime) {
-      setStatus('挑战已过期，正在刷新...');
-      setTimeout(generateChallenge, 1000); return false;
+      setStatus('挑战已过期');
+      if (!st.isServerMode) {
+        setTimeout(generateLocalChallenge, 1000);
+      }
+      return false;
     }
     if (st.userSequence.includes(nodeId)) return false;
     if (nodeId === st.correctOrder[st.userSequence.length]) {
       const prev = st.userSequence.length > 0 ? st.userSequence[st.userSequence.length - 1] : null;
       st.userSequence.push(nodeId);
       if (prev) st.successfulEdges.push({ from: prev, to: nodeId });
-      // 粒子爆发
       const node = NODES.find(n => n.id === nodeId);
       if (node) spawnHitParticles(node.x, node.y);
-      // 缩放弹跳
       st.nodeScales[nodeId] = 1.4;
       if (st.userSequence.length === st.correctOrder.length) completeVerification(true);
       return true;
     }
     completeVerification(false);
     return false;
-  }, [generateChallenge, completeVerification, spawnHitParticles]);
+  }, [generateLocalChallenge, completeVerification, spawnHitParticles]);
 
   const getNodeUnderCursor = useCallback((clientX, clientY) => {
     const canvas = canvasRef.current;
@@ -430,7 +412,6 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
     const st = stateRef.current;
     if (st.isVerified || st.attemptCount >= MAX_ATTEMPTS) return;
     if (st.cooldownUntil && Date.now() < st.cooldownUntil) return;
-    if (st.showOrderUntil && Date.now() < st.showOrderUntil) return;
     const hit = getNodeUnderCursor(e.clientX, e.clientY);
     if (hit && !st.userSequence.includes(hit)) {
       st.isDragging = true; st.lastActiveNodeId = hit; tryAddNode(hit);
@@ -457,17 +438,7 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
     stateRef.current.isDragging = false; stateRef.current.lastActiveNodeId = null; stateRef.current.hoveredNode = null;
   }, []);
 
-  useEffect(() => { generateChallenge(); }, [generateChallenge]);
-
   const locked = attempts >= MAX_ATTEMPTS;
-
-  // 挂载时检查是否已锁定
-  useEffect(() => {
-    if (initAttempts >= MAX_ATTEMPTS) {
-      setStatus('超过最大尝试次数，请5分钟后再试');
-      onReset?.('locked');
-    }
-  }, []);
 
   return (
     <div className="quantum-verify">
@@ -494,9 +465,11 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset },
             <button type="button" className="btn btn-outline btn-sm" onClick={resetAttempt} style={{ fontSize: '0.65rem', padding: '2px 10px' }}>
               <i className="fa-solid fa-rotate-left" /> 重置
             </button>
-            <button type="button" className="btn btn-outline btn-sm" onClick={generateChallenge} style={{ fontSize: '0.65rem', padding: '2px 10px' }}>
-              <i className="fa-solid fa-bolt" /> 换一题
-            </button>
+            {!stateRef.current.isServerMode && (
+              <button type="button" className="btn btn-outline btn-sm" onClick={generateLocalChallenge} style={{ fontSize: '0.65rem', padding: '2px 10px' }}>
+                <i className="fa-solid fa-bolt" /> 换一题
+              </button>
+            )}
           </div>
         )}
       </div>

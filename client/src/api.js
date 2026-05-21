@@ -94,11 +94,14 @@ export async function loadData() {
 // 认证 Auth
 // =====================================================================
 export const authAPI = {
-  register: async ({ username, password, email, code }) => {
+  register: async ({ username, password, email, code, captchaToken }) => {
     if (USE_API) {
+      const headers = {};
+      if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
       return apiFetch('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify({ email, password, username, code }),
+        headers,
       });
     }
     const users = LS.get('users') || {};
@@ -116,10 +119,13 @@ export const authAPI = {
     return { token: 'local-' + user.id, user: { ...user, password: undefined } };
   },
 
-  sendCode: async ({ email, type }) => {
+  sendCode: async ({ email, type, captchaToken }) => {
+    const headers = {};
+    if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
     return apiFetch('/api/auth/send-code', {
       method: 'POST',
       body: JSON.stringify({ email, type }),
+      headers,
     });
   },
 
@@ -137,11 +143,14 @@ export const authAPI = {
     });
   },
 
-  login: async ({ login, password }) => {
+  login: async ({ login, password, captchaToken }) => {
     if (USE_API) {
+      const headers = {};
+      if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
       return apiFetch('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ login, password }),
+        headers,
       });
     }
     const users = LS.get('users') || {};
@@ -941,5 +950,48 @@ export const followsAPI = {
   following: async (userId, page = 1) => {
     if (USE_API) return apiFetch(`/api/follows/${userId}/following?page=${page}`);
     return { users: [], total: 0 };
+  },
+};
+
+// =====================================================================
+// Captcha 验证码（后端 /api/captcha）
+// =====================================================================
+export const captchaAPI = {
+  /**
+   * 创建验证挑战
+   * @param {string} type - 验证类型，默认 'quantum'
+   * @returns {{ session_id, type, challenge, ttl }}
+   */
+  createChallenge: async (type = 'quantum') => {
+    if (!USE_API) {
+      // 离线模式: 返回空，前端走本地验证
+      return { session_id: null, type, challenge: null, ttl: 300 };
+    }
+    return apiFetch('/api/captcha/challenge', {
+      method: 'POST',
+      body: JSON.stringify({ type }),
+    });
+  },
+
+  /**
+   * 提交验证答案
+   * @param {string} sessionId
+   * @param {string} answer - 逗号分隔的节点顺序
+   * @returns {{ success, token?, attempts_left?, locked?, lock_seconds? }}
+   */
+  verify: async (sessionId, answer) => {
+    if (!USE_API) {
+      // 离线模式: 始终返回成功
+      return { success: true, token: 'offline' };
+    }
+    return apiFetch('/api/captcha/verify', {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId, answer }),
+    });
+  },
+
+  /** 健康检查 */
+  status: async () => {
+    return apiFetch('/api/captcha/status');
   },
 };

@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import QuantumVerify from '../components/QuantumVerify';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { captchaAPI } from '../api';
 
 const FAIL_THRESHOLD = 2; // 失败几次后弹验证码
 
@@ -17,13 +18,62 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [failCount, setFailCount] = useState(0);
+  const [serverOrder, setServerOrder] = useState(null);
+  const [challengeLoading, setChallengeLoading] = useState(false);
   const verifyRef = useRef(null);
+  const sessionIdRef = useRef(null);
+  const captchaTokenRef = useRef(null);
   const { login: authLogin, saveConsent } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
   const needCaptcha = failCount >= FAIL_THRESHOLD;
   const canSubmit = !loading && (!needCaptcha || captchaOk) && !locked;
+
+  const startCaptcha = useCallback(async () => {
+    setCaptchaStarted(true);
+    setChallengeLoading(true);
+    try {
+      const res = await captchaAPI.createChallenge('quantum');
+      if (res.session_id) {
+        sessionIdRef.current = res.session_id;
+      }
+      if (res.challenge?.order) {
+        setServerOrder(res.challenge.order);
+      }
+    } catch (err) {
+      console.error('Failed to create captcha challenge:', err);
+      // 降级到本地模式
+      setServerOrder(null);
+    } finally {
+      setChallengeLoading(false);
+    }
+  }, []);
+
+  const handleCaptchaVerified = useCallback(async (answer) => {
+    const sessionId = sessionIdRef.current;
+    if (sessionId && answer) {
+      // 服务端验证
+      try {
+        const res = await captchaAPI.verify(sessionId, answer);
+        if (res.success) {
+          captchaTokenRef.current = res.token;
+          setCaptchaOk(true);
+        } else if (res.locked) {
+          setLocked(true);
+        } else {
+          toast.error(`验证失败，剩余 ${res.attempts_left} 次机会`);
+        }
+      } catch (err) {
+        console.error('Captcha verify failed:', err);
+        toast.error('验证请求失败，请重试');
+      }
+    } else {
+      // 离线/本地模式
+      captchaTokenRef.current = 'local';
+      setCaptchaOk(true);
+    }
+  }, [toast]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,17 +82,23 @@ export default function Login() {
     if (needCaptcha && !captchaOk) { toast.error('请完成安全验证'); return; }
     try {
       setLoading(true);
-      await authLogin({ login: login.trim(), password });
+      await authLogin({
+        login: login.trim(),
+        password,
+        captchaToken: captchaTokenRef.current || undefined,
+      });
       saveConsent({ privacy: true });
       toast.success('登录成功');
       navigate('/');
     } catch (e) {
       toast.error(e.message);
       setFailCount(c => c + 1);
-      // 失败后重置验证码状态，下次需要重新验证
       if (needCaptcha) {
         setCaptchaOk(false);
         setCaptchaStarted(false);
+        setServerOrder(null);
+        sessionIdRef.current = null;
+        captchaTokenRef.current = null;
       }
     } finally {
       setLoading(false);
@@ -84,20 +140,28 @@ export default function Login() {
                   <p className="text-xs mb-3 text-center" style={{ color: 'var(--text-light)' }}>
                     检测到多次登录失败，请完成安全验证<br />每个节点只能点击一次，5次错误将锁定5分钟
                   </p>
-                  <button type="button" className="btn btn-outline" onClick={() => setCaptchaStarted(true)}>
+                  <button type="button" className="btn btn-outline" onClick={startCaptcha}>
                     <i className="fa-solid fa-play" /> 开始验证
                   </button>
                 </div>
               )}
 
               {captchaStarted && !captchaOk && !locked && (
-                <div className="flex-1 flex items-center justify-center overflow-hidden">
-                  <QuantumVerify
-                    ref={verifyRef}
-                    onVerified={() => setCaptchaOk(true)}
-                    onReset={(reason) => { if (reason === 'locked') setLocked(true); }}
-                  />
-                </div>
+                challengeLoading ? (
+                  <div className="flex-1 flex flex-col items-center justify-center">
+                    <div className="cap-loading-ring" />
+                    <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>正在加载验证...</p>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center overflow-hidden">
+                    <QuantumVerify
+                      ref={verifyRef}
+                      serverOrder={serverOrder}
+                      onVerified={handleCaptchaVerified}
+                      onReset={(reason) => { if (reason === 'locked') setLocked(true); }}
+                    />
+                  </div>
+                )
               )}
 
               {(captchaOk || locked) && (
