@@ -437,8 +437,7 @@ export default function Profile() {
       </div>
 
       {/* 穿过的纸尿裤 */}
-      {wornCount > 0 && (
-        <div className="card mb-5">
+      <div className="card mb-5">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => setShowWorn(!showWorn)}
@@ -480,7 +479,6 @@ export default function Profile() {
             </div>
           )}
         </div>
-      )}
     </PageLayout>
     </>
   );
