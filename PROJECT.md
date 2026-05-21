@@ -1,6 +1,6 @@
 # ABDL Space V2 — 项目档案
 
-> 最后更新：2026-05-20（收工更新）
+> 最后更新：2026-05-22（收工更新）
 > 维护目的：防止上下文丢失后无法快速恢复项目理解
 
 ---
@@ -10,8 +10,8 @@
 ABDL Space V2 是一个面向 ABDL（Adult Baby Diaper Lover）社区的中文 Web 平台，核心功能包括纸尿裤评价、排行榜、AI 智能推荐、社区论坛、私信系统等。
 
 - **项目名称**：ABDL Space v2
-- **当前版本**：v2.9.0
-- **部署平台**：Vercel（前端）、Cloudflare Pages（备用）
+- **当前版本**：v2.20.2
+- **部署平台**：Cloudflare Pages（前端）、Cloudflare Worker（后端 API）
 - **生产域名**：`abdl-space.top`（前端），`api.abdl-space.top`（后端 API）
 - **代码仓库**：`/home/ZYongX/projects/abdl-space-v2/`（本地），GitHub 由用户管理
 
@@ -224,9 +224,9 @@ abdl-space-v2/
 | `/terms` | TermsOfService | 用户协议 |
 | `/login` | Login | 登录 |
 | `/register` | Register | 注册 |
-| `/profile` | Profile | 个人中心 |
-| `/profile/:id` | Profile | 用户主页 |
-| `/user/:id` | Profile | 用户主页（兼容路由） |
+| `/profile` | ProfilePageV2 | 个人中心（新版本） |
+| `/profile/:id` | ProfilePageV2 | 用户主页 |
+| `/user/:id` | ProfilePageV2 | 用户主页（兼容路由） |
 | `/user/:id/followers` | FollowersPage | 粉丝列表 |
 | `/user/:id/following` | FollowersPage | 关注列表 |
 | `/settings` | Settings | 设置 |
@@ -234,6 +234,10 @@ abdl-space-v2/
 | `/notifications` | NotificationsPage | 通知 |
 | `/admin` | AdminPage | 管理后台 |
 | `/external` | ExternalLink | 外部链接跳转 |
+| `/profile-legacy` | Profile | 旧版个人中心（仅管理员） |
+| `/captcha-api` | CaptchaApiPage | 验证码 API Key 管理（隐藏页面） |
+| `/oauth/authorize` | OAuthAuthorize | OAuth 授权同意页 |
+| `/oauth-clients` | OAuthClientsPage | OAuth 应用管理（隐藏页面） |
 
 ---
 
@@ -242,6 +246,8 @@ abdl-space-v2/
 - `VITE_API_BASE`：API 基础地址（为空时走离线/localStorage 模式）
   - 生产：`https://api.abdl-space.top`
   - 本地后端：`http://localhost:8787`
+- `VITE_CAPTCHA_KEY`：Captcha API Key（用于嵌入式 SDK，主站自己用）
+- `VITE_MAIN_SITE`：主站地址（`https://abdl-space.top`）
 
 ---
 
@@ -249,9 +255,16 @@ abdl-space-v2/
 
 | 项目 | 说明 | 部署 |
 |------|------|------|
-| abdl-space-v2（本项目） | 用户的 web 前端 | Vercel / Cloudflare Pages |
-| zhx589/abdl-space | 朋友的 wiki 前端 + API Worker | Cloudflare |
-| abdl-space-upload-proxy | 图床代理 Worker（未部署） | 待部署 |
+| abdl-space-v2（本项目） | 用户的 web 前端 | Cloudflare Pages（`abdl-space.top`） |
+| zhx589/abdl-space | 朋友的 wiki 前端 + API Worker | Cloudflare Worker + Pages |
+| abdl-space-open-platform | 开放平台 | Cloudflare Pages（`open.abdl-space.top`） |
+
+### 开放平台
+- **仓库**：`ZYongX09/abdl-space-open-platform`（GitHub）
+- **本地目录**：`/home/ZYongX/projects/abdl-space-open-platform/`
+- **技术栈**：Vite + React
+- **功能**：验证码 API Key 管理、OAuth 应用管理、API 文档
+- **登录**：作为 ABDL-Space 的 OAuth 客户端（PKCE）
 
 ### Cloudflare 账户
 - **用户自己的账户**：`496b8cd5e81555f84350d21a703dde55`
@@ -266,9 +279,47 @@ abdl-space-v2/
 
 ## 📋 待办事项
 
-- [ ] **abdl-space 后端恢复**：被误部署覆盖，需要朋友重新部署后端
-- [ ] **图床自定义域名**：img.abdl-space.top 的 CNAME 跨账户方案（CF Error 1014）未解决。代理 Worker 项目已创建在 `/home/ZYongX/projects/abdl-space-upload-proxy/`
-- [ ] **安全验证接入 Cloudflare**：计划将 CAPTCHA 迁移到 Cloudflare 平台
+- [ ] **图床自定义域名**：img.abdl-space.top 的 CNAME 跨账户方案（CF Error 1014）未解决
+- [x] **安全验证接入 Cloudflare**：已迁移到 ABDLCaptcha 嵌入式 SDK（v2.14.0）
+- [x] **ProfilePageV2 迁移**：已正式替代旧版（v2.20.0），旧版保留为 /profile-legacy（仅管理员）
+- [x] **验证码系统**：后端 CaptchaService + 嵌入式 SDK + API Key 管理
+- [x] **OAuth 2.0 系统**：授权码 + PKCE + 开放平台集成
+- [ ] **img.abdl-space.top 加 CORS 头**：当前无 CORS 头
+- [ ] **纸尿裤图片数据库建表**：diaper_images 表需在 D1 执行建表 SQL
+
+---
+
+## 🆕 v2.10+ 新增功能摘要
+
+### 验证码系统 (v2.10-v2.14)
+- 后端 CaptchaService：challenge 生成、answer 哈希校验、一次性 JWT
+- 嵌入式 SDK (`embed.js`)：第三方一行代码嵌入
+- API Key 管理页面（`/captcha-api`，隐藏）
+- 主站全面迁移到 SDK（Login/Register/VerifyModal）
+
+### OAuth 2.0 (v2.12)
+- 标准授权码 + PKCE 支持
+- 公开客户端/机密客户端双模式
+- 授权同意页（`/oauth/authorize`）
+- Client 管理页面（`/oauth-clients`，隐藏）
+
+### 穿过的纸尿裤 (v2.15)
+- 评分即标记穿过
+- 个人中心显示穿过数量 + 列表
+- `GET /api/users/:id/worn` 接口
+
+### ProfilePageV2 (v2.16-v2.20)
+- 全新个人中心设计
+- MIUI 风格动画（弹性缓动 + 交错入场）
+- 桌面端专项适配（双栏布局）
+- 移动端优化
+- v2.20.0 正式替代旧版
+
+### 开放平台
+- 独立项目 `abdl-space-open-platform`
+- OAuth PKCE 登录
+- 验证码 Key + OAuth App 管理
+- API 文档
 
 ---
 

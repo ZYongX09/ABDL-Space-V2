@@ -126,12 +126,12 @@ export default function PostDetail() {
             return { url: item.url, is_nsfw: !!item.is_nsfw };
           });
         }
-        await forumAPI.comment(id, { content: commentText.trim(), images: imageData.length > 0 ? imageData : undefined });
+        await forumAPI.comment(id, { content: commentText.trim(), images: imageData.length > 0 ? imageData : undefined, captchaToken: tokenRef.current });
         lastCommentTime.current = Date.now();
         setCooldown(15);
         setCommentText('');
         imgRef.current?.clear();
-        toast.success(imageUrls.length > 0 ? '图片上传完成，评论成功！' : '评论成功');
+        toast.success(imageData.length > 0 ? '图片上传完成，评论成功！' : '评论成功');
         const data = await forumAPI.getPost(id);
         setComments(data.comments || []);
       } catch (e) {

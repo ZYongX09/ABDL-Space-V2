@@ -540,9 +540,11 @@ export const forumAPI = {
     return { message: '已修改' };
   },
 
-  comment: async (postId, { content, parent_id, images }) => {
+  comment: async (postId, { content, parent_id, images, captchaToken }) => {
     if (USE_API) {
-      const result = await apiFetch(`/api/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ content, parent_id, images }) });
+      const headers = {};
+      if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
+      const result = await apiFetch(`/api/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ content, parent_id, images }), headers });
       cacheInvalidate(`post:${postId}`);
       return result;
     }

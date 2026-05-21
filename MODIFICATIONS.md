@@ -294,3 +294,38 @@
 
 > 📌 **使用说明**：每次修改项目后，AI 助手会在此文件顶部添加新条目。
 > 条目包含：日期时间、修改类型、具体内容、涉及文件、修改原因/背景。
+
+---
+
+### 2026-05-21 验证码系统 + OAuth + 开放平台 + 个人中心 v2
+
+**验证码系统对接后端 (v2.10.0)**
+- QuantumVerify 支持 serverOrder prop
+- VerifyModal 改为服务端模式
+- Login/Register 集成后端验证
+- api.js 新增 captchaAPI
+
+**Captcha API 管理页面 (v2.11.0)**
+- `/captcha-api` 隐藏页面
+- API Key CRUD 管理
+- 内嵌 API 文档
+
+**OAuth 2.0 系统 (v2.12.0)**
+- `/oauth/authorize` 授权同意页
+- `/oauth-clients` Client 管理页面
+- 支持 PKCE 公开客户端
+
+**全面改用 ABDLCaptcha SDK (v2.14.0)**
+- index.html 引入 embed.js
+- VerifyModal/Login/Register/ForgotPassword/AccountPrivacy 统一使用 SDK
+- 删除 QuantumVerify 组件依赖
+
+**穿过的纸尿裤 (v2.15.0)**
+- 个人中心显示穿过数量 + 列表
+- ProfilePageV2 新增穿过标签页
+
+**ProfilePageV2 全面升级 (v2.16-v2.20)**
+- MIUI 风格动画（弹性缓动 + 交错入场）
+- 桌面端专项适配（双栏布局：左侧用户卡片 + 右侧内容区）
+- 点击头像/用户名跳转 /account
+- v2.20.0 正式替代旧版，旧版保留为 /profile-legacy（仅管理员）

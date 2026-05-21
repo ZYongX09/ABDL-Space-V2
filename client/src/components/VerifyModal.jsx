@@ -32,6 +32,10 @@ export function useVerifyModal() {
   const cleanup = useCallback(() => {
     setShow(false); setAnimState('hidden');
     actionRef.current = null;
+    if (rendererRef.current && typeof rendererRef.current.destroy === 'function') {
+      try { rendererRef.current.destroy(); } catch (e) { console.warn('[VerifyModal] renderer.destroy failed:', e); }
+    }
+    rendererRef.current = null;
     if (containerRef.current) containerRef.current.innerHTML = '';
   }, []);
 
