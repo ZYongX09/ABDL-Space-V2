@@ -14,7 +14,7 @@ export default function CookieConsent() {
       try {
         const data = JSON.parse(consent);
         if (data.accepted) loadBaiduAnalytics();
-      } catch {}
+      } catch { /* ignore malformed data */ }
     }
   }, []);
 

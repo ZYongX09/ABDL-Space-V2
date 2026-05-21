@@ -33,10 +33,10 @@ export function useVerifyModal() {
     setShow(false); setAnimState('hidden');
     actionRef.current = null;
     if (rendererRef.current && typeof rendererRef.current.destroy === 'function') {
-      try { rendererRef.current.destroy(); } catch (e) { console.warn('[VerifyModal] renderer.destroy failed:', e); }
+      try { rendererRef.current.destroy(); } catch (e) { /* silent */ }
     }
     rendererRef.current = null;
-    if (containerRef.current) containerRef.current.innerHTML = '';
+    if (containerRef.current) containerRef.current.textContent = '';
   }, []);
 
   const trigger = useCallback((onPass) => {
@@ -52,37 +52,33 @@ export function useVerifyModal() {
     if (!show || !sdkReady || !containerRef.current) return;
 
     // 清空容器
-    containerRef.current.innerHTML = '';
+    containerRef.current.textContent = '';
 
     // 从环境变量或配置获取 API Key
     const apiKey = window.__ABDL_CAPTCHA_KEY || '';
 
     try {
-      console.log('[VerifyModal] rendering ABDLCaptcha, apiKey:', apiKey ? apiKey.slice(0, 11) + '...' : 'EMPTY');
       rendererRef.current = window.ABDLCaptcha.render(containerRef.current, {
         apiKey,
         onSuccess: (token) => {
-          console.log('[VerifyModal] onSuccess, token:', token ? token.slice(0, 20) + '...' : 'EMPTY');
           tokenRef.current = token;
           const action = actionRef.current;
-          console.log('[VerifyModal] action exists:', !!action);
           setTimeout(() => {
             setAnimState('exiting');
             setTimeout(() => {
               setShow(false);
               setAnimState('hidden');
-              if (containerRef.current) containerRef.current.innerHTML = '';
-              console.log('[VerifyModal] calling action');
+              if (containerRef.current) containerRef.current.textContent = '';
               if (action) { action(); actionRef.current = null; }
             }, 250);
           }, 600);
         },
-        onError: (err) => {
-          console.error('Captcha error:', err);
+        onError: () => {
+          /* silent */
         },
       });
     } catch (err) {
-      console.error('ABDLCaptcha.render failed:', err);
+      /* render 失败不影响业务流程，用户可关闭弹窗重试 */
     }
   }, [show, sdkReady, cleanup]);
 
