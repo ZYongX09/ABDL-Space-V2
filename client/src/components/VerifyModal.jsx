@@ -58,12 +58,18 @@ export function useVerifyModal() {
       rendererRef.current = window.ABDLCaptcha.render(containerRef.current, {
         apiKey,
         onSuccess: (token) => {
+          console.log('[VerifyModal] onSuccess, token:', token ? token.slice(0, 20) + '...' : 'EMPTY');
           tokenRef.current = token;
+          const action = actionRef.current;
+          console.log('[VerifyModal] action exists:', !!action);
           setTimeout(() => {
             setAnimState('exiting');
             setTimeout(() => {
-              cleanup();
-              if (actionRef.current) { actionRef.current(); actionRef.current = null; }
+              setShow(false);
+              setAnimState('hidden');
+              if (containerRef.current) containerRef.current.innerHTML = '';
+              console.log('[VerifyModal] calling action');
+              if (action) { action(); actionRef.current = null; }
             }, 250);
           }, 600);
         },
