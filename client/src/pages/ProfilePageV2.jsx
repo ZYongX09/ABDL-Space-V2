@@ -663,15 +663,16 @@ export default function ProfilePageV2() {
     if (!targetId) return;
     (async () => {
       try {
-        const [fData, pData, wData] = await Promise.all([
-          followsAPI.status(targetId).catch(() => ({ followers: 0, following: 0 })),
+        const [followersData, followingData, pData, wData] = await Promise.all([
+          followsAPI.followers(targetId).catch(() => ({ total: 0 })),
+          followsAPI.following(targetId).catch(() => ({ total: 0 })),
           forumAPI.list({ user_id: targetId, limit: 1 }).catch(() => ({ total: 0 })),
           usersAPI.getWorn(targetId).catch(() => ({ total: 0 })),
         ]);
         setCounts({
           posts: pData.total ?? pData.posts?.length ?? 0,
-          followers: fData.followers ?? 0,
-          following: fData.following ?? 0,
+          followers: followersData.total ?? 0,
+          following: followingData.total ?? 0,
           worn: wData.total ?? 0,
         });
       } catch {}
