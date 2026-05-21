@@ -602,6 +602,8 @@ export default function ProfilePageV2() {
   const [postsLoading, setPostsLoading] = useState(false);
   const [counts, setCounts] = useState({ posts: 0, followers: 0, following: 0, worn: 0 });
   const [activeTab, setActiveTab] = useState('posts');
+  const [wornDiapers, setWornDiapers] = useState([]);
+  const [wornLoading, setWornLoading] = useState(false);
   const [likedPosts, setLikedPosts] = useState([]);
   const [likedLoading, setLikedLoading] = useState(false);
 
@@ -633,6 +635,22 @@ export default function ProfilePageV2() {
         console.error(e);
       } finally {
         setPostsLoading(false);
+      }
+    })();
+  }, [targetId, activeTab]);
+
+  // 加载穿过的纸尿裤
+  useEffect(() => {
+    if (!targetId || activeTab !== 'worn') return;
+    (async () => {
+      try {
+        setWornLoading(true);
+        const data = await usersAPI.getWorn(targetId);
+        setWornDiapers(data.worn || []);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setWornLoading(false);
       }
     })();
   }, [targetId, activeTab]);
@@ -761,6 +779,7 @@ export default function ProfilePageV2() {
       <PillTabs
         tabs={[
           { key: 'posts', label: '帖子' },
+          { key: 'worn', label: '穿过' },
         ]}
         active={currentActiveTab}
         onChange={setActiveTab}
@@ -768,7 +787,34 @@ export default function ProfilePageV2() {
 
       {/* 5. 内容列表 */}
       <div style={S.postList}>
-        {currentLoading ? (
+        {activeTab === 'worn' ? (
+          wornLoading ? (
+            <LoadingSkeleton count={3} height={80} />
+          ) : wornDiapers.length === 0 ? (
+            <div style={S.emptyState}>
+              <i className="fa-solid fa-shirt" style={{ fontSize: '36px', marginBottom: '12px', opacity: 0.3, display: 'block' }} />
+              <p style={{ fontSize: '14px' }}>{isSelf ? '还没有穿过纸尿裤' : 'TA 还没有穿过纸尿裤'}</p>
+            </div>
+          ) : (
+            wornDiapers.map((d, i) => (
+              <div key={i} style={{ background: 'var(--bg-card)', borderRadius: '12px', padding: '14px 16px', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>{d.diaper_name}</span>
+                    {d.brand && <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{d.brand}</span>}
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    评分于 {new Date(d.rated_at).toLocaleDateString('zh-CN')}
+                  </p>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
+                  <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--primary-dark)' }}>{d.avg_score}</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>/5</span>
+                </div>
+              </div>
+            ))
+          )
+        ) : currentLoading ? (
           <LoadingSkeleton count={3} height={120} />
         ) : currentPosts.length === 0 ? (
           <div style={S.emptyState}>
