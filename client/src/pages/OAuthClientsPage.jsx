@@ -37,7 +37,7 @@ export default function OAuthClientsPage() {
   // 表单
   const [form, setForm] = useState({
     name: '', description: '', logo_url: '', homepage_url: '',
-    redirect_uris: '', scopes: ['profile'],
+    redirect_uris: '', scopes: ['profile'], public_client: false,
   });
 
   useEffect(() => {
@@ -56,7 +56,7 @@ export default function OAuthClientsPage() {
   useEffect(() => { if (user) loadClients(); }, [user, loadClients]);
 
   const resetForm = () => {
-    setForm({ name: '', description: '', logo_url: '', homepage_url: '', redirect_uris: '', scopes: ['profile'] });
+    setForm({ name: '', description: '', logo_url: '', homepage_url: '', redirect_uris: '', scopes: ['profile'], public_client: false });
     setEditing(null);
     setShowCreate(false);
   };
@@ -71,9 +71,15 @@ export default function OAuthClientsPage() {
           name: form.name, description: form.description || undefined,
           logo_url: form.logo_url || undefined, homepage_url: form.homepage_url || undefined,
           redirect_uris: uris, scopes: form.scopes,
+          public_client: form.public_client,
         }),
       });
-      setShowSecret({ client_id: res.client.client_id, secret: res.raw_secret });
+      if (res.raw_secret) {
+        setShowSecret({ client_id: res.client.client_id, secret: res.raw_secret });
+      } else {
+        setShowSecret(null);
+        toast.success('公开客户端创建成功（无需 Secret）');
+      }
       resetForm();
       loadClients();
       toast.success('OAuth 应用创建成功');
@@ -115,6 +121,7 @@ export default function OAuthClientsPage() {
       homepage_url: client.homepage_url || '',
       redirect_uris: client.redirect_uris.join('\n'),
       scopes: client.scopes,
+      public_client: client.token_endpoint_auth_method === 'none',
     });
     setShowCreate(true);
   };
@@ -198,6 +205,16 @@ export default function OAuthClientsPage() {
                   ))}
                 </div>
               </div>
+              <div>
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input type="checkbox" checked={form.public_client}
+                    onChange={e => setForm(f => ({ ...f, public_client: e.target.checked }))}
+                    className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[var(--primary-dark)]" />
+                  <span className="text-xs leading-relaxed" style={{ color: 'var(--text-light)' }}>
+                    公开客户端（PKCE）— 适用于 SPA / 移动端，无需 Client Secret
+                  </span>
+                </label>
+              </div>
               <div className="flex gap-2 pt-1">
                 <button className="btn btn-primary btn-sm" onClick={editing ? handleUpdate : handleCreate}>
                   {editing ? '保存' : '创建'}
@@ -261,6 +278,9 @@ export default function OAuthClientsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-sm truncate">{cl.name}</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: cl.token_endpoint_auth_method === 'none' ? 'rgba(67,97,238,0.1)' : 'rgba(255,209,102,0.15)', color: cl.token_endpoint_auth_method === 'none' ? 'var(--primary)' : '#b8860b' }}>
+                          {cl.token_endpoint_auth_method === 'none' ? '公开 (PKCE)' : '机密'}
+                        </span>
                         {!cl.active && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--danger-bg, #fde8e8)', color: 'var(--danger)' }}>已禁用</span>}
                       </div>
                       {cl.description && <p className="text-xs mt-0.5 line-clamp-1" style={{ color: 'var(--text-muted)' }}>{cl.description}</p>}
