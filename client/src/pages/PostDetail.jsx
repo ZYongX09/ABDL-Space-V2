@@ -33,7 +33,7 @@ export default function PostDetail() {
   const lastCommentTime = useRef(0);
   const { user } = useAuth();
   const toast = useToast();
-  const { trigger, VerifyModal } = useVerifyModal();
+  const { trigger, VerifyModal, captchaToken } = useVerifyModal();
 
   const isOwner = user && user.id === post?.user?.id;
   const isAdmin = user?.role === 'admin';
@@ -126,7 +126,7 @@ export default function PostDetail() {
             return { url: item.url, is_nsfw: !!item.is_nsfw };
           });
         }
-        await forumAPI.comment(id, { content: commentText.trim(), images: imageData.length > 0 ? imageData : undefined, captchaToken: tokenRef.current });
+        await forumAPI.comment(id, { content: commentText.trim(), images: imageData.length > 0 ? imageData : undefined, captchaToken: captchaToken.current });
         lastCommentTime.current = Date.now();
         setCooldown(15);
         setCommentText('');
