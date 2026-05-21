@@ -666,11 +666,11 @@ export default function ProfilePageV2() {
         const [followersData, followingData, pData, wData] = await Promise.all([
           followsAPI.followers(targetId).catch(() => ({ total: 0 })),
           followsAPI.following(targetId).catch(() => ({ total: 0 })),
-          forumAPI.list({ user_id: targetId, limit: 1 }).catch(() => ({ total: 0 })),
+          forumAPI.feed({ user_id: targetId, limit: 1 }).catch(() => ({ total: 0 })),
           usersAPI.getWorn(targetId).catch(() => ({ total: 0 })),
         ]);
         setCounts({
-          posts: pData.total ?? pData.posts?.length ?? 0,
+          posts: pData.pagination?.total ?? pData.posts?.length ?? 0,
           followers: followersData.total ?? 0,
           following: followingData.total ?? 0,
           worn: wData.total ?? 0,
