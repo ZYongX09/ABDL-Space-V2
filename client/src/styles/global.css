@@ -704,10 +704,9 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .sidebar-placeholder {
   width: 64px;
   flex-shrink: 0;
-  transition: width 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .sidebar-placeholder.expanded {
-  width: 240px;
+  width: 64px;
 }
 
 /* 毛玻璃遮罩 — 覆盖内容区 */
