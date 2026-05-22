@@ -46,6 +46,7 @@ export default function AdminPage() {
   const [showBrandForm, setShowBrandForm] = useState(false);
   const [editingBrand, setEditingBrand] = useState(null);
   const [brandSaving, setBrandSaving] = useState(false);
+  const [brandUploading, setBrandUploading] = useState(false);
 
   useEffect(() => {
     if (user?.role !== 'admin') { setLoading(false); return; }
@@ -521,14 +522,15 @@ export default function AdminPage() {
                     {brandForm.logo && <img src={brandForm.logo} alt="" className="w-12 h-12 object-contain rounded-lg" style={{ background: 'var(--input-bg)' }} />}
                     <input type="file" accept="image/*" className="text-sm" onChange={async e => {
                       const file = e.target.files?.[0]; if (!file) return;
-                      try { const url = await uploadImage(file); console.log('[brand] upload URL:', url); setBrandForm(f => ({ ...f, logo: url })); toast.success('上传成功'); } catch(err) { console.error('[brand] upload error:', err); toast.error('上传失败'); }
+                      setBrandUploading(true);
+                      try { const url = await uploadImage(file); setBrandForm(f => ({ ...f, logo: url })); toast.success('上传成功'); } catch(err) { toast.error('上传失败'); } finally { setBrandUploading(false); }
                     }} />
+                    {brandUploading && <span className="text-xs" style={{ color: 'var(--primary-dark)' }}>上传中...</span>}
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <button className="btn btn-primary" onClick={async () => {
                     if (!brandForm.name.trim()) { toast.error('品牌名称为必填'); return; }
-                    console.log('[brand] saving:', { name: brandForm.name.trim(), logo: brandForm.logo });
                     setBrandSaving(true);
                     try {
                       await adminAPI.saveBrand({ name: brandForm.name.trim(), logo: brandForm.logo });
@@ -537,7 +539,7 @@ export default function AdminPage() {
                       loadTab('brands');
                     } catch (e) { toast.error(e.message); }
                     finally { setBrandSaving(false); }
-                  }} disabled={brandSaving}>{brandSaving ? '保存中...' : '保存'}</button>
+                  }} disabled={brandSaving || brandUploading}>{brandSaving ? '保存中...' : brandUploading ? '上传中...' : '保存'}</button>
                   <button className="btn btn-outline" onClick={() => setShowBrandForm(false)}>取消</button>
                 </div>
               </div>
