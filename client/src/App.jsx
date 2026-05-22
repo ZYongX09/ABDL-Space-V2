@@ -108,6 +108,7 @@ function AdminOnlyProfile() {
 export default function App() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { pathname } = useLocation();
   useExternalLinkInterceptor();
 
   // 全局键盘快捷键
