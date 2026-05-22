@@ -523,7 +523,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   background: var(--bg-card);
   border-radius: calc(var(--radius-sm) - 4px);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 0.5px 1px rgba(0, 0, 0, 0.04);
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), width 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
   z-index: 1;
   pointer-events: none;
 }
@@ -536,25 +536,29 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
-/* 标签内容切换动画 */
+/* 标签内容切换 — 方向感知滑动 */
 .miui-tab-content {
   position: relative;
   overflow: hidden;
 }
 .miui-tab-content > div {
-  animation: tabFadeIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: tabSlideRight 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.miui-tab-content > .tab-slide-left {
+  animation: tabSlideLeft 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.miui-tab-content > .tab-slide-right {
+  animation: tabSlideRight 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes tabSlideLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes tabSlideRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
-@keyframes tabFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 /* 页面切换入场 */
 .page-transition-enter {
