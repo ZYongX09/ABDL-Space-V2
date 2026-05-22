@@ -38,7 +38,7 @@ export default function Home() {
     <MobileHeader title="纸尿裤" />
     <PageLayout hero={{ icon: 'fa-baby', title: '纸尿裤列表', subtitle: '发现最适合你的纸尿裤' }}>
       {/* 搜索筛选 */}
-      <div className="flex gap-3 mb-5 flex-wrap miui-card-in" style={{ animationDelay: '0.06s' }}>
+      <div className="flex gap-3 mb-5 flex-wrap">
         <div className="flex-1 min-w-[180px] miui-input-group">
           <input
             className="form-control"

@@ -37,7 +37,7 @@ export default function Rankings() {
     <MobileHeader title="排行榜" />
     <PageLayout hero={{ icon: 'fa-trophy', title: '排行榜', subtitle: '社区纸尿裤排名' }}>
       {/* 标签 */}
-      <div className="flex gap-2 mb-5 flex-wrap miui-card-in" style={{ animationDelay: '0.06s' }}>
+      <div className="flex gap-2 mb-5 flex-wrap">
         {TABS.map(t => (
           <button
             key={t.key}

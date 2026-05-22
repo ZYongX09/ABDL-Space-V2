@@ -90,7 +90,7 @@ export default function ForumFeed() {
     />
     <PageLayout hero={{ icon: 'fa-comments', title: '广场', subtitle: '分享你的 ABDL 生活' }}>
       {/* 搜索 + 发帖 */}
-      <div className="flex gap-3 mb-5 flex-wrap miui-card-in" style={{ animationDelay: '0.06s' }}>
+      <div className="flex gap-3 mb-5 flex-wrap">
         <div className="flex-1 min-w-[200px] miui-input-group">
           <input
             className="form-control"

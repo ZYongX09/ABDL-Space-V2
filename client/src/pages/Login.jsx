@@ -88,7 +88,7 @@ export default function Login() {
 
   return (
     <PageLayout hero={{ icon: 'fa-right-to-bracket', title: '登录', subtitle: '欢迎回到 ABDL Space' }}>
-      <div className="card max-w-md mx-auto miui-card-in">
+      <div className="card max-w-md mx-auto">
         <form onSubmit={handleSubmit}>
           <div className="mb-4 miui-input-group">
             <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>用户名 / 邮箱</label>

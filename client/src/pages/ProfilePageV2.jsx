@@ -48,26 +48,6 @@ const MIUI_STYLES = `
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@keyframes miuiPulse {
-  0% { box-shadow: 0 4px 20px rgba(168, 216, 240, 0.35); }
-  50% { box-shadow: 0 4px 30px rgba(168, 216, 240, 0.6); }
-  100% { box-shadow: 0 4px 20px rgba(168, 216, 240, 0.35); }
-}
-@keyframes miuiShimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-.miui-enter { animation: miuiFadeInUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-.miui-enter-delay-1 { animation-delay: 0.06s; }
-.miui-enter-delay-2 { animation-delay: 0.12s; }
-.miui-enter-delay-3 { animation-delay: 0.18s; }
-.miui-enter-delay-4 { animation-delay: 0.24s; }
-.miui-enter-delay-5 { animation-delay: 0.30s; }
-.miui-scale-in { animation: miuiScaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-.miui-slide-right { animation: miuiSlideInRight 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
-.miui-slide-left { animation: miuiSlideInLeft 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
-.miui-count-up { animation: miuiCountUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-.miui-pulse { animation: miuiPulse 2s ease-in-out infinite; }
 `;
 
 function useMIUIAnim(mounted, delay = 0) {
@@ -659,7 +639,7 @@ function PostCard({ post, onClick, index = 0 }) {
 
   return (
     <div
-      className="miui-enter"
+     
       style={{ ...S.postCard, animationDelay: `${0.06 * (index || 0)}s` }}
       onClick={onClick}
       onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
@@ -970,7 +950,7 @@ export default function ProfilePageV2() {
         <div style={S.desktopContainer}>
           {/* 左侧 */}
           <div style={S.desktopSidebar}>
-            <div style={S.desktopSidebarCard} className="miui-enter">
+            <div style={S.desktopSidebarCard}>
               <div style={{ position: 'relative', ...(isSelf ? { cursor: 'pointer' } : {}) }} onClick={isSelf ? () => navigate('/account') : undefined}>
                 {displayUser.avatar ? <img src={displayUser.avatar} alt="" style={S.desktopAvatar} /> : <div style={S.desktopAvatarFallback}>{displayUser.username?.[0]?.toUpperCase() || '?'}</div>}
                 {isSelf && <div style={{ position: 'absolute', bottom: 2, right: 2, width: '28px', height: '28px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-card)', fontSize: '11px', color: '#fff' }}><i className="fa-solid fa-camera" /></div>}
@@ -997,7 +977,7 @@ export default function ProfilePageV2() {
                 </button>
               )}
             </div>
-            <div style={S.desktopCard} className="miui-enter miui-enter-delay-1">
+            <div style={S.desktopCard}>
               <div style={{ padding: '16px 20px' }}>
                 <InfoCard user={displayUser} />
               </div>
@@ -1006,7 +986,7 @@ export default function ProfilePageV2() {
 
           {/* 右侧 */}
           <div style={S.desktopMain}>
-            <div style={S.desktopCard} className="miui-enter miui-enter-delay-2">
+            <div style={S.desktopCard}>
               {/* Tabs */}
               <div style={S.desktopTabs}>
                 {desktopTabs.map(tab => (
@@ -1025,7 +1005,7 @@ export default function ProfilePageV2() {
                       <p>{isSelf ? '还没有穿过纸尿裤' : 'TA 还没有穿过纸尿裤'}</p>
                     </div>
                   ) : wornDiapers.map((d, i) => (
-                    <div key={i} className="miui-enter" style={{ ...S.desktopPostCard, animationDelay: `${0.06 * i}s` }}>
+                    <div key={i} style={{ ...S.desktopPostCard, animationDelay: `${0.06 * i}s` }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1053,7 +1033,7 @@ export default function ProfilePageV2() {
                     )}
                   </div>
                 ) : currentPosts.map((post, i) => (
-                  <div key={post.id} className="miui-enter" style={{ ...S.desktopPostCard, animationDelay: `${0.06 * i}s` }} onClick={() => navigate(`/forum/${post.id}`)}>
+                  <div key={post.id} style={{ ...S.desktopPostCard, animationDelay: `${0.06 * i}s` }} onClick={() => navigate(`/forum/${post.id}`)}>
                     {post.title && <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text)', marginBottom: '6px' }}>{post.title}</div>}
                     <p style={{ fontSize: '13px', color: 'var(--text)', lineHeight: 1.6, marginBottom: '8px' }} className="line-clamp-2">{post.content}</p>
                     <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>
@@ -1067,7 +1047,7 @@ export default function ProfilePageV2() {
             </div>
 
             {!isSelf && (
-              <div style={{ ...S.desktopCard, padding: '16px 20px', display: 'flex', gap: '12px' }} className="miui-enter miui-enter-delay-3">
+              <div style={{ ...S.desktopCard, padding: '16px 20px', display: 'flex', gap: '12px' }}>
                 <button style={S.actionBtn} onClick={() => navigate('/messages')}>
                   <i className="fa-solid fa-envelope" /> 发私信
                 </button>
@@ -1083,7 +1063,7 @@ export default function ProfilePageV2() {
   return (
     <div style={{ ...S.page, ...S.pageMobile }}>
       {/* 1. 顶部标题栏 */}
-      <div style={S.topBar} className="miui-enter">
+      <div style={S.topBar}>
         <span style={S.topTitle}>个人中心</span>
         {isSelf && (
           <button
@@ -1097,11 +1077,11 @@ export default function ProfilePageV2() {
       </div>
 
       {/* 2. 用户信息核心区域 */}
-      <div style={S.userCore} className="miui-enter miui-enter-delay-1">
+      <div style={S.userCore}>
         {/* 头像 */}
         <div
           style={{ ...S.avatarWrap, ...(isSelf ? { cursor: 'pointer' } : {}) }}
-          className="miui-scale-in"
+         
           onClick={isSelf ? () => navigate('/account') : undefined}
         >
           {displayUser.avatar ? (
@@ -1143,7 +1123,7 @@ export default function ProfilePageV2() {
         </div>
 
         {/* 数据指标栏 */}
-        <div className="miui-enter miui-enter-delay-2" style={{ alignSelf: 'stretch' }}>
+        <div style={{ alignSelf: 'stretch' }}>
           <StatsBar
             posts={counts.posts}
             worn={counts.worn}
@@ -1157,12 +1137,12 @@ export default function ProfilePageV2() {
       </div>
 
       {/* 3. 简介卡片 */}
-      <div className="miui-enter miui-enter-delay-3">
+      <div>
       <InfoCard user={displayUser} />
       </div>
 
       {/* 4. 内容切换标签栏 */}
-      <div className="miui-enter miui-enter-delay-4">
+      <div>
       <PillTabs
         tabs={[
           { key: 'posts', label: '帖子' },
@@ -1175,7 +1155,7 @@ export default function ProfilePageV2() {
       </div>
 
       {/* 5. 内容列表 */}
-      <div style={S.postList} className="miui-enter miui-enter-delay-5">
+      <div style={S.postList}>
         {activeTab === 'worn' ? (
           wornLoading ? (
             <LoadingSkeleton count={3} height={80} />
@@ -1186,7 +1166,7 @@ export default function ProfilePageV2() {
             </div>
           ) : (
             wornDiapers.map((d, i) => (
-              <div key={i} className="miui-enter" style={{ background: 'var(--bg-card)', borderRadius: '12px', padding: '14px 16px', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', animationDelay: `${0.06 * i}s` }}>
+              <div key={i} style={{ background: 'var(--bg-card)', borderRadius: '12px', padding: '14px 16px', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', animationDelay: `${0.06 * i}s` }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>{d.diaper_name}</span>
