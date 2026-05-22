@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { Link } from 'react-router-dom';
 
-const RATE_LIMIT_MS = 30000; // 30秒内再次调用需验证
+const RATE_LIMIT_MS = 30000;
 
 const DATA_OPTIONS = [
   { key: 'basic', label: '基本信息', desc: '年龄、地区', icon: 'fa-circle-user' },
@@ -17,9 +17,107 @@ const DATA_OPTIONS = [
   { key: 'feelings', label: '使用感受', desc: '你提交过的感受记录', icon: 'fa-comments' },
 ];
 
+/**
+ * 解析 AI 文本，将【品牌 型号】替换为纸尿裤卡片
+ */
+function renderAIText(rawText, diapers, recommendations) {
+  if (!rawText) return null;
+
+  // 构建品牌+型号 → diaper 的映射
+  const diaperMap = {};
+  for (const d of diapers) {
+    const key = `${d.brand} ${d.model}`;
+    diaperMap[key] = d;
+  }
+  // 也按推荐结果构建 matchScore 映射
+  const scoreMap = {};
+  for (const r of recommendations) {
+    scoreMap[r.diaper_id] = r.matchScore;
+  }
+
+  // 按段落分割
+  const paragraphs = rawText.split(/\n\n+/);
+
+  return paragraphs.map((para, pi) => {
+    // 匹配【品牌 型号】格式
+    const parts = [];
+    let lastIndex = 0;
+    const regex = /【([^】]+)】/g;
+    let match;
+
+    while ((match = regex.exec(para)) !== null) {
+      // 匹配前的文本
+      if (match.index > lastIndex) {
+        parts.push({ type: 'text', content: para.slice(lastIndex, match.index) });
+      }
+
+      const name = match[1].trim();
+      const diaper = diaperMap[name];
+      if (diaper) {
+        parts.push({ type: 'card', diaper, score: scoreMap[diaper.id] });
+      } else {
+        // 没找到匹配的纸尿裤，当普通文本处理
+        parts.push({ type: 'text', content: match[0] });
+      }
+      lastIndex = match.index + match[0].length;
+    }
+
+    // 剩余文本
+    if (lastIndex < para.length) {
+      parts.push({ type: 'text', content: para.slice(lastIndex) });
+    }
+
+    if (parts.length === 0) return null;
+
+    return (
+      <div key={pi} className="mb-4">
+        {parts.map((part, i) => {
+          if (part.type === 'text') {
+            return <span key={i} className="text-sm leading-relaxed" style={{ color: 'var(--text)' }}>{part.content}</span>;
+          }
+          // 卡片
+          const d = part.diaper;
+          return (
+            <Link
+              key={i}
+              to={`/diaper/${d.id}`}
+              className="inline-flex items-center gap-2 my-2 px-3 py-2 rounded-xl transition-all hover:shadow-hover"
+              style={{
+                background: 'var(--primary-light)',
+                border: '1.5px solid var(--primary)',
+                textDecoration: 'none',
+                display: 'flex',
+                maxWidth: '100%',
+              }}
+            >
+              {d.brand_logo && (
+                <img
+                  src={d.brand_logo}
+                  alt=""
+                  className="h-5 object-contain flex-shrink-0"
+                  style={{ maxWidth: 40 }}
+                  onError={e => { e.target.style.display = 'none'; }}
+                />
+              )}
+              <span className="text-sm font-bold" style={{ color: 'var(--primary-dark)' }}>{d.brand}</span>
+              <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{d.model}</span>
+              {part.score && (
+                <span className="text-xs font-bold ml-auto flex-shrink-0" style={{ color: 'var(--primary-dark)' }}>{part.score}分</span>
+              )}
+              <i className="fa-solid fa-chevron-right text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+            </Link>
+          );
+        })}
+      </div>
+    );
+  });
+}
+
 export default function Recommendations() {
   const [recommendations, setRecommendations] = useState([]);
   const [summary, setSummary] = useState('');
+  const [rawText, setRawText] = useState('');
+  const [allDiapers, setAllDiapers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [consented, setConsented] = useState(false);
   const [selected, setSelected] = useState({ basic: true, body: true, prefs: true, bio: false, feelings: true });
@@ -35,10 +133,14 @@ export default function Recommendations() {
     setLoading(true);
     setRecommendations([]);
     setSummary('');
+    setRawText('');
+    setAllDiapers([]);
     try {
       const data = await recommendAPI.getRecommend(selected);
       setRecommendations(data.recommendations || []);
       setSummary(data.summary || '');
+      setRawText(data.rawText || '');
+      setAllDiapers(data.diapers || []);
       lastRecommendTime.current = Date.now();
     } catch (e) {
       toast.error(e.message);
@@ -51,7 +153,6 @@ export default function Recommendations() {
     if (!user) { toast.error('请先登录'); return; }
     if (!consented) { toast.error('请先阅读并同意隐私说明'); return; }
     if (selectedCount === 0) { toast.error('请至少选择一项数据'); return; }
-    // 短时间内再次调用需验证
     if (Date.now() - lastRecommendTime.current < RATE_LIMIT_MS) {
       trigger(doRecommend);
       return;
@@ -146,8 +247,28 @@ export default function Recommendations() {
         </div>
       )}
 
-      {/* 推荐结果 */}
-      {recommendations.length > 0 && (
+      {/* 推荐结果 — AI 分析文本 + 内联纸尿裤卡片 */}
+      {rawText && (
+        <div className="card mb-5" style={{ padding: '1.25rem' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <i className="fa-solid fa-robot text-sm" style={{ color: 'var(--primary-dark)' }} />
+            <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>AI 分析</span>
+          </div>
+          <div>
+            {renderAIText(rawText, allDiapers, recommendations)}
+          </div>
+          {summary && (
+            <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+              <p className="text-sm font-semibold" style={{ color: 'var(--primary-dark)' }}>
+                <i className="fa-solid fa-lightbulb mr-1" />{summary}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 推荐结果卡片列表（当没有 rawText 时的 fallback） */}
+      {!rawText && recommendations.length > 0 && (
         <div className="space-y-3 mb-5">
           <h3 className="font-bold" style={{ color: 'var(--text)' }}>推荐结果</h3>
           {recommendations.map((r, i) => (
