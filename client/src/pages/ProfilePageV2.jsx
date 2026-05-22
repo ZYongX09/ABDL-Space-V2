@@ -48,6 +48,16 @@ const MIUI_STYLES = `
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+.miui-enter { animation: miuiFadeInUp 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
+.miui-enter-delay-1 { animation-delay: 0.06s; }
+.miui-enter-delay-2 { animation-delay: 0.12s; }
+.miui-enter-delay-3 { animation-delay: 0.18s; }
+.miui-enter-delay-4 { animation-delay: 0.24s; }
+.miui-enter-delay-5 { animation-delay: 0.30s; }
+.miui-scale-in { animation: miuiScaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
+.miui-slide-right { animation: miuiSlideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
+.miui-slide-left { animation: miuiSlideInLeft 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
+.miui-count-up { animation: miuiCountUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
 `;
 
 function useMIUIAnim(mounted, delay = 0) {
@@ -950,7 +960,7 @@ export default function ProfilePageV2() {
         <div style={S.desktopContainer}>
           {/* 左侧 */}
           <div style={S.desktopSidebar}>
-            <div style={S.desktopSidebarCard}>
+            <div style={S.desktopSidebarCard} className="miui-enter">
               <div style={{ position: 'relative', ...(isSelf ? { cursor: 'pointer' } : {}) }} onClick={isSelf ? () => navigate('/account') : undefined}>
                 {displayUser.avatar ? <img src={displayUser.avatar} alt="" style={S.desktopAvatar} /> : <div style={S.desktopAvatarFallback}>{displayUser.username?.[0]?.toUpperCase() || '?'}</div>}
                 {isSelf && <div style={{ position: 'absolute', bottom: 2, right: 2, width: '28px', height: '28px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-card)', fontSize: '11px', color: '#fff' }}><i className="fa-solid fa-camera" /></div>}
@@ -977,7 +987,7 @@ export default function ProfilePageV2() {
                 </button>
               )}
             </div>
-            <div style={S.desktopCard}>
+            <div style={S.desktopCard} className="miui-enter miui-enter-delay-1">
               <div style={{ padding: '16px 20px' }}>
                 <InfoCard user={displayUser} />
               </div>
@@ -1077,7 +1087,7 @@ export default function ProfilePageV2() {
       </div>
 
       {/* 2. 用户信息核心区域 */}
-      <div style={S.userCore}>
+      <div style={S.userCore} className="miui-enter miui-enter-delay-1">
         {/* 头像 */}
         <div
           style={{ ...S.avatarWrap, ...(isSelf ? { cursor: 'pointer' } : {}) }}
@@ -1155,7 +1165,7 @@ export default function ProfilePageV2() {
       </div>
 
       {/* 5. 内容列表 */}
-      <div style={S.postList}>
+      <div style={S.postList} className="miui-enter miui-enter-delay-5">
         {activeTab === 'worn' ? (
           wornLoading ? (
             <LoadingSkeleton count={3} height={80} />

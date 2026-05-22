@@ -1,6 +1,26 @@
+import { useEffect, useRef } from 'react';
+
 export default function PageLayout({ hero, children }) {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const cards = container.querySelectorAll('.card');
+    cards.forEach((card, i) => {
+      card.style.animationDelay = `${i * 0.05}s`;
+      card.classList.add('miui-card-in');
+    });
+    return () => {
+      cards.forEach(card => {
+        card.classList.remove('miui-card-in');
+        card.style.animationDelay = '';
+      });
+    };
+  }, []);
+
   return (
-    <div>
+    <div ref={containerRef} className="miui-page-in">
       {hero && (
         <div className="hero-card">
           <div className="flex items-center gap-3 relative z-10">

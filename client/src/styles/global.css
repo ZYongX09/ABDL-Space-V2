@@ -557,12 +557,24 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   }
 }
 
-/* 页面切换 — 无动画，内容直接出现 */
+/* 页面切换入场 */
 .page-transition-enter {
-  /* no animation */
+  animation: miuiPageIn 0.35s var(--miui-spring);
 }
 
-/* 列表 — 无自动交错动画 */
+/* 列表交错入场 */
+.miui-list-enter > * {
+  animation: miuiCardIn 0.35s var(--miui-spring) both;
+}
+.miui-list-enter > *:nth-child(1) { animation-delay: 0s; }
+.miui-list-enter > *:nth-child(2) { animation-delay: 0.04s; }
+.miui-list-enter > *:nth-child(3) { animation-delay: 0.08s; }
+.miui-list-enter > *:nth-child(4) { animation-delay: 0.12s; }
+.miui-list-enter > *:nth-child(5) { animation-delay: 0.16s; }
+.miui-list-enter > *:nth-child(6) { animation-delay: 0.20s; }
+.miui-list-enter > *:nth-child(7) { animation-delay: 0.24s; }
+.miui-list-enter > *:nth-child(8) { animation-delay: 0.28s; }
+.miui-list-enter > *:nth-child(n+9) { animation-delay: 0.32s; }
 
 /* 底部导航 MIUI 风格交互 */
 .bottom-nav-floating a {
@@ -637,6 +649,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 }
 .bottom-nav-floating a.active {
   color: var(--primary-dark);
+  animation: navPop 0.3s var(--miui-spring);
 }
 .bottom-nav-floating a i { font-size: 1.35rem; }
 
@@ -845,6 +858,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .sidebar-link.active {
   background: var(--primary);
   color: white;
+  animation: navPop 0.3s var(--miui-spring);
 }
 .sidebar-link-icon {
   width: 20px;
@@ -2345,6 +2359,67 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
   --miui-fast: cubic-bezier(0.2, 0, 0, 1);
   /* MIUI 平滑过渡 — hover 等温和变化 */
   --miui-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* ====== 页面入场 ====== */
+.miui-page-in {
+  animation: miuiPageIn 0.4s var(--miui-spring) both;
+}
+@keyframes miuiPageIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ====== 卡片入场 ====== */
+.miui-card-in {
+  animation: miuiCardIn 0.4s var(--miui-spring) both;
+}
+@keyframes miuiCardIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ====== 淡入上浮 ====== */
+.miui-fade-in-up {
+  animation: miuiFadeInUp 0.4s var(--miui-spring) both;
+}
+@keyframes miuiFadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ====== 淡入缩放 ====== */
+.miui-fade-in-scale {
+  animation: miuiFadeInScale 0.35s var(--miui-spring) both;
+}
+@keyframes miuiFadeInScale {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ====== 滑入 ====== */
+.miui-slide-in-right {
+  animation: miuiSlideInRight 0.4s var(--miui-spring) both;
+}
+@keyframes miuiSlideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.miui-slide-in-left {
+  animation: miuiSlideInLeft 0.4s var(--miui-spring) both;
+}
+@keyframes miuiSlideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ====== Tab 内容切换 ====== */
+.miui-tab-content {
+  animation: miuiTabFade 0.3s var(--miui-spring) both;
+}
+@keyframes miuiTabFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ====== 按压反馈（按钮/卡片/可点击元素） ====== */
