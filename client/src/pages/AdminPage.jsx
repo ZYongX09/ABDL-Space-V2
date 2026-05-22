@@ -42,7 +42,7 @@ export default function AdminPage() {
   });
   const [diaperSaving, setDiaperSaving] = useState(false);
   const [brands, setBrands] = useState([]);
-  const [brandForm, setBrandForm] = useState({ name: '', logo: '' });
+  const [brandForm, setBrandForm] = useState({ name: '', logo: '', invert_dark: false, invert_light: false });
   const [showBrandForm, setShowBrandForm] = useState(false);
   const [editingBrand, setEditingBrand] = useState(null);
   const [brandSaving, setBrandSaving] = useState(false);
@@ -502,7 +502,7 @@ export default function AdminPage() {
         <>
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm" style={{ color: 'var(--text-light)' }}>共 {brands.length} 个品牌</span>
-            <button className="btn btn-primary btn-sm" onClick={() => { setEditingBrand(null); setBrandForm({ name: '', logo: '' }); setShowBrandForm(true); }}>
+            <button className="btn btn-primary btn-sm" onClick={() => { setEditingBrand(null); setBrandForm({ name: '', logo: '', invert_dark: false, invert_light: false }); setShowBrandForm(true); }}>
               <i className="fa-solid fa-plus mr-1" />添加品牌
             </button>
           </div>
@@ -528,12 +528,29 @@ export default function AdminPage() {
                     {brandUploading && <span className="text-xs" style={{ color: 'var(--primary-dark)' }}>上传中...</span>}
                   </div>
                 </div>
+                {brandForm.logo && (
+                  <div>
+                    <label className="block text-xs font-semibold mb-2" style={{ color: 'var(--text-light)' }}>颜色反转（解决深色/浅色背景下 logo 不清晰问题）</label>
+                    <div className="flex flex-col gap-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={brandForm.invert_dark} onChange={e => setBrandForm(f => ({ ...f, invert_dark: e.target.checked }))} className="w-4 h-4 rounded accent-[var(--primary-dark)]" />
+                        <span className="text-sm" style={{ color: 'var(--text)' }}>深色模式反转</span>
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>深色背景下自动反转 logo 颜色</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={brandForm.invert_light} onChange={e => setBrandForm(f => ({ ...f, invert_light: e.target.checked }))} className="w-4 h-4 rounded accent-[var(--primary-dark)]" />
+                        <span className="text-sm" style={{ color: 'var(--text)' }}>浅色/多彩模式反转</span>
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>浅色背景下自动反转 logo 颜色</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <button className="btn btn-primary" onClick={async () => {
                     if (!brandForm.name.trim()) { toast.error('品牌名称为必填'); return; }
                     setBrandSaving(true);
                     try {
-                      await adminAPI.saveBrand({ name: brandForm.name.trim(), logo: brandForm.logo });
+                      await adminAPI.saveBrand({ name: brandForm.name.trim(), logo: brandForm.logo, invert_dark: brandForm.invert_dark, invert_light: brandForm.invert_light });
                       toast.success(editingBrand ? '更新成功' : '创建成功');
                       setShowBrandForm(false);
                       loadTab('brands');
@@ -551,7 +568,7 @@ export default function AdminPage() {
               <div key={b.id} className="card flex items-center gap-3" style={{ padding: '0.75rem 1rem' }}>
                 {b.logo ? <img src={b.logo} alt={b.name} className="w-10 h-10 object-contain rounded" style={{ background: 'var(--input-bg)' }} /> : <div className="w-10 h-10 rounded bg-[var(--input-bg)] flex items-center justify-center text-[var(--text-muted)] text-xs">无</div>}
                 <span className="flex-1 font-semibold">{b.name}</span>
-                <button className="btn btn-outline btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => { setEditingBrand(b); setBrandForm({ name: b.name, logo: b.logo || '' }); setShowBrandForm(true); }}>编辑</button>
+                <button className="btn btn-outline btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => { setEditingBrand(b); setBrandForm({ name: b.name, logo: b.logo || '', invert_dark: b.invert_dark || false, invert_light: b.invert_light || false }); setShowBrandForm(true); }}>编辑</button>
                 <button className="btn btn-outline btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem', color: 'var(--danger)' }} onClick={() => trigger(async () => { try { await adminAPI.deleteBrand(b.id); setBrands(prev => prev.filter(x => x.id !== b.id)); toast.success('已删除'); } catch (e) { toast.error(e.message); } })}>删除</button>
               </div>
             ))}

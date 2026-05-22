@@ -6,6 +6,7 @@ import { useVerifyModal } from '../components/VerifyModal';
 import { diapersAPI, ratingsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const DIMENSIONS = [
   { key: 'absorption_score', label: '吸收性', icon: 'fa-droplet' },
@@ -44,6 +45,8 @@ export default function DiaperDetail() {
   const [scores, setScores] = useState({});
   const [reviewText, setReviewText] = useState('');
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const toast = useToast();
   const { trigger, VerifyModal } = useVerifyModal();
 
@@ -129,7 +132,7 @@ export default function DiaperDetail() {
                         src={diaper.brand_logo}
                         alt={diaper.brand}
                         className="h-full object-contain"
-                        style={{ maxWidth: 100 }}
+                        style={{ maxWidth: 100, filter: (isDark ? diaper.brand_invert_dark : diaper.brand_invert_light) ? 'invert(1)' : 'none' }}
                         onError={() => setBrandLogoError(true)}
                       />
                     </div>

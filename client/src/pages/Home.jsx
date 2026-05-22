@@ -5,9 +5,13 @@ import MobileHeader from '../components/MobileHeader';
 import { LoadingSkeleton, EmptyState } from '../components/Feedback';
 import { diapersAPI } from '../api';
 import { useToast } from '../contexts/ToastContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function Home() {
   const [diapers, setDiapers] = useState([]);
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const shouldInvert = (d) => isDark ? d.brand_invert_dark : d.brand_invert_light;
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [brand, setBrand] = useState('');
@@ -97,7 +101,7 @@ export default function Home() {
                       src={d.brand_logo}
                       alt={d.brand}
                       className="h-full object-contain"
-                      style={{ maxWidth: 80 }}
+                      style={{ maxWidth: 80, filter: shouldInvert(d) ? 'invert(1)' : 'none' }}
                       onError={() => setFailedLogos(prev => new Set(prev).add(d.brand))}
                     />
                   </div>
