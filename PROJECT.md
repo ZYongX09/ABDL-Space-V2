@@ -123,8 +123,8 @@ abdl-space-v2/
 │   ├── package.json             # 前端依赖
 │   └── .env                     # 环境变量（VITE_API_BASE 等）
 ├── package.json                 # 根 package.json（dev/build/preview 脚本）
-├── vercel.json                  # Vercel 部署配置（SPA rewrite）
-├── .vercelignore
+├── client/public/_redirects    # Cloudflare Pages SPA 重定向
+├── client/public/_headers      # Cloudflare Pages 安全头（CSP 等）
 ├── .env.example
 ├── .gitignore
 ├── CHANGELOG.md                 # 用户面向的更新日志

@@ -5,6 +5,13 @@
 
 ## 2026-05-22
 
+### 14:30 — 修复品牌图片上传失败
+- **类型**：Bug 修复
+- **内容**：`imageUpload.js` 直接上传到 `img.abdl-space.top` 但 `window.__ABDL_IMGBED_KEY` 从未设置，导致请求无认证、上传必定失败。改为通过后端代理 `/api/images/upload` 上传，后端持有 `IMGBED_UPLOAD_KEY`
+- **涉及文件**：`client/src/utils/imageUpload.js`
+- **原因**：AdminPage 品牌 logo 上传使用 `uploadImage` 工具函数，该函数绕过了后端代理
+- **Git**：commit 3d59add，已 push
+
 ### 00:45 — 修复评论功能 4 个 Bug
 - **类型**：Bug 修复
 - **内容**：
