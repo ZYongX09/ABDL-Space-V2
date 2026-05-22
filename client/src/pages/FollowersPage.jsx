@@ -93,7 +93,7 @@ export default function FollowersPage() {
         ) : (
           <div className="space-y-2">
             {users.map(u => (
-              <div key={u.id} className="card stagger-item flex items-center gap-3" style={{ padding: '0.75rem 1rem' }}>
+              <div key={u.id} className="card flex items-center gap-3" style={{ padding: '0.75rem 1rem' }}>
                 <Link to={`/user/${u.id}`} className="flex items-center gap-3 flex-1 min-w-0">
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"

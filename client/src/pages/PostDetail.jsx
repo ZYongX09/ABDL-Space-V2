@@ -210,7 +210,7 @@ export default function PostDetail() {
     <>
     <MobileHeader title="帖子详情" />
     <PageLayout hero={{ icon: 'fa-file-lines', title: '帖子详情' }}>
-      <div className={`card mb-5 animate-fade-in-up ${post.pinned ? 'post-pinned' : ''}`}>
+      <div className={`card mb-5 ${post.pinned ? 'post-pinned' : ''}`}>
         {post.pinned && (
           <div className="post-pinned-tag">
             <i className="fa-solid fa-thumbtack" /> 置顶
@@ -346,7 +346,7 @@ export default function PostDetail() {
       ) : (
         <div className="space-y-3 mb-5 miui-list-enter">
           {comments.map((c, i) => (
-            <div key={c.id} className="card stagger-item animate-fade-in-up" style={{ padding: '1rem', animationDelay: `${i * 0.05}s` }}>
+            <div key={c.id} className="card" style={{ padding: '1rem', animationDelay: `${i * 0.05}s` }}>
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
                   style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
@@ -365,7 +365,7 @@ export default function PostDetail() {
 
       {/* 评论表单 */}
       {user ? (
-        <div className="card animate-fade-in-up">
+        <div className="card">
           <textarea
             className="form-control mb-2"
             placeholder="写下你的评论..."

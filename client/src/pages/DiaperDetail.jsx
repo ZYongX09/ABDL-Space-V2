@@ -136,7 +136,7 @@ export default function DiaperDetail() {
                 <div className="flex justify-between items-center">
                   <dt style={{ color: 'var(--text-light)' }}>官网</dt>
                   <a href={diaper.official_url} target="_blank" rel="noopener noreferrer"
-                    className="btn btn-outline btn-sm"
+                    className="btn btn-outline btn-sm miui-press"
                     style={{ padding: '3px 10px', fontSize: '0.75rem' }}
                   >
                     <i className="fa-solid fa-arrow-up-right-from-square mr-1" />访问官网
@@ -168,20 +168,20 @@ export default function DiaperDetail() {
       {/* 评分按钮 */}
       <div className="flex gap-3 mb-5">
         {user ? (
-          <button className="btn btn-primary" onClick={() => setShowRating(!showRating)}>
+          <button className="btn btn-primary miui-press" onClick={() => setShowRating(!showRating)}>
             <i className="fa-solid fa-star" /> {showRating ? '取消评分' : '写评分'}
           </button>
         ) : (
-          <Link to="/login" className="btn btn-outline">登录后评分</Link>
+          <Link to="/login" className="btn btn-outline miui-press">登录后评分</Link>
         )}
-        <Link to="/compare" className="btn btn-outline">
+        <Link to="/compare" className="btn btn-outline miui-press">
           <i className="fa-solid fa-scale-balanced" /> 加入对比
         </Link>
       </div>
 
       {/* 评分表单 */}
       {showRating && (
-        <div className="card mb-5 animate-fade-in-up">
+        <div className="card mb-5">
           <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>评分（1-10 星）</h3>
           <div className="space-y-4">
             {DIMENSIONS.map(dim => (
@@ -203,7 +203,7 @@ export default function DiaperDetail() {
             rows={3}
           />
           <div className="flex justify-end">
-            <button className="btn btn-primary btn-sm" onClick={handleSubmitRating}>提交评分</button>
+            <button className="btn btn-primary btn-sm miui-press" onClick={handleSubmitRating}>提交评分</button>
           </div>
         </div>
       )}

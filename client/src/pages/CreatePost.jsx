@@ -85,7 +85,7 @@ export default function CreatePost() {
             取消
           </button>
           <button
-            className="btn btn-primary"
+            className="btn btn-primary miui-press"
             onClick={handlePost}
             disabled={(!content.trim() && !imgRef.current?.hasPending()) || publishing || content.length > MAX_CHARS}
           >

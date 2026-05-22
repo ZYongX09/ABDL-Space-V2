@@ -38,13 +38,15 @@ export default function Home() {
     <MobileHeader title="纸尿裤" />
     <PageLayout hero={{ icon: 'fa-baby', title: '纸尿裤列表', subtitle: '发现最适合你的纸尿裤' }}>
       {/* 搜索筛选 */}
-      <div className="flex gap-3 mb-5 flex-wrap">
-        <input
-          className="form-control flex-1 min-w-[180px]"
-          placeholder="搜索品牌或型号..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+      <div className="flex gap-3 mb-5 flex-wrap miui-card-in" style={{ animationDelay: '0.06s' }}>
+        <div className="flex-1 min-w-[180px] miui-input-group">
+          <input
+            className="form-control"
+            placeholder="搜索品牌或型号..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
         <select className="form-control w-auto" value={brand} onChange={e => setBrand(e.target.value)}>
           <option value="">全部品牌</option>
           {brands.map(b => <option key={b} value={b}>{b}</option>)}
@@ -54,10 +56,10 @@ export default function Home() {
           <option value="avg_score">评分最高</option>
           <option value="rating_count">评价最多</option>
         </select>
-        <Link to="/compare" className="btn btn-outline">
+        <Link to="/compare" className="btn btn-outline miui-press">
           <i className="fa-solid fa-scale-balanced" /> 对比
         </Link>
-        <Link to="/rankings" className="btn btn-outline md:hidden">
+        <Link to="/rankings" className="btn btn-outline md:hidden miui-press">
           <i className="fa-solid fa-trophy" /> 排行
         </Link>
       </div>
@@ -73,7 +75,7 @@ export default function Home() {
             <Link
               key={d.id}
               to={`/diaper/${d.id}`}
-              className="card stagger-item block hover:shadow-hover transition-all overflow-hidden"
+              className="card card-interactive miui-hover-lift block hover:shadow-hover transition-all overflow-hidden"
               style={{ textDecoration: 'none', color: 'var(--text)', breakInside: 'avoid', marginBottom: '16px', display: 'block' }}
             >
               {(d.images?.length > 0 || d.image || d.image_url) && (

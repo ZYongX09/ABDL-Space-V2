@@ -268,7 +268,7 @@ export default function MessagesPage() {
                   style={{ resize: 'none', minHeight: '40px', maxHeight: '100px' }}
                 />
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-primary miui-press"
                   onClick={handleSend}
                   disabled={!input.trim() || sending}
                   style={{ height: '40px', padding: '0 16px', flexShrink: 0 }}

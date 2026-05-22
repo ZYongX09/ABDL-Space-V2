@@ -121,7 +121,7 @@ export default function Register() {
     <>
       <MobileHeader title="注册" />
       <PageLayout hero={{ icon: 'fa-user-plus', title: '注册', subtitle: '加入 ABDL Space 大家庭' }}>
-        <div className="card max-w-md mx-auto">
+        <div className="card max-w-md mx-auto miui-card-in">
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>用户名</label>
@@ -234,7 +234,7 @@ export default function Register() {
               </label>
             </div>
 
-            <button type="submit" className="btn btn-primary w-full" disabled={loading || !allReady}>
+            <button type="submit" className="btn btn-primary w-full miui-press" disabled={loading || !allReady}>
               {loading ? '注册中...' : '注册'}
             </button>
           </form>

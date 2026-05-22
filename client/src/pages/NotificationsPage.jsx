@@ -68,7 +68,7 @@ export default function NotificationsPage() {
           {notifications.map(n => (
             <div
               key={n.id}
-              className="card stagger-item flex items-center gap-3"
+              className="card flex items-center gap-3"
               style={{
                 padding: '1rem',
                 borderLeft: n.read ? 'none' : '3px solid var(--primary)',

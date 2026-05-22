@@ -37,11 +37,11 @@ export default function Rankings() {
     <MobileHeader title="排行榜" />
     <PageLayout hero={{ icon: 'fa-trophy', title: '排行榜', subtitle: '社区纸尿裤排名' }}>
       {/* 标签 */}
-      <div className="flex gap-2 mb-5 flex-wrap">
+      <div className="flex gap-2 mb-5 flex-wrap miui-card-in" style={{ animationDelay: '0.06s' }}>
         {TABS.map(t => (
           <button
             key={t.key}
-            className={`btn btn-sm ${tab === t.key ? 'btn-primary' : 'btn-outline'}`}
+            className={`btn btn-sm miui-press ${tab === t.key ? 'btn-primary' : 'btn-outline'}`}
             onClick={() => setTab(t.key)}
           >
             {t.label}
@@ -58,7 +58,7 @@ export default function Rankings() {
             <Link
               key={d.id}
               to={`/diaper/${d.id}`}
-              className="rank-item stagger-item"
+              className="rank-item card-interactive miui-hover-lift"
               style={{ textDecoration: 'none', color: 'var(--text)' }}
             >
               <span className={`rank-number ${i < 3 ? `top${i + 1}` : ''}`}>

@@ -232,7 +232,7 @@ export default function AdminPage() {
               { label: '产品', value: stats?.diapers, icon: 'fa-baby', color: 'var(--success)' },
               { label: '评分', value: stats?.ratings, icon: 'fa-star', color: 'var(--warning)' },
             ].map(s => (
-              <div key={s.label} className="card text-center stagger-item animate-fade-in-up">
+              <div key={s.label} className="card text-center">
                 <i className={`fa-solid ${s.icon} text-xl mb-1.5`} style={{ color: s.color }} />
                 <div className="text-2xl font-bold" style={{ color: 'var(--text)' }}>{s.value ?? '-'}</div>
                 <div className="text-xs" style={{ color: 'var(--text-light)' }}>{s.label}</div>
@@ -249,7 +249,7 @@ export default function AdminPage() {
             {users.length === 0 ? (
               <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>暂无用户</p>
             ) : users.map(u => (
-              <div key={u.id} className="card flex items-center gap-3 stagger-item animate-fade-in-up" style={{ padding: '0.75rem 1rem' }}>
+              <div key={u.id} className="card flex items-center gap-3" style={{ padding: '0.75rem 1rem' }}>
                 <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
                   style={{ background: u.banned ? 'rgba(232,131,124,0.2)' : 'var(--primary-light)', color: u.banned ? 'var(--danger)' : 'var(--primary-dark)' }}>
                   {u.username?.[0]?.toUpperCase()}
@@ -295,7 +295,7 @@ export default function AdminPage() {
             {posts.length === 0 ? (
               <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>暂无帖子</p>
             ) : posts.map(p => (
-              <div key={p.id} className="card stagger-item animate-fade-in-up" style={{ padding: '0.75rem 1rem' }}>
+              <div key={p.id} className="card" style={{ padding: '0.75rem 1rem' }}>
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -464,7 +464,7 @@ export default function AdminPage() {
               {diapers.length === 0 ? (
                 <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>暂无产品</p>
               ) : diapers.map(d => (
-                <div key={d.id} className="card stagger-item animate-fade-in-up" style={{ padding: '0.75rem 1rem' }}>
+                <div key={d.id} className="card" style={{ padding: '0.75rem 1rem' }}>
                   <div className="flex items-start gap-3">
                     {d.images?.length > 0 && (
                       <img src={d.images[0]} alt="" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />
@@ -581,7 +581,7 @@ export default function AdminPage() {
               {reports.length === 0 ? (
                 <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>暂无举报</p>
               ) : reports.map(r => (
-                <div key={r.id} className="card stagger-item animate-fade-in-up" style={{ padding: '0.75rem 1rem' }}>
+                <div key={r.id} className="card" style={{ padding: '0.75rem 1rem' }}>
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{ background: r.reason === 'nsfw' ? 'rgba(232,131,124,0.15)' : 'var(--primary-light)', color: r.reason === 'nsfw' ? 'var(--danger)' : 'var(--primary-dark)' }}>

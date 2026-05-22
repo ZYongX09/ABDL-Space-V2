@@ -128,7 +128,7 @@ export default function Recommendations() {
             </div>
           </div>
 
-          <button className="btn btn-primary" onClick={handleRecommend} disabled={loading || !consented || selectedCount === 0}>
+          <button className="btn btn-primary miui-press" onClick={handleRecommend} disabled={loading || !consented || selectedCount === 0}>
             {loading ? (
               <><span className="spinner mr-2" style={{ width: 16, height: 16, borderWidth: 2 }} />分析中...</>
             ) : (
@@ -151,7 +151,7 @@ export default function Recommendations() {
         <div className="space-y-3 mb-5">
           <h3 className="font-bold" style={{ color: 'var(--text)' }}>推荐结果</h3>
           {recommendations.map((r, i) => (
-            <div key={r.diaper_id || i} className="card stagger-item" style={{ padding: '1.25rem' }}>
+            <div key={r.diaper_id || i} className="card" style={{ padding: '1.25rem' }}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="font-bold" style={{ color: 'var(--text)' }}>{r.brand} {r.model}</div>

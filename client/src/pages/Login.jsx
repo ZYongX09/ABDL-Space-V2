@@ -88,13 +88,13 @@ export default function Login() {
 
   return (
     <PageLayout hero={{ icon: 'fa-right-to-bracket', title: '登录', subtitle: '欢迎回到 ABDL Space' }}>
-      <div className="card max-w-md mx-auto">
+      <div className="card max-w-md mx-auto miui-card-in">
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
+          <div className="mb-4 miui-input-group">
             <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>用户名 / 邮箱</label>
             <input className="form-control" value={login} onChange={e => setLogin(e.target.value)} placeholder="输入用户名或邮箱" autoFocus />
           </div>
-          <div className="mb-5">
+          <div className="mb-5 miui-input-group">
             <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>密码</label>
             <div className="relative">
               <input type={showPassword ? 'text' : 'password'} className="form-control pr-10" value={password} onChange={e => setPassword(e.target.value)} placeholder="输入密码" />
@@ -146,7 +146,7 @@ export default function Login() {
             </span>
           </label>
 
-          <button type="submit" className="btn btn-primary w-full" disabled={!canSubmit}>
+          <button type="submit" className="btn btn-primary w-full miui-press" disabled={!canSubmit}>
             {loading ? '登录中...' : '登录'}
           </button>
         </form>

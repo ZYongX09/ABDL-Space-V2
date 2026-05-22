@@ -43,7 +43,7 @@ export default function TermWiki() {
           {terms.map((t, i) => (
             <div
               key={t.id || i}
-              className="card stagger-item cursor-pointer"
+              className="card card-interactive cursor-pointer"
               style={{ padding: '1rem 1.25rem' }}
               onClick={() => setExpanded(expanded === i ? null : i)}
             >

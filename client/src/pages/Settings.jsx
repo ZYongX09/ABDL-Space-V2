@@ -39,7 +39,7 @@ export default function Settings() {
           {THEMES.map(t => (
             <button
               key={t}
-              className={`card text-center py-4 cursor-pointer transition-all ${theme === t ? 'ring-2' : ''}`}
+              className={`card card-interactive miui-hover-lift text-center py-4 ${theme === t ? 'ring-2' : ''}`}
               style={theme === t ? { borderColor: 'var(--primary)', ringColor: 'var(--primary)' } : {}}
               onClick={() => setTheme(t)}
             >

@@ -90,15 +90,17 @@ export default function ForumFeed() {
     />
     <PageLayout hero={{ icon: 'fa-comments', title: '广场', subtitle: '分享你的 ABDL 生活' }}>
       {/* 搜索 + 发帖 */}
-      <div className="flex gap-3 mb-5 flex-wrap">
-        <input
-          className="form-control flex-1 min-w-[200px]"
-          placeholder="搜索帖子..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+      <div className="flex gap-3 mb-5 flex-wrap miui-card-in" style={{ animationDelay: '0.06s' }}>
+        <div className="flex-1 min-w-[200px] miui-input-group">
+          <input
+            className="form-control"
+            placeholder="搜索帖子..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
         {user && (
-          <button className="btn btn-primary" onClick={() => navigate('/create-post')}>
+          <button className="btn btn-primary miui-press" onClick={() => navigate('/create-post')}>
             <i className="fa-solid fa-pen" /> 发帖
           </button>
         )}
@@ -113,7 +115,7 @@ export default function ForumFeed() {
       ) : (
         <div className="space-y-4 miui-list-enter">
           {posts.map((post, i) => (
-            <div key={post.id} className={`card stagger-item ${post.pinned ? 'post-pinned' : ''}`} style={{ padding: '1.25rem' }}>
+            <div key={post.id} className={`card card-interactive miui-hover-lift ${post.pinned ? 'post-pinned' : ''}`} style={{ padding: '1.25rem' }}>
               {post.pinned && (
                 <div className="post-pinned-tag">
                   <i className="fa-solid fa-thumbtack" /> 置顶
@@ -175,7 +177,7 @@ export default function ForumFeed() {
               {/* Line 5: actions */}
               <div className="flex items-center gap-4 mt-3 post-actions">
                 <button
-                  className={`flex items-center gap-1.5 text-sm transition-colors ${post.has_liked ? 'font-bold' : ''}`}
+                  className={`flex items-center gap-1.5 text-sm miui-like ${post.has_liked ? 'font-bold liked' : ''}`}
                   style={{ color: post.has_liked ? 'var(--danger)' : 'var(--text-light)', background: 'none', border: 'none', cursor: 'pointer' }}
                   onClick={() => handleLike(post.id)}
                 >

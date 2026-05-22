@@ -5,6 +5,46 @@
 
 ## 2026-05-22
 
+### 15:44 — MIUI 灵动动画系统全面升级
+- **类型**：功能增强
+- **内容**：
+  1. **global.css 增强**：
+     - `.card` 使用 MIUI 弹性曲线 hover（translateY(-3px) + 弹性缓动）
+     - `.card-interactive` 新增类（cursor + active scale(0.97)）
+     - `.btn` 改用 MIUI 弹性曲线 + 更强的 press 反馈（scale(0.94)）
+     - `.form-control` focus 时微缩放（scale(1.01)）+ 弹性缓动
+     - `.tag` hover 弹性上浮 + 缩放
+     - `.modal` 改用 `miuiModalIn` 弹性弹出
+     - `.dropdown-menu` 新增弹性弹入动画 + transform-origin
+     - `.dropdown-item` hover 右滑 + active 缩放
+     - `.sidebar-link` hover 右滑 + active 弹跳 + MIUI 缓动
+     - `.bottom-nav-floating a` active 弹跳 + press 缩放
+     - `.mobile-header-btn` press 缩放反馈
+     - 新增 `.miui-card-in` 卡片入场动画
+     - 新增 `.miui-stagger` 交错延迟容器
+     - 新增 `.miui-badge-in` 徽章弹入动画
+     - 新增 `.miui-ripple` 涟漪点击效果
+     - 新增 `.miui-tab-indicator` 标签页指示器
+     - 新增 `.miui-sidebar-item` 侧边栏动画
+     - 新增 `.miui-input-group` 输入框组 focus 效果
+  2. **PageLayout.jsx 增强**：
+     - 自动 `miui-page-in` 页面入场动画
+     - 自动给所有 `.card` 子元素添加 `miui-card-in` 交错入场
+     - Hero card 图标添加 `miui-float` 浮动动画
+  3. **页面更新**（添加 MIUI 交互类）：
+     - Home：搜索区 `miui-input-group` + 按钮 `miui-press` + 卡片 `card-interactive miui-hover-lift`
+     - ForumFeed：搜索区 `miui-input-group` + 发帖按钮 `miui-press` + 帖子卡片 `card-interactive miui-hover-lift` + 点赞 `miui-like`
+     - Rankings：标签按钮 `miui-press` + 排行项 `card-interactive miui-hover-lift`
+     - Settings：主题卡片 `card-interactive miui-hover-lift`
+     - Login：输入框 `miui-input-group` + 卡片 `miui-card-in` + 按钮 `miui-press`
+     - Register：卡片 `miui-card-in` + 按钮 `miui-press`
+     - DiaperDetail：所有按钮 `miui-press`
+     - PostDetail：评论按钮 `miui-press`
+     - MessagesPage/NewConversation/ReportModal：按钮 `miui-press`
+     - FollowersPage/ComparePage/Recommendations/CreatePost/TermWiki：按钮 `miui-press`
+- **涉及文件**：global.css、PageLayout.jsx、Home.jsx、ForumFeed.jsx、Rankings.jsx、Settings.jsx、Login.jsx、Register.jsx、DiaperDetail.jsx、PostDetail.jsx、MessagesPage.jsx、FollowersPage.jsx、ComparePage.jsx、Recommendations.jsx、CreatePost.jsx、TermWiki.jsx、NotificationsPage.jsx
+- **原因**：用户要求整个项目增加 MIUI 灵动动画
+
 ### 14:30 — 修复品牌图片上传失败
 - **类型**：Bug 修复
 - **内容**：`imageUpload.js` 直接上传到 `img.abdl-space.top` 但 `window.__ABDL_IMGBED_KEY` 从未设置，导致请求无认证、上传必定失败。改为通过后端代理 `/api/images/upload` 上传，后端持有 `IMGBED_UPLOAD_KEY`
