@@ -562,7 +562,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 
 /* 页面切换入场 */
 .page-transition-enter {
-  animation: miuiPageIn 0.35s var(--miui-spring);
+  animation: miuiPageIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* 列表交错入场 */
@@ -652,7 +652,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 }
 .bottom-nav-floating a.active {
   color: var(--primary-dark);
-  animation: navPop 0.3s var(--miui-spring);
+  transition: color 0.2s ease;
 }
 .bottom-nav-floating a i { font-size: 1.35rem; }
 
@@ -862,7 +862,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .sidebar-link.active {
   background: var(--primary);
   color: white;
-  animation: navPop 0.3s var(--miui-spring);
+  transition: background 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.15s ease;
 }
 .sidebar-link-icon {
   width: 20px;

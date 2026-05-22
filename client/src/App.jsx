@@ -130,7 +130,7 @@ export default function App() {
       <NsfwProvider>
       <Sidebar />
       <div className="app-main-content">
-        <div className="container mx-auto px-5 py-6 max-w-[1080px] page-transition-enter">
+        <div key={pathname} className="container mx-auto px-5 py-6 max-w-[1080px] page-transition-enter">
           <ErrorBoundary>
             <Suspense fallback={<PageFallback />}>
               <Routes>
