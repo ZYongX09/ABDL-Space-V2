@@ -1,23 +1,32 @@
-const IMGBED_UPLOAD_URL = 'https://img.abdl-space.top/upload'
-const IMGBED_UPLOAD_KEY = 'ABDL_IMGBED_UPLOAD_KEY' // provided by API on backend side
+const API_BASE = import.meta.env.VITE_API_BASE || '';
 
+/**
+ * 上传图片（通过后端代理，后端持有 IMGBED_UPLOAD_KEY）
+ */
 export async function uploadImage(file) {
   const formData = new FormData()
   formData.append('file', file)
 
-  const res = await fetch(IMGBED_UPLOAD_URL, {
+  // 获取 auth token
+  const token = localStorage.getItem('token') || '';
+
+  const res = await fetch(`${API_BASE}/api/images/upload`, {
     method: 'POST',
     headers: {
-      ...(window.__ABDL_IMGBED_KEY
-        ? { Authorization: `Bearer ${window.__ABDL_IMGBED_KEY}` }
-        : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: formData,
   })
 
-  if (!res.ok) throw new Error(`上传失败 (${res.status})`)
+  if (!res.ok) {
+    let msg = '上传失败';
+    try {
+      const err = await res.json();
+      msg = err.error || msg;
+    } catch {}
+    throw new Error(msg);
+  }
 
   const data = await res.json()
-  // 支持多种返回格式
-  return data.url || data.src || data.path || data.file?.url || data.file?.src || JSON.stringify(data)
+  return data.url
 }
