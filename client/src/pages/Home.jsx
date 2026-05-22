@@ -79,12 +79,12 @@ export default function Home() {
               style={{ textDecoration: 'none', color: 'var(--text)', breakInside: 'avoid', marginBottom: '16px', display: 'block' }}
             >
               {(d.images?.length > 0 || d.image || d.image_url) && (
-                <div className="mb-3 -mx-8 -mt-8 overflow-hidden" style={{ maxHeight: 160 }}>
+                <div className="mb-3 -mx-8 -mt-8 overflow-hidden" style={{ aspectRatio: '1 / 1' }}>
                   <img
                     src={d.images?.[0] || d.image || d.image_url}
                     alt={`${d.brand} ${d.model}`}
                     className="w-full h-full object-cover"
-                    style={{ maxHeight: 160 }}
+                    style={{ objectPosition: 'center' }}
                     onError={e => { e.target.parentElement.style.display = 'none'; }}
                   />
                 </div>
