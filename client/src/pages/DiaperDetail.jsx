@@ -38,6 +38,7 @@ export default function DiaperDetail() {
   const { id } = useParams();
   const [diaper, setDiaper] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [brandLogoError, setBrandLogoError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showRating, setShowRating] = useState(false);
   const [scores, setScores] = useState({});
@@ -122,8 +123,19 @@ export default function DiaperDetail() {
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between items-center"><dt style={{ color: 'var(--text-light)' }}>品牌</dt>
                 <dd className="flex items-center gap-2">
-                  {diaper.brand_logo && <img src={diaper.brand_logo} alt="" className="h-5 object-contain" style={{ maxWidth: 60 }} onError={e => { e.target.style.display = 'none'; }} />}
-                  <span className="font-semibold">{diaper.brand}</span>
+                  {diaper.brand_logo && !brandLogoError ? (
+                    <div className="h-8 rounded-lg overflow-hidden flex items-center" style={{ background: 'var(--input-bg)', padding: '3px 8px' }}>
+                      <img
+                        src={diaper.brand_logo}
+                        alt={diaper.brand}
+                        className="h-full object-contain"
+                        style={{ maxWidth: 100 }}
+                        onError={() => setBrandLogoError(true)}
+                      />
+                    </div>
+                  ) : (
+                    <span className="font-semibold">{diaper.brand}</span>
+                  )}
                 </dd>
               </div>
               <div className="flex justify-between"><dt style={{ color: 'var(--text-light)' }}>型号</dt><dd className="font-semibold">{diaper.model}</dd></div>

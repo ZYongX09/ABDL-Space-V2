@@ -12,6 +12,7 @@ export default function Home() {
   const [search, setSearch] = useState('');
   const [brand, setBrand] = useState('');
   const [brands, setBrands] = useState([]);
+  const [failedLogos, setFailedLogos] = useState(new Set());
   const [sort, setSort] = useState('id');
   const toast = useToast();
 
@@ -90,8 +91,19 @@ export default function Home() {
                 </div>
               )}
               <div className="flex items-center gap-2 mb-1">
-                {d.brand_logo && <img src={d.brand_logo} alt="" className="h-4 object-contain" style={{ maxWidth: 48 }} onError={e => { e.target.style.display = 'none'; }} />}
-                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--primary-dark)' }}>{d.brand}</span>
+                {d.brand_logo && !failedLogos.has(d.brand) ? (
+                  <div className="h-7 rounded overflow-hidden flex items-center" style={{ background: 'var(--input-bg)', padding: '2px 6px' }}>
+                    <img
+                      src={d.brand_logo}
+                      alt={d.brand}
+                      className="h-full object-contain"
+                      style={{ maxWidth: 80 }}
+                      onError={() => setFailedLogos(prev => new Set(prev).add(d.brand))}
+                    />
+                  </div>
+                ) : (
+                  <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--primary-dark)' }}>{d.brand}</span>
+                )}
               </div>
               <div className="text-lg font-bold mb-2">{d.model}</div>
               <div className="flex flex-wrap gap-2 text-sm" style={{ color: 'var(--text-light)' }}>
