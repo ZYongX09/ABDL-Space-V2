@@ -78,6 +78,8 @@ export function TabContent({ activeKey, children }) {
     setAnimClass(`tab-slide-${dir}`);
     prevKeyRef.current = activeKey;
     setCurrentKey(activeKey);
+    // 动画播放完后重置 class
+    setTimeout(() => setAnimClass(''), 400);
   }, [activeKey]);
 
   return (

@@ -41,6 +41,11 @@ function cacheGet(key) {
 }
 
 function cacheSet(key, data, ttl = CACHE_TTL.short) {
+  // 缓存大小限制：超过 100 条时驱逐最早的
+  if (_cache.size > 100) {
+    const firstKey = _cache.keys().next().value;
+    if (firstKey) _cache.delete(firstKey);
+  }
   _cache.set(key, { data, expireAt: Date.now() + ttl });
 }
 
@@ -55,7 +60,7 @@ async function cachedFetch(key, fetchFn, ttl = CACHE_TTL.short) {
   const cached = cacheGet(key);
   if (cached) {
     // 后台静默刷新（stale-while-revalidate）
-    fetchFn().then(data => cacheSet(key, data, ttl)).catch(() => {});
+    fetchFn().then(data => cacheSet(key, data, ttl)).catch(e => { console.warn('[cache] refresh failed:', key, e); });
     return cached;
   }
   const data = await fetchFn();
