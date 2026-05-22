@@ -18,97 +18,61 @@ const DATA_OPTIONS = [
 ];
 
 /**
- * 解析 AI 文本，将【品牌 型号】替换为纸尿裤卡片
+ * 渲染 AI 结构化内容：text 块 + diaper 卡片
  */
-function renderAIText(rawText, diapers, recommendations) {
-  if (!rawText) return null;
+function renderContent(content, diapers, recommendations) {
+  if (!content || !Array.isArray(content)) return null;
 
-  // 构建品牌+型号 → diaper 的映射
+  // 构建 diaper 映射
   const diaperMap = {};
-  for (const d of diapers) {
-    const key = `${d.brand} ${d.model}`;
-    diaperMap[key] = d;
-  }
-  // 也按推荐结果构建 matchScore 映射
+  for (const d of diapers) diaperMap[d.id] = d;
   const scoreMap = {};
-  for (const r of recommendations) {
-    scoreMap[r.diaper_id] = r.matchScore;
+  for (const r of recommendations) scoreMap[r.diaper_id] = r.matchScore;
+
+  // 合并连续 text 块，diaper 卡片独立
+  const blocks = [];
+  let textBuf = '';
+  for (const item of content) {
+    if (item.type === 'text') {
+      textBuf += item.text || '';
+    } else if (item.type === 'diaper' && item.diaper_id) {
+      if (textBuf) { blocks.push({ type: 'text', text: textBuf }); textBuf = ''; }
+      blocks.push({ type: 'diaper', diaper_id: item.diaper_id });
+    }
   }
+  if (textBuf) blocks.push({ type: 'text', text: textBuf });
 
-  // 按段落分割
-  const paragraphs = rawText.split(/\n\n+/);
-
-  return paragraphs.map((para, pi) => {
-    // 匹配【品牌 型号】格式
-    const parts = [];
-    let lastIndex = 0;
-    const regex = /【([^】]+)】/g;
-    let match;
-
-    while ((match = regex.exec(para)) !== null) {
-      // 匹配前的文本
-      if (match.index > lastIndex) {
-        parts.push({ type: 'text', content: para.slice(lastIndex, match.index) });
-      }
-
-      const name = match[1].trim();
-      const diaper = diaperMap[name];
-      if (diaper) {
-        parts.push({ type: 'card', diaper, score: scoreMap[diaper.id] });
-      } else {
-        // 没找到匹配的纸尿裤，当普通文本处理
-        parts.push({ type: 'text', content: match[0] });
-      }
-      lastIndex = match.index + match[0].length;
+  return blocks.map((block, i) => {
+    if (block.type === 'text') {
+      return (
+        <p key={i} className="text-sm leading-relaxed mb-3" style={{ color: 'var(--text)' }}>
+          {block.text}
+        </p>
+      );
     }
-
-    // 剩余文本
-    if (lastIndex < para.length) {
-      parts.push({ type: 'text', content: para.slice(lastIndex) });
-    }
-
-    if (parts.length === 0) return null;
-
+    // diaper card
+    const d = diaperMap[block.diaper_id];
+    if (!d) return null;
+    const score = scoreMap[block.diaper_id];
     return (
-      <div key={pi} className="mb-4">
-        {parts.map((part, i) => {
-          if (part.type === 'text') {
-            return <span key={i} className="text-sm leading-relaxed" style={{ color: 'var(--text)' }}>{part.content}</span>;
-          }
-          // 卡片
-          const d = part.diaper;
-          return (
-            <Link
-              key={i}
-              to={`/diaper/${d.id}`}
-              className="inline-flex items-center gap-2 my-2 px-3 py-2 rounded-xl transition-all hover:shadow-hover"
-              style={{
-                background: 'var(--primary-light)',
-                border: '1.5px solid var(--primary)',
-                textDecoration: 'none',
-                display: 'flex',
-                maxWidth: '100%',
-              }}
-            >
-              {d.brand_logo && (
-                <img
-                  src={d.brand_logo}
-                  alt=""
-                  className="h-5 object-contain flex-shrink-0"
-                  style={{ maxWidth: 40 }}
-                  onError={e => { e.target.style.display = 'none'; }}
-                />
-              )}
-              <span className="text-sm font-bold" style={{ color: 'var(--primary-dark)' }}>{d.brand}</span>
-              <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{d.model}</span>
-              {part.score && (
-                <span className="text-xs font-bold ml-auto flex-shrink-0" style={{ color: 'var(--primary-dark)' }}>{part.score}分</span>
-              )}
-              <i className="fa-solid fa-chevron-right text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-            </Link>
-          );
-        })}
-      </div>
+      <Link
+        key={i}
+        to={`/diaper/${d.id}`}
+        className="flex items-center gap-2 my-3 px-3 py-2.5 rounded-xl transition-all hover:shadow-hover"
+        style={{
+          background: 'var(--primary-light)',
+          border: '1.5px solid var(--primary)',
+          textDecoration: 'none',
+          maxWidth: '100%',
+        }}
+      >
+        <span className="text-sm font-bold" style={{ color: 'var(--primary-dark)' }}>{d.brand}</span>
+        <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{d.model}</span>
+        {score && (
+          <span className="text-xs font-bold ml-auto flex-shrink-0" style={{ color: 'var(--primary-dark)' }}>{score}分</span>
+        )}
+        <i className="fa-solid fa-chevron-right text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+      </Link>
     );
   });
 }
@@ -116,7 +80,7 @@ function renderAIText(rawText, diapers, recommendations) {
 export default function Recommendations() {
   const [recommendations, setRecommendations] = useState([]);
   const [summary, setSummary] = useState('');
-  const [rawText, setRawText] = useState('');
+  const [content, setContent] = useState(null);
   const [allDiapers, setAllDiapers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [consented, setConsented] = useState(false);
@@ -133,13 +97,13 @@ export default function Recommendations() {
     setLoading(true);
     setRecommendations([]);
     setSummary('');
-    setRawText('');
+    setContent(null);
     setAllDiapers([]);
     try {
       const data = await recommendAPI.getRecommend(selected);
       setRecommendations(data.recommendations || []);
       setSummary(data.summary || '');
-      setRawText(data.rawText || '');
+      setContent(data.content || null);
       setAllDiapers(data.diapers || []);
       lastRecommendTime.current = Date.now();
     } catch (e) {
@@ -164,7 +128,6 @@ export default function Recommendations() {
     <>
     <MobileHeader title="AI 推荐" />
     <PageLayout hero={{ icon: 'fa-wand-magic-sparkles', title: 'AI 智能推荐', subtitle: '让 AI 帮你找到最合适的纸尿裤' }}>
-      {/* 个性化推荐 */}
       {user ? (
         <div className="card mb-5">
           <h3 className="font-bold mb-2" style={{ color: 'var(--text)' }}>
@@ -175,7 +138,6 @@ export default function Recommendations() {
             根据你的个人数据，AI 为你量身推荐最合适的纸尿裤
           </p>
 
-          {/* 数据选择 */}
           <div className="mb-4">
             <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--text)' }}>选择要使用的数据</h4>
             <div className="space-y-2">
@@ -207,7 +169,6 @@ export default function Recommendations() {
             </p>
           </div>
 
-          {/* 隐私说明 */}
           <div className="p-4 rounded-xl mb-4" style={{ background: 'var(--warning-bg, #FFF8E1)', border: '1px solid var(--warning)' }}>
             <div className="flex items-start gap-2">
               <i className="fa-solid fa-shield-halved mt-0.5" style={{ color: 'var(--warning)' }} />
@@ -247,16 +208,14 @@ export default function Recommendations() {
         </div>
       )}
 
-      {/* 推荐结果 — AI 分析文本 + 内联纸尿裤卡片 */}
-      {rawText && (
+      {/* 推荐结果 — 结构化内容渲染 */}
+      {content && (
         <div className="card mb-5" style={{ padding: '1.25rem' }}>
           <div className="flex items-center gap-2 mb-3">
             <i className="fa-solid fa-robot text-sm" style={{ color: 'var(--primary-dark)' }} />
             <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>AI 分析</span>
           </div>
-          <div>
-            {renderAIText(rawText, allDiapers, recommendations)}
-          </div>
+          {renderContent(content, allDiapers, recommendations)}
           {summary && (
             <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
               <p className="text-sm font-semibold" style={{ color: 'var(--primary-dark)' }}>
@@ -267,8 +226,8 @@ export default function Recommendations() {
         </div>
       )}
 
-      {/* 推荐结果卡片列表（当没有 rawText 时的 fallback） */}
-      {!rawText && recommendations.length > 0 && (
+      {/* Fallback：无结构化内容时显示卡片列表 */}
+      {!content && recommendations.length > 0 && (
         <div className="space-y-3 mb-5">
           <h3 className="font-bold" style={{ color: 'var(--text)' }}>推荐结果</h3>
           {recommendations.map((r, i) => (
