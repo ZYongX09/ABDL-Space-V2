@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import MobileHeader from '../components/MobileHeader';
 import { Spinner } from '../components/Feedback';
@@ -33,6 +33,7 @@ export default function PostDetail() {
   const lastCommentTime = useRef(0);
   const { user } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
   const { trigger, VerifyModal, captchaToken } = useVerifyModal();
 
   const isOwner = user && user.id === post?.user?.id;
@@ -167,7 +168,7 @@ export default function PostDetail() {
         try {
           await forumAPI.delete(post.id);
           toast.success('帖子已删除');
-          window.history.back();
+          navigate('/');
         } catch (e) { toast.error(e.message); }
       });
     }, 100);

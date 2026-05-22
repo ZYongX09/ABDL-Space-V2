@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import MobileHeader from '../components/MobileHeader';
@@ -18,6 +18,7 @@ export default function ForumFeed() {
   const [search, setSearch] = useState('');
   const [followMap, setFollowMap] = useState({});
   const [reportTarget, setReportTarget] = useState(null);
+  const likingRef = useRef(new Set());
   const { user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
@@ -38,10 +39,15 @@ export default function ForumFeed() {
     }
   };
 
-  useEffect(() => { loadPosts(); }, [search]);
+  useEffect(() => {
+    const timer = setTimeout(() => { loadPosts(); }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const handleLike = async (postId) => {
     if (!user) { toast.error('请先登录'); return; }
+    if (likingRef.current.has(postId)) return;
+    likingRef.current.add(postId);
     setPosts(prev => prev.map(p => p.id === postId ? {
       ...p,
       has_liked: !p.has_liked,
@@ -56,6 +62,8 @@ export default function ForumFeed() {
         like_count: p.has_liked ? p.like_count - 1 : p.like_count + 1,
       } : p));
       toast.error(e.message);
+    } finally {
+      likingRef.current.delete(postId);
     }
   };
 
