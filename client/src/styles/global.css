@@ -687,9 +687,10 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   overflow: hidden;
   background: var(--bg-sidebar);
   border-right: 1px solid var(--border);
-  transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1), backdrop-filter 0.25s ease, box-shadow 0.25s ease;
+  transition: width 0.3s var(--miui-spring), box-shadow 0.3s ease;
   z-index: 30;
   will-change: width;
+  contain: layout style;
 }
 .sidebar-collapsible.expanded {
   width: 240px;
@@ -704,7 +705,8 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .sidebar-placeholder {
   width: 64px;
   flex-shrink: 0;
-  transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: width 0.3s var(--miui-spring);
+  contain: layout style;
 }
 .sidebar-placeholder.expanded {
   width: 64px;
@@ -867,8 +869,9 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 }
 .sidebar-link-label {
   opacity: 0;
-  transition: opacity 0.15s ease 0.1s;
+  transition: opacity 0.15s ease 0.05s;
   overflow: hidden;
+  contain: layout style;
 }
 .sidebar-collapsible.expanded .sidebar-link-label {
   opacity: 1;
