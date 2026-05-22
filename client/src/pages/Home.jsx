@@ -92,7 +92,7 @@ export default function Home() {
               )}
               <div className="flex items-center gap-2 mb-1">
                 {d.brand_logo && !failedLogos.has(d.brand) ? (
-                  <div className="h-7 rounded overflow-hidden flex items-center" style={{ background: 'var(--input-bg)', padding: '2px 6px' }}>
+                  <div className="h-7 rounded overflow-hidden flex items-center" style={{ padding: '2px 6px' }}>
                     <img
                       src={d.brand_logo}
                       alt={d.brand}

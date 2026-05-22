@@ -124,7 +124,7 @@ export default function DiaperDetail() {
               <div className="flex justify-between items-center"><dt style={{ color: 'var(--text-light)' }}>品牌</dt>
                 <dd className="flex items-center gap-2">
                   {diaper.brand_logo && !brandLogoError ? (
-                    <div className="h-8 rounded-lg overflow-hidden flex items-center" style={{ background: 'var(--input-bg)', padding: '3px 8px' }}>
+                    <div className="h-8 rounded-lg overflow-hidden flex items-center" style={{ padding: '3px 8px' }}>
                       <img
                         src={diaper.brand_logo}
                         alt={diaper.brand}
