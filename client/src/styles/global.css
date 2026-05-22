@@ -687,10 +687,9 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   overflow: hidden;
   background: var(--bg-sidebar);
   border-right: 1px solid var(--border);
-  transition: width 0.3s var(--miui-spring), box-shadow 0.3s ease;
+  transition: width 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease;
   z-index: 30;
   will-change: width;
-  contain: layout style;
 }
 .sidebar-collapsible.expanded {
   width: 240px;
@@ -705,11 +704,10 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .sidebar-placeholder {
   width: 64px;
   flex-shrink: 0;
-  transition: width 0.3s var(--miui-spring);
-  contain: layout style;
+  transition: width 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .sidebar-placeholder.expanded {
-  width: 64px;
+  width: 240px;
 }
 
 /* 毛玻璃遮罩 — 覆盖内容区 */
@@ -751,8 +749,10 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   flex: 1;
   min-width: 0;
   opacity: 0;
-  transition: opacity 0.15s ease 0.1s;
+  transition: opacity 0.2s ease 0.08s;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .sidebar-collapsible:not(.expanded) .sidebar-header-text {
   display: none;
@@ -774,7 +774,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   border-radius: 8px;
   color: var(--text-light);
   opacity: 0;
-  transition: opacity 0.15s ease 0.1s;
+  transition: opacity 0.2s ease 0.08s;
   font-size: 0.85rem;
 }
 .sidebar-collapsible:not(.expanded) .sidebar-icon-btn {
@@ -869,9 +869,9 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 }
 .sidebar-link-label {
   opacity: 0;
-  transition: opacity 0.15s ease 0.05s;
+  transition: opacity 0.2s ease 0.06s;
   overflow: hidden;
-  contain: layout style;
+  white-space: nowrap;
 }
 .sidebar-collapsible.expanded .sidebar-link-label {
   opacity: 1;
@@ -881,6 +881,8 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .sidebar-footer {
   padding: 8px;
   border-top: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 /* ====== 侧边栏搜索 ====== */

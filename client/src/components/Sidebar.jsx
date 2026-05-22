@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { to: '/recommend', icon: 'fa-solid fa-wand-magic-sparkles', label: 'AI 推荐' },
 ];
 
-const EXPAND_DELAY = 200; // ms
+const EXPAND_DELAY = 80; // ms
 
 export default function Sidebar() {
   const { user } = useAuth();

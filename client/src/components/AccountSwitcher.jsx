@@ -41,7 +41,7 @@ export default function AccountSwitcher({ collapsed = false }) {
       <button
         onClick={() => setShowPanel(!showPanel)}
         className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all hover:opacity-80 w-full"
-        style={{ background: showPanel ? 'var(--primary-light)' : 'transparent' }}
+        style={{ background: showPanel ? 'var(--primary-light)' : 'transparent', whiteSpace: 'nowrap', overflow: 'hidden' }}
         title="切换账户"
       >
         <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 overflow-hidden"
