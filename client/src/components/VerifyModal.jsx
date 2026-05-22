@@ -20,13 +20,15 @@ export function useVerifyModal() {
   const containerRef = useRef(null);
   const rendererRef = useRef(null);
 
-  // 检测 SDK 是否加载
+  // 检测 SDK 是否加载（10s 超时）
   useEffect(() => {
     if (window.ABDLCaptcha) { setSdkReady(true); return; }
+    let timeout;
     const check = setInterval(() => {
-      if (window.ABDLCaptcha) { setSdkReady(true); clearInterval(check); }
+      if (window.ABDLCaptcha) { setSdkReady(true); clearInterval(check); clearTimeout(timeout); }
     }, 200);
-    return () => clearInterval(check);
+    timeout = setTimeout(() => { clearInterval(check); setSdkReady(true); }, 10000);
+    return () => { clearInterval(check); clearTimeout(timeout); };
   }, []);
 
   const cleanup = useCallback(() => {
