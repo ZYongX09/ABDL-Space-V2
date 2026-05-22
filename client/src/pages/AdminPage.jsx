@@ -521,13 +521,14 @@ export default function AdminPage() {
                     {brandForm.logo && <img src={brandForm.logo} alt="" className="w-12 h-12 object-contain rounded-lg" style={{ background: 'var(--input-bg)' }} />}
                     <input type="file" accept="image/*" className="text-sm" onChange={async e => {
                       const file = e.target.files?.[0]; if (!file) return;
-                      try { const url = await uploadImage(file); setBrandForm(f => ({ ...f, logo: url })); toast.success('上传成功'); } catch { toast.error('上传失败'); }
+                      try { const url = await uploadImage(file); console.log('[brand] upload URL:', url); setBrandForm(f => ({ ...f, logo: url })); toast.success('上传成功'); } catch(err) { console.error('[brand] upload error:', err); toast.error('上传失败'); }
                     }} />
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <button className="btn btn-primary" onClick={async () => {
                     if (!brandForm.name.trim()) { toast.error('品牌名称为必填'); return; }
+                    console.log('[brand] saving:', { name: brandForm.name.trim(), logo: brandForm.logo });
                     setBrandSaving(true);
                     try {
                       await adminAPI.saveBrand({ name: brandForm.name.trim(), logo: brandForm.logo });

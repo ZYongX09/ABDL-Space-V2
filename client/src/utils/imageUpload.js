@@ -28,5 +28,6 @@ export async function uploadImage(file) {
   }
 
   const data = await res.json()
+  console.log('[uploadImage] response:', data)
   return data.url
 }
