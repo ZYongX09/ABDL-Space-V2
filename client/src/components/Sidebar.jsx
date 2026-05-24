@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -12,22 +12,48 @@ const NAV_ITEMS = [
   { to: '/recommend', icon: 'fa-solid fa-wand-magic-sparkles', label: 'AI 推荐' },
 ];
 
-const EXPAND_DELAY = 80; // ms
+const HOVER_DELAY = 80;
+const MAX_RIPPLE_DELAY = 150; // ms
+const RIPPLE_SPEED = 0.6; // px → ms 衰减系数
 
 export default function Sidebar() {
   const { user } = useAuth();
   const { unreadCount, messageUnread } = useNotifications();
   const [expanded, setExpanded] = useState(false);
+  const [hoverAnchorY, setHoverAnchorY] = useState(null);
   const timerRef = useRef(null);
+  const navRef = useRef(null);
+  const itemRefs = useRef({});
 
-  const handleMouseEnter = () => {
-    timerRef.current = setTimeout(() => setExpanded(true), EXPAND_DELAY);
-  };
+  const handleMouseEnter = useCallback((e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const relY = e.clientY - rect.top;
+    timerRef.current = setTimeout(() => {
+      setExpanded(true);
+      // anchorY 在下一帧设置，此时 expanded 已触发重渲染，项目位置已更新
+      requestAnimationFrame(() => setHoverAnchorY(relY));
+    }, HOVER_DELAY);
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
     setExpanded(false);
-  };
+    setHoverAnchorY(null);
+  }, []);
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, []);
+
+  // 计算某个导航项的弹性延迟
+  const getRippleDelay = useCallback((itemKey) => {
+    if (hoverAnchorY === null || !expanded) return 0;
+    const el = itemRefs.current[itemKey];
+    if (!el) return 0;
+    const itemCenter = el.offsetTop + el.offsetHeight / 2;
+    const dist = Math.abs(itemCenter - hoverAnchorY);
+    return Math.min(dist * RIPPLE_SPEED, MAX_RIPPLE_DELAY);
+  }, [hoverAnchorY, expanded]);
 
   return (
     <>
@@ -58,15 +84,19 @@ export default function Sidebar() {
         </div>
 
         {/* 导航 */}
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" ref={navRef}>
           {NAV_ITEMS.map(item => (
             <NavLink
               key={item.to}
+              ref={el => { if (el) itemRefs.current[item.to] = el; }}
               to={item.to}
               end={item.end}
-              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+              className={({ isActive }) => `sidebar-link sidebar-ripple-item ${isActive ? 'active' : ''} ${expanded ? 'ripple-expanded' : ''}`}
               title={item.label}
-              style={{ position: 'relative' }}
+              style={{
+                position: 'relative',
+                '--ripple-delay': `${getRippleDelay(item.to)}ms`,
+              }}
             >
               <i className={`fa-solid ${item.icon} sidebar-link-icon`} />
               <span className="sidebar-link-label">{item.label}</span>
@@ -90,15 +120,23 @@ export default function Sidebar() {
           {user ? (
             <AccountSwitcher collapsed={!expanded} />
           ) : (
-            <NavLink to="/login" className="sidebar-link" title="登录">
+            <NavLink
+              to="/login"
+              ref={el => { if (el) itemRefs.current['_login'] = el; }}
+              className={`sidebar-link sidebar-ripple-item ${expanded ? 'ripple-expanded' : ''}`}
+              title="登录"
+              style={{ '--ripple-delay': `${getRippleDelay('_login')}ms` }}
+            >
               <i className="fa-solid fa-right-to-bracket sidebar-link-icon" />
               <span className="sidebar-link-label">登录</span>
             </NavLink>
           )}
           <NavLink
             to="/settings"
-            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+            ref={el => { if (el) itemRefs.current['_settings'] = el; }}
+            className={({ isActive }) => `sidebar-link sidebar-ripple-item ${isActive ? 'active' : ''} ${expanded ? 'ripple-expanded' : ''}`}
             title="设置"
+            style={{ '--ripple-delay': `${getRippleDelay('_settings')}ms` }}
           >
             <i className="fa-solid fa-gear sidebar-link-icon" />
             <span className="sidebar-link-label">设置</span>

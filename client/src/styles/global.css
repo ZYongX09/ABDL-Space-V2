@@ -859,6 +859,30 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   transform: scale(0.96);
   transition-duration: 0.1s;
 }
+
+/* 弹性牵扯展开动画 */
+.sidebar-ripple-item {
+  opacity: 1;
+  transform: translateX(0);
+}
+.sidebar-ripple-item.ripple-expanded {
+  animation: sidebarRippleIn 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  animation-delay: var(--ripple-delay, 0ms);
+}
+@keyframes sidebarRippleIn {
+  0% {
+    opacity: 0.4;
+    transform: translateX(-8px) scale(0.95);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(2px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
 .sidebar-link.active {
   background: var(--primary);
   color: white;
