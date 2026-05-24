@@ -68,6 +68,9 @@ export default function AccountPrivacy() {
         {/* 第三方账户绑定 */}
         <NBWBindSection user={user} toast={toast} />
 
+        {/* OAuth 授权管理 */}
+        <OAuthTokensSection toast={toast} />
+
         {/* 密码与安全 */}
         <div className="card mb-5">
           <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
@@ -325,6 +328,82 @@ n              style={{ opacity: 0.5, cursor: 'not-allowed' }}
               暂未开放
             </button>
           )}
+      </div>
+    </div>
+  );
+}
+
+// OAuth 授权管理组件
+function OAuthTokensSection({ toast }) {
+  const [tokens, setTokens] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [revoking, setRevoking] = useState(null);
+
+  const loadTokens = useCallback(async () => {
+    try {
+      const API_BASE = import.meta.env.VITE_API_BASE || '';
+      const res = await fetch(`${API_BASE}/api/oauth/tokens`, { credentials: 'include' });
+      const data = await res.json();
+      if (res.ok) setTokens(data.tokens || []);
+    } catch {}
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { loadTokens(); }, [loadTokens]);
+
+  const handleRevoke = async (clientId, clientName) => {
+    if (!confirm(`确定撤销「${clientName}」的所有授权？该应用将无法再访问你的账户。`)) return;
+    setRevoking(clientId);
+    try {
+      const API_BASE = import.meta.env.VITE_API_BASE || '';
+      const res = await fetch(`${API_BASE}/api/oauth/revoke-client`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ client_id: clientId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('已撤销授权');
+      loadTokens();
+    } catch (e) { toast.error(e.message); }
+    finally { setRevoking(null); }
+  };
+
+  if (loading || tokens.length === 0) return null;
+
+  return (
+    <div className="card mb-5">
+      <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
+        <i className="fa-solid fa-puzzle-piece mr-2" style={{ color: 'var(--primary-dark)' }} />
+        授权管理
+      </h3>
+      <div className="space-y-3">
+        {tokens.map(t => (
+          <div key={t.client_id} className="flex items-center justify-between py-2">
+            <div className="flex items-center gap-3">
+              {t.logo_url ? (
+                <img src={t.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover" />
+              ) : (
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--input-bg)' }}>
+                  <i className="fa-solid fa-puzzle-piece text-xs" style={{ color: 'var(--text-muted)' }} />
+                </div>
+              )}
+              <div>
+                <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{t.client_name || t.client_id}</div>
+                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>授权于 {new Date(t.created_at * 1000).toLocaleDateString('zh-CN')}</div>
+              </div>
+            </div>
+            <button
+              className="btn btn-outline btn-sm"
+              style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+              onClick={() => handleRevoke(t.client_id, t.client_name || t.client_id)}
+              disabled={revoking === t.client_id}
+            >
+              {revoking === t.client_id ? <i className="fa-solid fa-spinner fa-spin" /> : '撤销'}
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );

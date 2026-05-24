@@ -168,9 +168,13 @@ export default function OAuthAuthorize() {
 
           {/* 用户信息 */}
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold overflow-hidden"
               style={{ background: 'var(--primary-dark)', color: '#fff' }}>
-              {user?.username?.[0]?.toUpperCase() || '?'}
+              {user?.avatar ? (
+                <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+              ) : (
+                user?.username?.[0]?.toUpperCase() || '?'
+              )}
             </div>
             <div>
               <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{user?.username}</p>
