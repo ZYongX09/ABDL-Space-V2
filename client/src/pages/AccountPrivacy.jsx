@@ -8,7 +8,7 @@ import VerificationInput from '../components/VerificationInput';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { authAPI } from '../api';
-import { isNBWConfigured, startNBWBind } from '../utils/nbwOAuth';
+import { isNBWConfigured, whenNBWReady, startNBWBind } from '../utils/nbwOAuth';
 
 const NBW_LOGO = 'https://img.abdl-space.top/file/nbwlogo.png';
 
@@ -277,10 +277,14 @@ function EmailSection({ user, toast }) {
 // NewBabyWorld 账户绑定组件
 function NBWBindSection({ user, toast }) {
   const [binding, setBinding] = useState(false);
-  const nbwConfigured = isNBWConfigured();
+  const [nbwReady, setNbwReady] = useState(isNBWConfigured());
   const isBound = !!user?.nbw_uid;
 
-  if (!nbwConfigured && !isBound) return null;
+  useEffect(() => {
+    whenNBWReady().then(() => setNbwReady(isNBWConfigured()));
+  }, []);
+
+  if (!nbwReady && !isBound) return null;
 
   return (
     <div className="card mb-5">
@@ -298,7 +302,7 @@ function NBWBindSection({ user, toast }) {
             </div>
           </div>
         </div>
-        {nbwConfigured ? (
+        {nbwReady ? (
           isBound ? (
             <span className="text-xs px-3 py-1.5 rounded-lg" style={{ background: 'rgba(6,214,160,0.1)', color: 'var(--success)' }}>
               <i className="fa-solid fa-check mr-1" />已绑定

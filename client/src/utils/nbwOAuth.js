@@ -25,6 +25,13 @@ export function isNBWConfigured() {
   return !!(_nbwConfig?.clientId && _nbwConfig?.redirectUri);
 }
 
+/** 获取配置加载 Promise（用于组件等待） */
+let _configPromise = null;
+export function whenNBWReady() {
+  if (!_configPromise) _configPromise = getNBWConfig();
+  return _configPromise;
+}
+
 /** 初始化 NBW 配置（应用启动时调用） */
 export async function initNBWConfig() {
   await getNBWConfig();
