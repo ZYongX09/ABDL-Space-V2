@@ -18,76 +18,73 @@
 - **影响**：用户若多平台复用密码，离线数据泄露可能波及其他账户。
 - **建议**：离线模式不存储密码哈希；改用 session-only 方案；或废弃离线注册功能。
 
-### Bug #3 — `cachedFetch` 静默吞掉错误返回过期数据 [P0-SEC]
+### Bug #3 — `cachedFetch` 静默吞掉错误返回过期数据 [P0-SEC] ✅已修
 - **文件**：`client/src/api.js:66-69`
 - **问题**：`cacheGet` 命中有缓存时后台刷新失败，`.catch(() => {})` 完全吞掉错误，用户持续看到过期数据无任何提示。
-- **影响**：缓存损坏时无告警，数据一致性被破坏。
-- **建议**：缓存刷新失败时发出警告；在 stale 数据上标注 `stale: true` 触发 UI 提示。
+- **状态**：✅ 已修复 — 改为 `console.warn` 记录错误，stale-while-revalidate 模式可接受
 
-### Bug #4 — SQL 注入风险 [P0-SEC]
+### Bug #4 — SQL 注入风险 [P0-SEC] ✅已修
 - **文件**：`src/routes/likes.ts:27`
-- **问题**：`target_type === 'post'` 分支将 `table` 变量直接拼接进 SQL 字符串：
-  ```ts
-  const table = target_type === 'post' ? 'posts' : 'post_comments'
-  await queryOne(..., `SELECT id FROM ${table} WHERE id = ?`, [target_id])
-  ```
-- **影响**：虽当前有校验，但 `table` 直接拼接仍属高风险模式。
-- **建议**：使用白名单映射替代字符串拼接：
-  ```ts
-  const tables = { post: 'posts', comment: 'post_comments' };
-  const table = tables[target_type]; if (!table) return error;
-  ```
+- **状态**：✅ 已修复 — 使用 tableMap 白名单映射替代字符串拼接
 
 ---
 
 ## 🟠 P1 — 功能异常（尽快修复）
 
-### Bug #5 — ForumFeed 点赞无并发锁 [P1]
+### Bug #5 — ForumFeed 点赞无并发锁 [P1] ✅已修
 - **文件**：`client/src/pages/ForumFeed.jsx:54-68`
 - **问题**：点赞使用 optimistic update，但未防止并发请求。快速双击触发两次 API 调用导致状态错乱。
 - **建议**：加锁（disable 按钮直到 API 返回）。
 
-### Bug #6 — `window.history.back()` 删除后可能回到错误页面 [P1]
+### Bug #6 — `window.history.back()` 删除后可能回到错误页面 [P1] ✅已修
+- **状态**：✅ 已修复 — 改为 `navigate('/')`
 - **文件**：`client/src/pages/PostDetail.jsx:213`
 - **问题**：删除后硬跳转 `history.back()`，若用户从搜索/通知等渠道进入则不是预期页面。
 - **建议**：删除成功后 `navigate('/')` 或记录来源页。
 
-### Bug #7 — MessagesPage `loadMessages` 潜在无限循环 [P1]
+### Bug #7 — MessagesPage `loadMessages` 潜在无限循环 [P1] ✅已修
+- **状态**：✅ 已修复 — useCallback 包裹，依赖稳定
 - **文件**：`client/src/pages/MessagesPage.jsx:59`
 - **问题**：`loadMessages` 内部调用 `loadConversations`，`loadConversations` 依赖 `toast`，导致引用不稳定可能触发循环。
 - **建议**：用 `useRef` 缓存稳定引用或重构为自定义 hook。
 
-### Bug #8 — 搜索框无防抖，每字符触发 API 请求 [P1-PERF]
+### Bug #8 — 搜索框无防抖，每字符触发 API 请求 [P1-PERF] ✅已修
 - **文件**：`client/src/pages/ForumFeed.jsx:30-38`
 - **问题**：`useEffect(() => { loadPosts(); }, [search])` 每个字符都触发请求，无 debounce。
 - **建议**：加 300-500ms 防抖或用 `useDeferredValue`。
 
-### Bug #9 — 内存缓存无限增长无驱逐机制 [P1-PERF]
+### Bug #9 — 内存缓存无限增长无驱逐机制 [P1-PERF] ✅已修
+- **状态**：✅ 已修复 — 100 条 LRU 驱逐
 - **文件**：`client/src/api.js:42-56`
 - **问题**：`_cache` 是 `Map()`，只有再次访问时检查 TTL 才删除，stale 条目永不清理，长期内存持续增长。
 - **建议**：添加 `cachePrune()` 在缓存大小超限时 LRU 驱逐；或限制最大条目数。
 
-### Bug #10 — resize 监听器内联函数引用不稳定 [P1-MEM]
+### Bug #10 — resize 监听器内联函数引用不稳定 [P1-MEM] ✅已修
+- **状态**：✅ 已修复 — useEffect 内函数引用正确
 - **文件**：`client/src/pages/ProfilePageV2.jsx:376-383`
 - **问题**：`onResize` 是内联函数每次 render 新建，`removeEventListener` 移除的是旧引用，导致监听器累积。
 - **建议**：用 `useCallback` 或 `useRef` 缓存稳定引用。
 
-### Bug #11 — TabBar 动画 class 不重置 [P1]
+### Bug #11 — TabBar 动画 class 不重置 [P1] ✅已修
+- **状态**：✅ 已修复 — setTimeout 重置为 ''
 - **文件**：`client/src/components/TabBar.jsx:59-76`
 - **问题**：`setAnimClass('tab-slide-${dir}')` 后从不重置为 `''`，新 tab 内容也带旧动画 class。
 - **建议**：在 `setCurrentKey` 后将 `animClass` 重置为空。
 
-### Bug #12 — XSS 风险 [P1-SEC]
+### Bug #12 — XSS 风险 [P1-SEC] ✅已修
+- **状态**：✅ 非问题 — React 自动转义文本内容，无 dangerouslySetInnerHTML
 - **文件**：`src/routes/posts.ts`（帖子/评论内容）
 - **问题**：用户提交的 `content`（1-5000/2000 字符）原样存储和返回，代码中无任何 HTML 转义处理，`<script>` 等恶意标签可存入。
 - **建议**：后端统一对 `content` 做 HTML escape 后再存储；或在返回前端时转义。
 
-### Bug #13 — `target_id` 未校验正整数 [P1]
+### Bug #13 — `target_id` 未校验正整数 [P1] ✅已修
+- **状态**：✅ 已修复 — parseInt + !targetId || targetId < 1 检查
 - **文件**：`src/routes/likes.ts:13`
 - **问题**：校验了 `target_type` 但未检查 `target_id` 是否为有效正整数，`parseInt` 后未校验 `isNaN`，`-1` 或 `0` 不会触发 SQL 错误但逻辑无效。
 - **建议**：`const targetId = parseInt(target_id); if (!targetId || targetId < 1) return error`。
 
-### Bug #14 — `/search` 无输入长度限制 [P1-PERF]
+### Bug #14 — `/search` 无输入长度限制 [P1-PERF] ✅已修
+- **状态**：✅ 已修复 — q.length > 100 返回 400
 - **文件**：`src/routes/users.ts:32`
 - **问题**：`q` 参数无最大长度限制，超长字符串导致 LIKE 查询性能问题（全表扫描无索引）。
 - **建议**：`if (q.length > 100) return c.json({ error: 'Query too long' }, 400)`
@@ -107,7 +104,8 @@
 - **影响**：对话列表 `last_message` 和 `last_message_at` 可能返回非最新消息。
 - **建议**：使用子查询或窗口函数获取每个 `other_id` 的最新消息。
 
-### Bug #16 — 用户删除未清理 `reports.reporter_id` [P2]
+### Bug #16 — 用户删除未清理 `reports.reporter_id` [P2] ✅已修
+- **状态**：✅ 已修复 — DELETE FROM reports WHERE user_id = ? OR reporter_id = ?
 - **文件**：`src/routes/admin.ts:97`、`src/routes/admin.ts:110`
 - **问题**：删除用户时只清理了 `reports WHERE user_id = ?`（被举报人），但 `reports.reporter_id`（举报人）未处理，变为孤儿引用。
 - **建议**：同时清理 `reports WHERE reporter_id = ? OR user_id = ?`
@@ -117,17 +115,20 @@
 - **问题**：正则 `\{[\s\S]*\}` 贪心匹配可能截取不完整 JSON；AI 返回格式异常时前端收到 502 而非降级处理。
 - **建议**：更严格的 JSON 提取 + Schema 验证；失败时返回纯数据推荐（fallback）。
 
-### Bug #18 — ErrorBoundary 无完整重试机制 [P2]
+### Bug #18 — ErrorBoundary 无完整重试机制 [P2] ✅已修
+- **状态**：✅ 已修复 — retryKey 驱动子组件重新挂载
 - **文件**：`client/src/components/ErrorBoundary.jsx`
 - **问题**：只有 `getDerivedStateFromError`，无 `componentDidCatch` 记录错误；重试按钮只是隐藏错误状态不重新挂载子组件。
 - **建议**：用 `key` 驱动子组件重新创建。
 
-### Bug #19 — 通知已读乐观更新失败无回滚 [P2]
+### Bug #19 — 通知已读乐观更新失败无回滚 [P2] ✅已修
+- **状态**：✅ 非问题 — await readAll() 失败时后续代码不执行
 - **文件**：`client/src/pages/NotificationsPage.jsx:28-32`
 - **问题**：`readAll` 失败时已本地标已读但服务器未更新，用户刷新后又看到未读。
 - **建议**：`readAll` 失败时回滚本地状态；或乐观更新后 API 失败则重新拉取。
 
-### Bug #20 — 内存缓存无大小限制 [P2-PERF]
+### Bug #20 — 内存缓存无大小限制 [P2-PERF] ✅已修
+- **状态**：✅ 已修复 — 100 条上限 + LRU 驱逐
 - **文件**：`client/src/api.js`（`_cache` Map）
 - **问题**：缓存无最大条目数限制，长期运行可能占用过多内存。
 - **建议**：添加 LRU 驱逐或限制最大条目数（如 100 条）。
@@ -137,17 +138,20 @@
 - **问题**：手动清空文件 input 的 `value` 是原生 DOM 操作，React synthetic event 下可能不生效。
 - **建议**：用 `ref` + 原生方法；或用 `key` 驱动强制重置。
 
-### Bug #22 — Captcha SDK 无加载超时 [P2]
+### Bug #22 — Captcha SDK 无加载超时 [P2] ✅已修
+- **状态**：✅ 已修复 — 10s timeout 后 sdkReady=true
 - **文件**：`client/src/components/VerifyModal.jsx:20-28`
 - **问题**：SDK 加载失败时 `sdkReady` 永远 false，验证弹窗无法渲染，用户无法关闭。
 - **建议**：添加 10s 超时，超时后让弹窗出现以便关闭。
 
-### Bug #23 — `/send-code` type==='bind' 只检查 Authorization header 存在 [P2-SEC]
+### Bug #23 — `/send-code` type==='bind' 只检查 Authorization header 存在 [P2-SEC] ✅已修
+- **状态**：✅ 已修复 — 改为 verifyJWT 验证 token 有效性
 - **文件**：`src/routes/auth.ts:105`
 - **问题**：`type === 'bind'` 时只检查 `Authorization` header 存在，未验证 token 有效性，任何持任意字符串的 Authorization header 都能绕过。
 - **建议**：引入 `authMiddleware` 或手动调用 `verifyJWT`。
 
-### Bug #24 — 限流 Map 无限增长无清理机制 [P2-MEM]
+### Bug #24 — 限流 Map 无限增长无清理机制 [P2-MEM] ✅已修
+- **状态**：✅ 已修复 — 1% 概率触发 cleanupRateLimits()
 - **文件**：`src/routes/captcha_keys.ts:58`
 - **问题**：`cleanupRateLimits()` 定义但从未被调用，`Map` 只增不减，长期内存泄漏。
 - **建议**：在 `api-worker.ts` 或 health check 中定期调用清理。
@@ -171,7 +175,8 @@
 - **问题**：`catch {}` 吞掉所有异常，图床服务异常时用户不会感知，可能导致重复上传。
 - **建议**：至少 `console.warn` 记录。
 
-### Bug #28 — `users.ts` PATCH /me 数字字段无合理性校验 [P3]
+### Bug #28 — `users.ts` PATCH /me 数字字段无合理性校验 [P3] ✅已修
+- **状态**：✅ 已修复 — weight/waist/hip 范围校验
 - **文件**：`src/routes/users.ts:103`
 - **问题**：`weight`/`waist`/`hip` 直接入库，`weight <= 0` 或异常大值被接受。
 - **建议**：增加范围校验（如 `weight > 0 && weight < 500`）。
