@@ -121,8 +121,15 @@ export function useVerifyModal() {
             <i className="fa-solid fa-xmark" />
           </button>
         </div>
-        <div style={{ border: '1.5px solid var(--border)', borderRadius: '1rem', overflow: 'hidden', padding: '12px' }}>
-          <div ref={containerRef} />
+        <div style={{ border: '1.5px solid var(--border)', borderRadius: '1rem', overflow: 'hidden', padding: '12px', minHeight: 80 }}>
+          {!sdkReady ? (
+            <div className="flex items-center justify-center py-6">
+              <div className="spinner mr-2" />
+              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>加载验证组件...</span>
+            </div>
+          ) : (
+            <div ref={containerRef} />
+          )}
         </div>
       </div>
     </div>

@@ -30,7 +30,7 @@ export default function ComparePage() {
 
   return (
     <PageLayout hero={{ icon: 'fa-scale-balanced', title: '纸尿裤对比', subtitle: '选择 2-4 款进行对比' }}>
-      {/* 选择器 */}
+      {loading ? <LoadingSkeleton count={3} height={60} /> : (<>
       <div className="card mb-5">
         <h3 className="font-bold mb-3" style={{ color: 'var(--text)' }}>选择要对比的纸尿裤（最多 4 款）</h3>
         <div className="flex flex-wrap gap-2">
@@ -86,6 +86,7 @@ export default function ComparePage() {
       ) : (
         <EmptyState icon="fa-scale-balanced" title="请选择至少 2 款纸尿裤" description="点击上方标签选择" />
       )}
+      </>)}
     </PageLayout>
   );
 }
