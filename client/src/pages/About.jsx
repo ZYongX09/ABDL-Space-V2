@@ -6,9 +6,19 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
 const VERSION = '2.9.0';
-const LAST_UPDATE = '2026-05-21';
+const LAST_UPDATE = '2026-05-24';
 
 const CHANGELOG = [
+  {
+    version: '2.20.3',
+    date: '2026-05-24',
+    changes: [
+      '优化注册登录流程体验',
+      '优化网页动效',
+      '修复安全性问题',
+      '修复已知问题，提升产品稳定性',
+    ],
+  },
   {
     version: '2.9.0',
     date: '2026-05-21',
