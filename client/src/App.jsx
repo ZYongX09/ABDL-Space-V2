@@ -3,6 +3,7 @@ import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { NsfwProvider } from './contexts/NsfwContext';
+import { initNBWConfig } from './utils/nbwOAuth';
 import Sidebar from './components/Sidebar';
 import MobileBottomNav from './components/MobileBottomNav';
 import CookieConsent from './components/CookieConsent';
@@ -111,6 +112,9 @@ export default function App() {
   const { user } = useAuth();
   const { pathname } = useLocation();
   useExternalLinkInterceptor();
+
+  // 初始化 NBW OAuth 配置
+  useEffect(() => { initNBWConfig(); }, []);
 
   // 全局键盘快捷键
   useEffect(() => {

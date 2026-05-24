@@ -306,9 +306,9 @@ function NBWBindSection({ user, toast }) {
           ) : (
             <button
               className="btn btn-outline btn-sm"
-              onClick={() => {
+              onClick={async () => {
                 setBinding(true);
-                try { startNBWBind(); } catch (e) { toast.error(e.message); setBinding(false); }
+                try { await startNBWBind(); } catch (e) { toast.error(e.message); setBinding(false); }
               }}
               disabled={binding}
             >

@@ -2,12 +2,32 @@
  * NewBabyWorld OAuth 工具函数
  */
 
-const NBW_CLIENT_ID = import.meta.env.VITE_NBW_CLIENT_ID || '';
-const NBW_REDIRECT_URI = import.meta.env.VITE_NBW_REDIRECT_URI || '';
+let _nbwConfig = null;
+
+/** 从后端获取 NBW OAuth 配置（运行时） */
+async function getNBWConfig() {
+  if (_nbwConfig) return _nbwConfig;
+  const API_BASE = import.meta.env.VITE_API_BASE || '';
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/nbw/config`, { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      _nbwConfig = { clientId: data.client_id, redirectUri: data.redirect_uri };
+      return _nbwConfig;
+    }
+  } catch {}
+  _nbwConfig = { clientId: '', redirectUri: '' };
+  return _nbwConfig;
+}
 
 /** 是否已配置 NewBabyWorld OAuth */
 export function isNBWConfigured() {
-  return !!(NBW_CLIENT_ID && NBW_REDIRECT_URI);
+  return !!(_nbwConfig?.clientId && _nbwConfig?.redirectUri);
+}
+
+/** 初始化 NBW 配置（应用启动时调用） */
+export async function initNBWConfig() {
+  await getNBWConfig();
 }
 
 /** 生成随机 state */
@@ -18,15 +38,16 @@ function generateState() {
 }
 
 /** 发起 NewBabyWorld OAuth 授权（登录/注册用） */
-export function startNBWOAuth() {
-  if (!isNBWConfigured()) return;
+export async function startNBWOAuth() {
+  const config = await getNBWConfig();
+  if (!config.clientId || !config.redirectUri) return;
 
   const state = generateState();
   sessionStorage.setItem('nbw_oauth_state', state);
 
   const params = new URLSearchParams({
-    client_id: NBW_CLIENT_ID,
-    redirect_uri: NBW_REDIRECT_URI,
+    client_id: config.clientId,
+    redirect_uri: config.redirectUri,
     response_type: 'code',
     state,
   });
@@ -35,15 +56,16 @@ export function startNBWOAuth() {
 }
 
 /** 发起 NewBabyWorld OAuth 绑定 */
-export function startNBWBind() {
-  if (!isNBWConfigured()) return;
+export async function startNBWBind() {
+  const config = await getNBWConfig();
+  if (!config.clientId || !config.redirectUri) return;
 
   const state = 'bind_' + generateState();
   sessionStorage.setItem('nbw_oauth_state', state);
 
   const params = new URLSearchParams({
-    client_id: NBW_CLIENT_ID,
-    redirect_uri: NBW_REDIRECT_URI,
+    client_id: config.clientId,
+    redirect_uri: config.redirectUri,
     response_type: 'code',
     state,
   });
