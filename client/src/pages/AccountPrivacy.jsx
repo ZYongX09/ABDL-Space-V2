@@ -8,6 +8,9 @@ import VerificationInput from '../components/VerificationInput';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { authAPI } from '../api';
+import { isNBWConfigured, startNBWBind } from '../utils/nbwOAuth';
+
+const NBW_LOGO = 'https://www.newbabyworld.top/logo_square.png';
 
 export default function AccountPrivacy() {
   const { user } = useAuth();
@@ -61,6 +64,9 @@ export default function AccountPrivacy() {
 
         {/* 邮箱管理 */}
         <EmailSection user={user} toast={toast} />
+
+        {/* 第三方账户绑定 */}
+        <NBWBindSection user={user} toast={toast} />
 
         {/* 密码与安全 */}
         <div className="card mb-5">
@@ -264,6 +270,55 @@ function EmailSection({ user, toast }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// NewBabyWorld 账户绑定组件
+function NBWBindSection({ user, toast }) {
+  const [binding, setBinding] = useState(false);
+  const nbwConfigured = isNBWConfigured();
+  const isBound = !!user?.nbw_uid;
+
+  if (!nbwConfigured && !isBound) return null;
+
+  return (
+    <div className="card mb-5">
+      <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
+        <i className="fa-solid fa-link mr-2" style={{ color: 'var(--primary-dark)' }} />
+        第三方账户绑定
+      </h3>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <img src={NBW_LOGO} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'contain' }} />
+          <div>
+            <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>宝宝新天地</div>
+            <div className="text-xs" style={{ color: isBound ? 'var(--success)' : 'var(--text-muted)' }}>
+              {isBound ? <><i className="fa-solid fa-circle-check mr-1" />已绑定</> : '未绑定'}
+            </div>
+          </div>
+        </div>
+        {nbwConfigured ? (
+          isBound ? (
+            <span className="text-xs px-3 py-1.5 rounded-lg" style={{ background: 'rgba(6,214,160,0.1)', color: 'var(--success)' }}>
+              <i className="fa-solid fa-check mr-1" />已绑定
+            </span>
+          ) : (
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => {
+                setBinding(true);
+                try { startNBWBind(); } catch (e) { toast.error(e.message); setBinding(false); }
+              }}
+              disabled={binding}
+            >
+              {binding ? <i className="fa-solid fa-spinner fa-spin" /> : '去绑定'}
+            </button>
+          )
+        ) : (
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>暂未开放</span>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,0 +1,113 @@
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import PageLayout from '../components/PageLayout';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { verifyNBWState, isNBWBindState, exchangeNBWCode, bindNBWAccount } from '../utils/nbwOAuth';
+
+/**
+ * NBWCallback — NewBabyWorld OAuth 回调页面
+ *
+ * 流程：
+ * 1. 验证 state 防 CSRF
+ * 2. 将 code 发送给后端换取 token + 用户信息
+ * 3. 后端返回 { action: 'login', token, user } 或 { action: 'register', nbw_user }
+ * 4. login → 直接登录跳转首页
+ * 5. register → 跳转注册页，预填邮箱/用户名
+ */
+export default function NBWCallback() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { login: authLogin } = useAuth();
+  const toast = useToast();
+  const [status, setStatus] = useState('processing'); // processing | error
+
+  useEffect(() => {
+    const code = searchParams.get('code');
+    const state = searchParams.get('state');
+    const error = searchParams.get('error');
+
+    if (error) {
+      toast.error('授权被取消或失败');
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    if (!code) {
+      toast.error('缺少授权码');
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    if (!verifyNBWState(state)) {
+      toast.error('安全验证失败，请重试');
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    // 绑定流程
+    if (isNBWBindState(state)) {
+      (async () => {
+        try {
+          await bindNBWAccount(code);
+          toast.success('绑定成功');
+          navigate('/account', { replace: true });
+        } catch (e) {
+          toast.error(e.message);
+          setStatus('error');
+        }
+      })();
+      return;
+    }
+
+    // 登录/注册流程
+
+    (async () => {
+      try {
+        const result = await exchangeNBWCode(code);
+
+        if (result.action === 'login') {
+          // 已注册用户，直接登录
+          toast.success('登录成功');
+          window.location.href = '/';
+        } else if (result.action === 'register') {
+          // 未注册用户，跳转注册页预填信息
+          const nbwUser = result.nbw_user;
+          navigate('/register', {
+            replace: true,
+            state: {
+              nbw: true,
+              email: nbwUser.email || '',
+              username: nbwUser.username || '',
+              nbw_uid: nbwUser.uid || '',
+            },
+          });
+        }
+      } catch (e) {
+        toast.error(e.message);
+        setStatus('error');
+      }
+    })();
+  }, [searchParams, navigate, toast]);
+
+  if (status === 'error') {
+    return (
+      <PageLayout hero={{ icon: 'fa-circle-xmark', title: '授权失败' }}>
+        <div className="card max-w-md mx-auto text-center py-8">
+          <i className="fa-solid fa-circle-xmark text-4xl mb-4" style={{ color: 'var(--danger)' }} />
+          <p className="mb-4" style={{ color: 'var(--text-light)' }}>授权过程中出现问题</p>
+          <Link to="/login" className="btn btn-primary">返回登录</Link>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  return (
+    <PageLayout hero={{ icon: 'fa-spinner', title: '授权中...' }}>
+      <div className="card max-w-md mx-auto text-center py-8">
+        <div className="spinner mx-auto mb-4" />
+        <p style={{ color: 'var(--text-light)' }}>正在处理授权，请稍候...</p>
+      </div>
+    </PageLayout>
+  );
+}

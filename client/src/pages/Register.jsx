@@ -1,15 +1,18 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import MobileHeader from '../components/MobileHeader';
 import VerificationInput from '../components/VerificationInput';
 import { authAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { isNBWConfigured } from '../utils/nbwOAuth';
 
 export default function Register() {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
+  const location = useLocation();
+  const nbwState = location.state?.nbw ? location.state : null;
+  const [username, setUsername] = useState(nbwState?.username || '');
+  const [email, setEmail] = useState(nbwState?.email || '');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -99,8 +102,26 @@ export default function Register() {
     if (!email.includes('@')) { toast.error('请输入合法邮箱'); return; }
     if (password.length < 8) { toast.error('密码至少 8 位'); return; }
     if (password !== confirm) { toast.error('两次密码不一致'); return; }
-    if (!codeSent || code.length < 6) { toast.error('请先获取并输入验证码'); return; }
     if (!agreeTerms || !agreePrivacy) { toast.error('请阅读并同意用户协议和隐私政策'); return; }
+
+    // NBW 注册：跳过邮箱验证和验证码
+    if (nbwState) {
+      try {
+        setLoading(true);
+        await register({
+          username: username.trim(), email: email.trim(), password,
+          nbw_uid: nbwState.nbw_uid,
+        });
+        saveConsent({ privacy: true, terms: true });
+        toast.success('注册成功');
+        navigate('/');
+      } catch (e) { toast.error(e.message); }
+      finally { setLoading(false); }
+      return;
+    }
+
+    // 普通注册
+    if (!codeSent || code.length < 6) { toast.error('请先获取并输入验证码'); return; }
     if (!captchaOk) { toast.error('请完成安全验证'); return; }
     try {
       setLoading(true);
@@ -115,7 +136,9 @@ export default function Register() {
     finally { setLoading(false); }
   };
 
-  const allReady = agreeTerms && agreePrivacy && captchaOk && codeSent && code.length >= 6;
+  const allReady = nbwState
+    ? agreeTerms && agreePrivacy
+    : agreeTerms && agreePrivacy && captchaOk && codeSent && code.length >= 6;
 
   return (
     <>
@@ -132,15 +155,21 @@ export default function Register() {
               <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>
                 <i className="fa-solid fa-envelope mr-1.5" style={{ color: 'var(--primary-dark)' }} />邮箱
               </label>
-              <div className="flex gap-2">
-                <input type="email" className="form-control flex-1" value={email} onChange={e => { setEmail(e.target.value); setCodeSent(false); setCode(''); }} placeholder="your@email.com" />
-                <button type="button" className="btn btn-outline whitespace-nowrap" onClick={handleSendCode} disabled={loading || cooldown > 0}
-                  style={{ fontSize: '0.8rem', padding: '0 16px', minWidth: '100px' }}>
-                  {loading ? <i className="fa-solid fa-spinner fa-spin" /> : cooldown > 0 ? `${cooldown}s` : codeSent ? '重新发送' : '发送验证码'}
-                </button>
-              </div>
+              {nbwState ? (
+                <input type="email" className="form-control" value={email} disabled style={{ opacity: 0.7 }} />
+              ) : (
+                <div className="flex gap-2">
+                  <input type="email" className="form-control flex-1" value={email} onChange={e => { setEmail(e.target.value); setCodeSent(false); setCode(''); }} placeholder="your@email.com" />
+                  <button type="button" className="btn btn-outline whitespace-nowrap" onClick={handleSendCode} disabled={loading || cooldown > 0}
+                    style={{ fontSize: '0.8rem', padding: '0 16px', minWidth: '100px' }}>
+                    {loading ? <i className="fa-solid fa-spinner fa-spin" /> : cooldown > 0 ? `${cooldown}s` : codeSent ? '重新发送' : '发送验证码'}
+                  </button>
+                </div>
+              )}
+              {nbwState && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>来自宝宝新天地授权，已自动填入</p>}
             </div>
 
+            {!nbwState && (<>
             {sendCodeCount >= 2 && !sendCodeCaptchaOk && (
               <div className="mb-4 p-3 rounded-xl" style={{ border: '1.5px solid var(--border)', background: 'var(--input-bg)' }}>
                 <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--text)' }}>
@@ -168,6 +197,7 @@ export default function Register() {
                 </p>
               </div>
             )}
+            </>)}
 
             <div className="mb-4">
               <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>密码</label>
@@ -188,6 +218,7 @@ export default function Register() {
               </div>
             </div>
 
+            {!nbwState && (
             <div className="mb-5 p-4 rounded-xl flex flex-col" style={{ border: `1.5px solid ${captchaOk ? 'var(--success)' : 'var(--border)'}`, background: 'var(--input-bg)' }}>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
@@ -218,6 +249,7 @@ export default function Register() {
                 </div>
               )}
             </div>
+            )}
 
             <div className="mb-5 space-y-2.5">
               <label className="flex items-start gap-2.5 cursor-pointer">

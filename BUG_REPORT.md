@@ -6,17 +6,13 @@
 
 ## 🔴 P0 — 崩溃 / 安全漏洞（立即修复）
 
-### Bug #1 — 令牌明文存储在 localStorage [P0-SEC]
+### Bug #1 — 令牌明文存储在 localStorage [P0-SEC] ✅已修
 - **文件**：`client/src/api.js:42`、`client/src/contexts/AuthContext.jsx:103`
-- **问题**：JWT token 以 `localStorage.setItem('token', token)` 明文存储，XSS 可直接读取。
-- **影响**：XSS 攻击可窃取用户会话。
-- **建议**：改用 `httpOnly` cookie；或对 token 加密存储。
+- **状态**：✅ 已修复 — JWT 迁移到 httpOnly Cookie，localStorage 不再存储 token
 
-### Bug #2 — 密码哈希本地存储可被提取 [P0-SEC]
+### Bug #2 — 密码哈希本地存储可被提取 [P0-SEC] ✅已修
 - **文件**：`client/src/api.js:36-40`、`client/src/contexts/AuthContext.jsx`（离线模式）
-- **问题**：离线模式下密码 SHA-256 哈希以明文存储在 `localStorage['abdl_users']` 中，攻击者通过 XSS 或物理访问可提取并暴力破解。
-- **影响**：用户若多平台复用密码，离线数据泄露可能波及其他账户。
-- **建议**：离线模式不存储密码哈希；改用 session-only 方案；或废弃离线注册功能。
+- **状态**：✅ 已修复 — 离线注册功能已删除
 
 ### Bug #3 — `cachedFetch` 静默吞掉错误返回过期数据 [P0-SEC] ✅已修
 - **文件**：`client/src/api.js:66-69`

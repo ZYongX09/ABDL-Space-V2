@@ -27,6 +27,7 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
+const NBWCallback = lazy(() => import('./pages/NBWCallback'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Settings = lazy(() => import('./pages/Settings'));
 
@@ -149,6 +150,7 @@ export default function App() {
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/auth/nbw/callback" element={<NBWCallback />} />
                 <Route path="/profile" element={<ProfilePageV2 />} />
                 <Route path="/profile/:id" element={<ProfilePageV2 />} />
                 <Route path="/settings" element={<Settings />} />
