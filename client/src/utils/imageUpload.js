@@ -7,14 +7,9 @@ export async function uploadImage(file) {
   const formData = new FormData()
   formData.append('file', file)
 
-  // 获取 auth token
-  const token = localStorage.getItem('token') || '';
-
   const res = await fetch(`${API_BASE}/api/images/upload`, {
     method: 'POST',
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    credentials: 'include',
     body: formData,
   })
 

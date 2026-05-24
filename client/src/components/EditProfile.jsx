@@ -62,10 +62,9 @@ export default function EditProfile({ onClose }) {
 
       const formData = new FormData();
       formData.append('file', file);
-      const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/api/images/upload?returnFormat=full`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
         body: formData,
       });
       const data = await res.json();

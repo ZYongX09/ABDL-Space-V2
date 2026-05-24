@@ -45,37 +45,27 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState(getSavedAccounts);
 
-  // 初始化：从保存的账户恢复登录
+  // 初始化：用 cookie 恢复登录
   useEffect(() => {
     (async () => {
       try {
         if (USE_API) {
-          const activeId = getActiveAccountId();
-          const saved = getSavedAccounts();
-          if (saved.length === 0) { setLoading(false); return; }
-
-          // 尝试用活跃账户的 token
-          const active = saved.find(a => String(a.id) === activeId) || saved[0];
-          if (!active?.token) { setLoading(false); return; }
-
-          const res = await fetch(`${API_BASE}/api/auth/me`, {
-            headers: { Authorization: `Bearer ${active.token}` },
-          });
+          const res = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
           if (res.ok) {
             const data = await res.json();
             const u = data.user || data;
             setUser(u);
             setActiveAccountId(u.id);
             // 更新保存的账户信息
+            const saved = getSavedAccounts();
             const updated = saved.map(a => a.id === u.id ? { ...a, username: u.username, avatar: u.avatar, role: u.role } : a);
             saveAccounts(updated);
             setAccounts(updated);
           } else {
-            // token 失效，移除该账户
-            const filtered = saved.filter(a => a.id !== active.id);
-            saveAccounts(filtered);
-            setAccounts(filtered);
-            setActiveAccountId(filtered[0]?.id || null);
+            // cookie 无效，清除本地状态
+            saveAccounts([]);
+            setAccounts([]);
+            setActiveAccountId(null);
           }
         } else {
           const u = getOfflineCurrentUser();
@@ -96,18 +86,17 @@ export function AuthProvider({ children }) {
         method: 'POST',
         headers,
         body: JSON.stringify({ login: loginField, password }),
+        credentials: 'include',
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '登录失败');
 
       const u = data.user;
-      const token = data.token;
-      localStorage.setItem('token', token);
 
       // 添加/更新已保存账户
       const saved = getSavedAccounts();
       const exists = saved.findIndex(a => a.id === u.id);
-      const entry = { id: u.id, username: u.username, avatar: u.avatar, role: u.role, token };
+      const entry = { id: u.id, username: u.username, avatar: u.avatar, role: u.role };
       if (exists >= 0) {
         saved[exists] = entry;
       } else {
@@ -138,16 +127,15 @@ export function AuthProvider({ children }) {
       method: 'POST',
       headers,
       body: JSON.stringify({ email, password, username, code }),
+      credentials: 'include',
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || '注册失败');
 
     const u = data.user;
-    const token = data.token;
-    localStorage.setItem('token', token);
 
     const saved = getSavedAccounts();
-    saved.push({ id: u.id, username: u.username, avatar: u.avatar, role: u.role, token });
+    saved.push({ id: u.id, username: u.username, avatar: u.avatar, role: u.role });
     saveAccounts(saved);
     setAccounts(saved);
     setActiveAccountId(u.id);
@@ -156,40 +144,13 @@ export function AuthProvider({ children }) {
   }, []);
 
   // 切换账户
+  // 切换账户（cookie 模式下需要重新登录）
   const switchAccount = useCallback(async (accountId) => {
     const saved = getSavedAccounts();
     const target = saved.find(a => a.id === accountId);
-    if (!target?.token) throw new Error('账户不存在或已失效');
-
-    if (USE_API) {
-      const res = await fetch(`${API_BASE}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${target.token}` },
-      });
-      if (!res.ok) {
-        // token 失效，移除
-        const filtered = saved.filter(a => a.id !== accountId);
-        saveAccounts(filtered);
-        setAccounts(filtered);
-        throw new Error('登录已过期，请重新登录');
-      }
-      const data = await res.json();
-      const u = data.user || data;
-      localStorage.setItem('token', target.token);
-      setActiveAccountId(accountId);
-      setUser(u);
-      // 更新账户信息
-      const updated = saved.map(a => a.id === accountId ? { ...a, username: u.username, avatar: u.avatar, role: u.role } : a);
-      saveAccounts(updated);
-      setAccounts(updated);
-      return u;
-    }
-    // localStorage 模式
-    const users = getOfflineUsers();
-    const u = Object.values(users).find(uu => uu.id === accountId);
-    if (!u) throw new Error('用户不存在');
-    lsSet('abdl_currentUser', u);
-    setUser({ ...u, passwordHash: undefined });
-    return { ...u, passwordHash: undefined };
+    if (!target) throw new Error('账户不存在');
+    // httpOnly cookie 只能存一个活跃账户，切换需要重新登录
+    throw new Error('切换账户需要重新登录');
   }, []);
 
   // 移除保存的账户
@@ -203,41 +164,32 @@ export function AuthProvider({ children }) {
       if (saved.length > 0) {
         switchAccount(saved[0].id).catch(() => { setUser(null); setActiveAccountId(null); });
       } else {
+        fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
         setUser(null);
         setActiveAccountId(null);
-        localStorage.removeItem('token');
       }
     }
   }, [user, switchAccount]);
 
   // 退出当前账户（不删除保存的账户）
   const logout = useCallback(() => {
+    // 清除后端 cookie
+    fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
     const saved = getSavedAccounts().filter(a => a.id !== user?.id);
     saveAccounts(saved);
     setAccounts(saved);
-
-    if (saved.length > 0) {
-      // 自动切换到下一个保存的账户
-      switchAccount(saved[0].id).catch(() => {
-        setUser(null);
-        setActiveAccountId(null);
-        localStorage.removeItem('token');
-      });
-    } else {
-      setUser(null);
-      setActiveAccountId(null);
-      localStorage.removeItem('token');
-      lsDel('abdl_currentUser');
-    }
-  }, [user, switchAccount]);
+    setUser(null);
+    setActiveAccountId(null);
+    lsDel('abdl_currentUser');
+  }, [user]);
 
   // 退出所有账户
   const logoutAll = useCallback(() => {
+    fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
     saveAccounts([]);
     setAccounts([]);
     setActiveAccountId(null);
     setUser(null);
-    localStorage.removeItem('token');
     lsDel('abdl_currentUser');
   }, []);
 
@@ -273,10 +225,10 @@ export function AuthProvider({ children }) {
   // 更新资料
   const updateProfile = useCallback(async (body) => {
     if (USE_API) {
-      const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/api/users/me`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(body),
       });
       const data = await res.json();

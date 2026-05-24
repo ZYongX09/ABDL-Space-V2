@@ -7,13 +7,9 @@ const API_BASE = import.meta.env.VITE_API_BASE || '';
 const USE_API = !!API_BASE;
 
 // ====== 通用 fetch ======
-function getToken() { return localStorage.getItem('token'); }
-
 async function apiFetch(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
-  const token = getToken();
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: 'include' });
   const text = await res.text();
   let data;
   try {
@@ -190,13 +186,12 @@ export const authAPI = {
   deleteAccount: async () => {
     if (USE_API) {
       await apiFetch('/api/auth/account', { method: 'DELETE' });
-      localStorage.removeItem('token');
+      fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
       return { message: '已删除' };
     }
     const user = LS.get('currentUser');
     if (user) { const users = LS.get('users') || {}; delete users[user.username]; LS.set('users', users); }
     LS.del('currentUser');
-    localStorage.removeItem('token');
     return { message: '已删除' };
   },
 };

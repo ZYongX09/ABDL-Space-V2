@@ -178,11 +178,10 @@ export default function AdminPage() {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const token = localStorage.getItem('token');
       const API_BASE = import.meta.env.VITE_API_BASE || '';
       const res = await fetch(`${API_BASE}/api/images/upload?returnFormat=full`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
         body: formData,
       });
       const data = await res.json();

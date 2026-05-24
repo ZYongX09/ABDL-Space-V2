@@ -40,7 +40,6 @@ async function uploadImage(file, isNsfw) {
   const form = new FormData();
   form.append('file', file);
   if (isNsfw) form.append('is_nsfw', 'true');
-  const token = localStorage.getItem('token');
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT);
@@ -48,7 +47,7 @@ async function uploadImage(file, isNsfw) {
   try {
     const res = await fetch(`${API_BASE}/api/images/upload`, {
       method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
       body: form,
       signal: controller.signal,
     });

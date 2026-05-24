@@ -6,13 +6,13 @@ import { useToast } from '../contexts/ToastContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
-function getToken() { return localStorage.getItem('token'); }
+
 
 async function apiFetch(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
-  const token = getToken();
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  
+  
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: 'include' });
   const text = await res.text();
   let data;
   try { data = JSON.parse(text); } catch { throw new Error(`服务器响应异常 (${res.status})`); }
