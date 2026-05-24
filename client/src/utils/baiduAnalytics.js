@@ -2,7 +2,7 @@
  * 百度统计 — 仅在用户同意 Cookie 后加载
  */
 
-const BAIDU_ID = '7a2eb68a000aad7949a7b9fd35788ec2';
+const BAIDU_ID = '45f30315297c806e5581a3703a7e2a9a';
 
 let _loaded = false;
 
