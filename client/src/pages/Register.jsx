@@ -110,7 +110,7 @@ export default function Register() {
         setLoading(true);
         await register({
           username: username.trim(), email: email.trim(), password,
-          nbw_uid: nbwState.nbw_uid,
+          nbw_code: nbwState.nbw_code,
         });
         saveConsent({ privacy: true, terms: true });
         toast.success('注册成功');

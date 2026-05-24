@@ -77,9 +77,9 @@ export default function NBWCallback() {
             replace: true,
             state: {
               nbw: true,
+              nbw_code: result.nbw_code,
               email: nbwUser.email || '',
               username: nbwUser.username || '',
-              nbw_uid: nbwUser.uid || '',
             },
           });
         }
