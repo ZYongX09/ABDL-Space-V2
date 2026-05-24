@@ -16,15 +16,9 @@ export function isConsented() {
 }
 
 export function loadBaiduAnalytics() {
-  if (_loaded || !isConsented()) return;
+  if (_loaded) return;
   _loaded = true;
-
-  window._hmt = window._hmt || [];
-  const hm = document.createElement('script');
-  hm.src = `https://hm.baidu.com/hm.js?${BAIDU_ID}`;
-  hm.async = true;
-  const s = document.getElementsByTagName('script')[0];
-  s.parentNode.insertBefore(hm, s);
+  // 脚本已在 index.html 中加载，此处仅标记已加载
 }
 
 /**
