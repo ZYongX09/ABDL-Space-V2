@@ -10,7 +10,7 @@ import { useToast } from '../contexts/ToastContext';
 import { authAPI } from '../api';
 import { isNBWConfigured, startNBWBind } from '../utils/nbwOAuth';
 
-const NBW_LOGO = 'https://www.newbabyworld.top/logo_square.png';
+const NBW_LOGO = 'https://img.abdl-space.top/file/nbwlogo.png';
 
 export default function AccountPrivacy() {
   const { user } = useAuth();

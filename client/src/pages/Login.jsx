@@ -6,7 +6,7 @@ import { useToast } from '../contexts/ToastContext';
 import { isNBWConfigured, startNBWOAuth } from '../utils/nbwOAuth';
 
 const FAIL_THRESHOLD = 2;
-const NBW_LOGO = 'https://www.newbabyworld.top/logo_square.png';
+const NBW_LOGO = 'https://img.abdl-space.top/file/nbwlogo.png';
 
 export default function Login() {
   const [login, setLogin] = useState('');
