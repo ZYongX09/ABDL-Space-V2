@@ -100,28 +100,13 @@ export async function loadData() {
 // =====================================================================
 export const authAPI = {
   register: async ({ username, password, email, code, captchaToken }) => {
-    if (USE_API) {
-      const headers = {};
-      if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
-      return apiFetch('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({ email, password, username, code }),
-        headers,
-      });
-    }
-    const users = LS.get('users') || {};
-    if (users[username]) throw new Error('用户名已被使用');
-    const passwordHash = await hashPasswordOffline(password);
-    const user = {
-      id: Date.now(), username, passwordHash, email: email || `${username}@abdl.local`,
-      role: 'user',
-      avatar: null, age: null, region: null, weight: null, waist: null, hip: null,
-      style_preference: null, bio: null, created_at: new Date().toISOString(),
-    };
-    users[username] = user;
-    LS.set('users', users);
-    LS.set('currentUser', user);
-    return { token: 'local-' + user.id, user: { ...user, password: undefined } };
+    const headers = {};
+    if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
+    return apiFetch('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, username, code }),
+      headers,
+    });
   },
 
   sendCode: async ({ email, type, captchaToken }) => {

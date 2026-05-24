@@ -132,42 +132,27 @@ export function AuthProvider({ children }) {
 
   // 注册
   const register = useCallback(async ({ username, email, password, code, captchaToken }) => {
-    if (USE_API) {
-      const headers = { 'Content-Type': 'application/json' };
-      if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
-      const res = await fetch(`${API_BASE}/api/auth/register`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ email, password, username, code }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '注册失败');
+    const headers = { 'Content-Type': 'application/json' };
+    if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
+    const res = await fetch(`${API_BASE}/api/auth/register`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ email, password, username, code }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '注册失败');
 
-      const u = data.user;
-      const token = data.token;
-      localStorage.setItem('token', token);
+    const u = data.user;
+    const token = data.token;
+    localStorage.setItem('token', token);
 
-      const saved = getSavedAccounts();
-      saved.push({ id: u.id, username: u.username, avatar: u.avatar, role: u.role, token });
-      saveAccounts(saved);
-      setAccounts(saved);
-      setActiveAccountId(u.id);
-      setUser(u);
-      return data;
-    }
-    const users = getOfflineUsers();
-    if (Object.values(users).some(u => u.username === username)) throw new Error('用户名已被使用');
-    const passwordHash = await hashPassword(password);
-    const u = {
-      id: Date.now(), username, passwordHash, email: email || `${username}@abdl.local`,
-      role: 'user',
-      avatar: null, bio: null, created_at: new Date().toISOString(),
-    };
-    users[username] = u;
-    lsSet('abdl_users', users);
-    lsSet('abdl_currentUser', u);
-    setUser({ ...u, passwordHash: undefined });
-    return { token: 'local-' + u.id, user: { ...u, passwordHash: undefined } };
+    const saved = getSavedAccounts();
+    saved.push({ id: u.id, username: u.username, avatar: u.avatar, role: u.role, token });
+    saveAccounts(saved);
+    setAccounts(saved);
+    setActiveAccountId(u.id);
+    setUser(u);
+    return data;
   }, []);
 
   // 切换账户
