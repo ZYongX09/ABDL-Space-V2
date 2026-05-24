@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 export default function AccountSwitcher({ collapsed = false }) {
   const { user, accounts, switchAccount, removeAccount, logoutAll } = useAuth();
   const [showPanel, setShowPanel] = useState(false);
+  const [panelPos, setPanelPos] = useState({ bottom: 0, left: 0, width: 0 });
+  const btnRef = useRef(null);
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -15,6 +17,14 @@ export default function AccountSwitcher({ collapsed = false }) {
   }, [collapsed]);
 
   if (!user) return null;
+
+  const togglePanel = () => {
+    if (!showPanel && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPanelPos({ bottom: window.innerHeight - rect.top + 8, left: rect.left, width: rect.width });
+    }
+    setShowPanel(!showPanel);
+  };
 
   const handleSwitch = async (id) => {
     if (id === user.id) { setShowPanel(false); return; }
@@ -39,7 +49,8 @@ export default function AccountSwitcher({ collapsed = false }) {
     <div className="relative">
       {/* 触发按钮 */}
       <button
-        onClick={() => setShowPanel(!showPanel)}
+        ref={btnRef}
+        onClick={togglePanel}
         className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all hover:opacity-80 w-full"
         style={{ background: showPanel ? 'var(--primary-light)' : 'transparent', whiteSpace: 'nowrap', overflow: 'hidden' }}
         title="切换账户"
@@ -71,7 +82,13 @@ export default function AccountSwitcher({ collapsed = false }) {
           {/* 点击外部关闭 */}
           <div className="fixed inset-0 z-40" onClick={() => setShowPanel(false)} />
           <div
-            className="account-switcher-panel absolute bottom-full left-0 right-0 mb-2 rounded-xl overflow-hidden z-50 animate-fade-in-up"
+            className="account-switcher-panel rounded-xl overflow-hidden z-50 animate-fade-in-up"
+            style={{
+              position: 'fixed',
+              bottom: panelPos.bottom,
+              left: panelPos.left,
+              width: panelPos.width,
+            }}
           >
             <div className="px-3 py-2" style={{ borderBottom: '1px solid var(--border)' }}>
               <div className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>已保存的账户</div>
