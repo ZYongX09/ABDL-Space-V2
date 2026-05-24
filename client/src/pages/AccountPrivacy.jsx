@@ -284,8 +284,6 @@ function NBWBindSection({ user, toast }) {
     whenNBWReady().then(() => setNbwReady(isNBWConfigured()));
   }, []);
 
-  if (!nbwReady && !isBound) return null;
-
   return (
     <div className="card mb-5">
       <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
@@ -302,12 +300,11 @@ function NBWBindSection({ user, toast }) {
             </div>
           </div>
         </div>
-        {nbwReady ? (
-          isBound ? (
+        {isBound ? (
             <span className="text-xs px-3 py-1.5 rounded-lg" style={{ background: 'rgba(6,214,160,0.1)', color: 'var(--success)' }}>
               <i className="fa-solid fa-check mr-1" />已绑定
             </span>
-          ) : (
+          ) : nbwReady ? (
             <button
               className="btn btn-outline btn-sm"
               onClick={async () => {
@@ -318,10 +315,16 @@ function NBWBindSection({ user, toast }) {
             >
               {binding ? <i className="fa-solid fa-spinner fa-spin" /> : '去绑定'}
             </button>
-          )
-        ) : (
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>暂未开放</span>
-        )}
+          ) : (
+            <button
+              className="btn btn-outline btn-sm"
+              disabled
+n              style={{ opacity: 0.5, cursor: 'not-allowed' }}
+              onClick={() => toast.info('暂未开放')}
+            >
+              暂未开放
+            </button>
+          )}
       </div>
     </div>
   );
