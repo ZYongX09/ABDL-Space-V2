@@ -17,7 +17,13 @@ export default function NBWChoicePage() {
   const { login: authLogin } = useAuth();
   const toast = useToast();
 
-  const { nbw_token, nbw_user } = location.state || {};
+  // 从 sessionStorage 读取 OAuth 数据（比 location.state 更可靠）
+  const stored = (() => { try { return JSON.parse(sessionStorage.getItem('nbw_oauth_data') || '{}'); } catch { return {}; } })();
+  const nbw_token = stored.nbw_token;
+  const nbw_user = stored.nbw_user;
+  // 读取后清除
+  if (stored.nbw_token) sessionStorage.removeItem('nbw_oauth_data');
+
   const [mode, setMode] = useState(null); // null | 'bind' | 'register'
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
@@ -59,14 +65,12 @@ export default function NBWChoicePage() {
   };
 
   const handleRegister = () => {
-    navigate('/register', {
-      replace: true,
-      state: {
-        nbw: true,
-        nbw_token,
-        username: nbw_user.username || '',
-      },
-    });
+    sessionStorage.setItem('nbw_register_data', JSON.stringify({
+      nbw: true,
+      nbw_token,
+      username: nbw_user.username || '',
+    }));
+    navigate('/register', { replace: true });
   };
 
   // 选择页面

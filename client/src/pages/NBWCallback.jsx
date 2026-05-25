@@ -79,13 +79,11 @@ export default function NBWCallback() {
           navigate('/', { replace: true });
         } else if (result.action === 'choose') {
           // 未绑定，让用户选择绑定已有或注册新账号
-          navigate('/auth/nbw/choose', {
-            replace: true,
-            state: {
-              nbw_token: result.nbw_token,
-              nbw_user: result.nbw_user,
-            },
-          });
+          sessionStorage.setItem('nbw_oauth_data', JSON.stringify({
+            nbw_token: result.nbw_token,
+            nbw_user: result.nbw_user,
+          }));
+          navigate('/auth/nbw/choose', { replace: true });
         }
       } catch (e) {
         toast.error(e.message);

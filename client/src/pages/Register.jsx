@@ -9,7 +9,9 @@ import { isNBWConfigured } from '../utils/nbwOAuth';
 
 export default function Register() {
   const location = useLocation();
-  const nbwState = location.state?.nbw ? location.state : null;
+  // 支持 location.state 和 sessionStorage 两种来源
+  const storedNBW = (() => { try { const d = JSON.parse(sessionStorage.getItem('nbw_register_data') || 'null'); if (d) sessionStorage.removeItem('nbw_register_data'); return d; } catch { return null; } })();
+  const nbwState = location.state?.nbw ? location.state : storedNBW;
   const [username, setUsername] = useState(nbwState?.username || '');
   const [email, setEmail] = useState(nbwState?.email || '');
   const [password, setPassword] = useState('');
