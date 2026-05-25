@@ -86,18 +86,6 @@ export default function NBWCallback() {
               nbw_user: result.nbw_user,
             },
           });
-        } else if (result.action === 'register') {
-          // 兼容旧接口
-          const nbwUser = result.nbw_user;
-          navigate('/register', {
-            replace: true,
-            state: {
-              nbw: true,
-              nbw_code: result.nbw_code,
-              email: nbwUser.email || '',
-              username: nbwUser.username || '',
-            },
-          });
         }
       } catch (e) {
         toast.error(e.message);
