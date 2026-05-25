@@ -58,7 +58,13 @@ export function AuthProvider({ children }) {
             setActiveAccountId(u.id);
             // 更新保存的账户信息
             const saved = getSavedAccounts();
-            const updated = saved.map(a => a.id === u.id ? { ...a, username: u.username, avatar: u.avatar, role: u.role } : a);
+            const exists = saved.findIndex(a => a.id === u.id);
+            let updated;
+            if (exists >= 0) {
+              updated = saved.map(a => a.id === u.id ? { ...a, username: u.username, avatar: u.avatar, role: u.role } : a);
+            } else {
+              updated = [...saved, { id: u.id, username: u.username, avatar: u.avatar, role: u.role }];
+            }
             saveAccounts(updated);
             setAccounts(updated);
           } else {
