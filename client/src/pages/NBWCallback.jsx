@@ -82,7 +82,7 @@ export default function NBWCallback() {
           navigate('/auth/nbw/choose', {
             replace: true,
             state: {
-              nbw_code: result.nbw_code,
+              nbw_token: result.nbw_token,
               nbw_user: result.nbw_user,
             },
           });

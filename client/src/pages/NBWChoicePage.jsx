@@ -17,13 +17,13 @@ export default function NBWChoicePage() {
   const { login: authLogin } = useAuth();
   const toast = useToast();
 
-  const { nbw_code, nbw_user } = location.state || {};
+  const { nbw_token, nbw_user } = location.state || {};
   const [mode, setMode] = useState(null); // null | 'bind' | 'register'
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  if (!nbw_code || !nbw_user) {
+  if (!nbw_token || !nbw_user) {
     return (
       <PageLayout hero={{ icon: 'fa-circle-xmark', title: '参数错误' }}>
         <div className="card max-w-md mx-auto text-center py-8">
@@ -44,11 +44,11 @@ export default function NBWChoicePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ login: login.trim(), password, nbw_code }),
+        body: JSON.stringify({ login: login.trim(), password, nbw_token }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '操作失败');
-      authLogin({ login: login.trim(), password });
+      await authLogin({ login: login.trim(), password });
       toast.success('绑定并登录成功');
       window.location.href = '/';
     } catch (e) {
@@ -63,7 +63,7 @@ export default function NBWChoicePage() {
       replace: true,
       state: {
         nbw: true,
-        nbw_code,
+        nbw_token,
         username: nbw_user.username || '',
       },
     });
