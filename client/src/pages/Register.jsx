@@ -150,18 +150,14 @@ export default function Register() {
               <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>
                 <i className="fa-solid fa-envelope mr-1.5" style={{ color: 'var(--primary-dark)' }} />邮箱
               </label>
-              {nbwState ? (
-                <input type="email" className="form-control" value={email} disabled style={{ opacity: 0.7 }} />
-              ) : (
-                <div className="flex gap-2">
-                  <input type="email" className="form-control flex-1" value={email} onChange={e => { setEmail(e.target.value); setCodeSent(false); setCode(''); }} placeholder="your@email.com" />
-                  <button type="button" className="btn btn-outline whitespace-nowrap" onClick={handleSendCode} disabled={loading || cooldown > 0}
-                    style={{ fontSize: '0.8rem', padding: '0 16px', minWidth: '100px' }}>
-                    {loading ? <i className="fa-solid fa-spinner fa-spin" /> : cooldown > 0 ? `${cooldown}s` : codeSent ? '重新发送' : '发送验证码'}
-                  </button>
-                </div>
-              )}
-              {nbwState && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>来自宝宝新天地授权，已自动填入</p>}
+              <div className="flex gap-2">
+                <input type="email" className="form-control flex-1" value={email} onChange={e => { setEmail(e.target.value); setCodeSent(false); setCode(''); }} placeholder="your@email.com" />
+                <button type="button" className="btn btn-outline whitespace-nowrap" onClick={handleSendCode} disabled={loading || cooldown > 0}
+                  style={{ fontSize: '0.8rem', padding: '0 16px', minWidth: '100px' }}>
+                  {loading ? <i className="fa-solid fa-spinner fa-spin" /> : cooldown > 0 ? `${cooldown}s` : codeSent ? '重新发送' : '发送验证码'}
+                </button>
+              </div>
+
             </div>
 
             {!nbwState && (<>
