@@ -20,7 +20,7 @@ export default function Login() {
   const [showNBWConsent, setShowNBWConsent] = useState(false);
   const captchaContainerRef = useRef(null);
   const captchaTokenRef = useRef(null);
-  const { login: authLogin, saveConsent } = useAuth();
+  const { login: authLogin, saveConsent, logout, user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -149,7 +149,11 @@ n              title="暂未开放"
               </p>
               <div className="flex gap-2 justify-end">
                 <button className="btn btn-outline btn-sm" onClick={() => setShowNBWConsent(false)}>取消</button>
-                <button className="btn btn-primary btn-sm" onClick={() => { saveConsent({ privacy: true }); startNBWOAuth(); }}>
+                <button className="btn btn-primary btn-sm" onClick={async () => {
+                  saveConsent({ privacy: true });
+                  if (user) await logout(); // 已登录时先退出，避免 cookie 冲突
+                  startNBWOAuth();
+                }}>
                   同意并继续
                 </button>
               </div>
