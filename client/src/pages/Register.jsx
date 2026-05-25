@@ -160,7 +160,6 @@ export default function Register() {
 
             </div>
 
-            {!nbwState && (<>
             {sendCodeCount >= 2 && !sendCodeCaptchaOk && (
               <div className="mb-4 p-3 rounded-xl" style={{ border: '1.5px solid var(--border)', background: 'var(--input-bg)' }}>
                 <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--text)' }}>
@@ -188,7 +187,6 @@ export default function Register() {
                 </p>
               </div>
             )}
-            </>)}
 
             <div className="mb-4">
               <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>密码</label>
@@ -209,7 +207,6 @@ export default function Register() {
               </div>
             </div>
 
-            {!nbwState && (
             <div className="mb-5 p-4 rounded-xl flex flex-col" style={{ border: `1.5px solid ${captchaOk ? 'var(--success)' : 'var(--border)'}`, background: 'var(--input-bg)' }}>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
@@ -240,7 +237,6 @@ export default function Register() {
                 </div>
               )}
             </div>
-            )}
 
             <div className="mb-5 space-y-2.5">
               <label className="flex items-start gap-2.5 cursor-pointer">
