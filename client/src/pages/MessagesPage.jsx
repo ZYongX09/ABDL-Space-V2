@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import MobileHeader from '../components/MobileHeader';
 import ChatMessage from '../components/ChatMessage';
 import NewConversation from '../components/NewConversation';
 import { Spinner } from '../components/Feedback';
 import { useAuth } from '../contexts/AuthContext';
+import { useMobileHeaderActions } from '../contexts/MobileHeaderContext';
 import { useToast } from '../contexts/ToastContext';
 import { messagesAPI } from '../api';
 
@@ -22,6 +22,15 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [showNewConvo, setShowNewConvo] = useState(false);
+  const { registerActions } = useMobileHeaderActions();
+
+  useEffect(() => {
+    registerActions(
+      [{ icon: 'fa-solid fa-user-plus', onClick: () => setShowNewConvo(true), title: '新私信' }],
+      []
+    );
+    return () => registerActions([], []);
+  }, []);
   const [showList, setShowList] = useState(!activeUserId);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -145,12 +154,6 @@ export default function MessagesPage() {
 
   return (
     <>
-    <MobileHeader
-      title="私信"
-      actions={[
-        { icon: 'fa-solid fa-user-plus', onClick: () => setShowNewConvo(true), title: '新私信' },
-      ]}
-    />
       <div className="msg-container">
         {/* 左侧：会话列表 */}
         <div className={`msg-sidebar ${showList ? 'show' : ''}`}>

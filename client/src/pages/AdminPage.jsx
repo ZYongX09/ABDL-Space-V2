@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import PageLayout from '../components/PageLayout';
-import MobileHeader from '../components/MobileHeader';
 import { LoadingSkeleton, Spinner } from '../components/Feedback';
 import TabBar from '../components/TabBar';
 import { adminAPI } from '../api';
@@ -201,7 +200,6 @@ export default function AdminPage() {
   if (!user || user.role !== 'admin') {
     return (
       <>
-      <MobileHeader title="管理后台" />
       <PageLayout hero={{ icon: 'fa-shield-halved', title: '管理后台' }}>
         <div className="empty-state">
           <div className="icon"><i className="fa-solid fa-lock" /></div>
@@ -216,7 +214,6 @@ export default function AdminPage() {
 
   return (
     <>
-    <MobileHeader title="管理后台" />
     <PageLayout hero={{ icon: 'fa-shield-halved', title: '管理后台' }}>
       {/* 标签页 */}
       <TabBar tabs={TABS} value={tab} onChange={setTab} />

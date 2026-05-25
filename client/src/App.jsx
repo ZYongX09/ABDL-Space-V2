@@ -4,7 +4,9 @@ import { useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { NsfwProvider } from './contexts/NsfwContext';
 import { initNBWConfig } from './utils/nbwOAuth';
+import { MobileHeaderProvider, useMobileHeaderActions } from './contexts/MobileHeaderContext';
 import Sidebar from './components/Sidebar';
+import MobileHeader from './components/MobileHeader';
 import MobileBottomNav from './components/MobileBottomNav';
 import CookieConsent from './components/CookieConsent';
 import BackToTop from './components/BackToTop';
@@ -72,6 +74,9 @@ const ROUTE_TITLES = {
   '/about': '关于 — ABDL Space',
   '/settings': '设置 — ABDL Space',
   '/create-post': '发帖 — ABDL Space',
+  '/captcha-api': 'Captcha API — ABDL Space',
+  '/oauth/authorize': 'OAuth 授权 — ABDL Space',
+  '/oauth-clients': '应用管理 — ABDL Space',
 };
 
 function getTitle(pathname) {
@@ -90,6 +95,13 @@ function ScrollToTop() {
     document.title = getTitle(pathname);
   }, [pathname]);
   return null;
+}
+
+function MobileHeaderLayout() {
+  const { pathname } = useLocation();
+  const { actions, leftActions } = useMobileHeaderActions();
+  const title = getTitle(pathname).split(' — ')[0] || 'ABDL Space';
+  return <MobileHeader title={title} actions={actions} leftActions={leftActions} />;
 }
 
 function AdminOnlyProfile() {
@@ -130,11 +142,13 @@ export default function App() {
   }, [navigate]);
 
   return (
+    <MobileHeaderProvider>
     <div className="app-layout">
       <ScrollToTop />
       <NotificationProvider>
       <NsfwProvider>
       <Sidebar />
+      <MobileHeaderLayout />
       <div className="app-main-content">
         <div key={pathname} className="container mx-auto px-5 py-6 max-w-[1080px] page-transition-enter">
           <ErrorBoundary>
@@ -201,5 +215,6 @@ export default function App() {
       <ScrollProgress />
       <BackToTop />
     </div>
+    </MobileHeaderProvider>
   );
 }

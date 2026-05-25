@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
-import MobileHeader from '../components/MobileHeader';
 import { LoadingSkeleton, EmptyState } from '../components/Feedback';
 import { diapersAPI } from '../api';
 import { useToast } from '../contexts/ToastContext';
@@ -40,7 +39,6 @@ export default function Home() {
 
   return (
     <>
-    <MobileHeader title="纸尿裤" />
     <PageLayout hero={{ icon: 'fa-baby', title: '纸尿裤列表', subtitle: '发现最适合你的纸尿裤' }}>
       {/* 搜索筛选 */}
       <div className="flex gap-3 mb-5 flex-wrap">

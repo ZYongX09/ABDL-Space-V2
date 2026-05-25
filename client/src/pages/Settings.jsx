@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
-import MobileHeader from '../components/MobileHeader';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -27,7 +26,6 @@ export default function Settings() {
 
   return (
     <>
-    <MobileHeader title="设置" />
     <PageLayout hero={{ icon: 'fa-gear', title: '设置', subtitle: '自定义你的体验' }}>
       {/* 主题设置 */}
       <div className="card mb-5">

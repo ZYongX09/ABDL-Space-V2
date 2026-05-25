@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
-import MobileHeader from '../components/MobileHeader';
 import VerificationInput from '../components/VerificationInput';
 import { authAPI } from '../api';
 import { useToast } from '../contexts/ToastContext';
@@ -86,7 +85,6 @@ export default function ForgotPassword() {
 
   return (
     <>
-      <MobileHeader title="找回密码" />
       <PageLayout hero={{ icon: 'fa-key', title: '找回密码', subtitle: '通过邮箱验证码重置密码' }}>
         <div className="card" style={{ maxWidth: 440, margin: '0 auto', padding: '2rem' }}>
 

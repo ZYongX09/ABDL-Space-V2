@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
-import MobileHeader from '../components/MobileHeader';
 import OfficialBadge from '../components/OfficialBadge';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';

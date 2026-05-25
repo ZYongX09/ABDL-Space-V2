@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
-import MobileHeader from '../components/MobileHeader';
 import { Spinner } from '../components/Feedback';
 import OfficialBadge from '../components/OfficialBadge';
 import { useToast } from '../contexts/ToastContext';
@@ -72,7 +71,6 @@ export default function UserPage() {
 
   return (
     <>
-    <MobileHeader title={user?.username || '用户'} />
     <PageLayout hero={{ icon: 'fa-user', title: user.username }}>
       <div className="card">
         <div className="flex items-center gap-4 mb-4">

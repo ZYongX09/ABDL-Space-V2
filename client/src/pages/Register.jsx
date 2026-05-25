@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
-import MobileHeader from '../components/MobileHeader';
 import VerificationInput from '../components/VerificationInput';
 import { authAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
@@ -142,7 +141,6 @@ export default function Register() {
 
   return (
     <>
-      <MobileHeader title="注册" />
       <PageLayout hero={{ icon: 'fa-user-plus', title: '注册', subtitle: '加入 ABDL Space 大家庭' }}>
         <div className="card max-w-md mx-auto">
           <form onSubmit={handleSubmit}>

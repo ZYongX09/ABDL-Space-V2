@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
-import MobileHeader from '../components/MobileHeader';
 import EditProfile from '../components/EditProfile';
 import VerificationInput from '../components/VerificationInput';
 
@@ -20,7 +19,6 @@ export default function AccountPrivacy() {
   if (!user) {
     return (
       <>
-        <MobileHeader title="账户与隐私" />
         <PageLayout hero={{ icon: 'fa-user-shield', title: '账户与隐私' }}>
           <div className="card text-center py-8">
             <p style={{ color: 'var(--text-light)' }}>请先登录</p>
@@ -33,7 +31,6 @@ export default function AccountPrivacy() {
 
   return (
     <>
-      <MobileHeader title="账户与隐私" />
       <PageLayout hero={{ icon: 'fa-user-shield', title: '账户与隐私', subtitle: '管理你的账户信息和隐私设置' }}>
 
         {/* 编辑资料 */}

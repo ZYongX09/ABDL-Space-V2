@@ -1,5 +1,4 @@
 import PageLayout from '../components/PageLayout';
-import MobileHeader from '../components/MobileHeader';
 
 const EN = () => {
   const s = { color: 'var(--text-light)' };
@@ -320,7 +319,6 @@ const ZH = () => {
 export default function CookiePolicy() {
   return (
     <>
-    <MobileHeader title="Cookie 政策" />
     <PageLayout hero={{ icon: 'fa-cookie-bite', title: 'Cookie Policy / Cookie 政策', subtitle: 'Last updated: May 18, 2026' }}>
       {/* 声明 */}
       <div className="p-4 rounded-xl mb-5 flex items-start gap-3" style={{ background: 'var(--warning-bg, #FFF8E1)', border: '2px solid var(--warning)' }}>

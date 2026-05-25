@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
-import MobileHeader from '../components/MobileHeader';
 import { LoadingSkeleton } from '../components/Feedback';
 import { rankingsAPI } from '../api';
 import { useToast } from '../contexts/ToastContext';
@@ -34,7 +33,6 @@ export default function Rankings() {
 
   return (
     <>
-    <MobileHeader title="排行榜" />
     <PageLayout hero={{ icon: 'fa-trophy', title: '排行榜', subtitle: '社区纸尿裤排名' }}>
       {/* 标签 */}
       <div className="flex gap-2 mb-5 flex-wrap">

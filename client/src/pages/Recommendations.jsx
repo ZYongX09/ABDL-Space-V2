@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import PageLayout from '../components/PageLayout';
-import MobileHeader from '../components/MobileHeader';
 import { useVerifyModal } from '../components/VerifyModal';
 import { recommendAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
@@ -126,7 +125,6 @@ export default function Recommendations() {
 
   return (
     <>
-    <MobileHeader title="AI 推荐" />
     <PageLayout hero={{ icon: 'fa-wand-magic-sparkles', title: 'AI 智能推荐', subtitle: '让 AI 帮你找到最合适的纸尿裤' }}>
       {user ? (
         <div className="card mb-5">

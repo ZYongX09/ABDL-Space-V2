@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import PageLayout from '../components/PageLayout';
-import MobileHeader from '../components/MobileHeader';
 import { LoadingSkeleton, EmptyState } from '../components/Feedback';
 import { notificationsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
@@ -43,7 +42,6 @@ export default function NotificationsPage() {
   if (!user) {
     return (
       <>
-      <MobileHeader title="通知" />
       <PageLayout hero={{ icon: 'fa-bell', title: '通知' }}>
         <div className="empty-state">
           <div className="icon"><i className="fa-solid fa-bell" /></div>
@@ -57,7 +55,6 @@ export default function NotificationsPage() {
 
   return (
     <>
-    <MobileHeader title="通知" />
     <PageLayout hero={{ icon: 'fa-bell', title: '通知', subtitle: unreadCount > 0 ? `${unreadCount} 条未读` : undefined }}>
       {loading ? (
         <LoadingSkeleton count={4} height={70} />
