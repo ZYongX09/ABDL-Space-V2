@@ -44,7 +44,9 @@ export default function NBWCallback() {
     }
 
     if (!verifyNBWState(state)) {
-      // state 已被消费（StrictMode 重执行），跳过
+      // state 已被消费或无效，导航离开
+      handledRef.current = true;
+      navigate('/', { replace: true });
       return;
     }
     handledRef.current = true;
@@ -54,6 +56,7 @@ export default function NBWCallback() {
       (async () => {
         try {
           await bindNBWAccount(code);
+          sessionStorage.setItem('nbw_just_bound', '1');
           toast.success('绑定成功');
           navigate('/account', { replace: true });
         } catch (e) {
@@ -73,7 +76,7 @@ export default function NBWCallback() {
         if (result.action === 'login') {
           // 已注册用户，直接登录
           toast.success('登录成功');
-          window.location.href = '/';
+          navigate('/', { replace: true });
         } else if (result.action === 'register') {
           // 未注册用户，跳转注册页预填信息
           const nbwUser = result.nbw_user;

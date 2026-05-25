@@ -16,8 +16,13 @@ export default function AccountPrivacy() {
   const toast = useToast();
   const [showEdit, setShowEdit] = useState(false);
 
-  // 刷新用户数据（从绑定/登录等流程返回时）
-  useEffect(() => { refreshUser(); }, []);
+  // 刷新用户数据（仅从绑定流程返回时）
+  useEffect(() => {
+    if (sessionStorage.getItem('nbw_just_bound')) {
+      sessionStorage.removeItem('nbw_just_bound');
+      refreshUser();
+    }
+  }, []);
 
   if (!user) {
     return (
@@ -133,7 +138,7 @@ export default function AccountPrivacy() {
                 切换账号
               </h3>
               <div className="space-y-2">
-                {accounts.filter(a => a.id !== user.id).map(a => (
+                {accounts.filter(a => String(a.id) !== String(user.id)).map(a => (
                   <button
                     key={a.id}
                     className="w-full flex items-center gap-3 py-2 px-3 rounded-lg transition-all hover:opacity-80"
