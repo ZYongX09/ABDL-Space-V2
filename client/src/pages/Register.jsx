@@ -111,24 +111,7 @@ export default function Register() {
     if (password !== confirm) { toast.error('两次密码不一致'); return; }
     if (!agreeTerms || !agreePrivacy) { toast.error('请阅读并同意用户协议和隐私政策'); return; }
 
-    // NBW 注册：跳过邮箱验证和验证码
-    if (nbwState) {
-      try {
-        setLoading(true);
-        await register({
-          username: username.trim(), email: email.trim(), password,
-          nbw_code: nbwState.nbw_code,
-          nbw_token: nbwState.nbw_token,
-        });
-        saveConsent({ privacy: true, terms: true });
-        toast.success('注册成功');
-        navigate('/');
-      } catch (e) { toast.error(e.message); }
-      finally { setLoading(false); }
-      return;
-    }
-
-    // 普通注册
+    // 普通注册（NBW 也需要邮箱验证和安全验证）
     if (!codeSent || code.length < 6) { toast.error('请先获取并输入验证码'); return; }
     if (!captchaOk) { toast.error('请完成安全验证'); return; }
     try {
@@ -136,6 +119,7 @@ export default function Register() {
       await register({
         username: username.trim(), email: email.trim(), password, code,
         captchaToken: regTokenRef.current || undefined,
+        ...(nbwState ? { nbw_token: nbwState.nbw_token } : {}),
       });
       saveConsent({ privacy: true, terms: true });
       toast.success('注册成功');
@@ -144,9 +128,7 @@ export default function Register() {
     finally { setLoading(false); }
   };
 
-  const allReady = nbwState
-    ? agreeTerms && agreePrivacy
-    : agreeTerms && agreePrivacy && captchaOk && codeSent && code.length >= 6;
+  const allReady = agreeTerms && agreePrivacy && captchaOk && codeSent && code.length >= 6;
 
   return (
     <>
