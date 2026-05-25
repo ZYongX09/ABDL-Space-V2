@@ -197,7 +197,10 @@ export default function DiaperDetail() {
       {/* 评分表单 */}
       {showRating && (
         <div className="card mb-5">
-          <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>评分（1-10 星）</h3>
+          <h3 className="font-bold mb-2" style={{ color: 'var(--text)' }}>评分（1-10 星）</h3>
+          <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+            <i className="fa-solid fa-chart-line mr-1" />综合评分经贝叶斯平均与置信区间修正，评分数越多越接近真实水平
+          </p>
           <div className="space-y-4">
             {DIMENSIONS.map(dim => (
               <div key={dim.key}>

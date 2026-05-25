@@ -34,6 +34,10 @@ export default function Rankings() {
   return (
     <>
     <PageLayout hero={{ icon: 'fa-trophy', title: '排行榜', subtitle: '社区纸尿裤排名' }}>
+      <div className="text-xs mb-4 flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+        <i className="fa-solid fa-chart-line" />
+        评分经贝叶斯平均与置信区间修正，评分数越多越接近真实水平
+      </div>
       {/* 标签 */}
       <div className="flex gap-2 mb-5 flex-wrap">
         {TABS.map(t => (

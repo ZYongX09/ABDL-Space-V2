@@ -470,7 +470,7 @@ export default function Profile() {
                     </div>
                     <div className="text-right flex-shrink-0 ml-3">
                       <span className="text-lg font-bold" style={{ color: 'var(--primary-dark)' }}>{d.avg_score}</span>
-                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>/5</span>
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>/10</span>
                     </div>
                   </div>
                 ))

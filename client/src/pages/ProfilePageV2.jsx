@@ -1026,7 +1026,7 @@ export default function ProfilePageV2() {
                         </div>
                         <div style={{ textAlign: 'right' }}>
                           <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--primary-dark)' }}>{d.avg_score}</span>
-                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>/5</span>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>/10</span>
                         </div>
                       </div>
                     </div>
@@ -1188,7 +1188,7 @@ export default function ProfilePageV2() {
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
                   <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--primary-dark)' }}>{d.avg_score}</span>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>/5</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>/10</span>
                 </div>
               </div>
             ))
