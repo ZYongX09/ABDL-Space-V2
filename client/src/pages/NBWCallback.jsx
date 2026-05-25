@@ -77,8 +77,17 @@ export default function NBWCallback() {
           // 已注册用户，直接登录
           toast.success('登录成功');
           navigate('/', { replace: true });
+        } else if (result.action === 'choose') {
+          // 未绑定，让用户选择绑定已有或注册新账号
+          navigate('/auth/nbw/choose', {
+            replace: true,
+            state: {
+              nbw_code: result.nbw_code,
+              nbw_user: result.nbw_user,
+            },
+          });
         } else if (result.action === 'register') {
-          // 未注册用户，跳转注册页预填信息
+          // 兼容旧接口
           const nbwUser = result.nbw_user;
           navigate('/register', {
             replace: true,

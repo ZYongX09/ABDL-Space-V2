@@ -31,6 +31,7 @@ const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const NBWCallback = lazy(() => import('./pages/NBWCallback'));
+const NBWChoicePage = lazy(() => import('./pages/NBWChoicePage'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Settings = lazy(() => import('./pages/Settings'));
 
@@ -77,6 +78,7 @@ const ROUTE_TITLES = {
   '/captcha-api': 'Captcha API — ABDL Space',
   '/oauth/authorize': 'OAuth 授权 — ABDL Space',
   '/oauth-clients': '应用管理 — ABDL Space',
+  '/auth/nbw/choose': '关联账户 — ABDL Space',
 };
 
 function getTitle(pathname) {
@@ -169,6 +171,7 @@ export default function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/auth/nbw/callback" element={<NBWCallback />} />
+                <Route path="/auth/nbw/choose" element={<NBWChoicePage />} />
                 <Route path="/profile" element={<ProfilePageV2 />} />
                 <Route path="/profile/:id" element={<ProfilePageV2 />} />
                 <Route path="/settings" element={<Settings />} />

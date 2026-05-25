@@ -143,6 +143,12 @@ export default function Register() {
     <>
       <PageLayout hero={{ icon: 'fa-user-plus', title: '注册', subtitle: '加入 ABDL Space 大家庭' }}>
         <div className="card max-w-md mx-auto">
+          {nbwState && (
+            <div className="flex items-center gap-2 mb-4 p-3 rounded-lg text-xs" style={{ background: 'var(--primary-light)', color: 'var(--text)' }}>
+              <i className="fa-solid fa-link" style={{ color: 'var(--primary-dark)' }} />
+              <span>完善以下信息完成注册，注册后将自动绑定宝宝新天地账号。</span>
+            </div>
+          )}
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>用户名</label>
