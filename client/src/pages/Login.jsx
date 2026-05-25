@@ -100,7 +100,7 @@ export default function Login() {
           <>
             <button
               className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg transition-all hover:opacity-80"
-              style={{ background: '#fff', border: '1px solid #dadce0', color: '#3c4043', cursor: 'pointer', boxShadow: '0 1px 2px rgba(60,64,67,0.3)' }}
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', boxShadow: '0 1px 2px rgba(60,64,67,0.15)' }}
               onClick={() => setShowNBWConsent(true)}
             >
               <img src={NBW_LOGO} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />

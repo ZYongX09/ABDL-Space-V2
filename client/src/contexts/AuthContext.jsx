@@ -257,12 +257,26 @@ export function AuthProvider({ children }) {
     return { user: { ...u, passwordHash: undefined } };
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    if (!USE_API) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        const u = data.user || data;
+        setUser(u);
+      }
+    } catch {}
+  }, []);
+
   return (
+
     <AuthContext.Provider value={{
       user, loading, accounts,
       login, register, logout, logoutAll,
       switchAccount, removeAccount, updateProfile,
       getConsentStatus, saveConsent, withdrawConsent,
+      refreshUser,
     }}>
       {children}
     </AuthContext.Provider>

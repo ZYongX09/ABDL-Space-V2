@@ -1831,6 +1831,7 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
 
 @media (min-width: 769px) {
   .mobile-header { display: none; }
+  .account-mobile-actions { display: none; }
 }
 
 /* ====== 小屏手机 (≤375px) ====== */

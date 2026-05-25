@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,29 +21,33 @@ export default function NBWCallback() {
   const { login: authLogin } = useAuth();
   const toast = useToast();
   const [status, setStatus] = useState('processing'); // processing | error
+  const handledRef = useRef(false);
 
   useEffect(() => {
+    if (handledRef.current) return;
     const code = searchParams.get('code');
     const state = searchParams.get('state');
     const error = searchParams.get('error');
 
     if (error) {
+      handledRef.current = true;
       toast.error('授权被取消或失败');
       navigate('/login', { replace: true });
       return;
     }
 
     if (!code) {
+      handledRef.current = true;
       toast.error('缺少授权码');
       navigate('/login', { replace: true });
       return;
     }
 
     if (!verifyNBWState(state)) {
-      toast.error('安全验证失败，请重试');
-      navigate('/login', { replace: true });
+      // state 已被消费（StrictMode 重执行），跳过
       return;
     }
+    handledRef.current = true;
 
     // 绑定流程
     if (isNBWBindState(state)) {

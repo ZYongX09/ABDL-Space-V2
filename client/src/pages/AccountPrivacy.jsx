@@ -12,9 +12,12 @@ import { isNBWConfigured, whenNBWReady, startNBWBind } from '../utils/nbwOAuth';
 const NBW_LOGO = 'https://img.abdl-space.top/file/nbwlogo.png';
 
 export default function AccountPrivacy() {
-  const { user } = useAuth();
+  const { user, refreshUser, logout, accounts, switchAccount } = useAuth();
   const toast = useToast();
   const [showEdit, setShowEdit] = useState(false);
+
+  // 刷新用户数据（从绑定/登录等流程返回时）
+  useEffect(() => { refreshUser(); }, []);
 
   if (!user) {
     return (
@@ -119,6 +122,41 @@ export default function AccountPrivacy() {
             </div>
             <i className="fa-solid fa-chevron-right text-xs" style={{ color: 'var(--text-muted)' }} />
           </Link>
+        </div>
+
+        {/* 移动端：账号操作 */}
+        <div className="account-mobile-actions">
+          {accounts.length > 1 && (
+            <div className="card mb-3">
+              <h3 className="font-bold mb-3" style={{ color: 'var(--text)' }}>
+                <i className="fa-solid fa-users mr-2" style={{ color: 'var(--primary-dark)' }} />
+                切换账号
+              </h3>
+              <div className="space-y-2">
+                {accounts.filter(a => a.id !== user.id).map(a => (
+                  <button
+                    key={a.id}
+                    className="w-full flex items-center gap-3 py-2 px-3 rounded-lg transition-all hover:opacity-80"
+                    style={{ background: 'var(--input-bg)', border: 'none', cursor: 'pointer' }}
+                    onClick={() => switchAccount(a.id)}
+                  >
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
+                      {a.avatar ? <img src={a.avatar} alt="" className="w-full h-full rounded-full object-cover" /> : a.username?.[0]?.toUpperCase()}
+                    </div>
+                    <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{a.username}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <button
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg transition-all hover:opacity-80"
+            style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--danger)', cursor: 'pointer' }}
+            onClick={logout}
+          >
+            <i className="fa-solid fa-right-from-bracket" />
+            <span className="text-sm font-medium">退出登录</span>
+          </button>
         </div>
 
         {/* 编辑资料弹窗 */}
@@ -279,6 +317,7 @@ function NBWBindSection({ user, toast }) {
   const [binding, setBinding] = useState(false);
   const [nbwReady, setNbwReady] = useState(isNBWConfigured());
   const isBound = !!user?.nbw_uid;
+  const nbwUsername = user?.nbw_username;
 
   useEffect(() => {
     whenNBWReady().then(() => setNbwReady(isNBWConfigured()));
@@ -290,19 +329,22 @@ function NBWBindSection({ user, toast }) {
         <i className="fa-solid fa-link mr-2" style={{ color: 'var(--primary-dark)' }} />
         第三方账户绑定
       </h3>
+      <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+        绑定第三方账户后，可使用该账户快速登录 ABDL Space，无需记忆额外密码。
+      </p>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <img src={NBW_LOGO} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'contain' }} />
           <div>
             <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>宝宝新天地</div>
             <div className="text-xs" style={{ color: isBound ? 'var(--success)' : 'var(--text-muted)' }}>
-              {isBound ? <><i className="fa-solid fa-circle-check mr-1" />已绑定</> : '未绑定'}
+              {isBound ? <><i className="fa-solid fa-circle-check mr-1" />已绑定{nbwUsername ? ` · @${nbwUsername}` : ''}</> : '未绑定'}
             </div>
           </div>
         </div>
         {isBound ? (
             <span className="text-xs px-3 py-1.5 rounded-lg" style={{ background: 'rgba(6,214,160,0.1)', color: 'var(--success)' }}>
-              <i className="fa-solid fa-check mr-1" />已绑定
+              <i className="fa-solid fa-check mr-1" />已绑定{nbwUsername ? ` · @${nbwUsername}` : ''}
             </span>
           ) : nbwReady ? (
             <button
