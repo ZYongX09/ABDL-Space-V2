@@ -17,12 +17,16 @@ export default function NBWChoicePage() {
   const { login: authLogin } = useAuth();
   const toast = useToast();
 
-  // 从 sessionStorage 读取 OAuth 数据（比 location.state 更可靠）
-  const stored = (() => { try { return JSON.parse(sessionStorage.getItem('nbw_oauth_data') || '{}'); } catch { return {}; } })();
-  const nbw_token = stored.nbw_token;
-  const nbw_user = stored.nbw_user;
-  // 读取后清除
-  if (stored.nbw_token) sessionStorage.removeItem('nbw_oauth_data');
+  // 从 sessionStorage 读取 OAuth 数据（仅读取一次）
+  const [oauthData] = useState(() => {
+    try {
+      const d = JSON.parse(sessionStorage.getItem('nbw_oauth_data') || 'null');
+      if (d?.nbw_token) sessionStorage.removeItem('nbw_oauth_data');
+      return d;
+    } catch { return null; }
+  });
+  const nbw_token = oauthData?.nbw_token;
+  const nbw_user = oauthData?.nbw_user;
 
   const [mode, setMode] = useState(null); // null | 'bind' | 'register'
   const [login, setLogin] = useState('');
