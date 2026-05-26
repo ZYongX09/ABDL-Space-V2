@@ -7,18 +7,26 @@ const API_BASE = import.meta.env.VITE_API_BASE || '';
 const USE_API = !!API_BASE;
 
 // 评分维度权重
-const DIM_WEIGHTS = {
+const ADULT_WEIGHTS = {
   absorption_score: 0.30,
   comfort_score: 0.35,
   thickness_score: 0.10,
   appearance_score: 0.20,
   value_score: 0.05,
 };
-const DIM_KEYS = Object.keys(DIM_WEIGHTS);
+const BABY_WEIGHTS = {
+  absorption_score: 0.07,
+  comfort_score: 0.35,
+  thickness_score: 0.03,
+  appearance_score: 0.35,
+  value_score: 0.20,
+};
+const DIM_KEYS = Object.keys(ADULT_WEIGHTS);
 
 /** 加权评分（本地离线模式用） */
-function weightedScore(rating) {
-  return DIM_KEYS.reduce((sum, dim) => sum + (rating[dim] || 0) * DIM_WEIGHTS[dim], 0);
+function weightedScore(rating, isBaby) {
+  const w = isBaby ? BABY_WEIGHTS : ADULT_WEIGHTS;
+  return DIM_KEYS.reduce((sum, dim) => sum + (rating[dim] || 0) * w[dim], 0);
 }
 
 // ====== 通用 fetch ======
@@ -239,7 +247,7 @@ export const diapersAPI = {
     const dims = DIM_KEYS;
     list = list.map(d => {
       const r = Object.values(ratings).filter(rr => rr.diaper_id === d.id);
-      const avgScore = r.length > 0 ? r.reduce((s, ri) => s + weightedScore(ri), 0) / r.length : 0;
+      const avgScore = r.length > 0 ? r.reduce((s, ri) => s + weightedScore(ri, d.is_baby_diaper), 0) / r.length : 0;
       return { ...d, avg_score: Math.round(avgScore * 10) / 10, rating_count: r.length };
     });
     // 排序
@@ -299,7 +307,7 @@ export const diapersAPI = {
         const scores = r.map(rr => rr[dim]).filter(v => v != null);
         dimensions[dim] = { avg: scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 10) / 10 : 0 };
       }
-      const avgScore = r.length > 0 ? r.reduce((s, ri) => s + weightedScore(ri), 0) / r.length : 0;
+      const avgScore = r.length > 0 ? r.reduce((s, ri) => s + weightedScore(ri, d.is_baby_diaper), 0) / r.length : 0;
       return { ...d, dimensions, avg_score: Math.round(avgScore * 10) / 10, rating_count: r.length };
     }).filter(Boolean);
     return { diapers };
@@ -411,7 +419,7 @@ export const rankingsAPI = {
     const dims = DIM_KEYS;
     const scored = _diapers.map(d => {
       const r = Object.values(ratings).filter(rr => rr.diaper_id === d.id);
-      const avgScore = r.length > 0 ? r.reduce((s, ri) => s + weightedScore(ri), 0) / r.length : 0;
+      const avgScore = r.length > 0 ? r.reduce((s, ri) => s + weightedScore(ri, d.is_baby_diaper), 0) / r.length : 0;
       return { ...d, avg_score: Math.round(avgScore * 10) / 10, rating_count: r.length };
     });
     if (type === 'absorbency') {
@@ -620,7 +628,7 @@ export const recommendAPI = {
     const dims = DIM_KEYS;
     const scored = _diapers.map(d => {
       const r = Object.values(ratings).filter(rr => rr.diaper_id === d.id);
-      const avgScore = r.length > 0 ? r.reduce((s, ri) => s + weightedScore(ri), 0) / r.length : 0;
+      const avgScore = r.length > 0 ? r.reduce((s, ri) => s + weightedScore(ri, d.is_baby_diaper), 0) / r.length : 0;
       return { ...d, avg_score: Math.round(avgScore * 10) / 10, rating_count: r.length };
     }).sort((a, b) => b.avg_score - a.avg_score).slice(0, 5);
     return {
