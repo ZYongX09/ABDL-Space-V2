@@ -3,9 +3,7 @@
   position: fixed;
   inset: 0;
   z-index: 99999;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -52,7 +50,7 @@
 
 .redirect-desc {
   font-size: 14px;
-  color: var(--text-muted, #888);
+  color: var(--text, #666);
   margin: 0 0 24px;
   line-height: 1.6;
 }
@@ -91,10 +89,10 @@
 .redirect-hint {
   margin: 16px 0 0;
   font-size: 12px;
-  color: var(--text-muted, #aaa);
+  color: var(--text-light, #999);
 }
 
 /* 深色主题 */
 [data-theme="dark"] .redirect-overlay {
-  background: rgba(0, 0, 0, 0.82);
+  background: rgba(0, 0, 0, 0.85);
 }
