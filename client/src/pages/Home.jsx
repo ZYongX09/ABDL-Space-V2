@@ -119,6 +119,7 @@ export default function Home() {
               <div className="text-lg font-bold mb-2">{d.model}</div>
               <div className="flex flex-wrap gap-2 text-sm" style={{ color: 'var(--text-light)' }}>
                 {d.product_type && <span className="tag">{d.product_type}</span>}
+                {d.is_baby_diaper === 1 && <span className="tag" style={{ background: 'rgba(255,143,171,0.12)', color: '#d87a95', borderColor: 'rgba(255,143,171,0.3)' }}>儿童款</span>}
                 {d.thickness && <span className="tag">厚度 {d.thickness}mm</span>}
               </div>
               <div className="flex items-center gap-3 mt-3 text-sm">

@@ -75,7 +75,9 @@ export default function Rankings() {
                 {i + 1}
               </span>
               <div className="flex-1 min-w-0">
-                <div className="font-semibold truncate">{d.brand} {d.model}</div>
+                <div className="font-semibold truncate">{d.brand} {d.model}
+                  {d.is_baby_diaper && <span className="ml-1.5 text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,143,171,0.12)', color: '#d87a95' }}>儿童款</span>}
+                </div>
                 <div className="text-xs" style={{ color: 'var(--text-light)' }}>
                   {d.product_type}
                 </div>
