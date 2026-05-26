@@ -8,6 +8,7 @@ import PullToRefresh from '../components/PullToRefresh';
 import RichContent from '../components/RichContent';
 import OfficialBadge from '../components/OfficialBadge';
 import ReportModal from '../components/ReportModal';
+import ThemeToggleBubble from '../components/ThemeToggleBubble/ThemeToggleBubble';
 import { forumAPI, followsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -101,6 +102,7 @@ export default function ForumFeed() {
 
   return (
     <>
+    <ThemeToggleBubble />
     <PageLayout hero={{ icon: 'fa-comments', title: '广场', subtitle: '分享你的 ABDL 生活' }}>
       {/* 搜索 + 发帖 */}
       <div className="flex gap-3 mb-5 flex-wrap">
