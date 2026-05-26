@@ -225,6 +225,11 @@ export default function About() {
             {user && consent.privacy && <i className="fa-solid fa-circle-check text-xs ml-1" style={{ color: 'var(--success)' }} />}
             <i className="fa-solid fa-chevron-right ml-auto text-xs" style={{ color: 'var(--text-muted)' }} />
           </a>
+          <a href="/minor-protection" className="flex items-center gap-3 p-3 rounded-xl transition-all hover:opacity-80" style={{ background: 'var(--input-bg)', textDecoration: 'none' }}>
+            <i className="fa-solid fa-child w-5 text-center" style={{ color: 'var(--primary-dark)' }} />
+            <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>未成年人个人信息保护政策</span>
+            <i className="fa-solid fa-chevron-right ml-auto text-xs" style={{ color: 'var(--text-muted)' }} />
+          </a>
           <a href="/cookies" className="flex items-center gap-3 p-3 rounded-xl transition-all hover:opacity-80" style={{ background: 'var(--input-bg)', textDecoration: 'none' }}>
             <i className="fa-solid fa-cookie-bite w-5 text-center" style={{ color: 'var(--primary-dark)' }} />
             <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Cookie 政策</span>
