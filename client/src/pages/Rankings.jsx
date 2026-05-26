@@ -4,6 +4,7 @@ import PageLayout from '../components/PageLayout';
 import { LoadingSkeleton } from '../components/Feedback';
 import { rankingsAPI } from '../api';
 import { useToast } from '../contexts/ToastContext';
+import BaseScoreRef from '../components/BaseScoreRef';
 
 const TABS = [
   { key: 'hot', label: '热门', icon: 'fa-fire' },
@@ -14,6 +15,7 @@ const TABS = [
 export default function Rankings() {
   const [tab, setTab] = useState('hot');
   const [rankings, setRankings] = useState([]);
+  const [baseScores, setBaseScores] = useState({ adult: 0, baby: 0 });
   const [loading, setLoading] = useState(true);
   const toast = useToast();
 
@@ -23,6 +25,7 @@ export default function Rankings() {
         setLoading(true);
         const data = await rankingsAPI.get(tab);
         setRankings(data.rankings || []);
+        setBaseScores(data.base_scores || { adult: 0, baby: 0 });
       } catch (e) {
         toast.error(e.message);
       } finally {
@@ -51,6 +54,11 @@ export default function Rankings() {
         ))}
       </div>
 
+      {/* 基准分参考 */}
+      {baseScores.adult > 0 && (
+        <BaseScoreRef adultScore={baseScores.adult} babyScore={baseScores.baby} />
+      )}
+
       {/* 列表 */}
       {loading ? (
         <LoadingSkeleton count={5} height={70} />
@@ -78,13 +86,8 @@ export default function Rankings() {
                     <i className="fa-solid fa-star mr-1" />{d.avg_score}
                   </span>
                 )}
-                {tab === 'hot' && d.avg_score === 0 && d.base_score > 0 && (
-                  <span className="base-score-tip font-bold" style={{ color: 'var(--text-muted)', cursor: 'default' }}>
-                    <i className="fa-solid fa-star-half-stroke mr-1" />{d.base_score}
-                    <span className="base-score-tooltip">
-                      基准分：基于全局数据的初始评分，有人评分后将更新为实际评分
-                    </span>
-                  </span>
+                {tab === 'hot' && d.avg_score === 0 && (
+                  <span style={{ color: 'var(--text-muted)' }}>暂无评分</span>
                 )}
                 {tab === 'absorbency' && (
                   <span className="font-bold" style={{ color: 'var(--primary-dark)' }}>

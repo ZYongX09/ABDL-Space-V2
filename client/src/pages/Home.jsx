@@ -6,8 +6,11 @@ import { diapersAPI } from '../api';
 import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../contexts/ThemeContext';
 
+import BaseScoreRef from '../components/BaseScoreRef';
+
 export default function Home() {
   const [diapers, setDiapers] = useState([]);
+  const [baseScores, setBaseScores] = useState({ adult: 0, baby: 0 });
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const shouldInvert = (d) => isDark ? d.brand_invert_dark : d.brand_invert_light;
@@ -29,6 +32,7 @@ export default function Home() {
         setLoading(true);
         const data = await diapersAPI.list({ search: search || undefined, brand: brand || undefined, sort });
         setDiapers(data.diapers || []);
+        setBaseScores(data.base_scores || { adult: 0, baby: 0 });
       } catch (e) {
         toast.error(e.message);
       } finally {
@@ -66,6 +70,11 @@ export default function Home() {
           <i className="fa-solid fa-trophy" /> 排行
         </Link>
       </div>
+
+      {/* 基准分参考 */}
+      {baseScores.adult > 0 && (
+        <BaseScoreRef adultScore={baseScores.adult} babyScore={baseScores.baby} />
+      )}
 
       {/* 列表 */}
       {loading ? (
@@ -117,14 +126,9 @@ export default function Home() {
                   <span className="flex items-center gap-1" style={{ color: 'var(--warning)' }}>
                     <i className="fa-solid fa-star" /> {d.avg_score}
                   </span>
-                ) : d.base_score > 0 ? (
-                  <span className="base-score-tip" style={{ color: 'var(--text-muted)', cursor: 'default' }}>
-                    <i className="fa-solid fa-star-half-stroke" /> {d.base_score}
-                    <span className="base-score-tooltip">
-                      基准分：基于全局数据的初始评分，有人评分后将更新为实际评分
-                    </span>
-                  </span>
-                ) : null}
+                ) : (
+                  <span style={{ color: 'var(--text-muted)' }}>暂无评分</span>
+                )}
                 {d.rating_count > 0 && (
                   <span style={{ color: 'var(--text-muted)' }}>{d.rating_count} 评价</span>
                 )}
