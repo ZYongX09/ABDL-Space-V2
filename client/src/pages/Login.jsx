@@ -15,7 +15,8 @@ export default function Login() {
   const [consented, setConsented] = useState(false);
   const [captchaOk, setCaptchaOk] = useState(false);
   const [captchaStarted, setCaptchaStarted] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [passwordRevealed, setPasswordRevealed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [failCount, setFailCount] = useState(0);
   const [showNBWConsent, setShowNBWConsent] = useState(false);
@@ -27,6 +28,7 @@ export default function Login() {
 
   const needCaptcha = failCount >= FAIL_THRESHOLD;
   const canSubmit = !loading && (!needCaptcha || captchaOk);
+  const isPasswordPlain = passwordRevealed && password.length > 0;
   const nbwConfigured = isNBWConfigured();
 
   useEffect(() => {
@@ -55,8 +57,8 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!login.trim()) { toast.error('请填写用户名/邮箱'); return; }
-    if (showPassword && !password) { toast.error('请填写密码'); return; }
-    if (!showPassword) { setShowPassword(true); return; }
+    if (passwordVisible && !password) { toast.error('请填写密码'); return; }
+    if (!passwordVisible) { setPasswordVisible(true); return; }
     if (!consented) { toast.error('请阅读并同意隐私政策'); return; }
     if (needCaptcha && !captchaOk) { toast.error('请完成安全验证'); return; }
     try {
@@ -143,15 +145,15 @@ export default function Login() {
         <form onSubmit={handleSubmit}>
           <div className="login-field">
             <label>用户名 / 邮箱</label>
-            <input className="login-input" value={login} onChange={e => { setLogin(e.target.value); if (e.target.value) setShowPassword(true); }} placeholder="输入用户名或邮箱" autoFocus />
+            <input className="login-input" value={login} onChange={e => { setLogin(e.target.value); if (e.target.value) setPasswordVisible(true); }} placeholder="输入用户名或邮箱" autoFocus />
           </div>
-          {showPassword && (
+          {passwordVisible && (
             <div className="login-field">
               <label>密码</label>
               <div className="login-input-wrap">
-                <input type={showPassword ? 'text' : 'password'} className="login-input" value={password} onChange={e => setPassword(e.target.value)} placeholder="输入密码" />
-                <button type="button" onClick={() => setShowPassword(v => !v)} className="login-eye-btn">
-                  <i className={`fa-solid ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`} />
+                <input type={passwordRevealed ? 'text' : 'password'} className="login-input" value={password} onChange={e => setPassword(e.target.value)} placeholder="输入密码" />
+                <button type="button" onClick={() => setPasswordRevealed(v => !v)} className="login-eye-btn">
+                  <i className={`fa-solid ${passwordRevealed ? 'fa-eye-slash' : 'fa-eye'}`} />
                 </button>
               </div>
             </div>
@@ -205,8 +207,8 @@ export default function Login() {
         <div className="login-left">
           <div className="login-left-content">
             <AnimatedCharacters
-              isTyping={login.length > 0 && !showPassword}
-              showPassword={showPassword && password.length > 0}
+              isTyping={login.length > 0 && !passwordVisible}
+              showPassword={isPasswordPlain}
               passwordLength={password.length}
             />
             <p className="login-left-text">探索 ABDL 世界</p>
@@ -222,8 +224,8 @@ export default function Login() {
       <div className="login-mobile">
         <div className="login-mobile-inner">
           <AnimatedCharacters
-            isTyping={login.length > 0 && !showPassword}
-            showPassword={showPassword && password.length > 0}
+            isTyping={login.length > 0 && !passwordVisible}
+            showPassword={isPasswordPlain}
             passwordLength={password.length}
           />
           {loginForm}
