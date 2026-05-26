@@ -78,6 +78,14 @@ export default function Rankings() {
                     <i className="fa-solid fa-star mr-1" />{d.avg_score}
                   </span>
                 )}
+                {tab === 'hot' && d.avg_score === 0 && d.base_score > 0 && (
+                  <span className="base-score-tip font-bold" style={{ color: 'var(--text-muted)', cursor: 'default' }}>
+                    <i className="fa-solid fa-star-half-stroke mr-1" />{d.base_score}
+                    <span className="base-score-tooltip">
+                      基准分：基于全局数据的初始评分，有人评分后将更新为实际评分
+                    </span>
+                  </span>
+                )}
                 {tab === 'absorbency' && (
                   <span className="font-bold" style={{ color: 'var(--primary-dark)' }}>
                     {d.absorbency_adult || d.absorbency_mfr || '-'}
