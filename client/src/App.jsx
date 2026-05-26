@@ -8,6 +8,7 @@ import { MobileHeaderProvider, useMobileHeaderActions } from './contexts/MobileH
 import Sidebar from './components/Sidebar';
 import MobileHeader from './components/MobileHeader';
 import MobileBottomNav from './components/MobileBottomNav';
+import RedirectNotice from './components/RedirectNotice';
 import CookieConsent from './components/CookieConsent';
 import BackToTop from './components/BackToTop';
 import ToastPopup from './components/ToastPopup';
@@ -144,6 +145,7 @@ export default function App() {
 
   return (
     <MobileHeaderProvider>
+    <RedirectNotice />
     <div className="app-layout">
       <ScrollToTop />
       <NotificationProvider>
