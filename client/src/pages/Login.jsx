@@ -13,6 +13,7 @@ export default function Login() {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [consented, setConsented] = useState(false);
+  const [minorConsented, setMinorConsented] = useState(false);
   const [captchaOk, setCaptchaOk] = useState(false);
   const [captchaStarted, setCaptchaStarted] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -66,7 +67,7 @@ export default function Login() {
     try {
       setLoading(true);
       await authLogin({ login: login.trim(), password, captchaToken: captchaTokenRef.current || undefined });
-      saveConsent({ privacy: true });
+      saveConsent({ privacy: true, minor: true });
       toast.success('登录成功');
       navigate('/');
     } catch (e) {
