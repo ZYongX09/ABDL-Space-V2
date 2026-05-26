@@ -1837,52 +1837,101 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
 /* ====== 小屏手机 (≤375px) ====== */
 /* 基准分参考组件 */
 .base-score-ref {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 10px;
-  background: var(--input-bg);
-  border: 1px solid var(--border);
-  font-size: 13px;
-  color: var(--text-muted);
-  cursor: default;
-  margin-bottom: 12px;
-  position: relative;
-}
-.base-score-ref-label {
-  display: flex;
-  align-items: center;
-  font-weight: 600;
-  color: var(--text-light);
-}
-.base-score-ref-detail {
   display: flex;
   align-items: center;
   gap: 12px;
-  animation: baseScoreIn 0.2s ease;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  margin-bottom: 14px;
+  transition: box-shadow 0.3s;
 }
-@keyframes baseScoreIn {
-  from { opacity: 0; transform: translateX(-4px); }
-  to { opacity: 1; transform: translateX(0); }
+.base-score-ref--pulse {
+  box-shadow: 0 0 0 2px var(--primary);
+}
+.base-score-ref-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary-light), var(--primary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--primary-dark);
+  flex-shrink: 0;
+}
+.base-score-ref-body {
+  flex: 1;
+  min-width: 0;
+}
+.base-score-ref-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-light);
+  margin-bottom: 4px;
+}
+.base-score-ref-scores {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 .base-score-ref-item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  font-size: 15px;
   color: var(--text);
 }
+.base-score-ref-item strong {
+  font-weight: 700;
+}
 .base-score-ref-tag {
-  padding: 1px 6px;
-  border-radius: 4px;
+  padding: 1px 7px;
+  border-radius: 5px;
   font-size: 11px;
   font-weight: 600;
-  background: var(--primary-light);
+}
+.base-score-ref-tag--adult {
+  background: rgba(106, 174, 200, 0.15);
   color: var(--primary-dark);
 }
+.base-score-ref-tag--baby {
+  background: rgba(255, 143, 171, 0.15);
+  color: #d87a95;
+}
+[data-theme="dark"] .base-score-ref-tag--baby {
+  background: rgba(255, 143, 171, 0.2);
+  color: #f0a0b8;
+}
 .base-score-ref-hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 11px;
   color: var(--text-muted);
+  flex-shrink: 0;
+  max-width: 200px;
+  text-align: right;
+  line-height: 1.4;
+}
+.base-score-ref-hint i {
+  color: var(--primary-dark);
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .base-score-ref {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .base-score-ref-hint {
+    max-width: none;
+    width: 100%;
+    text-align: left;
+    padding-left: 48px;
+  }
 }
 
 /* 基准分 hover 提示 */
