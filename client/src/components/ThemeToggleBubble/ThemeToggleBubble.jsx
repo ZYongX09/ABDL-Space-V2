@@ -5,15 +5,16 @@ import './ThemeToggleBubble.css';
 export default function ThemeToggleBubble() {
   const { theme, setTheme, autoTheme, toggleAutoTheme } = useTheme();
   const [hovered, setHovered] = useState(false);
-  const [isDark, setIsDark] = useState(false);
   const leaveTimer = useRef(null);
   const cloudTimer = useRef(null);
   const containerRef = useRef(null);
 
-  // 同步主题到组件内部状态
+  const isDark = theme === 'dark';
+
+  // 卸载时清理 timer
   useEffect(() => {
-    setIsDark(theme === 'dark');
-  }, [theme]);
+    return () => clearTimeout(leaveTimer.current);
+  }, []);
 
   // 云朵随机漂移动画
   useEffect(() => {
