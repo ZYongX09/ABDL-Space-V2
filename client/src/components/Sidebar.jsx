@@ -141,16 +141,6 @@ export default function Sidebar() {
             <i className="fa-solid fa-gear sidebar-link-icon" />
             <span className="sidebar-link-label">设置</span>
           </NavLink>
-          <NavLink
-            to="/about"
-            ref={el => { if (el) itemRefs.current['_about'] = el; }}
-            className={({ isActive }) => `sidebar-link sidebar-ripple-item ${isActive ? 'active' : ''} ${expanded ? 'ripple-expanded' : ''}`}
-            title="关于"
-            style={{ '--ripple-delay': `${getRippleDelay('_about')}ms` }}
-          >
-            <i className="fa-solid fa-circle-info sidebar-link-icon" />
-            <span className="sidebar-link-label">关于</span>
-          </NavLink>
         </div>
       </aside>
 
