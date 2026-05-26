@@ -1,0 +1,144 @@
+/* ===== AnimatedCharacters — ABDL Space 定制版 ===== */
+
+.ac-container {
+  position: relative;
+  width: 360px;
+  height: 300px;
+  margin: 0 auto;
+}
+
+/* 角色基础 */
+.ac-char {
+  position: absolute;
+  bottom: 0;
+  transition: all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: bottom center;
+}
+
+/* 蓝色高个 */
+.ac-char-1 {
+  left: 40px;
+  width: 120px;
+  height: 250px;
+  background: linear-gradient(135deg, #A8D8F0, #6AAEC8);
+  border-radius: 8px 8px 0 0;
+  z-index: 1;
+}
+
+/* 深蓝矮个 */
+.ac-char-2 {
+  left: 155px;
+  width: 85px;
+  height: 195px;
+  background: linear-gradient(135deg, #6AAEC8, #4A8EAC);
+  border-radius: 6px 6px 0 0;
+  z-index: 2;
+}
+
+/* 粉色半圆 */
+.ac-char-3 {
+  left: 0;
+  width: 160px;
+  height: 130px;
+  background: linear-gradient(135deg, #FFB5C5, #FF8FAB);
+  border-radius: 80px 80px 0 0;
+  z-index: 3;
+}
+
+/* 浅蓝圆形 */
+.ac-char-4 {
+  left: 210px;
+  width: 100px;
+  height: 155px;
+  background: linear-gradient(135deg, #B8E6FF, #8BD0F5);
+  border-radius: 50px 50px 0 0;
+  z-index: 4;
+}
+
+/* 眼睛 */
+.ac-eyes {
+  position: absolute;
+  display: flex;
+  gap: 10px;
+  transition: all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ac-eyes-dark {
+  gap: 8px;
+}
+
+.ac-eye {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: height 0.15s ease;
+}
+
+.ac-pupil {
+  border-radius: 50%;
+  transition: transform 0.1s ease-out;
+}
+
+.ac-pupil-raw {
+  border-radius: 50%;
+  transition: transform 0.1s ease-out;
+}
+
+/* 嘴巴 */
+.ac-mouth {
+  position: absolute;
+  width: 48px;
+  height: 3px;
+  background: #2D3748;
+  border-radius: 2px;
+  transition: all 0.2s ease-out;
+}
+
+/* 装饰星星 */
+.ac-star {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #FFD700;
+  border-radius: 50%;
+  animation: ac-twinkle 2s infinite alternate ease-in-out;
+}
+.ac-star::before, .ac-star::after {
+  content: '';
+  position: absolute;
+  background: #FFD700;
+  border-radius: 50%;
+}
+.ac-star::before {
+  width: 3px; height: 12px;
+  top: -3px; left: 1.5px;
+}
+.ac-star::after {
+  width: 12px; height: 3px;
+  top: 1.5px; left: -3px;
+}
+
+.ac-star-1 { top: 20px; right: 40px; animation-delay: 0s; }
+.ac-star-2 { top: 60px; right: 80px; width: 4px; height: 4px; animation-delay: 0.7s; }
+.ac-star-3 { top: 10px; left: 60px; width: 5px; height: 5px; animation-delay: 1.3s; }
+
+@keyframes ac-twinkle {
+  0%, 30% { opacity: 0.3; transform: scale(0.8); }
+  70%, 100% { opacity: 1; transform: scale(1.2); }
+}
+
+/* 深色主题适配 */
+[data-theme="dark"] .ac-char-1 {
+  background: linear-gradient(135deg, #7EB8D4, #5A9AB8);
+}
+[data-theme="dark"] .ac-char-2 {
+  background: linear-gradient(135deg, #5A9AB8, #3A7A98);
+}
+[data-theme="dark"] .ac-char-3 {
+  background: linear-gradient(135deg, #E8A0B5, #D87A95);
+}
+[data-theme="dark"] .ac-char-4 {
+  background: linear-gradient(135deg, #90C8E8, #6BB0D8);
+}
