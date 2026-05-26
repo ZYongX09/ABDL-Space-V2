@@ -71,7 +71,14 @@ export default function Login() {
       toast.success('登录成功');
       navigate('/');
     } catch (e) {
-      toast.error(e.message);
+      const msg = e.message || '';
+      if (msg.includes('Invalid credentials')) {
+        toast.error('用户名或密码错误');
+      } else if (msg.includes('Too many')) {
+        toast.error('登录尝试过于频繁，请稍后再试');
+      } else {
+        toast.error(msg);
+      }
       setFailCount(c => c + 1);
       if (needCaptcha) { setCaptchaOk(false); setCaptchaStarted(false); captchaTokenRef.current = null; }
     } finally { setLoading(false); }
