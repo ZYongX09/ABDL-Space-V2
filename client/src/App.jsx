@@ -151,7 +151,7 @@ export default function App() {
       <Sidebar />
       <MobileHeaderLayout />
       <div className="app-main-content">
-        <div key={pathname} className="container mx-auto px-5 py-6 max-w-[1080px] page-transition-enter">
+        <div key={pathname} className="container mx-auto px-5 py-6 page-transition-enter" style={{ maxWidth: 'min(1920px, calc(100vw - 80px))' }}>
           <ErrorBoundary>
             <Suspense fallback={<PageFallback />}>
               <Routes>
