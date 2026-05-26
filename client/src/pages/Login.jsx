@@ -28,7 +28,7 @@ export default function Login() {
   const navigate = useNavigate();
 
   const needCaptcha = failCount >= FAIL_THRESHOLD;
-  const canSubmit = !loading && (!needCaptcha || captchaOk);
+  const canSubmit = !loading && (!needCaptcha || captchaOk) && consented && minorConsented;
   const isPasswordPlain = passwordRevealed && password.length > 0;
   const isTyping = emailFocused && login.length > 0;
   const nbwConfigured = isNBWConfigured();
@@ -129,12 +129,12 @@ export default function Login() {
               <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
                 请确认您同意 <Link to="/privacy" target="_blank" style={{ color: 'var(--link-color)' }}>隐私政策</Link>
                 {' '}和{' '}
-                <Link to="/terms" target="_blank" style={{ color: 'var(--link-color)' }}>用户协议</Link>。
+                <Link to="/privacy" target="_blank" style={{ color: 'var(--link-color)' }}>未成年人个人信息保护政策</Link>。
               </p>
               <div className="flex gap-2 justify-end">
                 <button className="btn btn-outline btn-sm" onClick={() => setShowNBWConsent(false)}>取消</button>
                 <button className="btn btn-primary btn-sm" onClick={async () => {
-                  saveConsent({ privacy: true });
+                  saveConsent({ privacy: true, minor: true });
                   if (user) await logout();
                   startNBWOAuth();
                 }}>同意并继续</button>
@@ -186,6 +186,10 @@ export default function Login() {
           <label className="login-consent">
             <input type="checkbox" checked={consented} onChange={e => setConsented(e.target.checked)} />
             <span>我已阅读并同意 <Link to="/privacy" target="_blank">隐私政策</Link></span>
+          </label>
+          <label className="login-consent">
+            <input type="checkbox" checked={minorConsented} onChange={e => setMinorConsented(e.target.checked)} />
+            <span>我已阅读并同意 <Link to="/privacy" target="_blank">未成年人个人信息保护政策</Link></span>
           </label>
 
           <button type="submit" className="login-submit" disabled={!canSubmit}>

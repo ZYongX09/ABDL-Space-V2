@@ -75,8 +75,11 @@ const EN = () => {
       <p><strong>California residents (CCPA/CPRA):</strong> Right to know, delete, and opt out of sale/sharing. We do not sell or share personal information as defined by CCPA/CPRA.</p>
       <p>To exercise any rights, contact us at <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a>.</p>
 
-      <h2 className="text-lg font-bold pt-2" style={h}>8. Children's Privacy</h2>
-      <p>Our Website is intended for users aged 16 and older. We do not knowingly collect personal information from children under 16.</p>
+      <h2 className="text-lg font-bold pt-2" style={h}>8. Protection of Minors' Personal Information</h2>
+      <p>Our products and services are primarily intended for adult users. Minors should only use our products and services or provide information to us after obtaining the consent of their parent or guardian. We can only reasonably infer whether a user is a minor based on the information they submit.</p>
+      <p>If we discover that a user is a minor without verifiable parental or guardian consent, we will take steps to delete the relevant personal information in a timely manner.</p>
+      <p>If you are a parent or guardian and believe that your child has provided personal information to us without your consent, please contact us at <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a>, and we will delete the relevant information promptly.</p>
+      <p>We encourage parents and guardians to guide their minors in using our services and to supervise their online activities.</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>9. International Data Transfers</h2>
       <p>If you access the Website from outside the jurisdiction where our servers are located, your data may be transferred across international borders. We rely on appropriate safeguards for such transfers.</p>
@@ -168,8 +171,11 @@ const ZH = () => {
       <p><strong>加利福尼亚州居民（CCPA/CPRA）：</strong>知情权、删除权、退出出售/共享权。我们不会按照CCPA/CPRA的定义出售或共享个人信息。</p>
       <p>如需行使任何权利，请通过 <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a> 联系我们。</p>
 
-      <h2 className="text-lg font-bold pt-2" style={h}>8. 儿童隐私</h2>
-      <p>本网站面向16岁及以上的用户。我们不会故意收集16岁以下儿童的个人信息。</p>
+      <h2 className="text-lg font-bold pt-2" style={h}>8. 未成年人个人信息保护</h2>
+      <p>原则上，我们的产品和服务主要面向成年用户。未成年人用户应当在获取其父母或监护人的同意后，使用我们的产品和服务或向我们提供信息。我们仅能通过用户提交的信息合理地推测其是否为未成年人。</p>
+      <p>如果我们发现用户为未成年人且未获得其父母或监护人的可验证同意，我们将及时采取措施删除相关个人信息。</p>
+      <p>如果您是父母或监护人，认为您的孩子在未经您同意的情况下向我们提供了个人信息，请通过 <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a> 与我们联系，我们将及时删除相关信息。</p>
+      <p>我们鼓励父母或监护人指导未成年人使用我们的服务并监督其网络活动。</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>9. 国际数据传输</h2>
       <p>如果您从我们服务器所在地以外的司法管辖区访问本网站，您的数据可能会被跨境传输。我们依赖适当的保障措施进行此类传输。</p>

@@ -32,6 +32,7 @@ export default function Register() {
   const [cooldown, setCooldown] = useState(0);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [agreeMinor, setAgreeMinor] = useState(false);
   const [captchaOk, setCaptchaOk] = useState(false);
   const [captchaStarted, setCaptchaStarted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -109,7 +110,7 @@ export default function Register() {
     if (!email.includes('@')) { toast.error('请输入合法邮箱'); return; }
     if (password.length < 8) { toast.error('密码至少 8 位'); return; }
     if (password !== confirm) { toast.error('两次密码不一致'); return; }
-    if (!agreeTerms || !agreePrivacy) { toast.error('请阅读并同意用户协议和隐私政策'); return; }
+    if (!agreeTerms || !agreePrivacy || !agreeMinor) { toast.error('请阅读并同意用户协议、隐私政策和未成年人个人信息保护政策'); return; }
 
     // 普通注册（NBW 也需要邮箱验证和安全验证）
     if (!codeSent || code.length < 6) { toast.error('请先获取并输入验证码'); return; }
@@ -128,7 +129,7 @@ export default function Register() {
     finally { setLoading(false); }
   };
 
-  const allReady = agreeTerms && agreePrivacy && captchaOk && codeSent && code.length >= 6;
+  const allReady = agreeTerms && agreePrivacy && agreeMinor && captchaOk && codeSent && code.length >= 6;
 
   return (
     <>
@@ -249,6 +250,12 @@ export default function Register() {
                 <input type="checkbox" checked={agreePrivacy} onChange={e => setAgreePrivacy(e.target.checked)} className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[var(--primary-dark)]" />
                 <span className="text-xs leading-relaxed" style={{ color: 'var(--text-light)' }}>
                   我已阅读并同意 <Link to="/privacy" target="_blank" style={{ color: 'var(--link-color)' }}>隐私政策</Link>
+                </span>
+              </label>
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input type="checkbox" checked={agreeMinor} onChange={e => setAgreeMinor(e.target.checked)} className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[var(--primary-dark)]" />
+                <span className="text-xs leading-relaxed" style={{ color: 'var(--text-light)' }}>
+                  我已阅读并同意 <Link to="/privacy" target="_blank" style={{ color: 'var(--link-color)' }}>未成年人个人信息保护政策</Link>
                 </span>
               </label>
             </div>
