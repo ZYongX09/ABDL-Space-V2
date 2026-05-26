@@ -10,7 +10,6 @@ import { useTheme } from '../contexts/ThemeContext';
 
 const DIMENSIONS = [
   { key: 'absorption_score', label: '吸收性', icon: 'fa-droplet' },
-  { key: 'fit_score', label: '贴合度', icon: 'fa-shirt' },
   { key: 'comfort_score', label: '舒适度', icon: 'fa-couch' },
   { key: 'thickness_score', label: '厚度', icon: 'fa-layer-group' },
   { key: 'appearance_score', label: '外观', icon: 'fa-palette' },

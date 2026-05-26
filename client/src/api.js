@@ -6,6 +6,21 @@
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 const USE_API = !!API_BASE;
 
+// 评分维度权重
+const DIM_WEIGHTS = {
+  absorption_score: 0.30,
+  comfort_score: 0.35,
+  thickness_score: 0.10,
+  appearance_score: 0.20,
+  value_score: 0.05,
+};
+const DIM_KEYS = Object.keys(DIM_WEIGHTS);
+
+/** 加权评分（本地离线模式用） */
+function weightedScore(rating) {
+  return DIM_KEYS.reduce((sum, dim) => sum + (rating[dim] || 0) * DIM_WEIGHTS[dim], 0);
+}
+
 // ====== 通用 fetch ======
 async function apiFetch(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
@@ -221,10 +236,10 @@ export const diapersAPI = {
     if (params.size) list = list.filter(d => d.sizes?.some(s => s.label === params.size));
     // 附加评分
     const ratings = LS.get('ratings') || {};
-    const dims = ['absorption_score','fit_score','comfort_score','thickness_score','appearance_score','value_score'];
+    const dims = DIM_KEYS;
     list = list.map(d => {
       const r = Object.values(ratings).filter(rr => rr.diaper_id === d.id);
-      const avgScore = r.length > 0 ? r.reduce((s, ri) => s + dims.reduce((a, dim) => a + (ri[dim]||0), 0) / dims.length, 0) / r.length : 0;
+      const avgScore = r.length > 0 ? r.reduce((s, ri) => s + weightedScore(ri), 0) / r.length : 0;
       return { ...d, avg_score: Math.round(avgScore * 10) / 10, rating_count: r.length };
     });
     // 排序
@@ -274,7 +289,7 @@ export const diapersAPI = {
     if (USE_API) return apiFetch(`/api/diapers/compare?ids=${ids.join(',')}`);
     if (!_diapers) await loadData();
     const ratings = LS.get('ratings') || {};
-    const dims = ['absorption_score','fit_score','comfort_score','thickness_score','appearance_score','value_score'];
+    const dims = DIM_KEYS;
     const diapers = ids.map(id => {
       const d = _diapers.find(dd => dd.id === Number(id));
       if (!d) return null;
@@ -284,7 +299,7 @@ export const diapersAPI = {
         const scores = r.map(rr => rr[dim]).filter(v => v != null);
         dimensions[dim] = { avg: scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 10) / 10 : 0 };
       }
-      const avgScore = r.length > 0 ? r.reduce((s, ri) => s + dims.reduce((a, dim) => a + (ri[dim]||0), 0) / dims.length, 0) / r.length : 0;
+      const avgScore = r.length > 0 ? r.reduce((s, ri) => s + weightedScore(ri), 0) / r.length : 0;
       return { ...d, dimensions, avg_score: Math.round(avgScore * 10) / 10, rating_count: r.length };
     }).filter(Boolean);
     return { diapers };
@@ -393,10 +408,10 @@ export const rankingsAPI = {
     }
     if (!_diapers) await loadData();
     const ratings = LS.get('ratings') || {};
-    const dims = ['absorption_score','fit_score','comfort_score','thickness_score','appearance_score','value_score'];
+    const dims = DIM_KEYS;
     const scored = _diapers.map(d => {
       const r = Object.values(ratings).filter(rr => rr.diaper_id === d.id);
-      const avgScore = r.length > 0 ? r.reduce((s, ri) => s + dims.reduce((a, dim) => a + (ri[dim]||0), 0) / dims.length, 0) / r.length : 0;
+      const avgScore = r.length > 0 ? r.reduce((s, ri) => s + weightedScore(ri), 0) / r.length : 0;
       return { ...d, avg_score: Math.round(avgScore * 10) / 10, rating_count: r.length };
     });
     if (type === 'absorbency') {
@@ -602,10 +617,10 @@ export const recommendAPI = {
     if (USE_API) return apiFetch('/api/recommend/guess');
     if (!_diapers) await loadData();
     const ratings = LS.get('ratings') || {};
-    const dims = ['absorption_score','fit_score','comfort_score','thickness_score','appearance_score','value_score'];
+    const dims = DIM_KEYS;
     const scored = _diapers.map(d => {
       const r = Object.values(ratings).filter(rr => rr.diaper_id === d.id);
-      const avgScore = r.length > 0 ? r.reduce((s, ri) => s + dims.reduce((a, dim) => a + (ri[dim]||0), 0) / dims.length, 0) / r.length : 0;
+      const avgScore = r.length > 0 ? r.reduce((s, ri) => s + weightedScore(ri), 0) / r.length : 0;
       return { ...d, avg_score: Math.round(avgScore * 10) / 10, rating_count: r.length };
     }).sort((a, b) => b.avg_score - a.avg_score).slice(0, 5);
     return {
