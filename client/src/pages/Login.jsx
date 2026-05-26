@@ -17,6 +17,7 @@ export default function Login() {
   const [captchaStarted, setCaptchaStarted] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [passwordRevealed, setPasswordRevealed] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [failCount, setFailCount] = useState(0);
   const [showNBWConsent, setShowNBWConsent] = useState(false);
@@ -29,6 +30,7 @@ export default function Login() {
   const needCaptcha = failCount >= FAIL_THRESHOLD;
   const canSubmit = !loading && (!needCaptcha || captchaOk);
   const isPasswordPlain = passwordRevealed && password.length > 0;
+  const isTyping = emailFocused && login.length > 0;
   const nbwConfigured = isNBWConfigured();
 
   useEffect(() => {
@@ -145,7 +147,7 @@ export default function Login() {
         <form onSubmit={handleSubmit}>
           <div className="login-field">
             <label>用户名 / 邮箱</label>
-            <input className="login-input" value={login} onChange={e => { setLogin(e.target.value); if (e.target.value) setPasswordVisible(true); }} placeholder="输入用户名或邮箱" autoFocus />
+            <input className="login-input" value={login} onChange={e => { setLogin(e.target.value); if (e.target.value) setPasswordVisible(true); }} onFocus={() => setEmailFocused(true)} onBlur={() => setEmailFocused(false)} placeholder="输入用户名或邮箱" autoFocus />
           </div>
           {passwordVisible && (
             <div className="login-field">
@@ -207,7 +209,7 @@ export default function Login() {
         <div className="login-left">
           <div className="login-left-content">
             <AnimatedCharacters
-              isTyping={login.length > 0 && !passwordVisible}
+              isTyping={isTyping}
               showPassword={isPasswordPlain}
               passwordLength={password.length}
             />
@@ -224,7 +226,7 @@ export default function Login() {
       <div className="login-mobile">
         <div className="login-mobile-inner">
           <AnimatedCharacters
-            isTyping={login.length > 0 && !passwordVisible}
+            isTyping={isTyping}
             showPassword={isPasswordPlain}
             passwordLength={password.length}
           />

@@ -16,15 +16,10 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--primary-light), var(--primary));
+  background: transparent;
 }
 .login-left-bg {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 30% 70%, rgba(255,255,255,0.15) 0%, transparent 50%),
-    radial-gradient(circle at 70% 30%, rgba(255,255,255,0.1) 0%, transparent 50%);
-  pointer-events: none;
+  display: none;
 }
 .login-left-content {
   position: relative;
@@ -40,13 +35,13 @@
 }
 
 [data-theme="dark"] .login-left {
-  background: linear-gradient(135deg, #1a2332, #2a3f55);
+  background: transparent;
 }
 [data-theme="dark"] .login-left-text {
-  color: rgba(168, 216, 240, 0.8);
+  color: rgba(168, 216, 240, 0.7);
 }
 [data-theme="colorful"] .login-left {
-  background: linear-gradient(135deg, rgba(155,184,224,0.4), rgba(122,156,208,0.6));
+  background: transparent;
 }
 
 /* 右侧表单区 */

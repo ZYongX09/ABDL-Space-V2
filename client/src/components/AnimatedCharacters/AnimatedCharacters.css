@@ -142,3 +142,30 @@
 [data-theme="dark"] .ac-char-4 {
   background: linear-gradient(135deg, #90C8E8, #6BB0D8);
 }
+[data-theme="dark"] .ac-eye {
+  box-shadow: 0 0 2px rgba(0,0,0,0.3);
+}
+[data-theme="dark"] .ac-star,
+[data-theme="dark"] .ac-star::before,
+[data-theme="dark"] .ac-star::after {
+  background: #FFECB3;
+}
+
+/* colorful 主题适配 */
+[data-theme="colorful"] .ac-char-1 {
+  background: linear-gradient(135deg, #7DD3FC, #38BDF8);
+}
+[data-theme="colorful"] .ac-char-2 {
+  background: linear-gradient(135deg, #818CF8, #6366F1);
+}
+[data-theme="colorful"] .ac-char-3 {
+  background: linear-gradient(135deg, #F9A8D4, #F472B6);
+}
+[data-theme="colorful"] .ac-char-4 {
+  background: linear-gradient(135deg, #6EE7B7, #34D399);
+}
+[data-theme="colorful"] .ac-star,
+[data-theme="colorful"] .ac-star::before,
+[data-theme="colorful"] .ac-star::after {
+  background: #FCD34D;
+}
