@@ -7,7 +7,7 @@ const EN = () => {
 
   return (
     <div className="space-y-4 text-sm leading-relaxed" style={s}>
-      <p><strong>Last Updated:</strong> May 16, 2026</p>
+      <p><strong>Last Updated:</strong> May 26, 2026</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>1. Introduction</h2>
       <p>Welcome to ABDL Space ("we," "us," or "our"). We operate the website abdl-space.top (the "Website"), a diaper review and community platform. This Privacy Policy explains how we collect, use, store, and protect your personal information when you use our Website.</p>
@@ -17,7 +17,9 @@ const EN = () => {
       <h3 className="text-base font-bold pt-1" style={h}>2.1 Information You Provide Directly</h3>
       <p><strong>Account Registration:</strong> Email address, username, password (stored in hashed form).</p>
       <p><strong>Profile Information (optional):</strong> Age, region/location, weight, waist circumference, hip circumference, style preferences, personal bio, profile avatar.</p>
-      <p><strong>Community Activity:</strong> Forum posts and comments, likes on posts and comments, diaper ratings (6 dimensions, scored 1–10 stars), usage reviews (5 dimensions, scored −5 to +5), private messages sent to other users.</p>
+      <p><strong>Community Activity:</strong> Forum posts and comments, likes on posts and comments, diaper ratings (5 dimensions: comfort, absorption, thickness, appearance, and value for money, scored 1–10), usage reviews (5 dimensions, scored −5 to +5), private messages sent to other users.</p>
+
+      <p><strong>Third-Party Account (optional):</strong> If you choose to log in via NewBabyWorld (宝宝新天地) OAuth, we receive your NewBabyWorld user ID and username to link or create your ABDL Space account.</p>
 
       <h3 className="text-base font-bold pt-1" style={h}>2.2 AI Recommendation Data</h3>
       <p>When you choose to use our AI-powered recommendation feature, you may elect to send certain body measurement data (such as weight, waist circumference, and hip circumference) to DeepSeek's AI API for processing. <strong>This data is only transmitted when you explicitly opt in and confirm your consent.</strong> You are not required to use this feature to access the Website.</p>
@@ -53,7 +55,8 @@ const EN = () => {
       <h3 className="text-base font-bold pt-1" style={h}>5.1 Third-Party Services</h3>
       <p>We share data with the following third-party service providers:</p>
       <div className="p-3 rounded-xl" style={{ background: 'var(--input-bg)' }}>
-        <p><strong>DeepSeek AI</strong> — Body measurement data (only with your explicit consent) — AI-powered diaper recommendations.</p>
+        <p><strong>NewBabyWorld (宝宝新天地)</strong> — NewBabyWorld user ID and username (only when you choose OAuth login) — Account linking and authentication.</p>
+        <p className="mt-2"><strong>DeepSeek AI</strong> — Body measurement data (only with your explicit consent) — AI-powered diaper recommendations.</p>
         <p className="mt-2"><strong>Baidu Analytics</strong> — Standard web browsing data (page views, device information, browsing behavior) — Website analytics and improvement.</p>
       </div>
       <h3 className="text-base font-bold pt-1" style={h}>5.2 What We Do NOT Do</h3>
@@ -76,10 +79,9 @@ const EN = () => {
       <p>To exercise any rights, contact us at <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a>.</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>8. Protection of Minors' Personal Information</h2>
-      <p>Our products and services are primarily intended for adult users. Minors should only use our products and services or provide information to us after obtaining the consent of their parent or guardian. We can only reasonably infer whether a user is a minor based on the information they submit.</p>
+      <p>We are committed to protecting the personal information of minors. For comprehensive details on how we protect minors' personal information, including our identification measures, data collection practices, parental rights, and response procedures, please refer to our <a href="/minor-protection" style={link}>Minor Personal Information Protection Policy</a>.</p>
+      <p>In principle, our products and services are primarily intended for adult users. Minor users should only use our products and services or provide information to us after obtaining verifiable consent from their parent or legal guardian. We can only reasonably infer whether a user is a minor based on the information they submit.</p>
       <p>If we discover that a user is a minor without verifiable parental or guardian consent, we will take steps to delete the relevant personal information in a timely manner.</p>
-      <p>If you are a parent or guardian and believe that your child has provided personal information to us without your consent, please contact us at <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a>, and we will delete the relevant information promptly.</p>
-      <p>We encourage parents and guardians to guide their minors in using our services and to supervise their online activities.</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>9. International Data Transfers</h2>
       <p>If you access the Website from outside the jurisdiction where our servers are located, your data may be transferred across international borders. We rely on appropriate safeguards for such transfers.</p>
@@ -103,7 +105,7 @@ const ZH = () => {
 
   return (
     <div className="space-y-4 text-sm leading-relaxed" style={s}>
-      <p><strong>最后更新日期：</strong>2026年5月16日</p>
+      <p><strong>最后更新日期：</strong>2026年5月26日</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>1. 引言</h2>
       <p>欢迎访问ABDL Space（"我们"）。我们运营网站 abdl-space.top（"本网站"），这是一个纸尿裤评价与社区平台。本隐私政策说明了您在使用本网站时，我们如何收集、使用、存储和保护您的个人信息。</p>
@@ -113,7 +115,9 @@ const ZH = () => {
       <h3 className="text-base font-bold pt-1" style={h}>2.1 您直接提供的信息</h3>
       <p><strong>账户注册：</strong>电子邮箱地址、用户名、密码（以哈希形式存储）。</p>
       <p><strong>个人资料信息（可选）：</strong>年龄、地区/所在地、体重、腰围、臀围、风格偏好、个人简介、头像。</p>
-      <p><strong>社区活动：</strong>广场帖子和评论、对帖子和评论的点赞、纸尿裤评分（6个维度，1-10星）、使用感受评价（5个维度，-5至+5分）、发送给其他用户的私信。</p>
+      <p><strong>社区活动：</strong>广场帖子和评论、对帖子和评论的点赞、纸尿裤评分（5个维度：舒适性、吸收量、厚度、外观和性价比，1-10分）、使用感受评价（5个维度，-5至+5分）、发送给其他用户的私信。</p>
+
+      <p><strong>第三方账户（可选）：</strong>如果您选择通过宝宝新天地（NewBabyWorld）OAuth 登录，我们将获取您的宝宝新天地用户ID和用户名，用于关联或创建您的 ABDL Space 账户。</p>
 
       <h3 className="text-base font-bold pt-1" style={h}>2.2 AI推荐数据</h3>
       <p>当您选择使用我们的AI推荐功能时，您可以选择将某些身体测量数据（如体重、腰围和臀围）发送给DeepSeek的AI API进行处理。<strong>此数据仅在您明确选择并确认同意后才会传输。</strong>您无需使用此功能即可访问本网站。</p>
@@ -149,7 +153,8 @@ const ZH = () => {
       <h3 className="text-base font-bold pt-1" style={h}>5.1 第三方服务</h3>
       <p>我们与以下第三方服务提供商共享数据：</p>
       <div className="p-3 rounded-xl" style={{ background: 'var(--input-bg)' }}>
-        <p><strong>DeepSeek AI</strong> — 身体测量数据（仅在您明确同意后）— AI纸尿裤推荐。</p>
+        <p><strong>宝宝新天地（NewBabyWorld）</strong> — 宝宝新天地用户ID和用户名（仅在您选择OAuth登录时）— 账户关联和身份验证。</p>
+        <p className="mt-2"><strong>DeepSeek AI</strong> — 身体测量数据（仅在您明确同意后）— AI纸尿裤推荐。</p>
         <p className="mt-2"><strong>百度统计</strong> — 标准网络浏览数据（页面浏览量、设备信息、浏览行为）— 网站分析与改进。</p>
       </div>
       <h3 className="text-base font-bold pt-1" style={h}>5.2 我们不做的事情</h3>
@@ -172,10 +177,9 @@ const ZH = () => {
       <p>如需行使任何权利，请通过 <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a> 联系我们。</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>8. 未成年人个人信息保护</h2>
+      <p>我们致力于保护未成年人的个人信息。有关我们如何保护未成年人个人信息的完整详情，包括识别措施、数据收集实践、父母权利和响应程序，请参阅我们的<a href="/minor-protection" style={link}>《未成年人个人信息保护政策》</a>。</p>
       <p>原则上，我们的产品和服务主要面向成年用户。未成年人用户应当在获取其父母或监护人的同意后，使用我们的产品和服务或向我们提供信息。我们仅能通过用户提交的信息合理地推测其是否为未成年人。</p>
       <p>如果我们发现用户为未成年人且未获得其父母或监护人的可验证同意，我们将及时采取措施删除相关个人信息。</p>
-      <p>如果您是父母或监护人，认为您的孩子在未经您同意的情况下向我们提供了个人信息，请通过 <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a> 与我们联系，我们将及时删除相关信息。</p>
-      <p>我们鼓励父母或监护人指导未成年人使用我们的服务并监督其网络活动。</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>9. 国际数据传输</h2>
       <p>如果您从我们服务器所在地以外的司法管辖区访问本网站，您的数据可能会被跨境传输。我们依赖适当的保障措施进行此类传输。</p>
@@ -195,7 +199,7 @@ const ZH = () => {
 export default function PrivacyPolicy() {
   return (
     <>
-    <PageLayout hero={{ icon: 'fa-shield-halved', title: 'Privacy Policy / 隐私政策', subtitle: 'Last updated: May 16, 2026' }}>
+    <PageLayout hero={{ icon: 'fa-shield-halved', title: 'Privacy Policy / 隐私政策', subtitle: '最后更新：2026年5月26日' }}>
       {/* 中文翻译声明 */}
       <div className="p-4 rounded-xl mb-5 flex items-start gap-3" style={{ background: 'var(--warning-bg, #FFF8E1)', border: '2px solid var(--warning)' }}>
         <i className="fa-solid fa-circle-exclamation mt-0.5 text-lg" style={{ color: 'var(--warning)' }} />

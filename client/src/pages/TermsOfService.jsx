@@ -6,13 +6,13 @@ export default function TermsOfService() {
 
   return (
     <>
-    <PageLayout hero={{ icon: 'fa-file-contract', title: '用户协议', subtitle: '最后更新：2026年5月16日' }}>
+    <PageLayout hero={{ icon: 'fa-file-contract', title: '用户协议', subtitle: '最后更新：2026年5月26日' }}>
       <div className="card space-y-4 text-sm leading-relaxed" style={s}>
-        <p><strong>生效日期：</strong>2026年5月16日</p>
+        <p><strong>生效日期：</strong>2026年5月26日</p>
 
         <h2 className="text-lg font-bold pt-2" style={h}>第一条 总则</h2>
         <p>1.1 本协议是您(以下简称"用户")与 ABDL Space(以下简称"本平台",运营方为 ABDL-Space,网站地址:abdl-space.top)之间关于使用本平台服务所订立的合同。</p>
-        <p>1.2 本平台是一个面向纸尿裤爱好者的社区平台,提供纸尿裤产品信息展示、用户评分与评价、广场讨论、AI智能推荐等服务。</p>
+        <p>1.2 本平台是一个面向纸尿裤爱好者的社区平台,提供纸尿裤产品信息展示、用户评分与评价、广场讨论、AI智能推荐等服务。本平台同时提供桌面端（abdl-space.top）和移动端（m.abdl-space.top）访问方式。</p>
         <p>1.3 用户在注册、登录或以任何方式使用本平台服务前,应当仔细阅读并充分理解本协议的全部内容。<strong>用户通过注册流程中的明确勾选操作表示已阅读、理解并同意接受本协议的全部条款。</strong> 如用户不同意本协议的任何条款,应立即停止使用本平台服务。</p>
         <p>1.4 本平台有权根据法律法规变化、业务调整等原因修改本协议。修改后的协议将在本平台公布,并以更新后的"最后更新日期"标注生效时间。用户在协议修改后继续使用本平台服务的,视为同意修改后的协议。如用户不同意修改后的协议,应停止使用本平台服务并注销账户。</p>
         <p>1.5 <strong>用户确认其已年满16周岁,具备完全民事行为能力。</strong> 未满16周岁的自然人应在获取其父母或监护人的同意后方可使用本平台服务。如本平台发现用户为未成年人且未获得其父母或监护人的可验证同意,有权终止对该用户的服务并删除其账户及相关数据。详见本平台<a href="/privacy" style={{ color: 'var(--link-color)' }}>《隐私政策》</a>第8条未成年人个人信息保护。</p>
@@ -89,7 +89,8 @@ export default function TermsOfService() {
 
         <h2 className="text-lg font-bold pt-2" style={h}>第六条 数据收集与第三方服务</h2>
         <p>6.1 本平台使用百度统计(Baidu Analytics)收集标准网站访问数据(如页面浏览量、设备信息、浏览行为),用于分析和改进网站服务。该数据以汇总形式收集,不涉及用户账户个人信息。用户可通过浏览器设置或相关插件退出追踪。</p>
-        <p>6.2 有关数据收集、使用和保护的详细信息,请参阅本平台<a href="/privacy" style={{ color: 'var(--link-color)' }}>《隐私政策》</a>。</p>
+        <p>6.2 用户可选择通过宝宝新天地(NewBabyWorld)第三方账户授权登录本平台。该登录方式将获取用户的宝宝新天地用户ID和用户名,用于关联或创建本平台账户。用户可随时在账户设置中解除第三方账户绑定。</p>
+        <p>6.3 有关数据收集、使用和保护的详细信息,请参阅本平台<a href="/privacy" style={{ color: 'var(--link-color)' }}>《隐私政策》</a>和<a href="/minor-protection" style={{ color: 'var(--link-color)' }}>《未成年人个人信息保护政策》</a>。</p>
 
         <h2 className="text-lg font-bold pt-2" style={h}>第七条 免责声明与责任限制</h2>
         <p>7.1 <strong>本平台提供的服务按“现状”和“现有”状态提供。</strong> 在法律允许的最大范围内,本平台不对服务的及时性、安全性、准确性、可靠性、完整性作任何明示或暗示的保证。</p>

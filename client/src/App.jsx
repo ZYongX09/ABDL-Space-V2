@@ -28,6 +28,7 @@ const TermWiki = lazy(() => import('./pages/TermWiki'));
 const About = lazy(() => import('./pages/About'));
 const CookiePolicy = lazy(() => import('./pages/CookiePolicy'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const MinorProtection = lazy(() => import('./pages/MinorProtection'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
@@ -168,6 +169,7 @@ export default function App() {
                 <Route path="/about" element={<About />} />
                 <Route path="/cookies" element={<CookiePolicy />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/minor-protection" element={<MinorProtection />} />
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />

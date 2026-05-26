@@ -189,7 +189,7 @@ export default function Login() {
           </label>
           <label className="login-consent">
             <input type="checkbox" checked={minorConsented} onChange={e => setMinorConsented(e.target.checked)} />
-            <span>我已阅读并同意 <Link to="/privacy" target="_blank">未成年人个人信息保护政策</Link></span>
+            <span>我已阅读并同意 <Link to="/minor-protection" target="_blank">未成年人个人信息保护政策</Link></span>
           </label>
 
           <button type="submit" className="login-submit" disabled={!canSubmit}>
