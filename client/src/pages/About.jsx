@@ -165,27 +165,33 @@ export default function About() {
     <>
     <PageLayout hero={{ icon: 'fa-circle-info', title: '关于', subtitle: `v${VERSION}` }}>
       {/* 项目简介 */}
-      <div className="card mb-5 text-center">
-        <img
-          src="https://img.abdl-space.top/file/1779879267209_ABDL_logo_word.svg"
-          alt="ABDL Space"
-          style={{ height: 64, marginBottom: 16 }}
-        />
-        <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-light)' }}>
-          ABDL Space 是一个面向 ABDL 群体的中文社区平台，提供纸尿裤评价、排行榜、AI 推荐、广场讨论等功能。
-          致力于为爱好者打造一个温馨友好的交流空间。
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <a href={externalLinkUrl('https://github.com/ZYongX09/ABDL-Space-V2')}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-80"
-            style={{ background: '#24292e', textDecoration: 'none' }}>
-            <i className="fa-brands fa-github" /> GitHub
-          </a>
-          <a href={externalLinkUrl('https://zhx-blog.top')}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
-            style={{ background: 'var(--primary-dark)', color: '#fff', textDecoration: 'none' }}>
-            <i className="fa-solid fa-blog" /> ZhX 的博客
-          </a>
+      <div className="card mb-5">
+        <div className="flex gap-5 items-stretch">
+          {/* 左侧 logo */}
+          <img
+            src="https://img.abdl-space.top/file/1779879267209_ABDL_logo_word.svg"
+            alt="ABDL Space"
+            style={{ height: 80, flexShrink: 0 }}
+          />
+          {/* 右侧：介绍 + 按钮 */}
+          <div className="flex flex-col justify-between min-w-0">
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--text-light)' }}>
+              ABDL Space 是一个面向 ABDL 群体的中文社区平台，提供纸尿裤评价、排行榜、AI 推荐、广场讨论等功能。
+              致力于为爱好者打造一个温馨友好的交流空间。
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <a href={externalLinkUrl('https://github.com/ZYongX09/ABDL-Space-V2')}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-80"
+                style={{ background: '#24292e', textDecoration: 'none' }}>
+                <i className="fa-brands fa-github" /> GitHub
+              </a>
+              <a href={externalLinkUrl('https://zhx-blog.top')}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
+                style={{ background: 'var(--primary-dark)', color: '#fff', textDecoration: 'none' }}>
+                <i className="fa-solid fa-blog" /> ZhX 的博客
+              </a>
+            </div>
+          </div>
         </div>
       </div>
 
