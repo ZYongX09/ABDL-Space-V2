@@ -137,7 +137,7 @@ export default function Rankings() {
                 zIndex: 10,
                 textAlign: 'center',
                 padding: '2rem 1.5rem',
-                background: 'var(--card-bg, rgba(255,255,255,0.92))',
+                background: 'var(--bg-card)',
                 borderRadius: '16px',
                 boxShadow: '0 4px 24px rgba(0,0,0,0.1)',
                 maxWidth: '360px',
