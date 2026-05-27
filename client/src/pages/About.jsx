@@ -174,7 +174,7 @@ export default function About() {
             style={{ height: 80, flexShrink: 0 }}
           />
           {/* 右侧：介绍 + 按钮 */}
-          <div className="flex flex-col justify-between min-w-0">
+          <div className="flex flex-col justify-center gap-3 min-w-0">
             <p className="text-sm leading-relaxed" style={{ color: 'var(--text-light)' }}>
               ABDL Space 是一个面向 ABDL 群体的中文社区平台，提供纸尿裤评价、排行榜、AI 推荐、广场讨论等功能。
               致力于为爱好者打造一个温馨友好的交流空间。
