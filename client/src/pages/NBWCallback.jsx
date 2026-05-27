@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { verifyNBWState, isNBWBindState, exchangeNBWCode, bindNBWAccount } from '../utils/nbwOAuth';
+import { verifyNBWState, isNBWBindState, isNBWMobileState, exchangeNBWCode, bindNBWAccount } from '../utils/nbwOAuth';
 
 const NBW_LOGO = 'https://img.abdl-space.top/file/nbwlogo.png';
 
@@ -26,6 +26,12 @@ export default function NBWCallback() {
   const [loginVal, setLoginVal] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isFromMobile, setIsFromMobile] = useState(false);
+
+  // 移动端跳转辅助
+  const mobileRedirect = (path) => {
+    window.location.href = `https://m.abdl-space.top${path}`;
+  };
 
   useEffect(() => {
     if (handledRef.current) return;
@@ -52,6 +58,9 @@ export default function NBWCallback() {
     }
     handledRef.current = true;
 
+    const fromMobile = isNBWMobileState(oauthState);
+    setIsFromMobile(fromMobile);
+
     // 绑定流程
     if (isNBWBindState(oauthState)) {
       (async () => {
@@ -59,7 +68,11 @@ export default function NBWCallback() {
           await bindNBWAccount(code);
           sessionStorage.setItem('nbw_just_bound', '1');
           toast.success('绑定成功');
-          navigate('/account', { replace: true });
+          if (fromMobile) {
+            mobileRedirect('/account');
+          } else {
+            navigate('/account', { replace: true });
+          }
         } catch (e) {
           toast.error(e.message);
           setState('error');
@@ -74,7 +87,11 @@ export default function NBWCallback() {
         const result = await exchangeNBWCode(code);
         if (result.action === 'login') {
           toast.success('登录成功');
-          navigate('/', { replace: true });
+          if (fromMobile) {
+            mobileRedirect('/');
+          } else {
+            navigate('/', { replace: true });
+          }
         } else if (result.action === 'choose') {
           setNbwUser(result.nbw_user);
           setNbwToken(result.nbw_token);
@@ -104,7 +121,11 @@ export default function NBWCallback() {
       if (!res.ok) throw new Error(data.error || '操作失败');
       sessionStorage.setItem('nbw_just_bound', '1');
       toast.success('绑定并登录成功');
-      window.location.href = '/';
+      if (isFromMobile) {
+        mobileRedirect('/');
+      } else {
+        window.location.href = '/';
+      }
     } catch (e) {
       toast.error(e.message);
     } finally {
@@ -119,7 +140,11 @@ export default function NBWCallback() {
       nbw_token: nbwToken,
       username: nbwUser?.username || '',
     }));
-    navigate('/register', { replace: true });
+    if (isFromMobile) {
+      window.location.href = `https://m.abdl-space.top/register`;
+    } else {
+      navigate('/register', { replace: true });
+    }
   };
 
   // 错误状态

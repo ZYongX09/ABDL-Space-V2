@@ -49,7 +49,8 @@ export async function startNBWOAuth() {
   const config = await getNBWConfig();
   if (!config.clientId || !config.redirectUri) return;
 
-  const state = generateState();
+  const isMobile = window.location.hostname.startsWith('m.');
+  const state = (isMobile ? 'm_' : '') + generateState();
   sessionStorage.setItem('nbw_oauth_state', state);
 
   const params = new URLSearchParams({
@@ -67,7 +68,8 @@ export async function startNBWBind() {
   const config = await getNBWConfig();
   if (!config.clientId || !config.redirectUri) return;
 
-  const state = 'bind_' + generateState();
+  const isMobile = window.location.hostname.startsWith('m.');
+  const state = (isMobile ? 'm_' : '') + 'bind_' + generateState();
   sessionStorage.setItem('nbw_oauth_state', state);
 
   const params = new URLSearchParams({
@@ -80,16 +82,23 @@ export async function startNBWBind() {
   window.location.href = `https://www.newbabyworld.top/oauth/authorize.php?${params}`;
 }
 
+/** 判断是否来自移动端 */
+export function isNBWMobileState(state) {
+  return state && state.startsWith('m_');
+}
+
 /** 验证回调 state */
 export function verifyNBWState(returnedState) {
   const saved = sessionStorage.getItem('nbw_oauth_state');
   sessionStorage.removeItem('nbw_oauth_state');
-  return saved && returnedState && saved === returnedState;
+  // 兼容：state 可能带 m_ 前缀
+  if (!saved || !returnedState) return false;
+  return saved === returnedState;
 }
 
 /** 判断是否为绑定流程 */
 export function isNBWBindState(state) {
-  return state && state.startsWith('bind_');
+  return state && (state.startsWith('bind_') || state.startsWith('m_bind_'));
 }
 
 /** 向后端发送 code 换取 token + 用户信息 */
