@@ -38,6 +38,17 @@ export default function Rankings() {
     })();
   }, [tab, isLoggedIn]);
 
+  // 基准分每 10 秒刷新
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      try {
+        const data = await rankingsAPI.get(tab, undefined, isLoggedIn ? undefined : 10);
+        setBaseScores(data.base_scores || { adult: 0, baby: 0 });
+      } catch {}
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [tab, isLoggedIn]);
+
   return (
     <>
     <PageLayout hero={{ icon: 'fa-trophy', title: '排行榜', subtitle: '社区纸尿裤排名' }}>

@@ -41,6 +41,17 @@ export default function Home() {
     })();
   }, [search, brand, sort]);
 
+  // 基准分每 10 秒刷新
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      try {
+        const data = await diapersAPI.list({ search: search || undefined, brand: brand || undefined, sort });
+        setBaseScores(data.base_scores || { adult: 0, baby: 0 });
+      } catch {}
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [search, brand, sort]);
+
   return (
     <>
     <PageLayout hero={{ icon: 'fa-baby', title: '纸尿裤列表', subtitle: '发现最适合你的纸尿裤' }}>
