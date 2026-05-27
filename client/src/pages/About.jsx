@@ -4,10 +4,28 @@ import { externalLinkUrl } from '../utils/externalLink';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
-const VERSION = '2.9.0';
-const LAST_UPDATE = '2026-05-24';
+const VERSION = '2.21.0';
+const LAST_UPDATE = '2026-05-28';
 
 const CHANGELOG = [
+  {
+    version: '2.21.0',
+    date: '2026-05-28',
+    changes: [
+      '排行榜未登录遮罩 — 仅显示第1名，其余高斯模糊+通配文字',
+      '纸尿裤详情页未登录评分数据遮罩+登录引导',
+      '评分制度改革 — 5维度贝叶斯平均+成人/儿童双权重',
+      '基准分实时更新（每10秒刷新）',
+      '评分算法修复 — 成人/婴儿基准分不再互相影响',
+      'NBW移动端OAuth授权跳转修复',
+      '关注功能类型比较修复',
+      '退出登录cookie清除修复',
+      '全局加载动画升级 — 图标脉冲+科技感动画',
+      '网站图标全局替换 — 侧边栏/登录页/关于页/favicon',
+      'Font Awesome CDN切换至BootCDN',
+      '关于页竖版logo+左右排版优化',
+    ],
+  },
   {
     version: '2.20.4',
     date: '2026-05-25',
