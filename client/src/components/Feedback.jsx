@@ -18,13 +18,8 @@ export function EmptyState({ icon = 'fa-inbox', title = '暂无数据', descript
   );
 }
 
-import { IconSpinner } from './ABDLLoading';
+import ABDLLoading, { IconSpinner } from './ABDLLoading';
 
 export function Spinner({ text = '加载中...' }) {
-  return (
-    <div className="flex flex-col items-center gap-3 py-10" style={{ color: 'var(--text-light)' }}>
-      <IconSpinner size={40} />
-      <span className="text-sm">{text}</span>
-    </div>
-  );
+  return <ABDLLoading size={44} text={text} />;
 }

@@ -3,204 +3,153 @@ import { useState, useEffect, useRef } from 'react';
 const ICON_URL = 'https://img.abdl-space.top/file/1779879250278_ABDL_icon.svg';
 
 /**
- * ABDL Space 加载动画
- *
- * 动画流程：
- * 1. 描边循环扫描（无限循环，直到内容加载完成）
- * 2. 内载完成 → 描边归位 + 一笔绘制完整轮廓
- * 3. 填充层淡入 → 完成
+ * ABDL Space 高级加载动画
+ * 科技感：图标 + 扫描光线 + 脉冲光环 + 淡入
  */
-export default function ABDLLoading({ size = 48, text = '加载中...', showText = true }) {
-  const [phase, setPhase] = useState('scanning'); // scanning | drawing | done
-  const pathRef = useRef(null);
-  const strokeRef = useRef(null);
-  const fillRef = useRef(null);
-  const animRef = useRef(null);
-  const scanOffsetRef = useRef(0);
-
-  // 简化的奶瓶轮廓路径
-  const BOTTLE_PATH = `
-    M 50 10
-    C 50 10, 65 10, 65 25
-    L 65 35
-    C 65 35, 75 40, 78 55
-    C 82 75, 80 95, 80 110
-    C 80 130, 75 155, 70 165
-    C 65 175, 65 180, 65 185
-    L 65 190
-    C 65 195, 55 200, 50 200
-    C 45 200, 35 195, 35 190
-    L 35 185
-    C 35 180, 35 175, 30 165
-    C 25 155, 20 130, 20 110
-    C 20 95, 18 75, 22 55
-    C 25 40, 35 35, 35 35
-    L 35 25
-    C 35 10, 50 10, 50 10
-    Z
-    M 30 55
-    C 30 45, 70 45, 70 55
-  `.trim();
+export default function ABDLLoading({ size = 56, text = '加载中...', showText = true, fullscreen = false }) {
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const path = pathRef.current;
-    const stroke = strokeRef.current;
-    if (!path || !stroke) return;
-
-    const length = path.getTotalLength();
-    const dashLen = length / 3;
-
-    // 初始状态：描边虚线
-    stroke.style.strokeDasharray = `${dashLen} ${length - dashLen}`;
-
-    // 扫描动画循环
-    function scanLoop() {
-      scanOffsetRef.current = (scanOffsetRef.current + 1.5) % length;
-      stroke.style.strokeDashoffset = -scanOffsetRef.current;
-      animRef.current = requestAnimationFrame(scanLoop);
-    }
-
-    scanLoop();
-
-    return () => {
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-    };
+    // 模拟进度（实际使用时可由外部控制）
+    const timer = setInterval(() => {
+      setProgress(p => {
+        if (p >= 90) return 90; // 停在 90%，等实际加载完成
+        return p + Math.random() * 8;
+      });
+    }, 200);
+    return () => clearInterval(timer);
   }, []);
-
-  // 外部通知内容加载完成时调用
-  useEffect(() => {
-    if (phase !== 'drawing') return;
-
-    const path = pathRef.current;
-    const stroke = strokeRef.current;
-    const fill = fillRef.current;
-    if (!path || !stroke || !fill) return;
-
-    const length = path.getTotalLength();
-
-    // 停止扫描
-    if (animRef.current) cancelAnimationFrame(animRef.current);
-
-    // 归位动画
-    const startOffset = scanOffsetRef.current;
-    const duration = 1800;
-    const startTime = performance.now();
-
-    function easeInOutCubic(t) {
-      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-    }
-
-    function animate(now) {
-      const elapsed = now - startTime;
-      const t = Math.min(1, elapsed / duration);
-      const eased = easeInOutCubic(t);
-
-      // 前 40% 时间：归位（从当前位置到 0）
-      // 后 60% 时间：一笔绘制（从 length 到 0）
-      if (t < 0.4) {
-        const phaseT = t / 0.4;
-        stroke.style.strokeDasharray = `${length}`;
-        stroke.style.strokeDashoffset = startOffset * (1 - easeInOutCubic(phaseT));
-      } else {
-        const phaseT = (t - 0.4) / 0.6;
-        stroke.style.strokeDasharray = `${length}`;
-        stroke.style.strokeDashoffset = length * (1 - easeInOutCubic(phaseT));
-      }
-
-      if (t < 1) {
-        animRef.current = requestAnimationFrame(animate);
-      } else {
-        // 动画完成：显示填充，隐藏描边
-        fill.style.transition = 'opacity 0.4s ease';
-        fill.style.opacity = '1';
-        stroke.style.transition = 'opacity 0.3s ease';
-        stroke.style.opacity = '0';
-        setPhase('done');
-      }
-    }
-
-    animRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-    };
-  }, [phase]);
-
-  // 当外部数据加载完成后切换到 drawing 阶段
-  const complete = () => setPhase('drawing');
 
   return (
     <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      justifyContent: 'center', gap: 12, padding: '40px 0',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      gap: 20, padding: fullscreen ? '0' : '60px 20px',
+      ...(fullscreen ? { position: 'fixed', inset: 0, zIndex: 9999, background: 'var(--bg)' } : {}),
     }}>
-      <svg
-        viewBox="0 0 100 210"
-        width={size}
-        height={size * 2.1}
-        style={{ overflow: 'visible' }}
-      >
-        {/* 底层：彩色填充（初始透明） */}
-        <image
-          ref={fillRef}
-          href={ICON_URL}
-          x="0" y="0" width="100" height="100"
-          opacity="0"
-          preserveAspectRatio="xMidYMid meet"
+      {/* 图标容器 */}
+      <div style={{ position: 'relative', width: size * 2, height: size * 2 }}>
+        {/* 外环脉冲 */}
+        <div style={{
+          position: 'absolute', inset: -8, borderRadius: '50%',
+          border: '2px solid var(--primary)',
+          opacity: 0.3,
+          animation: 'loadingPulseRing 2s ease-out infinite',
+        }} />
+        <div style={{
+          position: 'absolute', inset: -16, borderRadius: '50%',
+          border: '1px solid var(--primary)',
+          opacity: 0.15,
+          animation: 'loadingPulseRing 2s ease-out 0.5s infinite',
+        }} />
+
+        {/* 图标 */}
+        <img
+          src={ICON_URL}
+          alt="加载中"
+          style={{
+            width: size, height: size,
+            position: 'absolute', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            animation: 'loadingIconBreathe 2s ease-in-out infinite',
+            filter: 'drop-shadow(0 4px 16px rgba(106, 174, 200, 0.4))',
+          }}
         />
-        {/* 顶层：描边层 */}
-        <path
-          ref={pathRef}
-          d={BOTTLE_PATH}
-          fill="none"
-          stroke="var(--primary)"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ transform: 'scale(0.42) translate(10px, 10px)', transformOrigin: 'top left' }}
-        />
-        <path
-          ref={strokeRef}
-          d={BOTTLE_PATH}
-          fill="none"
-          stroke="var(--primary)"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ transform: 'scale(0.42) translate(10px, 10px)', transformOrigin: 'top left' }}
-        />
-      </svg>
+
+        {/* 扫描光线 */}
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: '50%', overflow: 'hidden',
+        }}>
+          <div style={{
+            position: 'absolute', left: '10%', right: '10%', height: 2,
+            background: 'linear-gradient(90deg, transparent, var(--primary), transparent)',
+            animation: 'loadingScanLine 2s ease-in-out infinite',
+            boxShadow: '0 0 12px var(--primary)',
+          }} />
+        </div>
+
+        {/* 旋转弧线 */}
+        <svg
+          viewBox="0 0 100 100"
+          style={{
+            position: 'absolute', inset: -4, width: 'calc(100% + 8px)', height: 'calc(100% + 8px)',
+            animation: 'loadingSpin 1.8s linear infinite',
+          }}
+        >
+          <circle
+            cx="50" cy="50" r="46"
+            fill="none"
+            stroke="var(--primary)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeDasharray="60 230"
+            opacity="0.6"
+          />
+        </svg>
+      </div>
+
+      {/* 进度条 */}
+      <div style={{
+        width: 120, height: 3, borderRadius: 2,
+        background: 'var(--border)', overflow: 'hidden',
+      }}>
+        <div style={{
+          height: '100%', borderRadius: 2,
+          background: 'linear-gradient(90deg, var(--primary), var(--accent))',
+          width: `${progress}%`,
+          transition: 'width 0.3s ease',
+        }} />
+      </div>
+
+      {/* 文字 */}
       {showText && (
-        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{text}</span>
+        <span style={{
+          fontSize: 13, color: 'var(--text-muted)',
+          animation: 'loadingTextFade 1.5s ease-in-out infinite',
+        }}>
+          {text}
+        </span>
       )}
+
+      <style>{`
+        @keyframes loadingPulseRing {
+          0% { transform: scale(0.8); opacity: 0.4; }
+          100% { transform: scale(1.4); opacity: 0; }
+        }
+        @keyframes loadingIconBreathe {
+          0%, 100% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.7; }
+          50% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
+        }
+        @keyframes loadingScanLine {
+          0% { top: 10%; opacity: 0; }
+          20% { opacity: 1; }
+          80% { opacity: 1; }
+          100% { top: 90%; opacity: 0; }
+        }
+        @keyframes loadingSpin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes loadingTextFade {
+          0%, 100% { opacity: 0.5; }
+          50% { opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
 
 /**
- * 简化版 Spinner — 替代原 .spinner 圆环
- * 直接使用图标 + 脉冲动画，用于内联小尺寸场景
+ * 简化版内联加载图标（用于按钮内等小尺寸场景）
  */
-export function IconSpinner({ size = 36 }) {
+export function IconSpinner({ size = 20, style = {} }) {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '40px 0',
-    }}>
-      <img
-        src={ICON_URL}
-        alt="加载中"
-        style={{
-          width: size, height: size,
-          animation: 'iconPulse 1.2s ease-in-out infinite',
-        }}
-      />
-      <style>{`
-        @keyframes iconPulse {
-          0%, 100% { opacity: 0.4; transform: scale(0.9); }
-          50% { opacity: 1; transform: scale(1.05); }
-        }
-      `}</style>
-    </div>
+    <img
+      src={ICON_URL}
+      alt=""
+      style={{
+        width: size, height: size,
+        animation: 'iconPulse 1.2s ease-in-out infinite',
+        ...style,
+      }}
+    />
   );
 }
