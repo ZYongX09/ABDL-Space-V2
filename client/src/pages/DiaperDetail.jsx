@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { Spinner } from '../components/Feedback';
 import { useVerifyModal } from '../components/VerifyModal';
@@ -48,6 +48,8 @@ export default function DiaperDetail() {
   const isDark = theme === 'dark';
   const toast = useToast();
   const { trigger, VerifyModal } = useVerifyModal();
+  const navigate = useNavigate();
+  const isLoggedIn = !!user;
 
   useEffect(() => {
     if (!/^\d+$/.test(String(id))) { setLoading(false); return; }
@@ -226,24 +228,49 @@ export default function DiaperDetail() {
       )}
 
       {/* 评价列表 */}
+      {!isLoggedIn && (
+        <div
+          className="card mb-4"
+          style={{
+            padding: '1.25rem',
+            textAlign: 'center',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+          }}
+        >
+          <i className="fa-solid fa-lock" style={{ fontSize: '1.5rem', color: 'var(--primary)', marginBottom: '0.5rem', display: 'block' }} />
+          <div style={{ fontWeight: 600, marginBottom: '0.35rem' }}>为确保数据安全</div>
+          <div style={{ color: 'var(--text-light)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+            登录后查看用户评分与评价详情
+          </div>
+          <button
+            className="btn btn-primary btn-sm miui-press"
+            onClick={() => navigate('/login')}
+          >
+            <i className="fa-solid fa-right-to-bracket mr-2" />
+            登录 / 注册
+          </button>
+        </div>
+      )}
+
       <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--text)' }}>
-        用户评价 ({reviews.length})
+        用户评价{isLoggedIn ? ` (${reviews.length})` : ''}
       </h3>
       {reviews.length === 0 ? (
         <p className="text-sm text-center py-6" style={{ color: 'var(--text-muted)' }}>暂无评价</p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3" style={!isLoggedIn ? { filter: 'blur(6px)', userSelect: 'none', pointerEvents: 'none' } : {}}>
           {reviews.map(r => (
             <div key={r.id} className="card" style={{ padding: '1rem' }}>
               <div className="flex items-center gap-2 mb-2">
-                <span className="font-semibold text-sm">{r.username || '匿名'}</span>
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{new Date(r.created_at).toLocaleDateString('zh-CN')}</span>
+                <span className="font-semibold text-sm">{isLoggedIn ? (r.username || '匿名') : 'xxxx'}</span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{isLoggedIn ? new Date(r.created_at).toLocaleDateString('zh-CN') : 'xxxx-xx-xx'}</span>
               </div>
-              {r.review && <p className="text-sm mb-2">{r.review}</p>}
+              {r.review && <p className="text-sm mb-2">{isLoggedIn ? r.review : 'xxxxxxxxxxxxxxxx'}</p>}
               <div className="flex flex-wrap gap-2">
                 {DIMENSIONS.map(dim => r[dim.key] != null && (
                   <span key={dim.key} className="tag">
-                    <i className={`fa-solid ${dim.icon} mr-1`} />{dim.label} {r[dim.key]}/10
+                    <i className={`fa-solid ${dim.icon} mr-1`} />{dim.label} {isLoggedIn ? `${r[dim.key]}/10` : 'x/10'}
                   </span>
                 ))}
               </div>
