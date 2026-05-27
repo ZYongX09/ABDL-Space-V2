@@ -408,10 +408,11 @@ export const feelingsAPI = {
 // 排行榜 Rankings
 // =====================================================================
 export const rankingsAPI = {
-  get: async (type = 'hot', dimension) => {
+  get: async (type = 'hot', dimension, limit) => {
     if (USE_API) {
       const qs = new URLSearchParams({ type });
       if (dimension) qs.set('dimension', dimension);
+      if (limit) qs.set('limit', String(limit));
       return cachedFetch(`rankings:${qs}`, () => apiFetch(`/api/rankings?${qs}`), CACHE_TTL.long);
     }
     if (!_diapers) await loadData();
