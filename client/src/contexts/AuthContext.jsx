@@ -170,7 +170,9 @@ export function AuthProvider({ children }) {
       if (saved.length > 0) {
         switchAccount(saved[0].id).catch(() => { setUser(null); setActiveAccountId(null); });
       } else {
-        fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
+        fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' }).then(() => {
+          window.location.href = '/';
+        }).catch(() => { window.location.href = '/'; });
         setUser(null);
         setActiveAccountId(null);
       }
@@ -178,25 +180,35 @@ export function AuthProvider({ children }) {
   }, [user, switchAccount]);
 
   // 退出当前账户（不删除保存的账户）
-  const logout = useCallback(() => {
-    // 清除后端 cookie
-    fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
+  const logout = useCallback(async () => {
+    // 清除后端 cookie（确保请求完成）
+    try {
+      await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' });
+    } catch {}
+    // 清除内存缓存
+    if (window.__apiCache) window.__apiCache.clear();
     const saved = getSavedAccounts().filter(a => a.id !== user?.id);
     saveAccounts(saved);
     setAccounts(saved);
     setUser(null);
     setActiveAccountId(null);
     lsDel('abdl_currentUser');
+    // 强制刷新确保状态干净
+    window.location.href = '/';
   }, [user]);
 
   // 退出所有账户
-  const logoutAll = useCallback(() => {
-    fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
+  const logoutAll = useCallback(async () => {
+    try {
+      await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' });
+    } catch {}
+    if (window.__apiCache) window.__apiCache.clear();
     saveAccounts([]);
     setAccounts([]);
     setActiveAccountId(null);
     setUser(null);
     lsDel('abdl_currentUser');
+    window.location.href = '/';
   }, []);
 
   // 同意状态管理

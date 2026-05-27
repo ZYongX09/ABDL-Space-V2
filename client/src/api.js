@@ -46,6 +46,7 @@ async function apiFetch(path, options = {}) {
 
 // ====== 内存缓存层 ======
 const _cache = new Map();
+if (typeof window !== 'undefined') window.__apiCache = _cache;
 const CACHE_TTL = {
   short: 30 * 1000,      // 30秒 — 帖子列表、评论
   medium: 2 * 60 * 1000,  // 2分钟 — 帖子详情、用户信息
