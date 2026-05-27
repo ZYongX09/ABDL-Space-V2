@@ -190,7 +190,7 @@ export default function Recommendations() {
 
           <button className="btn btn-primary miui-press" onClick={handleRecommend} disabled={loading || !consented || selectedCount === 0}>
             {loading ? (
-              <><span className="spinner mr-2" style={{ width: 16, height: 16, borderWidth: 2 }} />分析中...</>
+              <><span className="spinner mr-2" style={{ width: 16, height: 16 }} />分析中...</>
             ) : (
               <><i className="fa-solid fa-wand-magic-sparkles" /> 获取推荐</>
             )}
