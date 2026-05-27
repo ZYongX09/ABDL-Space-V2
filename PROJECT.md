@@ -10,7 +10,7 @@
 ABDL Space V2 是一个面向 ABDL（Adult Baby Diaper Lover）社区的中文 Web 平台，核心功能包括纸尿裤评价、排行榜、AI 智能推荐、社区论坛、私信系统等。
 
 - **项目名称**：ABDL Space v2
-- **当前版本**：v2.20.2
+- **当前版本**：v2.21.0
 - **部署平台**：Cloudflare Pages（前端）、Cloudflare Worker（后端 API）
 - **生产域名**：`abdl-space.top`（前端），`api.abdl-space.top`（后端 API）
 - **代码仓库**：`/home/ZYongX/projects/abdl-space-v2/`（本地），GitHub 由用户管理
