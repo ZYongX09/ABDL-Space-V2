@@ -263,7 +263,7 @@ export default function DiaperDetail() {
           {reviews.map(r => (
             <div key={r.id} className="card" style={{ padding: '1rem' }}>
               <div className="flex items-center gap-2 mb-2">
-                <span className="font-semibold text-sm">{isLoggedIn ? (r.username || '匿名') : 'xxxx'}</span>
+                <span className="font-semibold text-sm">{isLoggedIn ? (r.user?.username || r.username || '匿名') : 'xxxx'}</span>
                 <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{isLoggedIn ? new Date(r.created_at).toLocaleDateString('zh-CN') : 'xxxx-xx-xx'}</span>
               </div>
               {r.review && <p className="text-sm mb-2">{isLoggedIn ? r.review : 'xxxxxxxxxxxxxxxx'}</p>}
