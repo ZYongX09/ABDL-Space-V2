@@ -130,7 +130,7 @@ export default function ForumFeed() {
       ) : (
         <div className="space-y-4 miui-list-enter">
           {posts.map((post, i) => (
-            <div key={post.id} className={`card card-interactive miui-hover-lift ${post.pinned ? 'post-pinned' : ''}`} style={{ padding: '1.25rem' }}>
+            <div key={post.id} className={`card miui-hover-lift ${post.pinned ? 'post-pinned' : ''}`} style={{ padding: '1.25rem' }}>
               {post.pinned && (
                 <div className="post-pinned-tag">
                   <i className="fa-solid fa-thumbtack" /> 置顶

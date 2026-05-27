@@ -1598,7 +1598,7 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
 
 /* 移动端触控反馈 */
 @media (max-width: 768px) {
-  .card:active { transform: scale(0.985); transition: transform 0.1s ease; }
+  /* 移除 .card:active —— 卡片不应有按下缩放 */
   .hero-card::after { display: none; }
   .bottom-nav-floating a:active { transform: scale(0.92); transition: transform 0.1s ease; }
   .rank-item { gap: 10px; padding: 12px 14px; }
@@ -2046,10 +2046,7 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.15s ease;
   }
-  .card:active {
-    transform: scale(0.98);
-    box-shadow: 0 0 0 rgba(0,0,0,0);
-  }
+  /* 移除 .card:active —— 卡片不应有按下缩放效果 */
 
   /* MIUI 风格按钮触控反馈 */
   .btn:active {
@@ -2095,9 +2092,7 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
     border-radius: 16px;
     transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1);
   }
-  .post-card:active {
-    transform: scale(0.985);
-  }
+  /* 移除 .post-card:active —— 帖子卡片不应有按下缩放 */
 
   /* 图片网格圆角增强 */
   .img-grid {
@@ -2603,7 +2598,7 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
   box-shadow: 0 8px 28px rgba(168, 216, 240, 0.3);
 }
 .miui-hover-lift:active {
-  transform: scale(0.98) translateY(0);
+  transform: translateY(0);
   transition-duration: 0.08s;
 }
 
