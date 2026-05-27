@@ -69,7 +69,7 @@ export default function Sidebar() {
         {/* Logo */}
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <i className="fa-solid fa-baby" />
+            <img src="https://img.abdl-space.top/file/1779879250278_ABDL_icon.svg" alt="ABDL Space" style={{ width: 24, height: 24 }} />
           </div>
           <div className="sidebar-header-text">
             <div className="sidebar-title">ABDL Space</div>

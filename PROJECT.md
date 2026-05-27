@@ -14,6 +14,17 @@ ABDL Space V2 是一个面向 ABDL（Adult Baby Diaper Lover）社区的中文 W
 - **部署平台**：Cloudflare Pages（前端）、Cloudflare Worker（后端 API）
 - **生产域名**：`abdl-space.top`（前端），`api.abdl-space.top`（后端 API）
 - **代码仓库**：`/home/ZYongX/projects/abdl-space-v2/`（本地），GitHub 由用户管理
+- **图片床**：`img.abdl-space.top`（Cloudflare ImgBed）
+
+### 🎨 品牌资源
+
+| 资源 | 格式 | 说明 | URL |
+|------|------|------|-----|
+| 横版logo | JPG | 白色背景，左图标右文字 | https://img.abdl-space.top/file/1779879217956_ABDL.jpg |
+| 横版logo | PNG | 无背景，左图标右文字 | https://img.abdl-space.top/file/1779879241082_ABDL.png |
+| 网站icon | SVG | 无背景 | https://img.abdl-space.top/file/1779879250278_ABDL_icon.svg |
+| 竖版logo | SVG | 无背景，上图标下文字 | https://img.abdl-space.top/file/1779879267209_ABDL_logo_word.svg |
+| 纯艺术文字 | SVG | 无背景 | https://img.abdl-space.top/file/1779879269255_ABDL_word.svg |
 
 ---
 

@@ -90,7 +90,7 @@ export default function Login() {
         {/* 标题 */}
         <div className="login-header">
           <div className="login-logo-icon">
-            <i className="fa-solid fa-baby" />
+            <img src="https://img.abdl-space.top/file/1779879250278_ABDL_icon.svg" alt="ABDL Space" style={{ width: 28, height: 28 }} />
           </div>
           <h1 className="login-title">欢迎回来</h1>
           <p className="login-subtitle">登录 ABDL Space</p>

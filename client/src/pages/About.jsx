@@ -167,7 +167,7 @@ export default function About() {
       {/* 项目简介 */}
       <div className="card mb-5">
         <h3 className="font-bold mb-3" style={{ color: 'var(--text)' }}>
-          <i className="fa-solid fa-baby mr-2" style={{ color: 'var(--primary-dark)' }} />
+          <img src="https://img.abdl-space.top/file/1779879250278_ABDL_icon.svg" alt="" style={{ width: 20, height: 20, marginRight: 8, verticalAlign: 'middle' }} />
           ABDL Space
         </h3>
         <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-light)' }}>
