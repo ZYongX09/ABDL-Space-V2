@@ -47,6 +47,7 @@ const OAuthAuthorize = lazy(() => import('./pages/OAuthAuthorize'));
 const OAuthClientsPage = lazy(() => import('./pages/OAuthClientsPage'));
 const ExternalLink = lazy(() => import('./pages/ExternalLink'));
 const CreatePost = lazy(() => import('./pages/CreatePost'));
+const BugDashboard = lazy(() => import('./pages/BugDashboard'));
 const FollowersPage = lazy(() => import('./pages/FollowersPage'));
 
 function PageFallback() {
@@ -76,6 +77,7 @@ const ROUTE_TITLES = {
   '/about': '关于 — ABDL Space',
   '/settings': '设置 — ABDL Space',
   '/create-post': '发帖 — ABDL Space',
+  '/bugs': 'Bug 追踪面板 — ABDL Space',
   '/captcha-api': 'Captcha API — ABDL Space',
   '/oauth/authorize': 'OAuth 授权 — ABDL Space',
   '/oauth-clients': '应用管理 — ABDL Space',
@@ -192,6 +194,7 @@ export default function App() {
                 <Route path="/profile-legacy/:id" element={<AdminOnlyProfile />} />
                 <Route path="/external" element={<ExternalLink />} />
                 <Route path="/create-post" element={<CreatePost />} />
+                <Route path="/bugs" element={<BugDashboard />} />
               </Routes>
             </Suspense>
           </ErrorBoundary>
