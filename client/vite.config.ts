@@ -7,8 +7,11 @@ export default defineConfig({
     {
       name: 'inject-captcha-key',
       transformIndexHtml(html) {
-        const key = process.env.VITE_CAPTCHA_KEY || '';
-        return html.replace('<%= captchaKey %>', key.replace(/'/g, "\\'"));
+        const captchaKey = process.env.VITE_CAPTCHA_KEY || '';
+        const turnstileKey = process.env.VITE_TURNSTILE_SITE_KEY || '';
+        let result = html.replace('<%= captchaKey %>', captchaKey.replace(/'/g, "\\'"));
+        result = result.replace('<%= turnstileKey %>', turnstileKey.replace(/'/g, "\\'"));
+        return result;
       },
     },
   ],

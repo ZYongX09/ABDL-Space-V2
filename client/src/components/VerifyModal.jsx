@@ -1,44 +1,72 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 
+const API_BASE = import.meta.env.VITE_API_BASE || '';
+const TURNSTILE_SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+
 /**
- * useVerifyModal — 验证码弹窗 Hook（使用 ABDLCaptcha 嵌入式 SDK）
+ * useVerifyModal — 验证码弹窗 Hook（支持 Turnstile + Quantum 混合验证）
  *
  * 流程:
- *   1. trigger(onPass) → 弹出弹窗
- *   2. ABDLCaptcha.render() 渲染验证组件
- *   3. 用户完成验证 → onSuccess(token)
- *   4. 存 token → 执行 onPass
- *
- * 返回: { trigger, VerifyModal, captchaToken }
+ *   1. trigger(onPass) → 调用 /api/captcha/risk 获取风险等级
+ *   2. low risk:  随机选择 turnstile 或 quantum
+ *   3. high risk: 先 turnstile，再 quantum
+ *   4. 验证通过 → 执行 onPass
  */
 export function useVerifyModal() {
   const [show, setShow] = useState(false);
   const [animState, setAnimState] = useState('hidden');
-  const [sdkReady, setSdkReady] = useState(false);
+  const [phase, setPhase] = useState('loading'); // loading | turnstile | quantum | done
+  const [flow, setFlow] = useState(null);        // 'turnstile' | 'quantum' | 'both'
+  const [risk, setRisk] = useState(null);         // 'low' | 'high'
+  const [error, setError] = useState(null);
+
   const actionRef = useRef(null);
   const tokenRef = useRef(null);
-  const containerRef = useRef(null);
-  const rendererRef = useRef(null);
+  const turnstileSessionRef = useRef(null);
+  const turnstileWidgetRef = useRef(null);
+  const quantumContainerRef = useRef(null);
+  const quantumRendererRef = useRef(null);
+  const sdkReadyRef = useRef(!!window.ABDLCaptcha);
 
-  // 检测 SDK 是否加载（10s 超时）
+  // 检测 Quantum SDK 加载
   useEffect(() => {
-    if (window.ABDLCaptcha) { setSdkReady(true); return; }
-    let timeout;
+    if (window.ABDLCaptcha) { sdkReadyRef.current = true; return; }
     const check = setInterval(() => {
-      if (window.ABDLCaptcha) { setSdkReady(true); clearInterval(check); clearTimeout(timeout); }
+      if (window.ABDLCaptcha) { sdkReadyRef.current = true; clearInterval(check); }
     }, 200);
-    timeout = setTimeout(() => { clearInterval(check); setSdkReady(true); }, 10000);
+    const timeout = setTimeout(() => { clearInterval(check); sdkReadyRef.current = true; }, 10000);
     return () => { clearInterval(check); clearTimeout(timeout); };
+  }, []);
+
+  // 加载 Turnstile 脚本
+  const ensureTurnstile = useCallback(() => {
+    return new Promise((resolve) => {
+      if (window.turnstile) { resolve(true); return; }
+      const script = document.createElement('script');
+      script.src = TURNSTILE_SCRIPT_URL;
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.head.appendChild(script);
+    });
   }, []);
 
   const cleanup = useCallback(() => {
     setShow(false); setAnimState('hidden');
+    setPhase('loading'); setFlow(null); setRisk(null); setError(null);
     actionRef.current = null;
-    if (rendererRef.current && typeof rendererRef.current.destroy === 'function') {
-      try { rendererRef.current.destroy(); } catch (e) { /* silent */ }
+    turnstileSessionRef.current = null;
+    // 清理 Turnstile widget
+    if (turnstileWidgetRef.current) {
+      try { window.turnstile?.remove(turnstileWidgetRef.current); } catch {}
+      turnstileWidgetRef.current = null;
     }
-    rendererRef.current = null;
-    if (containerRef.current) containerRef.current.textContent = '';
+    // 清理 Quantum
+    if (quantumRendererRef.current && typeof quantumRendererRef.current.destroy === 'function') {
+      try { quantumRendererRef.current.destroy(); } catch {}
+    }
+    quantumRendererRef.current = null;
+    if (quantumContainerRef.current) quantumContainerRef.current.textContent = '';
   }, []);
 
   const trigger = useCallback((onPass) => {
@@ -46,43 +74,145 @@ export function useVerifyModal() {
     tokenRef.current = null;
     setShow(true);
     setAnimState('entering');
+    setError(null);
     requestAnimationFrame(() => setAnimState('visible'));
   }, []);
 
-  // 弹窗显示后渲染 SDK
+  // 弹窗显示后启动流程
   useEffect(() => {
-    if (!show || !sdkReady || !containerRef.current) return;
+    if (!show) return;
+
+    (async () => {
+      // 1. 获取风险等级
+      try {
+        const res = await fetch(`${API_BASE}/api/captcha/risk`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}',
+        });
+        if (!res.ok) throw new Error('Risk assessment failed');
+        const data = await res.json();
+        setRisk(data.risk);
+        setFlow(data.flow);
+
+        // 2. 根据 flow 开始验证
+        if (data.flow === 'turnstile' || data.flow === 'both') {
+          setPhase('turnstile');
+        } else {
+          setPhase('quantum');
+        }
+      } catch (err) {
+        setError('安全验证服务异常，请刷新重试');
+      }
+    })();
+  }, [show]);
+
+  // Turnstile 渲染
+  useEffect(() => {
+    if (phase !== 'turnstile') return;
+
+    (async () => {
+      const ok = await ensureTurnstile();
+      if (!ok) { setError('Turnstile 加载失败'); return; }
+
+      // 创建挑战
+      try {
+        const res = await fetch(`${API_BASE}/api/captcha/challenge`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'turnstile' }),
+        });
+        if (!res.ok) throw new Error('Challenge failed');
+        const data = await res.json();
+        turnstileSessionRef.current = data.session_id;
+      } catch {
+        setError('创建验证失败'); return;
+      }
+
+      // 渲染 Turnstile widget
+      const container = document.getElementById('turnstile-container');
+      if (!container) return;
+
+      const siteKey = window.__TURNSTILE_SITE_KEY || '';
+      if (!siteKey) { setError('Turnstile 未配置'); return; }
+
+      try {
+        turnstileWidgetRef.current = window.turnstile.render(container, {
+          sitekey: siteKey,
+          callback: async (token) => {
+            // 验证 Turnstile
+            try {
+              const res = await fetch(`${API_BASE}/api/captcha/turnstile/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  session_id: turnstileSessionRef.current,
+                  token,
+                }),
+              });
+              const result = await res.json();
+              if (result.success) {
+                tokenRef.current = token;
+                // 如果是 both 模式，继续 quantum
+                if (flow === 'both') {
+                  setPhase('quantum');
+                } else {
+                  finishVerification();
+                }
+              } else {
+                setError(result.locked ? '验证次数过多，请稍后再试' : '验证失败，请重试');
+              }
+            } catch {
+              setError('验证请求失败');
+            }
+          },
+          'error-callback': () => setError('Turnstile 加载异常'),
+          theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
+        });
+      } catch {
+        setError('Turnstile 渲染失败');
+      }
+    })();
+  }, [phase, flow, ensureTurnstile]);
+
+  // Quantum 渲染
+  useEffect(() => {
+    if (phase !== 'quantum') return;
+    if (!sdkReadyRef.current || !window.ABDLCaptcha) return;
+    if (!quantumContainerRef.current) return;
 
     // 清空容器
-    containerRef.current.textContent = '';
+    quantumContainerRef.current.textContent = '';
 
-    // 从环境变量或配置获取 API Key
     const apiKey = window.__ABDL_CAPTCHA_KEY || '';
 
     try {
-      rendererRef.current = window.ABDLCaptcha.render(containerRef.current, {
+      quantumRendererRef.current = window.ABDLCaptcha.render(quantumContainerRef.current, {
         apiKey,
         onSuccess: (token) => {
           tokenRef.current = token;
-          const action = actionRef.current;
-          setTimeout(() => {
-            setAnimState('exiting');
-            setTimeout(() => {
-              setShow(false);
-              setAnimState('hidden');
-              if (containerRef.current) containerRef.current.textContent = '';
-              if (action) { action(); actionRef.current = null; }
-            }, 250);
-          }, 600);
+          finishVerification();
         },
-        onError: () => {
-          /* silent */
-        },
+        onError: () => setError('验证失败，请重试'),
       });
-    } catch (err) {
-      /* render 失败不影响业务流程，用户可关闭弹窗重试 */
+    } catch {
+      setError('验证组件渲染失败');
     }
-  }, [show, sdkReady, cleanup]);
+  }, [phase]);
+
+  const finishVerification = useCallback(() => {
+    setPhase('done');
+    const action = actionRef.current;
+    setTimeout(() => {
+      setAnimState('exiting');
+      setTimeout(() => {
+        setShow(false);
+        setAnimState('hidden');
+        cleanup();
+        if (action) { action(); actionRef.current = null; }
+      }, 250);
+    }, 600);
+  }, [cleanup]);
 
   const handleClose = useCallback(() => {
     setAnimState('exiting');
@@ -109,6 +239,13 @@ export function useVerifyModal() {
     transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease',
   };
 
+  const phaseLabel = {
+    loading: '正在评估安全等级...',
+    turnstile: '请完成人机验证',
+    quantum: '请完成安全验证',
+    done: '验证通过',
+  };
+
   const VerifyModal = (
     <div style={backdropStyle} onClick={handleClose}>
       <div style={cardStyle} onClick={e => e.stopPropagation()}>
@@ -116,21 +253,58 @@ export function useVerifyModal() {
           <h3 className="font-bold text-base" style={{ color: 'var(--text)' }}>
             <i className="fa-solid fa-shield-halved mr-2" style={{ color: 'var(--primary-dark)' }} />
             安全验证
+            {risk && <span style={{ fontSize: '.7rem', color: 'var(--text-light)', marginLeft: '0.5rem' }}>({risk === 'high' ? '高' : '低'}风险)</span>}
           </h3>
           <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem' }}>
             <i className="fa-solid fa-xmark" />
           </button>
         </div>
+
+        {/* 流程指示器 (both 模式) */}
+        {flow === 'both' && (
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', fontSize: '.75rem' }}>
+            <span style={{ color: phase === 'turnstile' || phase === 'done' ? 'var(--primary)' : 'var(--text-muted)' }}>
+              <i className={`fa-solid ${phase === 'done' || phase === 'quantum' ? 'fa-circle-check' : 'fa-circle-dot'}`} /> 1. Turnstile
+            </span>
+            <span style={{ color: 'var(--text-light)' }}>→</span>
+            <span style={{ color: phase === 'quantum' || phase === 'done' ? 'var(--primary)' : 'var(--text-muted)' }}>
+              <i className={`fa-solid ${phase === 'done' ? 'fa-circle-check' : phase === 'quantum' ? 'fa-circle-dot' : 'fa-circle'} `} /> 2. Quantum
+            </span>
+          </div>
+        )}
+
+        <p style={{ fontSize: '.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+          {error || phaseLabel[phase] || '正在加载...'}
+        </p>
+
         <div style={{ border: '1.5px solid var(--border)', borderRadius: '1rem', overflow: 'hidden', padding: '12px', minHeight: 80 }}>
-          {!sdkReady ? (
+          {/* Turnstile 容器 */}
+          {phase === 'turnstile' && <div id="turnstile-container" style={{ display: 'flex', justifyContent: 'center' }} />}
+
+          {/* Quantum 容器 */}
+          {(phase === 'quantum' || (flow === 'both' && phase === 'done')) && (
+            <div ref={quantumContainerRef} />
+          )}
+
+          {/* Loading */}
+          {phase === 'loading' && (
             <div className="flex items-center justify-center py-6">
               <div className="spinner mr-2" />
               <span className="text-sm" style={{ color: 'var(--text-muted)' }}>加载验证组件...</span>
             </div>
-          ) : (
-            <div ref={containerRef} />
           )}
         </div>
+
+        {/* 重试按钮 */}
+        {error && (
+          <button
+            className="btn btn-sm btn-primary"
+            style={{ marginTop: '0.75rem', width: '100%' }}
+            onClick={() => { setError(null); setPhase('loading'); /* 重新触发 */ }}
+          >
+            重试
+          </button>
+        )}
       </div>
     </div>
   );
