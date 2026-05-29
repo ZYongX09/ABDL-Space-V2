@@ -19,6 +19,11 @@ export default function RedirectNotice() {
     const host = window.location.hostname;
     const isMobileSite = host.startsWith('m.');
     const isMainSite = !isMobileSite;
+    const path = window.location.pathname;
+
+    // 这些路径必须留在主站处理，不跳转
+    const skipPaths = ['/oauth/', '/auth/nbw/callback'];
+    if (skipPaths.some(p => path.startsWith(p))) return;
 
     if (isMainSite && isPhone()) {
       setShow(true);
