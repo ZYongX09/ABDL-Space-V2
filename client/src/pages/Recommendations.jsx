@@ -117,10 +117,10 @@ export default function Recommendations() {
     if (!consented) { toast.error('请先阅读并同意隐私说明'); return; }
     if (selectedCount === 0) { toast.error('请至少选择一项数据'); return; }
     if (Date.now() - lastRecommendTime.current < RATE_LIMIT_MS) {
-      trigger(doRecommend);
+      toast.error('推荐太频繁，请稍后再试');
       return;
     }
-    doRecommend();
+    trigger(doRecommend);
   };
 
   return (

@@ -143,7 +143,9 @@ export default function AccountPrivacy() {
                     key={a.id}
                     className="w-full flex items-center gap-3 py-2 px-3 rounded-lg transition-all hover:opacity-80"
                     style={{ background: 'var(--input-bg)', border: 'none', cursor: 'pointer' }}
-                    onClick={() => switchAccount(a.id)}
+                    onClick={async () => {
+                      try { await switchAccount(a.id); } catch { toast.info('切换账户需要重新登录'); }
+                    }}
                   >
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
                       {a.avatar ? <img src={a.avatar} alt="" className="w-full h-full rounded-full object-cover" /> : a.username?.[0]?.toUpperCase()}
@@ -366,7 +368,7 @@ function NBWBindSection({ user, toast }) {
             <button
               className="btn btn-outline btn-sm"
               disabled
-n              style={{ opacity: 0.5, cursor: 'not-allowed' }}
+              style={{ opacity: 0.5, cursor: 'not-allowed' }}
               onClick={() => toast.info('暂未开放')}
             >
               暂未开放

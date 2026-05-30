@@ -107,6 +107,7 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!username.trim() || !email.trim() || !password) { toast.error('请填写所有字段'); return; }
+    if (username.trim().length < 3 || username.trim().length > 30) { toast.error('用户名需 3-30 个字符'); return; }
     if (!email.includes('@')) { toast.error('请输入合法邮箱'); return; }
     if (password.length < 8) { toast.error('密码至少 8 位'); return; }
     if (password !== confirm) { toast.error('两次密码不一致'); return; }
@@ -117,12 +118,12 @@ export default function Register() {
     if (!captchaOk) { toast.error('请完成安全验证'); return; }
     try {
       setLoading(true);
-      await register({
+      const result = await register({
         username: username.trim(), email: email.trim(), password, code,
         captchaToken: regTokenRef.current || undefined,
         ...(nbwState ? { nbw_token: nbwState.nbw_token } : {}),
       });
-      saveConsent({ privacy: true, terms: true });
+      saveConsent({ privacy: true, terms: true, userId: result?.user?.id });
       toast.success('注册成功');
       navigate('/');
     } catch (e) { toast.error(e.message); }

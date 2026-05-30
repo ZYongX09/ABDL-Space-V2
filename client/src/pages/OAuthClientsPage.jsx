@@ -76,13 +76,13 @@ export default function OAuthClientsPage() {
       });
       if (res.raw_secret) {
         setShowSecret({ client_id: res.client.client_id, secret: res.raw_secret });
+        toast.success('OAuth 应用创建成功');
       } else {
         setShowSecret(null);
         toast.success('公开客户端创建成功（无需 Secret）');
       }
       resetForm();
       loadClients();
-      toast.success('OAuth 应用创建成功');
     } catch (err) { toast.error(err.message); }
   };
 

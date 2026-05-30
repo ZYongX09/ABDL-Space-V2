@@ -19,6 +19,7 @@ export function useVerifyModal() {
   const [flow, setFlow] = useState(null);        // 'turnstile' | 'quantum' | 'both'
   const [risk, setRisk] = useState(null);         // 'low' | 'high'
   const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const actionRef = useRef(null);
   const tokenRef = useRef(null);
@@ -105,7 +106,7 @@ export function useVerifyModal() {
         setError('安全验证服务异常，请刷新重试');
       }
     })();
-  }, [show]);
+  }, [show, retryCount]);
 
   // Turnstile 渲染
   useEffect(() => {
@@ -300,7 +301,7 @@ export function useVerifyModal() {
           <button
             className="btn btn-sm btn-primary"
             style={{ marginTop: '0.75rem', width: '100%' }}
-            onClick={() => { setError(null); setPhase('loading'); /* 重新触发 */ }}
+            onClick={() => { setError(null); setRetryCount(c => c + 1); }}
           >
             重试
           </button>

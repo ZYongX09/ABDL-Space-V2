@@ -66,8 +66,8 @@ export default function Login() {
     if (needCaptcha && !captchaOk) { toast.error('请完成安全验证'); return; }
     try {
       setLoading(true);
-      await authLogin({ login: login.trim(), password, captchaToken: captchaTokenRef.current || undefined });
-      saveConsent({ privacy: true, minor: true });
+      const result = await authLogin({ login: login.trim(), password, captchaToken: captchaTokenRef.current || undefined });
+      try { saveConsent({ privacy: true, minor: true, userId: result?.user?.id }); } catch {}
       toast.success('登录成功');
       navigate('/');
     } catch (e) {
@@ -142,7 +142,7 @@ export default function Login() {
               <div className="flex gap-2 justify-end">
                 <button className="btn btn-outline btn-sm" onClick={() => setShowNBWConsent(false)}>取消</button>
                 <button className="btn btn-primary btn-sm" onClick={async () => {
-                  saveConsent({ privacy: true, minor: true });
+                  try { saveConsent({ privacy: true, minor: true }); } catch {}
                   if (user) await logout();
                   startNBWOAuth();
                 }}>同意并继续</button>

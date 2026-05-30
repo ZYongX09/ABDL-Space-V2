@@ -19,9 +19,8 @@ function validateFile(file) {
 // 创建本地预览 URL
 function createPreview(file) {
   return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve({ file, preview: reader.result, name: file.name, size: file.size });
-    reader.readAsDataURL(file);
+    const preview = URL.createObjectURL(file);
+    resolve({ file, preview, name: file.name, size: file.size });
   });
 }
 
@@ -98,7 +97,11 @@ const ImageUploader = forwardRef(function ImageUploader({ max = 4, onError }, re
   };
 
   const remove = (idx) => {
-    setPreviews(prev => prev.filter((_, i) => i !== idx));
+    setPreviews(prev => {
+      const removed = prev[idx];
+      if (removed?.preview?.startsWith('blob:')) URL.revokeObjectURL(removed.preview);
+      return prev.filter((_, i) => i !== idx);
+    });
     setNsfwResults(prev => {
       const next = {};
       Object.entries(prev).forEach(([k, v]) => {
@@ -160,12 +163,23 @@ const ImageUploader = forwardRef(function ImageUploader({ max = 4, onError }, re
     }
   };
 
+  const previewsRef = useRef(previews);
+  const uploadingRef = useRef(uploading);
+  previewsRef.current = previews;
+  uploadingRef.current = uploading;
+
   // 暴露给父组件
   useImperativeHandle(ref, () => ({
     uploadAll,
-    hasPending: () => previews.length > 0,
-    isUploading: () => uploading,
-    clear: () => { setPreviews([]); setProgress(''); setNsfwResults({}); },
+    hasPending: () => previewsRef.current.length > 0,
+    isUploading: () => uploadingRef.current,
+    clear: () => {
+      setPreviews(prev => {
+        prev.forEach(p => { if (p.preview?.startsWith('blob:')) URL.revokeObjectURL(p.preview); });
+        return [];
+      });
+      setProgress(''); setNsfwResults({});
+    },
   }));
 
   const handleDrop = (e) => {

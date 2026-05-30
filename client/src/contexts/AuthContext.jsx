@@ -165,19 +165,21 @@ export function AuthProvider({ children }) {
     saveAccounts(saved);
     setAccounts(saved);
 
-    // 如果移除的是当前账户，切换到第一个或退出
+    // 如果移除的是当前账户，需要退出登录
     if (user?.id === accountId) {
-      if (saved.length > 0) {
-        switchAccount(saved[0].id).catch(() => { setUser(null); setActiveAccountId(null); });
-      } else {
-        fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' }).then(() => {
-          window.location.href = '/';
-        }).catch(() => { window.location.href = '/'; });
+      fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {}).finally(() => {
+        if (window.__apiCache) window.__apiCache.clear();
         setUser(null);
         setActiveAccountId(null);
-      }
+        lsDel('abdl_currentUser');
+        // 如果还有其他保存的账户，跳转登录页让用户选择
+        if (saved.length > 0) {
+          toast.info('请重新登录其他账户');
+        }
+        window.location.href = '/login';
+      });
     }
-  }, [user, switchAccount]);
+  }, [user]);
 
   // 退出当前账户（不删除保存的账户）
   const logout = useCallback(async () => {
@@ -221,12 +223,13 @@ export function AuthProvider({ children }) {
     return c || { privacy: false, terms: false, date: null };
   }, [user]);
 
-  const saveConsent = useCallback(({ privacy, terms }) => {
-    if (!user) return;
+  const saveConsent = useCallback(({ privacy, terms, userId }) => {
+    const uid = userId || user?.id;
+    if (!uid) return;
     const all = lsGet(CONSENT_KEY) || {};
-    all[user.id] = {
-      privacy: privacy || all[user.id]?.privacy || false,
-      terms: terms || all[user.id]?.terms || false,
+    all[uid] = {
+      privacy: privacy || all[uid]?.privacy || false,
+      terms: terms || all[uid]?.terms || false,
       date: new Date().toISOString(),
     };
     lsSet(CONSENT_KEY, all);
