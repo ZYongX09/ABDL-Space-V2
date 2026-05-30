@@ -27,7 +27,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    (async () => {
+    const timer = setTimeout(async () => {
       try {
         setLoading(true);
         const data = await diapersAPI.list({ search: search || undefined, brand: brand || undefined, sort });
@@ -38,7 +38,8 @@ export default function Home() {
       } finally {
         setLoading(false);
       }
-    })();
+    }, 300);
+    return () => clearTimeout(timer);
   }, [search, brand, sort]);
 
   // 基准分每 10 秒刷新

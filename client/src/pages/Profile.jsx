@@ -394,9 +394,19 @@ export default function Profile() {
             <i className="fa-solid fa-spinner fa-spin" style={{ color: 'var(--text-muted)' }} />
           </div>
         ) : posts.length === 0 ? (
-          <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>
-            {isSelf ? '还没有发过帖子' : 'TA 还没有发过帖子'}
-          </p>
+          <div className="text-center py-4">
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              {isSelf ? '还没有发过帖子' : 'TA 还没有发过帖子'}
+            </p>
+            {isSelf && (
+              <button
+                className="btn btn-primary btn-sm mt-3"
+                onClick={() => navigate('/create-post')}
+              >
+                <i className="fa-solid fa-pen mr-1" /> 去发帖
+              </button>
+            )}
+          </div>
         ) : (
           <div className="space-y-2">
             {posts.map(p => (

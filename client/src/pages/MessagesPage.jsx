@@ -16,6 +16,7 @@ export default function MessagesPage() {
   const activeUserId = searchParams.get('user');
 
   const [conversations, setConversations] = useState([]);
+  const [convoSearch, setConvoSearch] = useState('');
   const [messages, setMessages] = useState([]);
   const [otherUser, setOtherUser] = useState(null);
   const [input, setInput] = useState('');
@@ -60,7 +61,7 @@ export default function MessagesPage() {
       const API_BASE = import.meta.env.VITE_API_BASE || '';
       if (API_BASE) {
         try {
-          const res = await fetch(`${API_BASE}/api/users/${userId}`);
+          const res = await fetch(`${API_BASE}/api/users/${userId}`, { credentials: 'include' });
           if (res.ok) {
             const udata = await res.json();
             setOtherUser(udata.user || udata);
@@ -168,6 +169,16 @@ export default function MessagesPage() {
             </button>
           </div>
 
+          <div className="px-3 pb-2">
+            <input
+              className="form-control"
+              placeholder="搜索会话..."
+              value={convoSearch}
+              onChange={e => setConvoSearch(e.target.value)}
+              style={{ fontSize: '0.8rem', padding: '6px 10px' }}
+            />
+          </div>
+
           <div className="msg-list">
             {loading ? (
               <div className="text-center py-12" style={{ color: 'var(--text-muted)' }}>
@@ -183,7 +194,9 @@ export default function MessagesPage() {
                 </button>
               </div>
             ) : (
-              conversations.map(c => (
+              conversations
+                .filter(c => !convoSearch || (c.username || '').toLowerCase().includes(convoSearch.toLowerCase()))
+                .map(c => (
                 <button
                   key={c.user_id}
                   className={`msg-convo-item ${Number(activeUserId) === c.user_id ? 'active' : ''}`}

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { isNBWConfigured, startNBWOAuth } from '../utils/nbwOAuth';
@@ -27,6 +27,7 @@ export default function Login() {
   const { login: authLogin, saveConsent, logout, user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const needCaptcha = failCount >= FAIL_THRESHOLD;
   const canSubmit = !loading && (!needCaptcha || captchaOk) && consented && minorConsented;
@@ -69,7 +70,7 @@ export default function Login() {
       const result = await authLogin({ login: login.trim(), password, captchaToken: captchaTokenRef.current || undefined });
       try { saveConsent({ privacy: true, minor: true, userId: result?.user?.id }); } catch {}
       toast.success('登录成功');
-      navigate('/');
+      navigate(location.state?.from || '/');
     } catch (e) {
       const msg = e.message || '';
       if (msg.includes('Invalid credentials')) {

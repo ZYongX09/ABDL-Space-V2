@@ -8,6 +8,7 @@ export default function ComparePage() {
   const [diapers, setDiapers] = useState([]);
   const [allDiapers, setAllDiapers] = useState([]);
   const [selected, setSelected] = useState([]);
+  const [filterSearch, setFilterSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const toast = useToast();
 
@@ -33,8 +34,16 @@ export default function ComparePage() {
       {loading ? <LoadingSkeleton count={3} height={60} /> : (<>
       <div className="card mb-5">
         <h3 className="font-bold mb-3" style={{ color: 'var(--text)' }}>选择要对比的纸尿裤（最多 4 款）</h3>
+        <input
+          className="form-control mb-3"
+          placeholder="搜索品牌或型号..."
+          value={filterSearch}
+          onChange={e => setFilterSearch(e.target.value)}
+        />
         <div className="flex flex-wrap gap-2">
-          {allDiapers.map(d => (
+          {allDiapers
+            .filter(d => !filterSearch || `${d.brand} ${d.model}`.toLowerCase().includes(filterSearch.toLowerCase()))
+            .map(d => (
             <button
               key={d.id}
               className={`tag cursor-pointer ${selected.includes(d.id) ? 'filter-tag' : ''}`}

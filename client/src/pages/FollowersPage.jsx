@@ -29,15 +29,33 @@ export default function FollowersPage() {
   useEffect(() => {
     setLoading(true);
     setUsers([]);
+    setFollowMap({});
     const fetchFn = tab === 'followers' ? followsAPI.followers : followsAPI.following;
     fetchFn(id)
-      .then(data => {
-        setUsers(data.users || []);
+      .then(async data => {
+        const fetchedUsers = data.users || [];
+        setUsers(fetchedUsers);
         setTotal(data.total || 0);
+        // 批量初始化关注状态
+        if (currentUser && fetchedUsers.length > 0) {
+          const entries = await Promise.all(
+            fetchedUsers
+              .filter(u => String(u.id) !== String(currentUser.id))
+              .map(async u => {
+                try {
+                  const s = await followsAPI.status(u.id);
+                  return [u.id, s.following || s.mutual || false];
+                } catch {
+                  return [u.id, false];
+                }
+              })
+          );
+          setFollowMap(Object.fromEntries(entries));
+        }
       })
       .catch(e => toast.error(e.message))
       .finally(() => setLoading(false));
-  }, [id, tab]);
+  }, [id, tab, currentUser]);
 
   const handleTabChange = (newTab) => {
     navigate(`/user/${id}/${newTab}`, { replace: true });
@@ -45,16 +63,19 @@ export default function FollowersPage() {
 
   const handleFollow = async (userId) => {
     if (!currentUser) { toast.error('请先登录'); return; }
+    const wasFollowing = followMap[userId];
+    // 乐观更新
+    setFollowMap(prev => ({ ...prev, [userId]: !wasFollowing }));
     setFollowLoading(prev => ({ ...prev, [userId]: true }));
     try {
-      if (followMap[userId]) {
+      if (wasFollowing) {
         await followsAPI.unfollow(userId);
-        setFollowMap(prev => ({ ...prev, [userId]: false }));
       } else {
         await followsAPI.follow(userId);
-        setFollowMap(prev => ({ ...prev, [userId]: true }));
       }
     } catch (e) {
+      // 回滚
+      setFollowMap(prev => ({ ...prev, [userId]: wasFollowing }));
       toast.error(e.message);
     } finally {
       setFollowLoading(prev => ({ ...prev, [userId]: false }));

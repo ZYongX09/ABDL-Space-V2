@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { Spinner } from '../components/Feedback';
+import ImageGrid from '../components/ImageGrid';
 import { useVerifyModal } from '../components/VerifyModal';
 import { diapersAPI, ratingsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
@@ -47,7 +48,7 @@ export default function DiaperDetail() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const toast = useToast();
-  const { trigger, VerifyModal } = useVerifyModal();
+  const { trigger, VerifyModal, captchaToken } = useVerifyModal();
   const navigate = useNavigate();
   const isLoggedIn = !!user;
 
@@ -69,9 +70,15 @@ export default function DiaperDetail() {
     })();
   }, [id]);
 
+  const [submitting, setSubmitting] = useState(false);
+
   const doSubmitRating = async () => {
+    if (submitting) return;
+    const hasScore = Object.values(scores).some(v => v > 0);
+    if (!hasScore) { toast.error('请至少选择一项评分'); return; }
+    setSubmitting(true);
     try {
-      await ratingsAPI.create({ diaper_id: Number(id), ...scores, review: reviewText || undefined });
+      await ratingsAPI.create({ diaper_id: Number(id), ...scores, review: reviewText || undefined, captchaToken: captchaToken.current });
       toast.success('评分成功');
       setShowRating(false);
       setScores({});
@@ -80,6 +87,8 @@ export default function DiaperDetail() {
       setReviews(rData.reviews || []);
     } catch (e) {
       toast.error(e.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -96,29 +105,8 @@ export default function DiaperDetail() {
       <div className="card mb-5">
         {/* 产品图片（有则显示） */}
         {diaper.images?.length > 0 && (
-          <div className="mb-4 rounded-xl overflow-hidden">
-            {diaper.images.length === 1 ? (
-              <img
-                src={diaper.images[0]}
-                alt={`${diaper.brand} ${diaper.model}`}
-                className="w-full h-auto object-contain"
-                style={{ maxHeight: 300, background: 'var(--input-bg)' }}
-                onError={e => { e.target.style.display = 'none'; }}
-              />
-            ) : (
-              <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-                {diaper.images.map((img, i) => (
-                  <img
-                    key={i}
-                    src={img}
-                    alt=""
-                    className="h-48 object-cover rounded-lg flex-shrink-0"
-                    style={{ background: 'var(--input-bg)' }}
-                    onError={e => { e.target.style.display = 'none'; }}
-                  />
-                ))}
-              </div>
-            )}
+          <div className="mb-4">
+            <ImageGrid images={diaper.images} />
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

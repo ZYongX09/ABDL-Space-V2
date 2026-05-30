@@ -38,15 +38,25 @@ export default function Rankings() {
     })();
   }, [tab, isLoggedIn]);
 
-  // 基准分每 10 秒刷新
+  // 基准分每 10 秒刷新（页面不可见时暂停）
   useEffect(() => {
-    const timer = setInterval(async () => {
-      try {
-        const data = await rankingsAPI.get(tab, undefined, isLoggedIn ? undefined : 10);
-        setBaseScores(data.base_scores || { adult: 0, baby: 0 });
-      } catch {}
-    }, 10000);
-    return () => clearInterval(timer);
+    let timer = null
+    const startPolling = () => {
+      timer = setInterval(async () => {
+        try {
+          const data = await rankingsAPI.get(tab, undefined, isLoggedIn ? undefined : 10);
+          setBaseScores(data.base_scores || { adult: 0, baby: 0 });
+        } catch {}
+      }, 10000);
+    }
+    const stopPolling = () => { if (timer) { clearInterval(timer); timer = null } }
+    const onVisibility = () => {
+      if (document.hidden) stopPolling()
+      else startPolling()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    if (!document.hidden) startPolling()
+    return () => { stopPolling(); document.removeEventListener('visibilitychange', onVisibility) }
   }, [tab, isLoggedIn]);
 
   return (
@@ -141,10 +151,8 @@ export default function Rankings() {
           {!isLoggedIn && rankings.length > 1 && (
             <div
               style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
+                position: 'sticky',
+                bottom: '20px',
                 zIndex: 10,
                 textAlign: 'center',
                 padding: '2rem 1.5rem',
@@ -153,6 +161,7 @@ export default function Rankings() {
                 boxShadow: '0 4px 24px rgba(0,0,0,0.1)',
                 maxWidth: '360px',
                 width: '90%',
+                margin: '0 auto',
               }}
             >
               <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>
