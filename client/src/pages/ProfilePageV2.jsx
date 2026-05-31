@@ -817,6 +817,11 @@ export default function ProfilePageV2() {
   const [postsLoading, setPostsLoading] = useState(false);
   const [counts, setCounts] = useState({ posts: 0, followers: 0, following: 0, worn: 0 });
   const [activeTab, setActiveTab] = useState('posts');
+
+  // Tab 切换时滚动到顶部
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeTab]);
   const [wornDiapers, setWornDiapers] = useState([]);
   const [wornLoading, setWornLoading] = useState(false);
   const [likedPosts, setLikedPosts] = useState([]);
