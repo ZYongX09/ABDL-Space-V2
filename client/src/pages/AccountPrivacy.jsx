@@ -327,7 +327,7 @@ function NBWBindSection({ user, toast }) {
   const nbwUsername = user?.nbw_username;
 
   useEffect(() => {
-    whenNBWReady().then(() => setNbwReady(isNBWConfigured()));
+    whenNBWReady().then(() => setNbwReady(isNBWConfigured())).catch(() => {});
   }, []);
 
   return (
