@@ -371,8 +371,14 @@ export default function PostDetail() {
             value={commentText}
             onChange={e => setCommentText(e.target.value)}
             rows={3}
+            maxLength={5000}
             disabled={publishing}
           />
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-xs" style={{ color: commentText.length > 4500 ? 'var(--danger)' : 'var(--text-muted)' }}>
+              {commentText.length}/5000
+            </span>
+          </div>
           <ImageUploader ref={imgRef} max={2} onError={msg => toast.error(msg)} />
           <div className="flex justify-end mt-3">
             <button className="btn btn-primary btn-sm" onClick={handleComment} disabled={(!commentText.trim() && !imgRef.current?.hasPending()) || publishing || cooldown > 0}>

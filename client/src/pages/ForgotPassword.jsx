@@ -146,11 +146,11 @@ export default function ForgotPassword() {
                   验证码已发送至 <strong style={{ color: 'var(--text)' }}>{email}</strong>
                 </p>
                 <button
-                  className="text-xs mt-1"
-                  style={{ color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer' }}
+                  className="btn btn-outline btn-sm mt-1"
+                  style={{ fontSize: '0.75rem', padding: '4px 12px' }}
                   onClick={() => setStep(1)}
                 >
-                  更换邮箱
+                  <i className="fa-solid fa-arrow-left mr-1" /> 更换邮箱
                 </button>
               </div>
 
