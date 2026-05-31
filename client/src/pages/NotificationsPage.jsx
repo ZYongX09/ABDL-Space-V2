@@ -5,7 +5,7 @@ import { notificationsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useToast } from '../contexts/ToastContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
@@ -14,6 +14,7 @@ export default function NotificationsPage() {
   const { user } = useAuth();
   const { clearUnread } = useNotifications();
   const toast = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -62,7 +63,10 @@ export default function NotificationsPage() {
         <EmptyState icon="fa-bell-slash" title="暂无通知" description="新的互动通知会出现在这里" />
       ) : (
         <div className="space-y-2">
-          {notifications.map(n => (
+          {notifications.map(n => {
+            const link = n.post_id ? `/forum/${n.post_id}` : n.target_type === 'post' ? `/forum/${n.target_id}` : null;
+            const Wrapper = link ? 'div' : 'div';
+            return (
             <div
               key={n.id}
               className="card flex items-center gap-3"
@@ -70,7 +74,9 @@ export default function NotificationsPage() {
                 padding: '1rem',
                 borderLeft: n.read ? 'none' : '3px solid var(--primary)',
                 opacity: n.read ? 0.7 : 1,
+                cursor: link ? 'pointer' : 'default',
               }}
+              onClick={() => link && navigate(link)}
             >
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
@@ -88,7 +94,8 @@ export default function NotificationsPage() {
                 </span>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </PageLayout>

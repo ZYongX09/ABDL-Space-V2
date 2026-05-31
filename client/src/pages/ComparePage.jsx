@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { LoadingSkeleton, EmptyState } from '../components/Feedback';
 import { diapersAPI } from '../api';
 import { useToast } from '../contexts/ToastContext';
 
 export default function ComparePage() {
+  const [searchParams] = useSearchParams();
   const [diapers, setDiapers] = useState([]);
   const [allDiapers, setAllDiapers] = useState([]);
   const [selected, setSelected] = useState([]);
@@ -14,8 +16,14 @@ export default function ComparePage() {
 
   useEffect(() => {
     diapersAPI.list({ limit: 100 }).then(data => {
-      setAllDiapers(data.diapers || []);
+      const list = data.diapers || [];
+      setAllDiapers(list);
       setLoading(false);
+      // 自动添加从 DiaperDetail 传入的纸尿裤
+      const addId = searchParams.get('add');
+      if (addId && list.some(d => d.id === Number(addId))) {
+        setSelected([Number(addId)]);
+      }
     }).catch(e => { toast.error(e.message); setLoading(false); });
   }, []);
 

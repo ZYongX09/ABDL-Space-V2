@@ -12,7 +12,7 @@ export default function TermWiki() {
   const toast = useToast();
 
   useEffect(() => {
-    (async () => {
+    const timer = setTimeout(async () => {
       try {
         setLoading(true);
         const data = await termWikiAPI.list({ search: search || undefined });
@@ -22,7 +22,8 @@ export default function TermWiki() {
       } finally {
         setLoading(false);
       }
-    })();
+    }, 300);
+    return () => clearTimeout(timer);
   }, [search]);
 
   return (

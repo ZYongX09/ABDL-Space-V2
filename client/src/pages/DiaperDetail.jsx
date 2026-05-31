@@ -178,7 +178,7 @@ export default function DiaperDetail() {
         ) : (
           <Link to="/login" className="btn btn-outline miui-press">登录后评分</Link>
         )}
-        <Link to="/compare" className="btn btn-outline miui-press">
+        <Link to={`/compare?add=${id}`} className="btn btn-outline miui-press">
           <i className="fa-solid fa-scale-balanced" /> 加入对比
         </Link>
       </div>
