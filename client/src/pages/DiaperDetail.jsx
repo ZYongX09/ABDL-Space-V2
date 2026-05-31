@@ -172,7 +172,10 @@ export default function DiaperDetail() {
       {/* 评分按钮 */}
       <div className="flex gap-3 mb-5">
         {user ? (
-          <button className="btn btn-primary miui-press" onClick={() => setShowRating(!showRating)}>
+          <button className="btn btn-primary miui-press" onClick={() => {
+            if (showRating && Object.values(scores).some(v => v > 0) && !confirm('已选评分将丢失，确定取消吗？')) return;
+            setShowRating(!showRating);
+          }}>
             <i className="fa-solid fa-star" /> {showRating ? '取消评分' : '写评分'}
           </button>
         ) : (

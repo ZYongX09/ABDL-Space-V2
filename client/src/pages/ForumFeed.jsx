@@ -16,6 +16,9 @@ import { useToast } from '../contexts/ToastContext';
 export default function ForumFeed() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [search, setSearch] = useState('');
   const [followMap, setFollowMap] = useState({});
   const [reportTarget, setReportTarget] = useState(null);
@@ -24,24 +27,30 @@ export default function ForumFeed() {
   const toast = useToast();
   const navigate = useNavigate();
 
-  const loadPosts = async () => {
+  const loadPosts = async (pageNum = 1, append = false) => {
     try {
-      setLoading(true);
+      if (append) setLoadingMore(true); else setLoading(true);
       const searchNsfwEnabled = localStorage.getItem('abdl_search_nsfw') === 'true';
       const data = await forumAPI.feed({
+        page: pageNum,
+        limit: 20,
         search: search || undefined,
         excludeNsfw: search && !searchNsfwEnabled ? true : undefined,
       });
-      setPosts(data.posts || []);
+      const newPosts = data.posts || [];
+      setPosts(prev => append ? [...prev, ...newPosts] : newPosts);
+      setHasMore(newPosts.length >= 20);
+      setPage(pageNum);
     } catch (e) {
       toast.error(e.message);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => { loadPosts(); }, 300);
+    const timer = setTimeout(() => { loadPosts(1); }, 300);
     return () => clearTimeout(timer);
   }, [search]);
 
@@ -122,7 +131,7 @@ export default function ForumFeed() {
       </div>
 
       {/* 帖子列表 */}
-      <PullToRefresh onRefresh={loadPosts}>
+      <PullToRefresh onRefresh={() => loadPosts(1)}>
       {loading ? (
         <LoadingSkeleton count={4} height={100} />
       ) : posts.length === 0 ? (
@@ -214,6 +223,19 @@ export default function ForumFeed() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* 加载更多 */}
+      {!loading && hasMore && posts.length > 0 && (
+        <div className="text-center mt-4">
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={() => loadPosts(page + 1, true)}
+            disabled={loadingMore}
+          >
+            {loadingMore ? <><i className="fa-solid fa-spinner fa-spin mr-1" />加载中...</> : <><i className="fa-solid fa-ellipsis mr-1" />加载更多</>}
+          </button>
         </div>
       )}
       </PullToRefresh>
