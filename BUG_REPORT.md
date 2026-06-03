@@ -506,3 +506,110 @@
 - `.env.example` 文档化移动端变量（建议下个 PR）
 - `nbw.ts:56` 注释更新（一行 doc fix）
 - `getNBWConfig` 调用点加 debug 日志（建议下个 PR）
+
+---
+
+## [2026-06-04 01:43] 验证报告 — 2e510fa 修复 b61a05a P1/P2
+
+**范围**：`/home/ZYongX/projects/git/abdl-space` 仓库 commit `2e510fa`，3 文件 +51/-50
+
+**目标**：验证 b61a05a 审查报告中的 P1/P2 修复是否到位
+
+---
+
+### P1 #1（API key 加密单向死路）— ✅ 修复到位
+- **diff 显示**：
+  - `deriveEncKey` / `encryptValue` / `decryptValue` 三个函数**全部删除**（旧 -28 行）
+  - POST handler 改为直接 `[key_value, label ?? null, provider]` 写入（无加密）
+- **全仓库 grep 验证**：
+  ```
+  grep -rn "encryptValue\|decryptValue\|deriveEncKey" src/  → 无任何命中
+  ```
+- **结论**：死路代码彻底清除，回到 b61a05a 之前的状态。功能可恢复——但 at-rest 不再加密（这本来就是 review 的「方案 B」建议）
+
+### P1 #2（adminMiddleware 漏 password_changed_at 检查）— ✅ 修复到位
+- **新函数** `src/middleware/auth.ts:72-86` `assertSessionNotStale(payload, db)`：
+  ```typescript
+  async function assertSessionNotStale(payload, db): Promise<string | null> {
+    if (payload.iat <= 0) return null  // OAuth 跳过
+    const user = await queryOne<{password_changed_at: string | null}>(...)
+    if (user?.password_changed_at) {
+      const pwdChangedSec = Math.floor(new Date(...).getTime() / 1000)
+      const tokenIat = payload.iat > 1e12 ? Math.floor(payload.iat/1000) : payload.iat
+      if (tokenIat < pwdChangedSec) return 'Session expired, please login again'
+    }
+    return null
+  }
+  ```
+- **调用点 grep 验证**：
+  - `authMiddleware:99-101` 调用 ✅
+  - `adminMiddleware:118-120` 调用 ✅
+- **顺序正确**：`adminMiddleware` 先 `assertSessionNotStale`（401）→ 再 `role` 检查（403）——过期 token 不会泄露「你不是 admin」信息
+- **OAuth 跳过逻辑**：`payload.iat <= 0`（`lookupOAuthToken` 写的是 `iat: 0`）正确跳过
+
+### P2 #3（LIKE 缺 ESCAPE 子句）— ✅ 修复到位
+- **diff**：`posts.ts:81` 由 `p.content LIKE ?` 改为 `"p.content LIKE ? ESCAPE '\\'"`
+- **JS 字符串** `'\\'` 在 SQL 里是单个 `\`——SQLite 接受此语法
+- **效果**：`100%` 现在能被正确转义为字面量匹配；`a_b` 的下划线也正确转义
+
+### P2 #4（图片 URL 静默跳过）— ✅ 修复到位
+- **diff**：
+  - 帖子图片（`posts.ts:369-375`）改为 `return c.json({ error: '图片 URL 必须以 http(s) 开头' }, 400)`
+  - 评论图片（`posts.ts:519-525`）同样改 400 报错
+  - 协议不匹配 / URL 不合法都明确报错
+- **效果**：XSS 试探（`javascript:alert(1)` / `data:text/html,...`）会得到明确的 400 响应，攻击者无法盲探
+
+---
+
+### 残留小问题（不阻塞 merge，但建议跟进）
+
+**P3-A：LIKE 转义缺反斜杠预处理**（`posts.ts:83`）
+当前实现：
+```typescript
+const escapedSearch = search.replace(/%/g, '\\%').replace(/_/g, '\\_')
+```
+如果用户搜索字面 `100\5`（含一个反斜杠），结果 `escapedSearch = '100\5'`→ 包裹后 `'%100\5%'`→ SQL `LIKE '%100\5%' ESCAPE '\'`→ `5` 前的 `\` 把 `5` 当 escape 字符吃掉，可能匹配到错误结果。
+**更稳妥的写法**（先转反斜杠）：
+```typescript
+const escapedSearch = search.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_')
+```
+影响：边缘情况，实际生产中很少有用户在搜索里含反斜杠。**P3 不阻塞**。
+
+**P3-B：`search.ts` 仍有 4 处 LIKE 无 ESCAPE**
+```
+src/routes/search.ts:39  d.brand LIKE ? OR d.model LIKE ?
+src/routes/search.ts:67  title LIKE ? OR content LIKE ?
+src/routes/search.ts:85  term LIKE ? OR definition LIKE ?
+```
+本 commit 只改了 `posts.ts`，搜索接口的 LIKE 通配符问题（搜 `100%` 还是无结果）依然存在。
+**建议**：下个 PR 一起修，模式参考 posts.ts:81。
+
+**P3-C：图片 400 错误把完整 URL 回显给客户端**（`posts.ts:374, 524`）
+```typescript
+return c.json({ error: `无效的图片 URL: ${img.url}` }, 400)
+```
+- 不是安全漏洞（JSON 响应，非 HTML，无 XSS）
+- 但攻击者可以利用 `img.url` 字段在错误响应里塞 10MB 长字符串制造大响应（DoS amplification 风险低，因为是 POST 入口）
+- **建议**：服务端 `console.warn` 记日志，响应里只回 `图片 URL 格式不合法 (位置 ${i})`
+
+**P3-D：缺安全日志**
+原本 review 建议加 `console.warn('[posts] blocked non-http(s) image URL:', ...)`，这次没加。**建议下个 PR 补**。
+
+---
+
+### 验证结论
+
+| 修复目标 | 状态 | 备注 |
+|---|---|---|
+| **P1 #1** API key 加密回退 | ✅ | 三个函数全删，plaintext 恢复 |
+| **P1 #2** adminMiddleware 检查 password_changed_at | ✅ | `assertSessionNotStale` 抽共享函数，两处都调 |
+| **P2 #3** LIKE 加 ESCAPE 子句 | ✅ | `ESCAPE '\'` 已加 |
+| **P2 #4** 图片 URL 校验 400 | ✅ | 帖子+评论两处都改 |
+
+**所有 P1/P2 修复到位，可以 merge。** 4 个 P3 残留项都不阻塞：
+- LIKE 反斜杠预处理（边缘 case）
+- `search.ts` 同样问题（建议下个 PR 一起修）
+- 错误回显完整 URL（不是漏洞但可优化）
+- 缺安全日志
+
+**报告**已写入 `BUG_REPORT.md`（commit `cfd5700` 之后追加）。
