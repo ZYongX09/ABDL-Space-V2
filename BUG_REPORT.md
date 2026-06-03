@@ -782,3 +782,151 @@ const expected = /* 官方 SDK 算出来的 Authorization */
 const got = await signRequest(secretId, secretKey, 'DescribeUsers', '{}', 1700000000)
 console.assert(got.Authorization === expected, 'TC3 signature mismatch')
 ```
+
+---
+
+## [2026-06-04 02:22] 验证报告 — f431cd0 + ef82eeb 修复 32d54fd P1/P2
+
+**范围**：
+- `f431cd0`（修复）3 文件 +38 行
+- `ef82eeb`（文档）1 文件 +21 行
+
+**目标**：验证 32d54fd 审查报告的 P1/P2 修复是否到位
+
+---
+
+### P1 #1（Env 类型接口）— ✅ 修复到位
+**`src/types/index.ts:275-292`** 当前状态：
+```typescript
+export interface Env {
+  abdl_space_db: D1Database
+  JWT_SECRET: string
+  FRONTEND_ORIGIN?: string
+  // 腾讯云 SES
+  TENCENT_SECRET_ID: string      // ✅ 新增必填
+  TENCENT_SECRET_KEY: string     // ✅ 新增必填
+  SES_FROM_EMAIL: string         // ✅ 新增必填
+  SES_TEMPLATE_ID: string        // ✅ 新增必填
+  // NBW OAuth
+  NBW_CLIENT_ID?: string         // ✅ 补全（可选）
+  NBW_CLIENT_SECRET?: string
+  NBW_REDIRECT_URI?: string
+  NBW_CLIENT_ID_MOBILE?: string  // ✅ 移动端三件套
+  NBW_CLIENT_SECRET_MOBILE?: string
+  NBW_REDIRECT_URI_MOBILE?: string
+  // 其他
+  TURNSTILE_SITE_KEY?: string
+  TURNSTILE_SECRET_KEY?: string
+  DEEPSEEK_API_KEY?: string      // ✅ 顺手补
+  ENCRYPT_KEY?: string
+}
+```
+- **RESEND_API_KEY 已移除** ✅
+- **4 个 SES 必填**（无 `?`）—— deploy 时必须设，否则 TS 编译失败
+- **6 个 NBW 可选**（带 `?`）—— getNBWConfig 的 fallback 链生效
+- **`DEEPSEEK_API_KEY` 顺手补**（`recommend.ts:220` 早就用着，没在 Env 声明过）✅
+
+### P1 #2（.env.example 文档化）— ✅ 修复到位
+**`ef82eeb`** +21 行：
+- SES 4 个变量**未注释**（必填，示例值可直接复用）：
+  ```
+  TENCENT_SECRET_ID=your-tencent-secret-id
+  TENCENT_SECRET_KEY=your-tencent-secret-key
+  SES_FROM_EMAIL=ABDL Space <admin@abdl-space.top>
+  SES_TEMPLATE_ID=100000
+  ```
+- NBW 6 个变量**注释**（可选，fallback 到主站或空）：
+  - `NBW_REDIRECT_URI=https://abdl-space.top/auth/nbw/callback`
+  - `NBW_REDIRECT_URI_MOBILE=https://m.abdl-space.top/auth/nbw/callback` ← 与之前部署前提醒的 URL 一致
+- Turnstile 2 个 + DeepSeek 1 个变量**注释**
+
+### P2 #3（env 入口显式检查）— ✅ 修复到位
+**`src/lib/ses.ts:99-103`**：
+```typescript
+if (!env.TENCENT_SECRET_ID || !env.TENCENT_SECRET_KEY || !env.SES_FROM_EMAIL) {
+  throw new Error('SES env missing: TENCENT_SECRET_ID / TENCENT_SECRET_KEY / SES_FROM_EMAIL')
+}
+if (!templateId || isNaN(templateId)) {
+  throw new Error('SES_TEMPLATE_ID is missing or not a number')
+}
+```
+- 缺失字段 → 明确错误（含字段名），不再静默 NaN
+- `!templateId` 顺便挡了 `0`（SES 模板 ID 从 1 起）
+- 抛错在 auth.ts catch 块里被 `console.error('SES error:', err)` 记录，客户端仍是通用 500（不泄露内部信息）✅
+
+### P2 #4（fetch 超时 + json 保护）— ✅ 修复到位
+**`src/lib/ses.ts:130-156`**：
+```typescript
+const controller = new AbortController()
+const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)  // 10s
+
+let res: Response
+try {
+  res = await fetch(url, { ..., signal: controller.signal })
+} catch (e) {
+  clearTimeout(timeout)  // 失败路径也清理
+  throw new Error(`SES fetch failed: ${e instanceof Error ? e.message : 'timeout'}`)
+}
+clearTimeout(timeout)  // 成功路径也清理
+
+let data: { Response?: {...} }
+try {
+  data = await res.json()
+} catch {
+  const text = await res.text().catch(() => '')  // 二次 try/catch 防 res.text() 也抛
+  throw new Error(`SES invalid response (${res.status}): ${text.slice(0, 200)}`)  // 截断 200 字符防日志洪水
+}
+```
+- ✅ AbortController + 10s 超时（FETCH_TIMEOUT_MS 常量）
+- ✅ 成功/失败两路径都 clearTimeout（无 timer 泄漏）
+- ✅ res.json() try/catch 兜底
+- ✅ res.text() 也 try/catch 二次保护
+- ✅ 错误消息截断 200 字符（避免长 HTML 错误页把日志撑爆）
+
+---
+
+### 残留小问题（不阻塞 merge）
+
+**P3-A：env 错误信息泄露字段名但客户端不知**
+- 现状：用户看到「发送验证码失败，请稍后再试」（500）
+- ops 看到 console.error「SES env missing: TENCENT_SECRET_ID / TENCENT_SECRET_KEY / SES_FROM_EMAIL」
+- 这是**正确的**（不向客户端泄露内部配置），但建议加 Sentry / 日志告警，让 ops 第一时间发现
+
+**P3-B：超时时间 10s 偏长**
+- TC3 SendEmail 一般 100-500ms 返回
+- 10s 容忍网络抖动够用，但**用户卡 10s** 体验差
+- 建议：先用 3-5s，监控 p99 慢慢调（或者前端加 loading 提示让用户知道在转）
+
+**P3-C：缺少 TC3 错误码的语义化映射**
+- 现在所有 SES 错误统一转成 500
+- TC3 错误码（`AuthFailure` / `LimitExceeded` / `InvalidParameter`）可以分类：
+  - `AuthFailure.SignatureFailure` → ops 告警（密钥错了）
+  - `LimitExceeded.EmailFrequency` → 429（用户要等）
+  - `InvalidParameter` → 500 但要 log 含 RequestId
+- 建议：加个错误码白名单表，先把 `LimitExceeded` 翻成 429
+
+**P3-D：SES_FROM_EMAIL 实际格式疑问**
+- 示例 `ABDL Space <admin@abdl-space.top>` 是 SES API 接受的 FromEmailAddress 格式
+- 但**实际发件人**需要在 SES 后台通过 domain 验证（DKIM/SPF），否则进垃圾箱
+- 建议：README 写明 SES 后台配置步骤
+
+---
+
+### 验证结论
+
+| 修复目标 | 状态 | 关键证据 |
+|---|---|---|
+| **P1 #1** Env 类型补全 | ✅ | RESEND_API_KEY 删除；4 个 SES 必填 + 6 个 NBW 可选 + 1 个 DeepSeek |
+| **P1 #2** .env.example 文档化 | ✅ | 21 行新增，SES 必填项未注释，NBW 可选项注释 |
+| **P2 #3** env 显式检查 | ✅ | ses.ts 入口 2 个 if，错误信息含字段名 |
+| **P2 #4** fetch 超时 + json 保护 | ✅ | AbortController + 10s + 双重 try/catch + text 截断 |
+
+**所有 P1/P2 修复到位，可以 merge 部署。** TC3 签名实现未动（之前验证正确，回归风险零）。
+
+**报告**已写入 `BUG_REPORT.md`（commit `0e72f2c` 之后追加）。
+
+**最终部署 checklist 提醒**：
+1. Cloudflare Dashboard 加 env vars（4 个 SES 必填 + 6 个 NBW 选填 + 2 个 Turnstile 选填 + 1 个 DeepSeek 选填）
+2. **`NBW_CLIENT_SECRET_MOBILE` rotate**（之前 chat 里明文贴过，视为泄露）
+3. D1 跑 `ALTER TABLE users ADD COLUMN password_changed_at DATETIME;`（如果之前没跑过）
+4. 第一次部署后**发一封测试邮件**验证 SES 模板 ID 正确
