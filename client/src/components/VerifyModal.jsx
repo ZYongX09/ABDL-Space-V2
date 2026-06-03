@@ -186,7 +186,7 @@ export function useVerifyModal() {
 
     try {
       quantumRendererRef.current = window.ABDLCaptcha.render(quantumContainerRef.current, {
-        apiKey,
+        apiBase: API_BASE,
         onSuccess: (token) => {
           tokenRef.current = token;
           finishVerification();

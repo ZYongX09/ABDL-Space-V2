@@ -277,7 +277,7 @@ async function runQuantum() {
   return new Promise((resolve, reject) => {
     try {
       window.ABDLCaptcha.render(container, {
-        apiKey: '',  // 测试页不需要 API Key
+        apiBase: '',  // 使用内部接口，不需要 API Key
         onSuccess: (token) => {
           log('Quantum 验证通过 ✓');
           setStatus('验证通过 ✓', 'ok');
