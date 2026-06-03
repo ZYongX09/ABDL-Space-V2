@@ -445,3 +445,64 @@
 4. Bug #4（图片校验改为 400 拒绝 + 日志）
 5. Bug #5（加覆盖索引 + 缓存，或降级到特定端点）
 6. Bug #6~#10（按业务排期）
+
+---
+
+## [2026-06-04 01:39] 验证报告 — 764d265 修复 f520f50 P1
+
+**范围**：`/home/ZYongX/projects/git/abdl-space` 仓库 commit `764d265`，3 文件 +35/-19
+
+**目标**：验证 f520f50 审查报告中的 P1 修复是否到位
+
+---
+
+### P1 #1（子域名绕过）— ✅ 修复到位
+- **变更**：`includes('m.abdl-space.top')` → `new URL(origin).hostname === 'm.abdl-space.top'`
+- **新文件** `src/lib/nbw.ts:9-16` 抽出 `isMobileOrigin()` 辅助函数
+- **绕过测试**（理论验证）：
+  - `https://m.abdl-space.top.evil.com` → hostname = `m.abdl-space.top.evil.com` ≠ `m.abdl-space.top` → **false** ✅
+  - `https://attacker-m.abdl-space.top` → hostname = `attacker-m.abdl-space.top` ≠ → **false** ✅
+  - `https://m.abdl-space.top@evil.com` → hostname = `evil.com` → **false** ✅
+  - `https://evil.com#m.abdl-space.top` → hostname = `evil.com` → **false** ✅
+- **空值/异常处理**：`origin === ''` → false；`new URL('garbage')` 抛错 → catch 返回 false ✅
+
+### P1 #2（auth.ts 一致性）— ✅ 修复到位
+- **新文件** `src/lib/nbw.ts` 抽出 `getNBWConfig()`
+- **`auth.ts:298` 旧 `nbw_code` 注册流程已改用 `getNBWConfig(c)`**（之前是直接读 `c.env.NBW_CLIENT_ID/SECRET/REDIRECT_URI`）
+- **全仓库 grep 验证**：
+  ```
+  NBW_CLIENT_ID 仅在 src/lib/nbw.ts 出现（4 处）
+  NBW_REDIRECT_URI 仅在 src/lib/nbw.ts 出现（2 处）
+  ```
+  路由层零硬编码 env 读取 ✅
+
+### P2 #3（Referer 回退）— ✅ 顺手修复
+- `isMobileOrigin` 只读 `Origin` 头，**Referer 回退已移除**
+- 攻击面从「Origin 或 Referer 任一含 m.abdl-space.top 即通过」收窄到「必须伪造 Origin 头」（浏览器对跨域 POST 总带 Origin，且无法被 JS 篡改）
+
+### 额外改进（顺带修了 P3 #4）
+- `c: any` → 结构化类型 `c: { req: { header: (name: string) => string | undefined }; env: Env }`
+- IDE 补全恢复，env 类型重构会报类型错误
+
+---
+
+### 残留小问题（可选）
+- **`src/routes/nbw.ts:56` 注释过时**：仍写「根据请求来源（Origin/Referer）」，但实际只查 Origin
+  - 影响：纯文档，零行为影响
+  - 建议：改成「根据请求 Origin 返回对应配置」
+
+---
+
+### 验证结论
+
+| 修复目标 | 状态 | 备注 |
+|---|---|---|
+| P1 #1 精确 hostname 匹配 | ✅ | `new URL(origin).hostname === 'm.abdl-space.top'` |
+| P1 #2 auth.ts 复用 getNBWConfig | ✅ | 两个路由都从 `src/lib/nbw.ts` 导入 |
+| P2 #3 移除 Referer 回退 | ✅ | 仅信任 Origin |
+| P3 #4 c: any 类型 | ✅ | 改为结构化类型 |
+
+**修复到位，可以 merge。** 不阻塞的残留项：
+- `.env.example` 文档化移动端变量（建议下个 PR）
+- `nbw.ts:56` 注释更新（一行 doc fix）
+- `getNBWConfig` 调用点加 debug 日志（建议下个 PR）
