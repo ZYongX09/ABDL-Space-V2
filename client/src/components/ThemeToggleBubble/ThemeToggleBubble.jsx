@@ -66,6 +66,9 @@ export default function ThemeToggleBubble() {
         className="theme-bubble-circle"
         onClick={handleClick}
         title={isDark ? '切换到浅色模式' : '切换到深色模式'}
+        aria-label={isDark ? '切换到浅色模式' : '切换到深色模式'}
+        role="button"
+        tabIndex={0}
       >
         <i className={`fa-solid ${sunMoonIcon}`} />
       </div>

@@ -71,7 +71,7 @@ export default function NsfwGuard({ src, backendNsfw, backendNsfwType, className
   const isLowSensitive = result?.level === 'low';
 
   return (
-    <div style={{ position: 'relative', display: 'contents' }}>
+    <div style={{ position: 'relative', display: 'inline-block' }}>
       <img
         ref={imgRef}
         src={src}

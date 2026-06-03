@@ -71,6 +71,9 @@ export default function RedirectNotice() {
           {isPhoneUser ? '立即前往移动版' : '立即前往桌面版'}
           <span className="redirect-countdown">{countdown}s</span>
         </button>
+        <button className="redirect-btn" style={{ background: 'var(--input-bg)', color: 'var(--text)', marginTop: 8 }} onClick={() => setShow(false)}>
+          留在当前版本
+        </button>
         <p className="redirect-hint">
           {countdown} 秒后自动跳转
         </p>

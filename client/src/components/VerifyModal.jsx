@@ -9,7 +9,7 @@ const TURNSTILE_SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api
  * 流程:
  *   1. trigger(onPass) → 调用 /api/captcha/risk 获取风险等级
  *   2. low risk:  随机选择 turnstile 或 quantum
- *   3. high risk: 先 turnstile，再 quantum
+ *   3. high risk: 先 turnstile → 滑动切换 → quantum
  *   4. 验证通过 → 执行 onPass
  */
 export function useVerifyModal() {
@@ -17,9 +17,11 @@ export function useVerifyModal() {
   const [animState, setAnimState] = useState('hidden');
   const [phase, setPhase] = useState('loading'); // loading | turnstile | quantum | done
   const [flow, setFlow] = useState(null);        // 'turnstile' | 'quantum' | 'both'
-  const [risk, setRisk] = useState(null);         // 'low' | 'high'
+  const [risk, setRisk] = useState(null);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
+  // both 模式：卡片滑动位置 (0 = Turnstile, 1 = Quantum)
+  const [slideIndex, setSlideIndex] = useState(0);
 
   const actionRef = useRef(null);
   const tokenRef = useRef(null);
@@ -55,14 +57,13 @@ export function useVerifyModal() {
   const cleanup = useCallback(() => {
     setShow(false); setAnimState('hidden');
     setPhase('loading'); setFlow(null); setRisk(null); setError(null);
+    setSlideIndex(0);
     actionRef.current = null;
     turnstileSessionRef.current = null;
-    // 清理 Turnstile widget
     if (turnstileWidgetRef.current) {
       try { window.turnstile?.remove(turnstileWidgetRef.current); } catch {}
       turnstileWidgetRef.current = null;
     }
-    // 清理 Quantum
     if (quantumRendererRef.current && typeof quantumRendererRef.current.destroy === 'function') {
       try { quantumRendererRef.current.destroy(); } catch {}
     }
@@ -76,6 +77,7 @@ export function useVerifyModal() {
     setShow(true);
     setAnimState('entering');
     setError(null);
+    setSlideIndex(0);
     requestAnimationFrame(() => setAnimState('visible'));
   }, []);
 
@@ -84,7 +86,6 @@ export function useVerifyModal() {
     if (!show) return;
 
     (async () => {
-      // 1. 获取风险等级
       try {
         const res = await fetch(`${API_BASE}/api/captcha/risk`, {
           method: 'POST',
@@ -96,7 +97,6 @@ export function useVerifyModal() {
         setRisk(data.risk);
         setFlow(data.flow);
 
-        // 2. 根据 flow 开始验证
         if (data.flow === 'turnstile' || data.flow === 'both') {
           setPhase('turnstile');
         } else {
@@ -116,7 +116,6 @@ export function useVerifyModal() {
       const ok = await ensureTurnstile();
       if (!ok) { setError('Turnstile 加载失败'); return; }
 
-      // 创建挑战
       try {
         const res = await fetch(`${API_BASE}/api/captcha/challenge`, {
           method: 'POST',
@@ -130,7 +129,6 @@ export function useVerifyModal() {
         setError('创建验证失败'); return;
       }
 
-      // 渲染 Turnstile widget
       const container = document.getElementById('turnstile-container');
       if (!container) return;
 
@@ -141,7 +139,6 @@ export function useVerifyModal() {
         turnstileWidgetRef.current = window.turnstile.render(container, {
           sitekey: siteKey,
           callback: async (token) => {
-            // 验证 Turnstile
             try {
               const res = await fetch(`${API_BASE}/api/captcha/turnstile/verify`, {
                 method: 'POST',
@@ -154,9 +151,10 @@ export function useVerifyModal() {
               const result = await res.json();
               if (result.success) {
                 tokenRef.current = token;
-                // 如果是 both 模式，继续 quantum
                 if (flow === 'both') {
-                  setPhase('quantum');
+                  // 滑动切换到 Quantum 卡片
+                  setSlideIndex(1);
+                  setTimeout(() => setPhase('quantum'), 400);
                 } else {
                   finishVerification();
                 }
@@ -182,7 +180,6 @@ export function useVerifyModal() {
     if (!sdkReadyRef.current || !window.ABDLCaptcha) return;
     if (!quantumContainerRef.current) return;
 
-    // 清空容器
     quantumContainerRef.current.textContent = '';
 
     const apiKey = window.__ABDL_CAPTCHA_KEY || '';
@@ -222,6 +219,7 @@ export function useVerifyModal() {
 
   if (!show) return { trigger, VerifyModal: null, captchaToken: tokenRef };
 
+  /* ---- 样式 ---- */
   const backdropStyle = {
     position: 'fixed', inset: 0, zIndex: 400,
     background: 'rgba(0,0,0,0.5)',
@@ -238,13 +236,29 @@ export function useVerifyModal() {
     transform: animState === 'entering' ? 'scale(0.9) translateY(16px)' : animState === 'exiting' ? 'scale(0.95) translateY(8px)' : 'scale(1) translateY(0)',
     opacity: animState === 'entering' ? 0 : animState === 'exiting' ? 0 : 1,
     transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease',
+    overflow: 'hidden',
   };
+
+  // both 模式卡片滑动容器
+  const sliderStyle = flow === 'both' ? {
+    display: 'flex',
+    width: '200%',
+    transform: `translateX(-${slideIndex * 50}%)`,
+    transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+  } : null;
+
+  const slideCardStyle = flow === 'both' ? {
+    width: '50%',
+    flexShrink: 0,
+    paddingRight: slideIndex === 0 ? '12px' : '0',
+    paddingLeft: slideIndex === 1 ? '12px' : '0',
+  } : null;
 
   const phaseLabel = {
     loading: '正在评估安全等级...',
-    turnstile: '请完成人机验证',
-    quantum: '请完成安全验证',
-    done: '验证通过',
+    turnstile: flow === 'both' ? '第 1 步：请完成人机验证' : '请完成人机验证',
+    quantum: flow === 'both' ? '第 2 步：请完成安全验证' : '请完成安全验证',
+    done: '验证通过 ✓',
   };
 
   const VerifyModal = (
@@ -261,16 +275,19 @@ export function useVerifyModal() {
           </button>
         </div>
 
-        {/* 流程指示器 (both 模式) */}
+        {/* 进度条 (both 模式) */}
         {flow === 'both' && (
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', fontSize: '.75rem' }}>
-            <span style={{ color: phase === 'turnstile' || phase === 'done' ? 'var(--primary)' : 'var(--text-muted)' }}>
-              <i className={`fa-solid ${phase === 'done' || phase === 'quantum' ? 'fa-circle-check' : 'fa-circle-dot'}`} /> 1. Turnstile
-            </span>
-            <span style={{ color: 'var(--text-light)' }}>→</span>
-            <span style={{ color: phase === 'quantum' || phase === 'done' ? 'var(--primary)' : 'var(--text-muted)' }}>
-              <i className={`fa-solid ${phase === 'done' ? 'fa-circle-check' : phase === 'quantum' ? 'fa-circle-dot' : 'fa-circle'} `} /> 2. Quantum
-            </span>
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+            <div style={{
+              flex: 1, height: 3, borderRadius: 2,
+              background: slideIndex >= 0 ? 'var(--primary)' : 'var(--border)',
+              transition: 'background 0.3s',
+            }} />
+            <div style={{
+              flex: 1, height: 3, borderRadius: 2,
+              background: slideIndex >= 1 ? 'var(--primary)' : 'var(--border)',
+              transition: 'background 0.3s',
+            }} />
           </div>
         )}
 
@@ -278,25 +295,38 @@ export function useVerifyModal() {
           {error || phaseLabel[phase] || '正在加载...'}
         </p>
 
-        <div style={{ border: '1.5px solid var(--border)', borderRadius: '1rem', overflow: 'hidden', padding: '12px', minHeight: 80 }}>
-          {/* Turnstile 容器 */}
-          {phase === 'turnstile' && <div id="turnstile-container" style={{ display: 'flex', justifyContent: 'center' }} />}
-
-          {/* Quantum 容器 */}
-          {(phase === 'quantum' || (flow === 'both' && phase === 'done')) && (
-            <div ref={quantumContainerRef} />
-          )}
-
-          {/* Loading */}
-          {phase === 'loading' && (
-            <div className="flex items-center justify-center py-6">
-              <div className="spinner mr-2" />
-              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>加载验证组件...</span>
+        {/* both 模式：滑动卡片容器 */}
+        {flow === 'both' ? (
+          <div style={{ overflow: 'hidden', borderRadius: '1rem' }}>
+            <div style={sliderStyle}>
+              {/* Turnstile 卡片 */}
+              <div style={slideCardStyle}>
+                <div style={{ border: '1.5px solid var(--border)', borderRadius: '1rem', padding: '12px', minHeight: 80 }}>
+                  <div id="turnstile-container" style={{ display: 'flex', justifyContent: 'center' }} />
+                </div>
+              </div>
+              {/* Quantum 卡片 */}
+              <div style={slideCardStyle}>
+                <div style={{ border: '1.5px solid var(--border)', borderRadius: '1rem', padding: '12px', minHeight: 80 }}>
+                  <div ref={quantumContainerRef} />
+                </div>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          /* 单模式：普通容器 */
+          <div style={{ border: '1.5px solid var(--border)', borderRadius: '1rem', overflow: 'hidden', padding: '12px', minHeight: 80 }}>
+            {phase === 'turnstile' && <div id="turnstile-container" style={{ display: 'flex', justifyContent: 'center' }} />}
+            {phase === 'quantum' && <div ref={quantumContainerRef} />}
+            {phase === 'loading' && (
+              <div className="flex items-center justify-center py-6">
+                <div className="spinner mr-2" />
+                <span className="text-sm" style={{ color: 'var(--text-muted)' }}>加载验证组件...</span>
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* 重试按钮 */}
         {error && (
           <button
             className="btn btn-sm btn-primary"

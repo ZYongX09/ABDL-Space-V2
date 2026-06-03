@@ -271,7 +271,19 @@ const QuantumVerify = forwardRef(function QuantumVerify({ onVerified, onReset, s
 
   useEffect(() => {
     let running = true;
-    const loop = () => { if (!running) return; drawCanvas(); requestAnimationFrame(loop); };
+    let visible = true;
+    const loop = () => { if (!running || !visible) return; drawCanvas(); requestAnimationFrame(loop); };
+    // BUG-681: Pause animation when not visible
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const observer = new IntersectionObserver(([entry]) => {
+        visible = entry.isIntersecting;
+        if (visible && running) loop();
+      }, { threshold: 0.1 });
+      observer.observe(canvas);
+      loop();
+      return () => { running = false; observer.disconnect(); };
+    }
     loop();
     return () => { running = false; };
   }, [drawCanvas]);

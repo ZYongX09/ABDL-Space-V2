@@ -304,6 +304,12 @@ body {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(168, 216, 240, 0.25);
+  transform: scale(1.005);
+  transition: border-color 0.25s var(--miui-spring), box-shadow 0.3s var(--miui-spring), transform 0.25s var(--miui-spring);
+}
+.form-control:focus::placeholder {
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
 }
 
 textarea.form-control { min-height: 80px; resize: vertical; }

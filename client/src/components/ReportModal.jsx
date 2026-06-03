@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -17,11 +17,24 @@ export default function ReportModal({ targetType, targetId, onClose }) {
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  if (!user) {
-    toast.error('请先登录');
-    onClose();
-    return null;
-  }
+  // BUG-676: ESC key to close + BUG-678: lock body scroll + BUG-542: side effects in useEffect
+  useEffect(() => {
+    if (!user) {
+      toast.error('请先登录');
+      onClose();
+      return;
+    }
+    const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose, user, toast]);
+
+  if (!user) return null;
 
   const handleSubmit = async () => {
     if (!reason) { toast.error('请选择举报原因'); return; }
@@ -43,7 +56,7 @@ export default function ReportModal({ targetType, targetId, onClose }) {
   };
 
   return createPortal(
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="举报">
       <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', padding: '24px' }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold" style={{ color: 'var(--text)' }}>

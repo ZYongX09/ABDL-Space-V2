@@ -98,7 +98,7 @@ export default function VerificationInput({ onComplete, onChange, value = '', di
           }}
           onFocus={e => {
             e.target.style.borderColor = 'var(--primary)';
-            e.target.style.boxShadow = '0 0 0 3px rgba(var(--primary-rgb, 99,102,241), 0.15)';
+            e.target.style.boxShadow = '0 0 0 3px rgba(168, 216, 240, 0.15)';  // --primary #A8D8F0
           }}
           onBlur={e => {
             e.target.style.borderColor = d ? 'var(--primary)' : 'var(--border)';

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../contexts/ToastContext';
 import { messagesAPI } from '../api';
@@ -10,8 +10,9 @@ export default function NewConversation({ onClose }) {
   const toast = useToast();
   const navigate = useNavigate();
 
-  const handleSearch = async (q) => {
-    setSearch(q);
+  const searchTimerRef = useRef(null);
+
+  const doSearch = async (q) => {
     if (!q.trim()) { setResults([]); return; }
     setSearching(true);
     try {
@@ -39,6 +40,12 @@ export default function NewConversation({ onClose }) {
     }
   };
 
+  const handleSearch = (q) => {
+    setSearch(q);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => doSearch(q), 300);
+  };
+
   const handleSelect = async (u) => {
     try {
       const data = await messagesAPI.canMessage(u.id);
@@ -54,7 +61,7 @@ export default function NewConversation({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)' }}>
+    <div className="fixed inset-0 z-[150] flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)' }} role="dialog" aria-modal="true" aria-label="新私信">
       <div
         className="w-full sm:max-w-md animate-sheet-up"
         style={{

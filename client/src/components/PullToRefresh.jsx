@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 const THRESHOLD = 60;
 const MAX_PULL = 120;
@@ -10,7 +10,14 @@ export default function PullToRefresh({ onRefresh, children }) {
   const pulling = useRef(false);
   const containerRef = useRef(null);
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 768px)');
+    const handler = (e) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    setIsMobile(mql.matches);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
 
   const handleTouchStart = useCallback((e) => {
     if (refreshing) return;
@@ -37,6 +44,14 @@ export default function PullToRefresh({ onRefresh, children }) {
     }
   }, [refreshing]);
 
+  // BUG-108: Register touchmove with passive: false for preventDefault
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !isMobile) return;
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    return () => el.removeEventListener('touchmove', handleTouchMove);
+  }, [handleTouchMove, isMobile]);
+
   const handleTouchEnd = useCallback(async () => {
     if (!pulling.current) return;
     pulling.current = false;
@@ -60,7 +75,6 @@ export default function PullToRefresh({ onRefresh, children }) {
     <div
       ref={containerRef}
       onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       style={{ position: 'relative' }}
     >

@@ -13,6 +13,7 @@ const SEV_LABELS = { P0: '致命', P1: '高', P2: '中', P3: '低' };
 export default function BugDashboard() {
   const [bugs, setBugs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState('id');
@@ -21,9 +22,9 @@ export default function BugDashboard() {
 
   useEffect(() => {
     fetch('/bugs.json')
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error('加载失败'); return r.json(); })
       .then(data => { setBugs(data); setLoading(false); })
-      .catch(() => setLoading(false));
+      .catch(e => { setError(e.message); setLoading(false); });
   }, []);
 
   const stats = useMemo(() => {
@@ -73,6 +74,17 @@ export default function BugDashboard() {
   if (loading) return (
     <PageLayout hero={{ icon: 'fa-bug', title: 'Bug 追踪面板', subtitle: '加载中...' }}>
       <div className="flex items-center justify-center py-20"><div className="spinner" /></div>
+    </PageLayout>
+  );
+
+  if (error) return (
+    <PageLayout hero={{ icon: 'fa-bug', title: 'Bug 追踪面板', subtitle: '加载失败' }}>
+      <div className="empty-state">
+        <div className="icon"><i className="fa-solid fa-circle-exclamation" /></div>
+        <h3>数据加载失败</h3>
+        <p className="mt-2">{error}</p>
+        <button className="btn btn-primary mt-4" onClick={() => window.location.reload()}>刷新重试</button>
+      </div>
     </PageLayout>
   );
 

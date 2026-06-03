@@ -4,6 +4,8 @@
 export default function OfficialBadge({ className = '' }) {
   return (
     <span
+      role="img"
+      aria-label="官方认证"
       className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-bold ${className}`}
       style={{
         background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
@@ -13,7 +15,7 @@ export default function OfficialBadge({ className = '' }) {
         verticalAlign: 'middle',
       }}
     >
-      <i className="fa-solid fa-check" style={{ fontSize: '0.5rem' }} />
+      <i className="fa-solid fa-check" aria-hidden="true" style={{ fontSize: '0.5rem' }} />
       官方
     </span>
   );

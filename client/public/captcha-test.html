@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ABDL Space — 验证码测试</title>
+  <script>window.__TURNSTILE_SITE_KEY = '0x4AAAAAADYK46vBrTTTBcb6';</script>
+  <script src="https://api.abdl-space.top/api/v1/captcha/embed.js" async defer></script>
+  <style>
+    :root {
+      --bg: #0a0a0a; --bg-card: #141414; --border: #262626;
+      --text: #e5e5e5; --text-muted: #a3a3a3; --text-light: #737373;
+      --primary: #4f8cff; --primary-dark: #3b6fdb;
+      --success: #22c55e; --danger: #ef4444;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .container { max-width: 480px; width: 100%; }
+    h1 { font-size: 1.25rem; margin-bottom: 4px; }
+    .subtitle { color: var(--text-muted); font-size: .85rem; margin-bottom: 24px; }
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px; margin-bottom: 16px;
+    }
+    .card h2 { font-size: .95rem; margin-bottom: 12px; color: var(--text); }
+    label { display: block; font-size: .8rem; color: var(--text-muted); margin-bottom: 6px; }
+    select, button {
+      width: 100%; padding: 10px 14px; border-radius: 10px; font-size: .85rem;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text);
+      cursor: pointer; transition: all .15s;
+    }
+    select:hover, button:hover { border-color: var(--primary); }
+    button.primary {
+      background: var(--primary); color: #fff; border: none; font-weight: 600;
+      margin-top: 12px;
+    }
+    button.primary:hover { background: var(--primary-dark); }
+    button.primary:disabled { opacity: .5; cursor: not-allowed; }
+    .row { display: flex; gap: 10px; margin-bottom: 10px; }
+    .row > * { flex: 1; }
+    .status {
+      margin-top: 12px; padding: 10px; border-radius: 10px;
+      font-size: .8rem; min-height: 40px; word-break: break-all;
+      background: var(--bg); border: 1px solid var(--border); color: var(--text-muted);
+    }
+    .status.ok { border-color: var(--success); color: var(--success); }
+    .status.err { border-color: var(--danger); color: var(--danger); }
+    .log { margin-top: 8px; font-size: .75rem; color: var(--text-light); max-height: 120px; overflow-y: auto; }
+    .log div { padding: 2px 0; border-bottom: 1px solid var(--border); }
+    .step-bar { display: flex; gap: 4px; margin-bottom: 10px; }
+    .step-bar .dot {
+      flex: 1; height: 3px; border-radius: 2px; background: var(--border);
+      transition: background .3s;
+    }
+    .step-bar .dot.active { background: var(--primary); }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🛡️ ABDL Space 验证码测试</h1>
+  <p class="subtitle">单独测试不同验证模式和风险等级</p>
+
+  <!-- 手动指定模式 -->
+  <div class="card">
+    <h2>① 手动指定模式</h2>
+    <div class="row">
+      <div>
+        <label>验证类型</label>
+        <select id="mode-select">
+          <option value="auto">自动（/risk 接口）</option>
+          <option value="turnstile">仅 Turnstile</option>
+          <option value="quantum">仅 Quantum</option>
+          <option value="both">Turnstile + Quantum（高风险）</option>
+        </select>
+      </div>
+    </div>
+    <button class="primary" id="btn-trigger" onclick="triggerCaptcha()">触发验证</button>
+    <div class="step-bar" id="step-bar" style="display:none">
+      <div class="dot" id="dot-0"></div>
+      <div class="dot" id="dot-1"></div>
+    </div>
+    <div class="status" id="status">等待触发...</div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <!-- 风险评估 -->
+  <div class="card">
+    <h2>② 风险评估</h2>
+    <button onclick="checkRisk()" style="margin-top:0">查询当前 IP 风险</button>
+    <div class="status" id="risk-status">等待查询...</div>
+  </div>
+
+  <!-- Quantum 独立测试 -->
+  <div class="card">
+    <h2>③ Quantum 独立测试</h2>
+    <div id="quantum-standalone" style="min-height:60px"></div>
+    <div class="status" id="quantum-status">点击上方验证组件测试</div>
+  </div>
+</div>
+
+<script>
+const API_BASE = 'https://api.abdl-space.top';
+const logEl = document.getElementById('log');
+const statusEl = document.getElementById('status');
+const riskStatusEl = document.getElementById('risk-status');
+const stepBar = document.getElementById('step-bar');
+
+function log(msg) {
+  const d = document.createElement('div');
+  d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  logEl.prepend(d);
+}
+
+function setStatus(text, type) {
+  statusEl.textContent = text;
+  statusEl.className = 'status' + (type ? ' ' + type : '');
+}
+
+function setStep(index) {
+  document.querySelectorAll('.step-bar .dot').forEach((d, i) => {
+    d.classList.toggle('active', i <= index);
+  });
+}
+
+// ---- 风险评估 ----
+async function checkRisk() {
+  riskStatusEl.textContent = '查询中...';
+  riskStatusEl.className = 'status';
+  try {
+    const res = await fetch(`${API_BASE}/api/captcha/risk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    const data = await res.json();
+    riskStatusEl.textContent = `风险等级: ${data.risk} | 流程: ${data.flow} | Turnstile Key: ${data.turnstile_site_key ? '✓' : '✗'}`;
+    riskStatusEl.className = 'status ok';
+  } catch (e) {
+    riskStatusEl.textContent = '查询失败: ' + e.message;
+    riskStatusEl.className = 'status err';
+  }
+}
+
+// ---- 主触发 ----
+async function triggerCaptcha() {
+  const mode = document.getElementById('mode-select').value;
+  const btn = document.getElementById('btn-trigger');
+  btn.disabled = true;
+  setStatus('正在初始化...', '');
+  logEl.innerHTML = '';
+  stepBar.style.display = mode === 'both' ? 'flex' : 'none';
+
+  try {
+    let flow = mode;
+    let risk = 'low';
+
+    if (mode === 'auto') {
+      log('调用 /api/captcha/risk...');
+      const res = await fetch(`${API_BASE}/api/captcha/risk`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      });
+      const data = await res.json();
+      flow = data.flow;
+      risk = data.risk;
+      log(`返回: risk=${risk}, flow=${flow}`);
+    }
+
+    if (flow === 'turnstile' || flow === 'both') {
+      await runTurnstile(flow);
+    }
+    if (flow === 'quantum' && mode !== 'both') {
+      await runQuantum();
+    }
+  } catch (e) {
+    setStatus('错误: ' + e.message, 'err');
+    log('异常: ' + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ---- Turnstile ----
+async function runTurnstile(flow) {
+  setStep(0);
+  setStatus('加载 Turnstile...', '');
+  log('等待 Turnstile 脚本...');
+
+  // 确保脚本加载
+  if (!window.turnstile) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+      s.async = true;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('Turnstile 脚本加载失败'));
+      document.head.appendChild(s);
+    });
+  }
+  log('Turnstile 脚本已加载');
+
+  // 创建挑战
+  const res = await fetch(`${API_BASE}/api/captcha/challenge`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'turnstile' }),
+  });
+  const data = await res.json();
+  log(`挑战创建: session=${data.session_id.slice(0, 8)}...`);
+
+  // 渲染
+  const container = document.getElementById('quantum-standalone');
+  container.textContent = '';
+  setStatus('请完成 Turnstile 人机验证', '');
+
+  return new Promise((resolve, reject) => {
+    try {
+      window.turnstile.render(container, {
+        sitekey: window.__TURNSTILE_SITE_KEY,
+        callback: async (token) => {
+          log('Turnstile token 获取成功，验证中...');
+          const verifyRes = await fetch(`${API_BASE}/api/captcha/turnstile/verify`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: data.session_id, token }),
+          });
+          const result = await verifyRes.json();
+          if (result.success) {
+            log('Turnstile 验证通过 ✓');
+            if (flow === 'both') {
+              setStatus('Turnstile 通过，切换到 Quantum...', '');
+              setStep(1);
+              setTimeout(async () => {
+                try { await runQuantum(); resolve(); } catch (e) { reject(e); }
+              }, 500);
+            } else {
+              setStatus('验证通过 ✓', 'ok');
+              resolve();
+            }
+          } else {
+            log('Turnstile 验证失败: ' + JSON.stringify(result));
+            setStatus('Turnstile 验证失败', 'err');
+            reject(new Error('Turnstile failed'));
+          }
+        },
+        'error-callback': () => {
+          setStatus('Turnstile 加载异常', 'err');
+          reject(new Error('Turnstile error'));
+        },
+      });
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+// ---- Quantum ----
+async function runQuantum() {
+  setStatus('加载 Quantum...', '');
+  log('等待 Quantum SDK...');
+
+  // 等待 SDK
+  for (let i = 0; i < 50; i++) {
+    if (window.ABDLCaptcha) break;
+    await new Promise(r => setTimeout(r, 200));
+  }
+  if (!window.ABDLCaptcha) {
+    throw new Error('Quantum SDK 加载超时');
+  }
+  log('Quantum SDK 就绪');
+
+  const container = document.getElementById('quantum-standalone');
+  container.textContent = '';
+  setStatus('请按高亮顺序点击节点', '');
+
+  return new Promise((resolve, reject) => {
+    try {
+      window.ABDLCaptcha.render(container, {
+        apiKey: '',  // 测试页不需要 API Key
+        onSuccess: (token) => {
+          log('Quantum 验证通过 ✓');
+          setStatus('验证通过 ✓', 'ok');
+          resolve();
+        },
+        onError: (err) => {
+          log('Quantum 错误: ' + (err?.message || err));
+          setStatus('Quantum 验证失败', 'err');
+          reject(err);
+        },
+      });
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+// 页面加载后自动检查风险
+checkRisk();
+</script>
+</body>
+</html>

@@ -21,7 +21,7 @@ export default function ChatMessage({ message, showAvatar = true }) {
           className={`text-[10px] mt-1 ${isOwn ? 'text-right' : 'text-left'}`}
           style={{ color: 'var(--text-muted)' }}
         >
-          {new Date(message.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+          {message.created_at ? new Date(message.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : ''}
         </span>
       </div>
     </div>

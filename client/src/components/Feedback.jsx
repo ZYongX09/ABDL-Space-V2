@@ -1,3 +1,5 @@
+import ABDLLoading, { IconSpinner } from './ABDLLoading';
+
 export function LoadingSkeleton({ count = 3, height = 120 }) {
   return (
     <div className="space-y-4">
@@ -17,8 +19,6 @@ export function EmptyState({ icon = 'fa-inbox', title = '暂无数据', descript
     </div>
   );
 }
-
-import ABDLLoading, { IconSpinner } from './ABDLLoading';
 
 export function Spinner({ text = '加载中...' }) {
   return <ABDLLoading size={44} text={text} />;

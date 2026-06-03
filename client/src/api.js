@@ -33,6 +33,7 @@ function weightedScore(rating, isBaby) {
 async function apiFetch(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: 'include' });
+  if (res.status === 204) return null;
   const text = await res.text();
   let data;
   try {
@@ -319,11 +320,11 @@ export const diapersAPI = {
 // 评分 Ratings
 // =====================================================================
 export const ratingsAPI = {
-  create: async ({ diaper_id, review, ...scores }) => {
+  create: async ({ diaper_id, review, captchaToken, ...scores }) => {
     if (USE_API) {
       return apiFetch('/api/ratings', {
         method: 'POST',
-        body: JSON.stringify({ diaper_id, review: review || undefined, ...scores }),
+        body: JSON.stringify({ diaper_id, review: review || undefined, captchaToken, ...scores }),
       });
     }
     const user = LS.get('currentUser');
@@ -497,9 +498,9 @@ export const forumAPI = {
     };
   },
 
-  create: async ({ content, diaper_id, images }) => {
+  create: async ({ content, diaper_id, images, captchaToken }) => {
     if (USE_API) {
-      const result = await apiFetch('/api/posts', { method: 'POST', body: JSON.stringify({ content, diaper_id, images }) });
+      const result = await apiFetch('/api/posts', { method: 'POST', body: JSON.stringify({ content, diaper_id, images, captchaToken }) });
       cacheInvalidate('feed:');
       return result;
     }
@@ -878,7 +879,7 @@ export const adminAPI = {
   deletePost: async (id) => {
     if (USE_API) return apiFetch(`/api/admin/posts/${id}`, { method: 'DELETE' });
     let posts = LS.get('posts') || [];
-    posts = posts.filter(p => p.id !== id);
+    posts = posts.filter(p => p.id !== Number(id));
     LS.set('posts', posts);
     return { message: '已删除' };
   },
@@ -959,12 +960,24 @@ export const adminAPI = {
 // =====================================================================
 export const followsAPI = {
   follow: async (userId) => {
-    if (USE_API) return apiFetch(`/api/follows/${userId}`, { method: 'POST' });
+    if (USE_API) {
+      const result = await apiFetch(`/api/follows/${userId}`, { method: 'POST' });
+      cacheInvalidate(`followers:${userId}`);
+      cacheInvalidate(`following:${userId}`);
+      cacheInvalidate(`follow_status:${userId}`);
+      return result;
+    }
     return { message: '已关注', mutual: false };
   },
 
   unfollow: async (userId) => {
-    if (USE_API) return apiFetch(`/api/follows/${userId}`, { method: 'DELETE' });
+    if (USE_API) {
+      const result = await apiFetch(`/api/follows/${userId}`, { method: 'DELETE' });
+      cacheInvalidate(`followers:${userId}`);
+      cacheInvalidate(`following:${userId}`);
+      cacheInvalidate(`follow_status:${userId}`);
+      return result;
+    }
     return { message: '已取消关注' };
   },
 

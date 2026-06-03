@@ -289,6 +289,14 @@ function MobileLightbox({ urls, index, onClose, onNavigate }) {
     applyTransform();
   }, [applyTransform]);
 
+  // BUG-674: Register wheel with passive: false (React onWheel is passive)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, [handleWheel]);
+
   const s = stateRef.current;
   const isTransitioning = !s.isPinching && !s.isPanning && !s.isSwiping;
 
@@ -296,7 +304,6 @@ function MobileLightbox({ urls, index, onClose, onNavigate }) {
     <div
       ref={containerRef}
       className="lightbox-mobile"
-      onWheel={handleWheel}
       style={{ touchAction: 'none' }}
     >
       {/* 关闭按钮 */}
@@ -345,7 +352,15 @@ export default function ImageGrid({ images = [] }) {
   });
   const urls = imageItems.map(i => i.url);
   const count = Math.min(urls.length, 4);
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+  // BUG-679: Responsive isMobile using matchMedia
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 768px)');
+    const handler = (e) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    setIsMobile(mql.matches);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
 
   const gridClass = count === 1 ? 'img-grid-1'
     : count === 2 ? 'img-grid-2'

@@ -10,6 +10,11 @@ export default class ErrorBoundary extends Component {
     return { hasError: true, error };
   }
 
+  componentDidCatch(error, errorInfo) {
+    console.error('[ErrorBoundary]', error, errorInfo);
+    // TODO: Send to error monitoring service (e.g. Sentry)
+  }
+
   render() {
     if (this.state.hasError) {
       return (

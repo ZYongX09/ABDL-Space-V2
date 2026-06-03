@@ -89,7 +89,18 @@ export default function OAuthAuthorize() {
         }),
       });
       if (res.redirect) {
-        window.location.href = res.redirect;
+        // BUG-780: Validate redirect URL (defense-in-depth)
+        try {
+          const url = new URL(res.redirect)
+          if (['http:', 'https:'].includes(url.protocol)) {
+            window.location.href = res.redirect
+          } else {
+            toast.error('无效的重定向地址')
+          }
+        } catch {
+          // Relative URL is OK
+          window.location.href = res.redirect
+        }
       }
     } catch (err) {
       toast.error(err.message);

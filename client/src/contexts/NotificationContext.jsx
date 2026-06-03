@@ -91,9 +91,19 @@ export function NotificationProvider({ children }) {
       setToasts([]);
       return;
     }
-    const timer1 = setInterval(fetchUnread, POLL_INTERVAL);
-    const timer2 = setInterval(fetchMessageUnread, POLL_INTERVAL);
-    return () => { clearInterval(timer1); clearInterval(timer2); };
+    let timer1 = null, timer2 = null
+    const startPolling = () => {
+      timer1 = setInterval(fetchUnread, POLL_INTERVAL);
+      timer2 = setInterval(fetchMessageUnread, POLL_INTERVAL);
+    }
+    const stopPolling = () => { clearInterval(timer1); clearInterval(timer2); timer1 = timer2 = null }
+    const onVisibility = () => {
+      if (document.hidden) stopPolling()
+      else { fetchUnread(); fetchMessageUnread(); startPolling() }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    if (!document.hidden) startPolling()
+    return () => { stopPolling(); document.removeEventListener('visibilitychange', onVisibility) };
   }, [user, fetchUnread, fetchMessageUnread]);
 
   const clearUnread = useCallback(() => {

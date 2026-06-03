@@ -4,7 +4,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
 
 export default function AccountSwitcher({ collapsed = false }) {
-  const { user, accounts, switchAccount, removeAccount, logoutAll } = useAuth();
+  const { user, accounts, switchAccount, removeAccount, logout, logoutAll } = useAuth();
   const [showPanel, setShowPanel] = useState(false);
   const [panelPos, setPanelPos] = useState({ bottom: 0, left: 0, width: 0 });
   const btnRef = useRef(null);
@@ -152,7 +152,7 @@ export default function AccountSwitcher({ collapsed = false }) {
                 <i className="fa-solid fa-plus w-4 text-center" /> 添加其他账户
               </button>
               <button
-                onClick={() => { if (confirm('确定退出当前账户？')) { logoutAll(); setShowPanel(false); navigate('/'); } }}
+                onClick={async () => { if (confirm('确定退出当前账户？')) { await logout(); setShowPanel(false); navigate('/'); } }}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
                 style={{ background: 'rgba(232,131,124,0.08)', color: 'var(--danger)', border: 'none', cursor: 'pointer' }}
               >

@@ -16,8 +16,8 @@ async function getNBWConfig() {
       return _nbwConfig;
     }
   } catch {}
-  _nbwConfig = { clientId: '', redirectUri: '' };
-  return _nbwConfig;
+  // BUG-769: Don't cache failures - return empty but don't store
+  return { clientId: '', redirectUri: '' };
 }
 
 /** 是否已配置 NewBabyWorld OAuth */
@@ -90,10 +90,13 @@ export function isNBWMobileState(state) {
 /** 验证回调 state */
 export function verifyNBWState(returnedState) {
   const saved = sessionStorage.getItem('nbw_oauth_state');
-  sessionStorage.removeItem('nbw_oauth_state');
-  // 兼容：state 可能带 m_ 前缀
+  // BUG-770: Only remove after successful validation
   if (!saved || !returnedState) return false;
-  return saved === returnedState;
+  if (saved === returnedState) {
+    sessionStorage.removeItem('nbw_oauth_state');
+    return true;
+  }
+  return false;
 }
 
 /** 判断是否为绑定流程 */
