@@ -1,114 +1,359 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ABDL Space — 验证码测试</title>
+  <link rel="icon" type="image/svg+xml" href="https://img.abdl-space.top/file/1779879250278_ABDL_icon.svg" />
+  <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <script>window.__TURNSTILE_SITE_KEY = '0x4AAAAAADYK46vBrTTTBcb6';</script>
   <script src="https://api.abdl-space.top/api/v1/captcha/embed.js" async defer></script>
   <style>
+    /* ====== 主站设计系统变量 ====== */
     :root {
-      --bg: #0a0a0a; --bg-card: #141414; --border: #262626;
-      --text: #e5e5e5; --text-muted: #a3a3a3; --text-light: #737373;
-      --primary: #4f8cff; --primary-dark: #3b6fdb;
-      --success: #22c55e; --danger: #ef4444;
+      --primary: #A8D8F0; --primary-dark: #6AAEC8; --primary-light: #DEEEFF;
+      --accent: #FFB7C5; --accent-dark: #F5989E;
+      --bg: #F5F8FC; --bg-card: #FFFFFF; --border: #E8F0F8;
+      --text: #2C3E50; --text-light: #7F8C9B; --text-muted: #999;
+      --success: #7BC67E; --danger: #E8837C; --warning: #F0C040;
+      --radius: 16px; --radius-sm: 10px;
+      --shadow: 0 2px 12px rgba(168, 216, 240, 0.25);
+      --shadow-hover: 0 8px 30px rgba(168, 216, 240, 0.4);
+      --font: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+      --input-bg: #F5F8FC;
+      --hover-bg: var(--primary-light);
+      --miui-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      --miui-fast: cubic-bezier(0.2, 0, 0, 1);
     }
+    [data-theme="dark"] {
+      --primary: #7EB8D4; --primary-dark: #A8D8F0; --primary-light: #2A3F50;
+      --accent: #F5989E; --accent-dark: #FFB7C5;
+      --bg: #1A1D23; --bg-card: #252830; --border: #383C44;
+      --text: #E0E4EA; --text-light: #9BA1AC; --text-muted: #6B7080;
+      --success: #5DAE60; --danger: #D35F5A; --warning: #D4A830;
+      --shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+      --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.5);
+      --input-bg: #2A2E35; --hover-bg: var(--primary-light);
+    }
+
+    /* ====== 基础重置 ====== */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg); color: var(--text); min-height: 100vh;
-      display: flex; align-items: center; justify-content: center; padding: 20px;
+      font-family: var(--font); background: var(--bg); color: var(--text);
+      min-height: 100vh; padding: 0; line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.3s ease, color 0.3s ease;
     }
-    .container { max-width: 480px; width: 100%; }
-    h1 { font-size: 1.25rem; margin-bottom: 4px; }
-    .subtitle { color: var(--text-muted); font-size: .85rem; margin-bottom: 24px; }
+
+    /* ====== 顶部导航栏 ====== */
+    .top-bar {
+      position: sticky; top: 0; z-index: 50;
+      height: 56px;
+      background: rgba(26, 29, 35, 0.65);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex; align-items: center; padding: 0 20px; gap: 12px;
+    }
+    .top-bar-logo {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--primary-light); color: var(--primary-dark);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; flex-shrink: 0;
+    }
+    .top-bar-title { font-size: 0.95rem; font-weight: 700; color: var(--text); }
+    .top-bar-subtitle { font-size: 0.75rem; color: var(--text-muted); margin-left: 4px; }
+    .top-bar-actions { margin-left: auto; display: flex; gap: 6px; }
+    .top-bar-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: none; border: none; cursor: pointer;
+      color: var(--text-light); font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    .top-bar-btn:hover { background: var(--primary-light); color: var(--text); }
+
+    /* ====== 页面布局 ====== */
+    .page-wrap {
+      max-width: 560px; width: 100%;
+      margin: 0 auto; padding: 24px 16px 40px;
+    }
+
+    /* ====== 卡片（主站 .card） ====== */
     .card {
       background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: 16px; padding: 20px; margin-bottom: 16px;
+      border-radius: var(--radius); padding: 24px;
+      box-shadow: var(--shadow);
+      transition: transform 0.35s var(--miui-spring), box-shadow 0.3s ease, border-color 0.3s ease;
+      margin-bottom: 16px;
     }
-    .card h2 { font-size: .95rem; margin-bottom: 12px; color: var(--text); }
-    label { display: block; font-size: .8rem; color: var(--text-muted); margin-bottom: 6px; }
-    select, button {
-      width: 100%; padding: 10px 14px; border-radius: 10px; font-size: .85rem;
-      border: 1px solid var(--border); background: var(--bg); color: var(--text);
-      cursor: pointer; transition: all .15s;
+    .card:hover { box-shadow: var(--shadow-hover); border-color: rgba(168, 216, 240, 0.35); }
+    .card-title {
+      font-size: 0.95rem; font-weight: 700; color: var(--text);
+      display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
     }
-    select:hover, button:hover { border-color: var(--primary); }
-    button.primary {
-      background: var(--primary); color: #fff; border: none; font-weight: 600;
-      margin-top: 12px;
+    .card-title i { color: var(--primary-dark); font-size: 0.9rem; }
+
+    /* ====== 按钮（主站 .btn） ====== */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px 24px; border-radius: var(--radius-sm);
+      font-size: 0.95rem; font-weight: 600; cursor: pointer;
+      transition: all 0.25s var(--miui-spring);
+      border: none; text-decoration: none; font-family: var(--font);
+      -webkit-tap-highlight-color: transparent;
     }
-    button.primary:hover { background: var(--primary-dark); }
-    button.primary:disabled { opacity: .5; cursor: not-allowed; }
-    .row { display: flex; gap: 10px; margin-bottom: 10px; }
-    .row > * { flex: 1; }
-    .status {
-      margin-top: 12px; padding: 10px; border-radius: 10px;
-      font-size: .8rem; min-height: 40px; word-break: break-all;
-      background: var(--bg); border: 1px solid var(--border); color: var(--text-muted);
+    .btn:active { transform: scale(0.94); transition-duration: 0.1s; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+    .btn-primary {
+      background: var(--primary); color: white;
+      box-shadow: 0 2px 8px rgba(168, 216, 240, 0.3);
     }
-    .status.ok { border-color: var(--success); color: var(--success); }
-    .status.err { border-color: var(--danger); color: var(--danger); }
-    .log { margin-top: 8px; font-size: .75rem; color: var(--text-light); max-height: 120px; overflow-y: auto; }
-    .log div { padding: 2px 0; border-bottom: 1px solid var(--border); }
-    .step-bar { display: flex; gap: 4px; margin-bottom: 10px; }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-dark); transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(168, 216, 240, 0.4);
+    }
+    .btn-outline {
+      background: transparent; border: 2px solid var(--primary); color: var(--primary-dark);
+    }
+    .btn-outline:hover:not(:disabled) { background: var(--primary-light); }
+    .btn-sm { padding: 6px 16px; font-size: 0.85rem; }
+    .btn-block { width: 100%; }
+    .btn-ghost {
+      background: var(--input-bg); color: var(--text); border: 1px solid var(--border);
+    }
+    .btn-ghost:hover:not(:disabled) { border-color: var(--primary); }
+
+    /* ====== 表单（主站 .form-control） ====== */
+    .form-control {
+      width: 100%; padding: 12px 16px;
+      border: 2px solid var(--border); border-radius: var(--radius-sm);
+      font-size: 0.95rem; font-family: var(--font); color: var(--text);
+      background: var(--input-bg);
+      transition: border-color 0.3s var(--miui-spring), box-shadow 0.3s ease, transform 0.2s ease;
+    }
+    .form-control:focus {
+      outline: none; border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(168, 216, 240, 0.25);
+      transform: scale(1.005);
+    }
+    select.form-control {
+      appearance: none; cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' stroke='%237F8C9B' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+      padding-right: 36px;
+    }
+    label { display: block; font-size: 0.8rem; color: var(--text-light); margin-bottom: 6px; font-weight: 500; }
+
+    /* ====== 状态指示 ====== */
+    .status-box {
+      margin-top: 12px; padding: 12px 16px; border-radius: var(--radius-sm);
+      font-size: 0.85rem; min-height: 44px; word-break: break-all;
+      background: var(--input-bg); border: 1px solid var(--border); color: var(--text-muted);
+      transition: border-color 0.3s ease, color 0.3s ease;
+    }
+    .status-box.ok { border-color: var(--success); color: var(--success); }
+    .status-box.err { border-color: var(--danger); color: var(--danger); }
+    .status-box.info { border-color: var(--primary); color: var(--primary-dark); }
+
+    /* ====== 日志 ====== */
+    .log-box {
+      margin-top: 10px; font-size: 0.75rem; color: var(--text-muted);
+      max-height: 140px; overflow-y: auto; padding: 8px 0;
+    }
+    .log-box div {
+      padding: 4px 0; border-bottom: 1px solid var(--border);
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 0.72rem;
+    }
+    .log-box div:last-child { border-bottom: none; }
+
+    /* ====== 步骤指示器 ====== */
+    .step-bar { display: flex; gap: 4px; margin-bottom: 12px; }
     .step-bar .dot {
-      flex: 1; height: 3px; border-radius: 2px; background: var(--border);
-      transition: background .3s;
+      flex: 1; height: 4px; border-radius: 2px; background: var(--border);
+      transition: background 0.3s ease;
     }
     .step-bar .dot.active { background: var(--primary); }
+
+    /* ====== 分隔线 ====== */
+    .divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+    /* ====== 标签 ====== */
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 0.625rem;
+      font-size: 0.72rem; font-weight: 600;
+      background: var(--primary-light); color: var(--primary-dark);
+    }
+    .tag-success { background: rgba(93, 174, 96, 0.15); color: var(--success); }
+    .tag-danger { background: rgba(211, 95, 90, 0.15); color: var(--danger); }
+
+    /* ====== 信息行 ====== */
+    .info-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: var(--text-muted); }
+    .info-value { color: var(--text); font-weight: 600; }
+
+    /* ====== Quantum 容器 ====== */
+    .quantum-wrap {
+      min-height: 70px; display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-sm); background: var(--input-bg);
+      border: 1.5px dashed var(--border); padding: 16px;
+      transition: border-color 0.3s ease;
+    }
+    .quantum-wrap.active { border-style: solid; border-color: var(--primary); }
+
+    /* ====== 主题切换 ====== */
+    .theme-switch {
+      display: flex; gap: 4px; padding: 3px;
+      background: var(--input-bg); border-radius: 8px;
+    }
+    .theme-btn {
+      width: 28px; height: 28px; border-radius: 6px; border: none;
+      cursor: pointer; font-size: 0.75rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s ease; background: transparent; color: var(--text-muted);
+    }
+    .theme-btn.active { background: var(--bg-card); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+
+    /* ====== 加载 ====== */
+    .spinner {
+      width: 24px; height: 24px;
+      border: 2.5px solid var(--border); border-top-color: var(--primary);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      display: inline-block; vertical-align: middle; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ====== 返回按钮 ====== */
+    .back-btn {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--input-bg); border: 1px solid var(--border);
+      color: var(--text); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; transition: all 0.2s; flex-shrink: 0;
+    }
+    .back-btn:hover { background: var(--primary-light); border-color: var(--primary); }
+
+    /* ====== 动画 ====== */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in { animation: fadeInUp 0.4s var(--miui-spring) both; }
+    .animate-in:nth-child(1) { animation-delay: 0s; }
+    .animate-in:nth-child(2) { animation-delay: 0.06s; }
+    .animate-in:nth-child(3) { animation-delay: 0.12s; }
+    .animate-in:nth-child(4) { animation-delay: 0.18s; }
+
+    /* ====== 响应式 ====== */
+    @media (max-width: 768px) {
+      .page-wrap { padding: 16px 12px 32px; }
+      .card { padding: 18px; border-radius: 14px; }
+      .btn { min-height: 44px; }
+    }
   </style>
 </head>
 <body>
-<div class="container">
-  <h1>🛡️ ABDL Space 验证码测试</h1>
-  <p class="subtitle">单独测试不同验证模式和风险等级</p>
 
-  <!-- 手动指定模式 -->
-  <div class="card">
-    <h2>① 手动指定模式</h2>
-    <div class="row">
-      <div>
-        <label>验证类型</label>
-        <select id="mode-select">
-          <option value="auto">自动（/risk 接口）</option>
-          <option value="turnstile">仅 Turnstile</option>
-          <option value="quantum">仅 Quantum</option>
-          <option value="both">Turnstile + Quantum（高风险）</option>
-        </select>
-      </div>
+<!-- 顶部导航 -->
+<div class="top-bar">
+  <div class="top-bar-logo"><i class="fa-solid fa-flask-vial"></i></div>
+  <span class="top-bar-title">验证码测试</span>
+  <span class="top-bar-subtitle">Captcha Test</span>
+  <div class="top-bar-actions">
+    <div class="theme-switch">
+      <button class="theme-btn" onclick="setTheme('light')" title="浅色">☀️</button>
+      <button class="theme-btn active" onclick="setTheme('dark')" title="深色">🌙</button>
     </div>
-    <button class="primary" id="btn-trigger" onclick="triggerCaptcha()">触发验证</button>
-    <div class="step-bar" id="step-bar" style="display:none">
+    <button class="top-bar-btn" onclick="history.back()" title="返回">
+      <i class="fa-solid fa-arrow-left"></i>
+    </button>
+  </div>
+</div>
+
+<div class="page-wrap">
+
+  <!-- ① 风险评估 -->
+  <div class="card animate-in">
+    <div class="card-title"><i class="fa-solid fa-shield-halved"></i> 风险评估</div>
+    <div class="info-row">
+      <span class="info-label">当前 IP</span>
+      <span class="info-value" id="risk-ip">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">风险等级</span>
+      <span id="risk-level">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">验证流程</span>
+      <span class="info-value" id="risk-flow">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Turnstile Key</span>
+      <span id="risk-key">-</span>
+    </div>
+    <button class="btn btn-outline btn-sm btn-block" style="margin-top:12px" onclick="checkRisk()">
+      <i class="fa-solid fa-rotate-right"></i> 重新检测
+    </button>
+  </div>
+
+  <!-- ② 手动触发 -->
+  <div class="card animate-in">
+    <div class="card-title"><i class="fa-solid fa-hand-pointer"></i> 手动触发验证</div>
+    <label>验证模式</label>
+    <select class="form-control" id="mode-select">
+      <option value="auto">自动（根据风险等级）</option>
+      <option value="turnstile">仅 Turnstile</option>
+      <option value="quantum">仅 Quantum</option>
+      <option value="both">Turnstile + Quantum（高风险）</option>
+    </select>
+    <button class="btn btn-primary btn-block" id="btn-trigger" style="margin-top:14px" onclick="triggerCaptcha()">
+      <i class="fa-solid fa-play"></i> 触发验证
+    </button>
+    <div class="step-bar" id="step-bar" style="display:none; margin-top:14px">
       <div class="dot" id="dot-0"></div>
       <div class="dot" id="dot-1"></div>
     </div>
-    <div class="status" id="status">等待触发...</div>
-    <div class="log" id="log"></div>
+    <div class="status-box" id="status" style="margin-top:14px">等待触发...</div>
+    <div class="log-box" id="log"></div>
   </div>
 
-  <!-- 风险评估 -->
-  <div class="card">
-    <h2>② 风险评估</h2>
-    <button onclick="checkRisk()" style="margin-top:0">查询当前 IP 风险</button>
-    <div class="status" id="risk-status">等待查询...</div>
+  <!-- ③ Quantum 独立测试 -->
+  <div class="card animate-in">
+    <div class="card-title"><i class="fa-solid fa-circle-nodes"></i> Quantum 独立测试</div>
+    <div class="quantum-wrap" id="quantum-standalone">
+      <span style="color:var(--text-muted); font-size:0.85rem">点击上方触发或在此独立测试</span>
+    </div>
+    <div class="status-box" id="quantum-status" style="margin-top:12px">等待操作...</div>
   </div>
 
-  <!-- Quantum 独立测试 -->
-  <div class="card">
-    <h2>③ Quantum 独立测试</h2>
-    <div id="quantum-standalone" style="min-height:60px"></div>
-    <div class="status" id="quantum-status">点击上方验证组件测试</div>
+  <!-- 底部信息 -->
+  <div style="text-align:center; margin-top:8px; color:var(--text-muted); font-size:0.75rem" class="animate-in">
+    <i class="fa-solid fa-lock" style="margin-right:4px"></i>
+    ABDL Space Captcha Test · v2
   </div>
+
 </div>
 
 <script>
 const API_BASE = 'https://api.abdl-space.top';
 const logEl = document.getElementById('log');
 const statusEl = document.getElementById('status');
-const riskStatusEl = document.getElementById('risk-status');
 const stepBar = document.getElementById('step-bar');
 
+// ====== 主题 ======
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+// ====== 日志 ======
 function log(msg) {
   const d = document.createElement('div');
   d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
@@ -117,7 +362,7 @@ function log(msg) {
 
 function setStatus(text, type) {
   statusEl.textContent = text;
-  statusEl.className = 'status' + (type ? ' ' + type : '');
+  statusEl.className = 'status-box' + (type ? ' ' + type : '');
 }
 
 function setStep(index) {
@@ -126,30 +371,45 @@ function setStep(index) {
   });
 }
 
-// ---- 风险评估 ----
+// ====== 风险评估 ======
 async function checkRisk() {
-  riskStatusEl.textContent = '查询中...';
-  riskStatusEl.className = 'status';
+  const ipEl = document.getElementById('risk-ip');
+  const levelEl = document.getElementById('risk-level');
+  const flowEl = document.getElementById('risk-flow');
+  const keyEl = document.getElementById('risk-key');
+
+  ipEl.textContent = '检测中...';
+  levelEl.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px"></span>';
+  flowEl.textContent = '...';
+  keyEl.textContent = '...';
+
   try {
     const res = await fetch(`${API_BASE}/api/captcha/risk`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: '{}',
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
     });
     const data = await res.json();
-    riskStatusEl.textContent = `风险等级: ${data.risk} | 流程: ${data.flow} | Turnstile Key: ${data.turnstile_site_key ? '✓' : '✗'}`;
-    riskStatusEl.className = 'status ok';
+    ipEl.textContent = data.ip || '-';
+    levelEl.innerHTML = data.risk === 'low'
+      ? '<span class="tag tag-success"><i class="fa-solid fa-check"></i> 低风险</span>'
+      : '<span class="tag tag-danger"><i class="fa-solid fa-exclamation"></i> 高风险</span>';
+    flowEl.textContent = data.flow || '-';
+    keyEl.innerHTML = data.turnstile_site_key
+      ? '<span class="tag tag-success"><i class="fa-solid fa-check"></i> 已配置</span>'
+      : '<span class="tag tag-danger"><i class="fa-solid fa-xmark"></i> 未配置</span>';
   } catch (e) {
-    riskStatusEl.textContent = '查询失败: ' + e.message;
-    riskStatusEl.className = 'status err';
+    ipEl.textContent = '检测失败';
+    levelEl.innerHTML = `<span style="color:var(--danger);font-size:0.85rem">${e.message}</span>`;
+    flowEl.textContent = '-';
+    keyEl.textContent = '-';
   }
 }
 
-// ---- 主触发 ----
+// ====== 主触发 ======
 async function triggerCaptcha() {
   const mode = document.getElementById('mode-select').value;
   const btn = document.getElementById('btn-trigger');
   btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 初始化...';
   setStatus('正在初始化...', '');
   logEl.innerHTML = '';
   stepBar.style.display = mode === 'both' ? 'flex' : 'none';
@@ -180,16 +440,16 @@ async function triggerCaptcha() {
     log('异常: ' + e.message);
   } finally {
     btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-play"></i> 触发验证';
   }
 }
 
-// ---- Turnstile ----
+// ====== Turnstile ======
 async function runTurnstile(flow) {
   setStep(0);
   setStatus('加载 Turnstile...', '');
   log('等待 Turnstile 脚本...');
 
-  // 确保脚本加载
   if (!window.turnstile) {
     await new Promise((resolve, reject) => {
       const s = document.createElement('script');
@@ -202,7 +462,6 @@ async function runTurnstile(flow) {
   }
   log('Turnstile 脚本已加载');
 
-  // 创建挑战
   const res = await fetch(`${API_BASE}/api/captcha/challenge`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ type: 'turnstile' }),
@@ -210,10 +469,10 @@ async function runTurnstile(flow) {
   const data = await res.json();
   log(`挑战创建: session=${data.session_id.slice(0, 8)}...`);
 
-  // 渲染
   const container = document.getElementById('quantum-standalone');
   container.textContent = '';
-  setStatus('请完成 Turnstile 人机验证', '');
+  container.classList.add('active');
+  setStatus('请完成 Turnstile 人机验证', 'info');
 
   return new Promise((resolve, reject) => {
     try {
@@ -229,7 +488,7 @@ async function runTurnstile(flow) {
           if (result.success) {
             log('Turnstile 验证通过 ✓');
             if (flow === 'both') {
-              setStatus('Turnstile 通过，切换到 Quantum...', '');
+              setStatus('Turnstile 通过，切换到 Quantum...', 'info');
               setStep(1);
               setTimeout(async () => {
                 try { await runQuantum(); resolve(); } catch (e) { reject(e); }
@@ -249,35 +508,31 @@ async function runTurnstile(flow) {
           reject(new Error('Turnstile error'));
         },
       });
-    } catch (e) {
-      reject(e);
-    }
+    } catch (e) { reject(e); }
   });
 }
 
-// ---- Quantum ----
+// ====== Quantum ======
 async function runQuantum() {
   setStatus('加载 Quantum...', '');
   log('等待 Quantum SDK...');
 
-  // 等待 SDK
   for (let i = 0; i < 50; i++) {
     if (window.ABDLCaptcha) break;
     await new Promise(r => setTimeout(r, 200));
   }
-  if (!window.ABDLCaptcha) {
-    throw new Error('Quantum SDK 加载超时');
-  }
+  if (!window.ABDLCaptcha) throw new Error('Quantum SDK 加载超时');
   log('Quantum SDK 就绪');
 
   const container = document.getElementById('quantum-standalone');
   container.textContent = '';
-  setStatus('请按高亮顺序点击节点', '');
+  container.classList.add('active');
+  setStatus('请按高亮顺序点击节点', 'info');
 
   return new Promise((resolve, reject) => {
     try {
       window.ABDLCaptcha.render(container, {
-        apiBase: 'https://api.abdl-space.top',  // 内部接口，不需要 API Key
+        apiBase: 'https://api.abdl-space.top',
         onSuccess: (token) => {
           log('Quantum 验证通过 ✓');
           setStatus('验证通过 ✓', 'ok');
@@ -289,9 +544,7 @@ async function runQuantum() {
           reject(err);
         },
       });
-    } catch (e) {
-      reject(e);
-    }
+    } catch (e) { reject(e); }
   });
 }
 
