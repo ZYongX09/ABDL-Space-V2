@@ -6,10 +6,9 @@
   <title>ABDL Space — 验证码测试</title>
   <link rel="icon" type="image/svg+xml" href="https://img.abdl-space.top/file/1779879250278_ABDL_icon.svg" />
   <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <script>window.__TURNSTILE_SITE_KEY = '0x4AAAADYK46vBrTTTBcb6';</script>
+  <script>window.__TURNSTILE_SITE_KEY = '0x4AAA…Bcb6';</script>
   <script src="https://api.abdl-space.top/api/v1/captcha/embed.js" async defer></script>
   <style>
-    /* ====== 主站设计系统变量 ====== */
     :root {
       --primary: #A8D8F0; --primary-dark: #6AAEC8; --primary-light: #DEEEFF;
       --accent: #FFB7C5; --accent-dark: #F5989E;
@@ -21,7 +20,6 @@
       --shadow-hover: 0 8px 30px rgba(168, 216, 240, 0.4);
       --font: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
       --input-bg: #F5F8FC;
-      --hover-bg: var(--primary-light);
       --miui-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     [data-theme="dark"] {
@@ -32,9 +30,8 @@
       --success: #5DAE60; --danger: #D35F5A; --warning: #D4A830;
       --shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
       --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.5);
-      --input-bg: #2A2E35; --hover-bg: var(--primary-light);
+      --input-bg: #2A2E35;
     }
-
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: var(--font); background: var(--bg); color: var(--text);
@@ -113,8 +110,6 @@
     }
     .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary-dark); }
     .btn-outline:hover:not(:disabled) { background: var(--primary-light); }
-    .btn-ghost { background: var(--input-bg); color: var(--text); border: 1px solid var(--border); }
-    .btn-ghost:hover:not(:disabled) { border-color: var(--primary); }
     .btn-sm { padding: 6px 16px; font-size: 0.85rem; }
     .btn-block { width: 100%; }
 
@@ -176,12 +171,11 @@
     .animate-in:nth-child(2) { animation-delay: 0.06s; }
     .animate-in:nth-child(3) { animation-delay: 0.12s; }
 
-    /* ====== 弹窗（和主站 VerifyModal 一致） ====== */
+    /* ====== 弹窗（和主站 VerifyModal 一致，无毛玻璃） ====== */
     .verify-backdrop {
       position: fixed; inset: 0; z-index: 400;
       background: rgba(0,0,0,0.5);
       display: flex; align-items: center; justify-content: center;
-      backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
       opacity: 0; transition: opacity 0.25s ease;
       pointer-events: none;
     }
@@ -208,28 +202,21 @@
       display: flex; align-items: center; gap: 8px;
     }
     .verify-title i { color: var(--primary-dark); }
-    .verify-risk-tag {
-      font-size: 0.7rem; color: var(--text-light); margin-left: 4px;
-    }
+    .verify-risk-tag { font-size: 0.7rem; color: var(--text-light); margin-left: 4px; }
     .verify-close {
       background: none; border: none; cursor: pointer; color: var(--text-muted);
-      font-size: 1.2rem; padding: 4px; line-height: 1;
-      transition: color 0.2s;
+      font-size: 1.2rem; padding: 4px; line-height: 1; transition: color 0.2s;
     }
     .verify-close:hover { color: var(--text); }
 
-    .verify-progress {
-      display: flex; gap: 6px; margin-bottom: 12px;
-    }
+    .verify-progress { display: flex; gap: 6px; margin-bottom: 12px; }
     .verify-progress .bar {
       flex: 1; height: 3px; border-radius: 2px;
       background: var(--border); transition: background 0.3s;
     }
     .verify-progress .bar.active { background: var(--primary); }
 
-    .verify-phase-label {
-      font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;
-    }
+    .verify-phase-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
 
     .verify-widget-box {
       border: 1.5px solid var(--border); border-radius: 1rem;
@@ -244,9 +231,7 @@
       transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .verify-slider.slide-1 { transform: translateX(-50%); }
-    .verify-slide {
-      width: 50%; flex-shrink: 0;
-    }
+    .verify-slide { width: 50%; flex-shrink: 0; }
     .verify-slide:first-child { padding-right: 12px; }
     .verify-slide:last-child { padding-left: 12px; }
     .verify-slide-inner {
@@ -254,14 +239,8 @@
       padding: 12px; min-height: 80px;
     }
 
-    .verify-done-icon {
-      text-align: center; padding: 20px 0; font-size: 2rem; color: var(--success);
-    }
-
-    .verify-retry-btn {
-      margin-top: 12px; width: 100%;
-    }
-
+    .verify-done-icon { text-align: center; padding: 20px 0; font-size: 2rem; color: var(--success); }
+    .verify-retry-btn { margin-top: 12px; width: 100%; }
     .verify-loading {
       display: flex; align-items: center; justify-content: center; padding: 24px 0;
       gap: 10px; color: var(--text-muted); font-size: 0.85rem;
@@ -324,9 +303,9 @@
     <label>验证模式</label>
     <select class="form-control" id="mode-select">
       <option value="auto">自动（根据风险等级）</option>
-      <option value="turnstile">仅 Turnstile</option>
       <option value="quantum">仅 Quantum</option>
-      <option value="both">Turnstile + Quantum（高风险）</option>
+      <option value="turnstile">仅 Turnstile</option>
+      <option value="both">Quantum + Turnstile（高风险）</option>
     </select>
     <button class="btn btn-primary btn-block" id="btn-trigger" style="margin-top:14px" onclick="triggerFromPanel()">
       <i class="fa-solid fa-play"></i> 触发验证
@@ -340,7 +319,7 @@
   </div>
 </div>
 
-<!-- ====== 验证弹窗（和主站 VerifyModal 一致） ====== -->
+<!-- ====== 验证弹窗（和主站 VerifyModal 一致，无毛玻璃） ====== -->
 <div class="verify-backdrop" id="verifyBackdrop" onclick="handleBackdropClick(event)">
   <div class="verify-card" id="verifyCard">
     <!-- header -->
@@ -362,17 +341,17 @@
     <!-- 阶段提示 -->
     <div class="verify-phase-label" id="v-phase-label">正在评估安全等级...</div>
 
-    <!-- both 模式：滑动卡片 -->
+    <!-- both 模式：滑动卡片（Quantum 先，Turnstile 后） -->
     <div id="v-slider-wrap" style="display:none">
       <div class="verify-slider" id="v-slider">
         <div class="verify-slide">
           <div class="verify-slide-inner">
-            <div id="turnstile-container" style="display:flex;justify-content:center"></div>
+            <div id="quantum-container-both"></div>
           </div>
         </div>
         <div class="verify-slide">
           <div class="verify-slide-inner">
-            <div id="quantum-container"></div>
+            <div id="turnstile-container-both" style="display:flex;justify-content:center"></div>
           </div>
         </div>
       </div>
@@ -381,11 +360,11 @@
     <!-- 单模式 -->
     <div id="v-single-box" style="display:none">
       <div class="verify-widget-box">
-        <div id="v-single-turnstile" style="display:none">
-          <div id="turnstile-container-single" style="display:flex;justify-content:center"></div>
-        </div>
         <div id="v-single-quantum" style="display:none">
           <div id="quantum-container-single"></div>
+        </div>
+        <div id="v-single-turnstile" style="display:none">
+          <div id="turnstile-container-single" style="display:flex;justify-content:center"></div>
         </div>
         <div id="v-single-loading">
           <div class="verify-loading">
@@ -412,21 +391,18 @@
 const API_BASE = 'https://api.abdl-space.top';
 const panelLogEl = document.getElementById('panel-log');
 
-// ====== 状态 ======
-let currentFlow = null;    // 'turnstile' | 'quantum' | 'both'
+let currentFlow = null;
 let currentRisk = null;
 let slideIndex = 0;
 let turnstileSessionId = null;
 let turnstileWidgetId = null;
 
-// ====== 主题 ======
 function setTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
   event.target.classList.add('active');
 }
 
-// ====== 日志 ======
 function panelLog(msg) {
   const d = document.createElement('div');
   d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
@@ -468,19 +444,16 @@ async function checkRisk() {
 
 // ====== 弹窗控制 ======
 function openVerify() {
-  const bd = document.getElementById('verifyBackdrop');
-  bd.classList.add('visible');
+  document.getElementById('verifyBackdrop').classList.add('visible');
 }
 function closeVerify() {
-  const bd = document.getElementById('verifyBackdrop');
-  bd.classList.remove('visible');
+  document.getElementById('verifyBackdrop').classList.remove('visible');
   cleanupVerify();
 }
 function handleBackdropClick(e) {
   if (e.target === e.currentTarget) closeVerify();
 }
 function cleanupVerify() {
-  // 清理 turnstile widget
   if (turnstileWidgetId) {
     try { window.turnstile?.remove(turnstileWidgetId); } catch {}
     turnstileWidgetId = null;
@@ -490,7 +463,6 @@ function cleanupVerify() {
   currentRisk = null;
   slideIndex = 0;
 
-  // 重置 UI
   document.getElementById('v-progress').style.display = 'none';
   document.getElementById('v-slider-wrap').style.display = 'none';
   document.getElementById('v-single-box').style.display = 'none';
@@ -498,34 +470,36 @@ function cleanupVerify() {
   document.getElementById('v-retry').style.display = 'none';
   document.getElementById('v-risk-tag').textContent = '';
   document.getElementById('v-phase-label').textContent = '正在评估安全等级...';
+  document.getElementById('v-phase-label').style.color = '';
   document.getElementById('v-slider').className = 'verify-slider';
-  document.getElementById('v-bar-0').className = 'bar';
-  document.getElementById('v-bar-1').className = 'bar';
 
-  // 清空容器
-  document.getElementById('turnstile-container').textContent = '';
-  document.getElementById('quantum-container').textContent = '';
-  document.getElementById('turnstile-container-single').textContent = '';
-  document.getElementById('quantum-container-single').textContent = '';
+  ['quantum-container-both','turnstile-container-both','quantum-container-single','turnstile-container-single'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '';
+  });
 }
 
 function setPhaseLabel(text) {
-  document.getElementById('v-phase-label').textContent = text;
+  const el = document.getElementById('v-phase-label');
+  el.textContent = text;
+  el.style.color = '';
 }
 function setProgress(idx) {
   document.getElementById('v-bar-0').className = 'bar' + (idx >= 0 ? ' active' : '');
   document.getElementById('v-bar-1').className = 'bar' + (idx >= 1 ? ' active' : '');
 }
-
 function showError(msg) {
-  document.getElementById('v-phase-label').textContent = msg;
-  document.getElementById('v-phase-label').style.color = 'var(--danger)';
+  const el = document.getElementById('v-phase-label');
+  el.textContent = msg;
+  el.style.color = 'var(--danger)';
   document.getElementById('v-retry').style.display = 'block';
 }
 function retryVerify() {
-  document.getElementById('v-phase-label').style.color = '';
   document.getElementById('v-retry').style.display = 'none';
+  const mode = document.getElementById('mode-select').value;
   cleanupVerify();
+  currentFlow = mode === 'auto' ? currentFlow : mode;
+  openVerify();
   startVerifyFlow();
 }
 
@@ -548,6 +522,8 @@ async function triggerFromPanel() {
       flow = data.flow;
       currentRisk = data.risk;
       panelLog(`返回: risk=${data.risk}, flow=${flow}`);
+    } else {
+      panelLog(`手动模式: ${mode}`);
     }
 
     currentFlow = flow;
@@ -562,44 +538,89 @@ async function triggerFromPanel() {
   }
 }
 
-// ====== 核心流程（和主站 VerifyModal useEffect 一致） ======
+// ====== 核心流程 ======
 async function startVerifyFlow() {
   const flow = currentFlow;
   const risk = currentRisk;
 
-  // 风险标签
   document.getElementById('v-risk-tag').textContent = risk ? `(${risk === 'high' ? '高' : '低'}风险)` : '';
 
-  // 布局选择
   if (flow === 'both') {
+    // both: Quantum 先 → Turnstile 后
     document.getElementById('v-progress').style.display = 'flex';
     document.getElementById('v-slider-wrap').style.display = 'block';
     document.getElementById('v-single-box').style.display = 'none';
     setProgress(0);
-    setPhaseLabel('第 1 步：请完成人机验证');
-    await startTurnstile('both');
-  } else if (flow === 'turnstile') {
+    setPhaseLabel('第 1 步：请完成安全验证');
+    startQuantum('both');
+  } else if (flow === 'quantum') {
+    document.getElementById('v-single-box').style.display = 'block';
+    document.getElementById('v-slider-wrap').style.display = 'none';
+    document.getElementById('v-single-quantum').style.display = 'block';
+    document.getElementById('v-single-turnstile').style.display = 'none';
+    document.getElementById('v-single-loading').style.display = 'none';
+    setPhaseLabel('请完成安全验证');
+    startQuantum('single');
+  } else {
+    // turnstile
     document.getElementById('v-single-box').style.display = 'block';
     document.getElementById('v-slider-wrap').style.display = 'none';
     document.getElementById('v-single-turnstile').style.display = 'block';
     document.getElementById('v-single-quantum').style.display = 'none';
     document.getElementById('v-single-loading').style.display = 'none';
     setPhaseLabel('请完成人机验证');
-    await startTurnstile('single');
-  } else {
-    document.getElementById('v-single-box').style.display = 'block';
-    document.getElementById('v-slider-wrap').style.display = 'none';
-    document.getElementById('v-single-turnstile').style.display = 'none';
-    document.getElementById('v-single-quantum').style.display = 'block';
-    document.getElementById('v-single-loading').style.display = 'none';
-    setPhaseLabel('请完成安全验证');
-    startQuantum('single');
+    startTurnstile('single');
   }
+}
+
+// ====== Quantum ======
+function startQuantum(mode) {
+  panelLog('加载 Quantum...');
+  const containerId = mode === 'both' ? 'quantum-container-both' : 'quantum-container-single';
+
+  const render = () => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.textContent = '';
+    panelLog('Quantum SDK 就绪');
+
+    try {
+      window.ABDLCaptcha.render(container, {
+        apiBase: API_BASE,
+        onSuccess: (token) => {
+          panelLog('Quantum 验证通过 ✓');
+          if (currentFlow === 'both') {
+            // 滑动到 Turnstile
+            setProgress(1);
+            setPhaseLabel('第 2 步：请完成人机验证');
+            document.getElementById('v-slider').className = 'verify-slider slide-1';
+            setTimeout(() => startTurnstile('both'), 400);
+          } else {
+            finishVerify();
+          }
+        },
+        onError: () => showError('验证失败，请重试'),
+      });
+    } catch {
+      showError('验证组件渲染失败');
+    }
+  };
+
+  if (window.ABDLCaptcha) { render(); return; }
+  let waited = 0;
+  const check = setInterval(() => {
+    if (window.ABDLCaptcha || waited > 10000) {
+      clearInterval(check);
+      window.ABDLCaptcha ? render() : showError('Quantum SDK 加载超时');
+    }
+    waited += 200;
+  }, 200);
 }
 
 // ====== Turnstile ======
 async function startTurnstile(mode) {
   panelLog('加载 Turnstile...');
+  const containerId = mode === 'both' ? 'turnstile-container-both' : 'turnstile-container-single';
 
   if (!window.turnstile) {
     await new Promise((resolve, reject) => {
@@ -613,7 +634,6 @@ async function startTurnstile(mode) {
   }
   panelLog('Turnstile 脚本已加载');
 
-  // 创建挑战
   const res = await fetch(`${API_BASE}/api/captcha/challenge`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ type: 'turnstile' }),
@@ -622,7 +642,6 @@ async function startTurnstile(mode) {
   turnstileSessionId = data.session_id;
   panelLog(`挑战创建: session=${data.session_id.slice(0, 8)}...`);
 
-  const containerId = mode === 'both' ? 'turnstile-container' : 'turnstile-container-single';
   const container = document.getElementById(containerId);
   if (!container) return;
 
@@ -643,15 +662,7 @@ async function startTurnstile(mode) {
           const result = await verifyRes.json();
           if (result.success) {
             panelLog('Turnstile 验证通过 ✓');
-            if (currentFlow === 'both') {
-              // 滑动到 Quantum
-              setProgress(1);
-              setPhaseLabel('第 2 步：请完成安全验证');
-              document.getElementById('v-slider').className = 'verify-slider slide-1';
-              setTimeout(() => startQuantum('both'), 400);
-            } else {
-              finishVerify();
-            }
+            finishVerify();
           } else {
             showError(result.locked ? '验证次数过多，请稍后再试' : '验证失败，请重试');
           }
@@ -666,69 +677,18 @@ async function startTurnstile(mode) {
   }
 }
 
-// ====== Quantum ======
-function startQuantum(mode) {
-  panelLog('加载 Quantum...');
-
-  const waitForSDK = () => {
-    if (window.ABDLCaptcha) {
-      renderQuantum(mode);
-      return;
-    }
-    let waited = 0;
-    const check = setInterval(() => {
-      if (window.ABDLCaptcha || waited > 10000) {
-        clearInterval(check);
-        if (window.ABDLCaptcha) {
-          renderQuantum(mode);
-        } else {
-          showError('Quantum SDK 加载超时');
-        }
-      }
-      waited += 200;
-    }, 200);
-  };
-  waitForSDK();
-}
-
-function renderQuantum(mode) {
-  panelLog('Quantum SDK 就绪');
-  const containerId = mode === 'both' ? 'quantum-container' : 'quantum-container-single';
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  container.textContent = '';
-
-  try {
-    window.ABDLCaptcha.render(container, {
-      apiBase: API_BASE,
-      onSuccess: (token) => {
-        panelLog('Quantum 验证通过 ✓');
-        finishVerify();
-      },
-      onError: (err) => {
-        showError('验证失败，请重试');
-      },
-    });
-  } catch {
-    showError('验证组件渲染失败');
-  }
-}
-
 // ====== 完成 ======
 function finishVerify() {
-  setPhaseLabel('验证通过 ✓');
-  document.getElementById('v-phase-label').style.color = 'var(--success)';
+  const el = document.getElementById('v-phase-label');
+  el.textContent = '验证通过 ✓';
+  el.style.color = 'var(--success)';
 
-  // 隐藏 widget，显示 done 图标
   document.getElementById('v-slider-wrap').style.display = 'none';
   document.getElementById('v-single-box').style.display = 'none';
   document.getElementById('v-progress').style.display = 'none';
   document.getElementById('v-done').style.display = 'block';
 
-  setTimeout(() => {
-    closeVerify();
-    document.getElementById('v-phase-label').style.color = '';
-  }, 800);
+  setTimeout(() => closeVerify(), 800);
 }
 
 // ====== 初始化 ======

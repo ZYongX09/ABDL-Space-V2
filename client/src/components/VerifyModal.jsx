@@ -9,7 +9,7 @@ const TURNSTILE_SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api
  * 流程:
  *   1. trigger(onPass) → 调用 /api/captcha/risk 获取风险等级
  *   2. low risk:  随机选择 turnstile 或 quantum
- *   3. high risk: 先 turnstile → 滑动切换 → quantum
+ *   3. high risk: 先 quantum → 滑动切换 → turnstile
  *   4. 验证通过 → 执行 onPass
  */
 export function useVerifyModal() {
@@ -20,7 +20,7 @@ export function useVerifyModal() {
   const [risk, setRisk] = useState(null);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
-  // both 模式：卡片滑动位置 (0 = Turnstile, 1 = Quantum)
+  // both 模式：卡片滑动位置 (0 = Quantum, 1 = Turnstile)
   const [slideIndex, setSlideIndex] = useState(0);
 
   const actionRef = useRef(null);
@@ -97,7 +97,9 @@ export function useVerifyModal() {
         setRisk(data.risk);
         setFlow(data.flow);
 
-        if (data.flow === 'turnstile' || data.flow === 'both') {
+        if (data.flow === 'both') {
+          setPhase('quantum');
+        } else if (data.flow === 'turnstile') {
           setPhase('turnstile');
         } else {
           setPhase('quantum');
@@ -151,13 +153,7 @@ export function useVerifyModal() {
               const result = await res.json();
               if (result.success) {
                 tokenRef.current = token;
-                if (flow === 'both') {
-                  // 滑动切换到 Quantum 卡片
-                  setSlideIndex(1);
-                  setTimeout(() => setPhase('quantum'), 400);
-                } else {
-                  finishVerification();
-                }
+                finishVerification();
               } else {
                 setError(result.locked ? '验证次数过多，请稍后再试' : '验证失败，请重试');
               }
@@ -189,7 +185,13 @@ export function useVerifyModal() {
         apiBase: API_BASE,
         onSuccess: (token) => {
           tokenRef.current = token;
-          finishVerification();
+          if (flow === 'both') {
+            // 滑动切换到 Turnstile 卡片
+            setSlideIndex(1);
+            setTimeout(() => setPhase('turnstile'), 400);
+          } else {
+            finishVerification();
+          }
         },
         onError: () => setError('验证失败，请重试'),
       });
@@ -224,7 +226,6 @@ export function useVerifyModal() {
     position: 'fixed', inset: 0, zIndex: 400,
     background: 'rgba(0,0,0,0.5)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    backdropFilter: 'blur(2px)',
     opacity: animState === 'entering' ? 0 : animState === 'exiting' ? 0 : 1,
     transition: 'opacity 0.25s ease',
   };
@@ -256,8 +257,8 @@ export function useVerifyModal() {
 
   const phaseLabel = {
     loading: '正在评估安全等级...',
-    turnstile: flow === 'both' ? '第 1 步：请完成人机验证' : '请完成人机验证',
-    quantum: flow === 'both' ? '第 2 步：请完成安全验证' : '请完成安全验证',
+    quantum: flow === 'both' ? '第 1 步：请完成安全验证' : '请完成安全验证',
+    turnstile: flow === 'both' ? '第 2 步：请完成人机验证' : '请完成人机验证',
     done: '验证通过 ✓',
   };
 
@@ -299,16 +300,16 @@ export function useVerifyModal() {
         {flow === 'both' ? (
           <div style={{ overflow: 'hidden', borderRadius: '1rem' }}>
             <div style={sliderStyle}>
-              {/* Turnstile 卡片 */}
-              <div style={slideCardStyle}>
-                <div style={{ border: '1.5px solid var(--border)', borderRadius: '1rem', padding: '12px', minHeight: 80 }}>
-                  <div id="turnstile-container" style={{ display: 'flex', justifyContent: 'center' }} />
-                </div>
-              </div>
               {/* Quantum 卡片 */}
               <div style={slideCardStyle}>
                 <div style={{ border: '1.5px solid var(--border)', borderRadius: '1rem', padding: '12px', minHeight: 80 }}>
                   <div ref={quantumContainerRef} />
+                </div>
+              </div>
+              {/* Turnstile 卡片 */}
+              <div style={slideCardStyle}>
+                <div style={{ border: '1.5px solid var(--border)', borderRadius: '1rem', padding: '12px', minHeight: 80 }}>
+                  <div id="turnstile-container" style={{ display: 'flex', justifyContent: 'center' }} />
                 </div>
               </div>
             </div>
