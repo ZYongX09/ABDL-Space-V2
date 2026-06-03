@@ -613,3 +613,172 @@ return c.json({ error: `无效的图片 URL: ${img.url}` }, 400)
 - 缺安全日志
 
 **报告**已写入 `BUG_REPORT.md`（commit `cfd5700` 之后追加）。
+
+---
+
+## [2026-06-04 02:16] 后端 32d54fd 审查报告 — Resend → 腾讯云 SES 迁移
+
+**范围**：`/home/ZYongX/projects/git/abdl-space` 仓库 commit `32d54fd`，3 文件 +144/-41
+
+**改动核心**：新增 `src/lib/ses.ts`（TC3-HMAC-SHA256 签名 + SendEmail 调用），`auth.ts` 改用模板发送，`nbw.ts` 一行注释更新（`Origin/Referer` → `Origin`）。
+
+**总体**：TC3 签名实现**正确**（按官方文档逐步对照过），代码清爽。但**类型/配置层有 4 个 P1/P2 必须修**。
+
+---
+
+### Bug #1 — P1（类型/配置：`Env` 接口未更新，TypeScript 会报错）
+- **文件**：`/home/ZYongX/projects/git/abdl-space/src/types/index.ts:278`
+- **问题**：
+  ```typescript
+  export interface Env {
+    abdl_space_db: D1Database
+    JWT_SECRET: string
+    RESEND_API_KEY: string          // ❌ 还在，但已无人用
+    TURNSTILE_SITE_KEY?: string
+    TURNSTILE_SECRET_KEY?: string
+    ENCRYPT_KEY?: string
+    // ❌ 缺：TENCENT_SECRET_ID, TENCENT_SECRET_KEY, SES_FROM_EMAIL, SES_TEMPLATE_ID
+  }
+  ```
+  而 `auth.ts:168` 现在读 `c.env.TENCENT_SECRET_ID` / `TENCENT_SECRET_KEY` / `SES_FROM_EMAIL`，`auth.ts:165` 读 `c.env.SES_TEMPLATE_ID`。
+- **影响**：
+  1. **TypeScript 编译失败**（如果开了 `strict` + `noImplicitAny`）——`c.env` 上访问不存在的字段会报错
+  2. 即使编译过，**运行时如果 env 没配**，所有 4 个字段都是 `undefined`：
+     - `Number(undefined)` → `NaN` → 发送 `TemplateID: NaN` 给 TC3
+     - `hmacSha256(undefined, ...)` → `TextEncoder().encode(undefined)` 抛 TypeError
+  3. 用户看到「发送验证码失败，请稍后再试」但 ops 排查不知道是 env 没配
+- **建议**：
+  ```typescript
+  export interface Env {
+    abdl_space_db: D1Database
+    JWT_SECRET: string
+    // 移除 RESEND_API_KEY（已废弃）
+    // 腾讯云 SES（必填）
+    TENCENT_SECRET_ID: string
+    TENCENT_SECRET_KEY: string
+    SES_FROM_EMAIL: string
+    SES_TEMPLATE_ID: string
+    // 其他可选
+    TURNSTILE_SITE_KEY?: string
+    TURNSTILE_SECRET_KEY?: string
+    ENCRYPT_KEY?: string
+  }
+  ```
+
+---
+
+### Bug #2 — P1（配置文档：`.env.example` 没更新）
+- **文件**：`/home/ZYongX/projects/git/abdl-space/.env.example`
+- **问题**：新部署看 `.env.example` 完全不知道要配腾讯云 SES 的 4 个变量。`RESEND_API_KEY` 注释也还在。
+- **影响**：部署后第一次发邮件才报错，**首次用户体验**=验证码发不出去
+- **建议**：在 `.env.example` 加：
+  ```
+  # 腾讯云 SES（验证码邮件）
+  TENCENT_SECRET_ID=AKIDxxxxxxxxxxxxxxxx
+  TENCENT_SECRET_KEY=xxxxxxxxxxxxxxxx
+  SES_FROM_EMAIL=noreply@abdl-space.top
+  SES_TEMPLATE_ID=12345
+  ```
+  并删除旧的 `RESEND_API_KEY` 注释
+
+---
+
+### Bug #3 — P2（错误处理：`Number(undefined)` 静默变成 NaN）
+- **文件**：`/home/ZYongX/projects/git/abdl-space/src/routes/auth.ts:165`
+- **问题**：
+  ```typescript
+  Number(c.env.SES_TEMPLATE_ID)  // 如果 undefined → NaN
+  ```
+  `NaN` JSON.stringify 成 `null`，TC3 API 会返回参数错误，但**错误信息是「TemplateID 类型不合法」**，看不出是 env 缺失。
+- **影响**：故障定位慢，ops 看到「参数错误」会以为是 SES 后台问题
+- **建议**：在 `send-code` 入口加显式检查：
+  ```typescript
+  if (!c.env.TENCENT_SECRET_ID || !c.env.TENCENT_SECRET_KEY || !c.env.SES_FROM_EMAIL || !c.env.SES_TEMPLATE_ID) {
+    console.error('[send-code] SES env vars missing:', {
+      TENCENT_SECRET_ID: !!c.env.TENCENT_SECRET_ID,
+      TENCENT_SECRET_KEY: !!c.env.TENCENT_SECRET_KEY,
+      SES_FROM_EMAIL: !!c.env.SES_FROM_EMAIL,
+      SES_TEMPLATE_ID: !!c.env.SES_TEMPLATE_ID,
+    })
+    return c.json({ error: '邮件服务未配置' }, 503)  // 503 Service Unavailable
+  }
+  ```
+
+---
+
+### Bug #4 — P2（错误处理：`res.json()` 可能抛错未捕获）
+- **文件**：`/home/ZYongX/projects/git/abdl-space/src/lib/ses.ts:113-127`
+- **问题**：
+  ```typescript
+  const res = await fetch(...)
+  const data = await res.json() as { Response?: {...} }  // ⚠️ 非 JSON 会抛 SyntaxError
+  if (!res.ok || data.Response?.Error) { ... }
+  ```
+  - 如果 TC3 返回 HTML 错误页（5xx 维护期），`res.json()` 抛 `SyntaxError`
+  - 网络层 `fetch` 失败（DNS/timeout/TLS）会抛 `TypeError`
+  - 这些错误**不会被** `if (!res.ok)` 拦截，**直接抛到调用方**（auth.ts 的 try/catch 兜住）
+  - 但 SES.ts 内部「不知道」发生了什么，console.error 打出来的 stack trace 会从 `res.json()` 起点而不是 `fetch` 起点
+- **影响**：错误日志定位不友好，但功能不破
+- **建议**：
+  ```typescript
+  let data: any
+  try {
+    data = await res.json()
+  } catch {
+    throw new Error(`SES: invalid JSON response (status ${res.status})`)
+  }
+  // 加上超时控制
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 10_000)  // 10s
+  try {
+    const res = await fetch(url, { ..., signal: controller.signal })
+    // ...
+  } finally {
+    clearTimeout(timeoutId)
+  }
+  ```
+
+---
+
+### 总体评价
+
+**TC3 签名实现是正确的**——按官方文档 4 步法逐步对照过：
+1. ✅ CanonicalRequest 格式（POST / + 空 query + headers + signed-headers + payload-hash）
+2. ✅ StringToSign（algorithm + timestamp + credential-scope + canonical-hash）
+3. ✅ Signature 三层 HMAC 链（TC3+secretKey → date → service → tc3_request）
+4. ✅ Authorization 头格式（Credential + SignedHeaders + Signature）
+
+**代码风格也清爽**：
+- 用 `env` 参数注入（可测试，不依赖全局）
+- `TriggerType=1` 是触发类（验证码）专用通道 ✅
+- 重命名 `RESEND_COOLDOWN_SECONDS → EMAIL_COOLDOWN_SECONDS`（provider-neutral）✅
+- 移除 `sendEmail` / `codeEmailHtml` 死代码 ✅
+
+**但 4 个配置/错误处理问题需要修**：
+1. **#1 (P1) `Env` 类型未更新**——TS 编译失败 + 运行时 NaN
+2. **#2 (P1) `.env.example` 未文档化**——首次部署必踩坑
+3. **#3 (P2) `Number(undefined)` 静默 NaN**——错误信息不友好
+4. **#4 (P2) `res.json()` 未捕获 + 无超时控制**——错误日志不友好
+
+**签名本体没问题，merge 前补一下 env 配置和错误处理。**
+
+---
+
+### 次要观察（不阻塞）
+
+- `auth.ts:163-168` 用内联对象字面量传 env，可读性 OK 但稍冗长；如果将来有 2+ 处调用，可考虑在 `ses.ts` 接受完整 `Env` 类型
+- `Subject` 字段在用 `Template` 时是 optional 覆盖；模板里若定义了主题，body 的 `Subject` 可能被忽略——建议 ops 在 SES 后台模板里固定主题，让 body 不传
+- 频率限制变量重命名后，原先若有外部脚本/文档引用 `RESEND_COOLDOWN_SECONDS` 字面量会断——grep 一下文档
+- 没看到 401/403 等鉴权错误重试逻辑（TC3 偶尔会返回 500），生产环境加一个 1-2 次的指数退避更稳
+
+---
+
+### 验证方法（推荐 CI 加）
+写个 unit test 对照 TC3 官方 Node.js SDK 签出来的 Authorization 头，与本实现对比——一次验证终身放心：
+
+```typescript
+import { signRequest } from './ses.ts'  // 需 export
+const expected = /* 官方 SDK 算出来的 Authorization */
+const got = await signRequest(secretId, secretKey, 'DescribeUsers', '{}', 1700000000)
+console.assert(got.Authorization === expected, 'TC3 signature mismatch')
+```
