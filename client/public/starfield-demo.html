@@ -196,62 +196,78 @@ window.addEventListener('resize', resize);
 resize();
 
 // ============================================================
-// 生成 Logo 形状的点（ABDL icon 星座）
+// 从 SVG 图标提取轮廓点（真实奶瓶形状）
 // ============================================================
-function generateLogoPoints(count) {
-  // 用多个圆弧和字母形状组合成 ABDL 风格的星座图案
-  const points = [];
-  const cx = 0, cy = 0;
+const LOGO_URL = 'https://img.abdl-space.top/file/1779879250278_ABDL_icon.svg';
+let logoPointsCache = null;
 
-  // 外圈 — 大圆环
-  for (let i = 0; i < count * 0.35; i++) {
-    const angle = (i / (count * 0.35)) * Math.PI * 2;
-    const r = 180 + Math.random() * 20;
-    points.push({ x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r });
-  }
+async function loadLogoPoints(count) {
+  if (logoPointsCache) return logoPointsCache;
 
-  // 内圈 — 小圆环
-  for (let i = 0; i < count * 0.15; i++) {
-    const angle = (i / (count * 0.15)) * Math.PI * 2;
-    const r = 80 + Math.random() * 15;
-    points.push({ x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r });
-  }
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      // 在离屏 canvas 上绘制 SVG
+      const size = 400;
+      const offscreen = document.createElement('canvas');
+      offscreen.width = size; offscreen.height = size;
+      const octx = offscreen.getContext('2d');
+      const padding = 20;
+      octx.drawImage(img, padding, padding, size - padding*2, size - padding*2);
 
-  // 中心 — 星形
-  for (let i = 0; i < count * 0.2; i++) {
-    const angle = (i / (count * 0.2)) * Math.PI * 2;
-    const r = 30 + Math.random() * 40;
-    const starR = r * (0.6 + 0.4 * Math.abs(Math.cos(angle * 2.5)));
-    points.push({ x: cx + Math.cos(angle) * starR, y: cy + Math.sin(angle) * starR });
-  }
+      // 扫描像素，提取非透明像素位置
+      const imageData = octx.getImageData(0, 0, size, size);
+      const pixels = [];
+      for (let y = 0; y < size; y += 2) {
+        for (let x = 0; x < size; x += 2) {
+          const i = (y * size + x) * 4;
+          const a = imageData.data[i + 3];
+          if (a > 128) {
+            // 转换到 -200 ~ +200 坐标系
+            pixels.push({
+              x: (x - size/2) * 1.0,
+              y: (y - size/2) * 1.0,
+            });
+          }
+        }
+      }
 
-  // 放射线
-  for (let i = 0; i < count * 0.15; i++) {
-    const lineAngle = Math.floor(Math.random() * 8) * Math.PI / 4;
-    const dist = 20 + Math.random() * 200;
-    const jitter = (Math.random() - 0.5) * 8;
-    points.push({
-      x: cx + Math.cos(lineAngle) * dist + Math.cos(lineAngle + Math.PI/2) * jitter,
-      y: cy + Math.sin(lineAngle) * dist + Math.sin(lineAngle + Math.PI/2) * jitter,
-    });
-  }
+      // 均匀采样到目标数量
+      const result = [];
+      const step = Math.max(1, Math.floor(pixels.length / count));
+      for (let i = 0; i < pixels.length && result.length < count; i += step) {
+        result.push(pixels[i]);
+      }
+      // 补充随机点
+      while (result.length < count) {
+        result.push(pixels[Math.floor(Math.random() * pixels.length)]);
+      }
 
-  // 装饰散点
-  while (points.length < count) {
-    const angle = Math.random() * Math.PI * 2;
-    const r = 100 + Math.random() * 100;
-    points.push({ x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r });
-  }
-
-  return points.slice(0, count);
+      logoPointsCache = result;
+      resolve(result);
+    };
+    img.onerror = () => {
+      // fallback: 圆形
+      const result = [];
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2;
+        const r = 150;
+        result.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
+      }
+      logoPointsCache = result;
+      resolve(result);
+    };
+    img.src = LOGO_URL;
+  });
 }
 
 // ============================================================
 // 初始化粒子
 // ============================================================
-function initStars() {
+async function initStars() {
   stars = [];
-  const logoPoints = generateLogoPoints(LOGO_STAR_COUNT);
+  const logoPoints = await loadLogoPoints(LOGO_STAR_COUNT);
 
   // Logo 粒子
   for (let i = 0; i < LOGO_STAR_COUNT; i++) {
@@ -486,7 +502,9 @@ canvas.addEventListener('touchend', () => { mouseDown = false; });
 // ============================================================
 // 启动
 // ============================================================
-initStars();
+initStars().then(() => {
+  document.getElementById('hint').textContent = '点击任意位置开始';
+});
 </script>
 </body>
 </html>
