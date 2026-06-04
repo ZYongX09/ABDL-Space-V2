@@ -65,7 +65,6 @@ export default function Register() {
       setSendCodeCount(v => v + 1);
       setCooldown(60);
       setSendCodeCaptchaOk(false);
-      setSendCodeCaptchaStarted(false);
       sendCodeTokenRef.current = null;
     } catch (e) { toast.error(e.message); }
     finally { setLoading(false); }
