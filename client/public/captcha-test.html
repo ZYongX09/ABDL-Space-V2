@@ -583,11 +583,80 @@ async function startQuantum(mode) {
     canvas.style.cssText = 'width:100%;height:auto;border-radius:10px;cursor:crosshair;display:block;';
     container.appendChild(canvas);
 
-    // 尝试次数显示
-    const attemptEl = document.createElement('div');
-    attemptEl.style.cssText = 'font-size:0.72rem;color:var(--text-muted);margin-top:6px;text-align:center;';
+    // 底部栏：倒计时 + 尝试次数 + 重置按钮
+    const bottomBar = document.createElement('div');
+    bottomBar.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:8px;font-size:0.72rem;color:var(--text-muted);';
+
+    const hintEl = document.createElement('span');
+    hintEl.style.cssText = 'flex:1;font-size:0.72rem;color:var(--text-light);';
+    hintEl.textContent = '按高亮顺序点击节点，每个节点只能点一次';
+    bottomBar.appendChild(hintEl);
+
+    const timerEl = document.createElement('span');
+    timerEl.style.cssText = 'font-variant-numeric:tabular-nums;padding:2px 8px;border-radius:8px;background:rgba(0,0,0,0.04);';
+    timerEl.textContent = '10s';
+    bottomBar.appendChild(timerEl);
+
+    const attemptEl = document.createElement('span');
     attemptEl.textContent = `尝试: 0/${MAX_ATTEMPTS}`;
-    container.appendChild(attemptEl);
+    bottomBar.appendChild(attemptEl);
+
+    const resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.textContent = '重置';
+    resetBtn.style.cssText = 'padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:var(--input-bg);font-size:0.72rem;cursor:pointer;color:var(--text);';
+    resetBtn.onmouseenter = () => { resetBtn.style.borderColor = 'var(--primary)'; resetBtn.style.color = 'var(--primary-dark)'; };
+    resetBtn.onmouseleave = () => { resetBtn.style.borderColor = 'var(--border)'; resetBtn.style.color = 'var(--text)'; };
+    bottomBar.appendChild(resetBtn);
+
+    container.appendChild(bottomBar);
+
+    // 进度条
+    const progressWrap = document.createElement('div');
+    progressWrap.style.cssText = 'height:2px;background:var(--border);border-radius:0 0 10px 10px;overflow:hidden;margin-top:4px;';
+    const progressBar = document.createElement('div');
+    progressBar.style.cssText = 'height:100%;background:var(--primary);width:0%;transition:width 0.2s linear;border-radius:2px;';
+    progressWrap.appendChild(progressBar);
+    container.appendChild(progressWrap);
+
+    // 倒计时状态
+    let timerStart = Date.now();
+    const TIMEOUT_MS = 10000;
+    let timerExpired = false;
+    let countdownInterval = null;
+
+    function startCountdown() {
+      timerStart = Date.now();
+      timerExpired = false;
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = setInterval(() => {
+        if (timerExpired) { clearInterval(countdownInterval); return; }
+        const elapsed = Date.now() - timerStart;
+        const remaining = Math.max(0, TIMEOUT_MS - elapsed);
+        const secs = Math.ceil(remaining / 1000);
+        timerEl.textContent = `${secs}s`;
+        timerEl.style.color = secs <= 3 ? '#ef476f' : 'var(--text-muted)';
+        timerEl.style.background = secs <= 3 ? 'rgba(239,71,111,0.1)' : 'rgba(0,0,0,0.04)';
+        progressBar.style.width = Math.min(100, (elapsed / TIMEOUT_MS) * 100) + '%';
+        progressBar.style.background = secs <= 3 ? '#ef476f' : 'var(--primary)';
+        if (remaining <= 0) {
+          clearInterval(countdownInterval);
+          timerExpired = true;
+          hintEl.textContent = '超时，正在重置...';
+          hintEl.style.color = '#ef476f';
+          setTimeout(() => startQuantum(mode), 800);
+        }
+      }, 200);
+    }
+    startCountdown();
+
+    // 重置按钮
+    resetBtn.onclick = () => {
+      quantumUserSeq = []; quantumEdges = [];
+      hintEl.textContent = '按高亮顺序点击节点，每个节点只能点一次';
+      hintEl.style.color = 'var(--text-light)';
+      startCountdown();
+    };
 
     const ctx = canvas.getContext('2d');
 
@@ -601,7 +670,7 @@ async function startQuantum(mode) {
 
     canvas.addEventListener('click', async (e) => {
       const id = getNodeUnder(e);
-      if (!id || quantumUserSeq.includes(id)) return;
+      if (!id || quantumUserSeq.includes(id) || timerExpired) return;
 
       const expected = quantumOrder[quantumUserSeq.length];
       if (id === expected) {
@@ -625,6 +694,11 @@ async function startQuantum(mode) {
             const result = await verifyRes.json();
             if (result.success) {
               panelLog('Quantum 验证通过 ✓');
+              if (countdownInterval) clearInterval(countdownInterval);
+              hintEl.textContent = '验证通过 ✓';
+              hintEl.style.color = '#5DAE60';
+              progressBar.style.width = '100%';
+              progressBar.style.background = '#5DAE60';
               if (currentFlow === 'both') {
                 setProgress(1);
                 setZoneColor('yellow');
@@ -645,7 +719,9 @@ async function startQuantum(mode) {
               quantumUserSeq = []; quantumEdges = [];
               if (result.locked) { showError('已锁定'); } else {
                 showError(`验证失败，剩余 ${result.attempts_left} 次`);
-                setTimeout(() => { setPhaseLabel('请按高亮顺序点击节点', ''); }, 1500);
+                hintEl.textContent = '顺序错误，请重试';
+                hintEl.style.color = '#ef476f';
+                setTimeout(() => { setPhaseLabel('请按高亮顺序点击节点', ''); hintEl.textContent = '按高亮顺序点击节点，每个节点只能点一次'; hintEl.style.color = 'var(--text-light)'; }, 1500);
               }
             }
           } catch { showError('网络错误'); }
@@ -656,7 +732,9 @@ async function startQuantum(mode) {
         quantumUserSeq = []; quantumEdges = [];
         if (quantumAttempts >= MAX_ATTEMPTS) { showError('已锁定'); } else {
           showError('顺序错误，请重试');
-          setTimeout(() => setPhaseLabel('请按高亮顺序点击节点', ''), 1500);
+          hintEl.textContent = '顺序错误，请重试';
+          hintEl.style.color = '#ef476f';
+          setTimeout(() => { setPhaseLabel('请按高亮顺序点击节点', ''); hintEl.textContent = '按高亮顺序点击节点，每个节点只能点一次'; hintEl.style.color = 'var(--text-light)'; }, 1500);
         }
       }
     });
