@@ -953,6 +953,17 @@ export const adminAPI = {
     if (USE_API) return apiFetch(`/api/reports/admin/${id}`, { method: 'PATCH', body: JSON.stringify({ action, delete_content: deleteContent }) });
     return { message: '已处理' };
   },
+
+  // 安全中心
+  getSecurityLogs: async (page = 1, limit = 50, type = '') => {
+    if (USE_API) return apiFetch(`/api/admin/security/logs?page=${page}&limit=${limit}&type=${type}`);
+    return { logs: [], total: 0, page, limit };
+  },
+
+  getSecurityStats: async () => {
+    if (USE_API) return apiFetch('/api/admin/security/stats');
+    return { dayCount: 0, weekCount: 0, typeStats: [], scoreDistribution: [], trend: [] };
+  },
 };
 
 // =====================================================================

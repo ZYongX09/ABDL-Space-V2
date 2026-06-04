@@ -16,6 +16,7 @@ const TABS = [
   { key: 'diapers', label: '纸尿裤', icon: 'fa-baby' },
   { key: 'brands', label: '品牌', icon: 'fa-copyright' },
   { key: 'reports', label: '举报', icon: 'fa-flag' },
+  { key: 'security', label: '安全', icon: 'fa-shield-halved' },
 ];
 
 export default function AdminPage() {
@@ -41,6 +42,11 @@ export default function AdminPage() {
   });
   const [diaperSaving, setDiaperSaving] = useState(false);
   const [brands, setBrands] = useState([]);
+  const [secLogs, setSecLogs] = useState([]);
+  const [secStats, setSecStats] = useState(null);
+  const [secTotal, setSecTotal] = useState(0);
+  const [secPage, setSecPage] = useState(1);
+  const [secFilter, setSecFilter] = useState('');
   const [brandForm, setBrandForm] = useState({ name: '', logo: '', invert_dark: false, invert_light: false });
   const [showBrandForm, setShowBrandForm] = useState(false);
   const [editingBrand, setEditingBrand] = useState(null);
@@ -73,6 +79,14 @@ export default function AdminPage() {
       } else if (t === 'diapers') {
         const data = await adminAPI.listDiapers();
         setDiapers(data.diapers || []);
+      } else if (t === 'security') {
+        const [logsData, statsData] = await Promise.all([
+          adminAPI.getSecurityLogs(secPage, 50, secFilter),
+          adminAPI.getSecurityStats(),
+        ]);
+        setSecLogs(logsData.logs || []);
+        setSecTotal(logsData.total || 0);
+        setSecStats(statsData);
       }
     } catch (e) {
       toast.error(e.message);
@@ -646,6 +660,163 @@ export default function AdminPage() {
         </>
       )}
 
+      {/* ====== 安全中心 ====== */}
+      {tab === 'security' && (
+        <>
+          {loading ? <LoadingSkeleton count={3} height={120} /> : (
+            <>
+              {/* 统计卡片 */}
+              {secStats && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                  <div className="card" style={{ padding: '14px', textAlign: 'center' }}>
+                    <div className="text-2xl font-bold" style={{ color: 'var(--danger)' }}>{secStats.dayCount}</div>
+                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>24h 可疑事件</div>
+                  </div>
+                  <div className="card" style={{ padding: '14px', textAlign: 'center' }}>
+                    <div className="text-2xl font-bold" style={{ color: 'var(--warning)' }}>{secStats.weekCount}</div>
+                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>7天 可疑事件</div>
+                  </div>
+                  <div className="card" style={{ padding: '14px', textAlign: 'center' }}>
+                    <div className="text-2xl font-bold" style={{ color: 'var(--primary-dark)' }}>
+                      {secStats.scoreDistribution?.find(s => s.level === 'critical')?.cnt || 0}
+                    </div>
+                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>高危事件</div>
+                  </div>
+                  <div className="card" style={{ padding: '14px', textAlign: 'center' }}>
+                    <div className="text-2xl font-bold" style={{ color: 'var(--success)' }}>
+                      {secStats.scoreDistribution?.find(s => s.level === 'normal')?.cnt || 0}
+                    </div>
+                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>正常事件</div>
+                  </div>
+                </div>
+              )}
+
+              {/* 事件类型分布 + 24h趋势 */}
+              {secStats && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                  <div className="card" style={{ padding: '16px' }}>
+                    <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--text)' }}>
+                      <i className="fa-solid fa-chart-bar mr-2" style={{ color: 'var(--primary-dark)' }} />事件类型分布
+                    </h3>
+                    {secStats.typeStats?.length > 0 ? (
+                      <div className="space-y-2">
+                        {secStats.typeStats.map(t => (
+                          <div key={t.event_type} className="flex items-center gap-2">
+                            <span className="text-xs" style={{ color: 'var(--text-muted)', minWidth: 120 }}>{t.event_type}</span>
+                            <div className="flex-1 h-4 rounded" style={{ background: 'var(--input-bg)', overflow: 'hidden' }}>
+                              <div className="h-full rounded" style={{
+                                width: `${Math.min(100, (t.cnt / Math.max(...secStats.typeStats.map(x => x.cnt))) * 100)}%`,
+                                background: 'var(--primary)',
+                                transition: 'width 0.3s',
+                              }} />
+                            </div>
+                            <span className="text-xs font-bold" style={{ color: 'var(--text)', minWidth: 30, textAlign: 'right' }}>{t.cnt}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>暂无数据</p>
+                    )}
+                  </div>
+
+                  <div className="card" style={{ padding: '16px' }}>
+                    <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--text)' }}>
+                      <i className="fa-solid fa-chart-line mr-2" style={{ color: 'var(--primary-dark)' }} />24h 趋势
+                    </h3>
+                    {secStats.trend?.length > 0 ? (
+                      <div className="flex items-end gap-1" style={{ height: 80 }}>
+                        {secStats.trend.map((t, i) => {
+                          const maxCnt = Math.max(...secStats.trend.map(x => x.cnt));
+                          const h = maxCnt > 0 ? (t.cnt / maxCnt) * 100 : 0;
+                          return (
+                            <div key={i} className="flex-1 flex flex-col items-center justify-end" style={{ height: '100%' }}>
+                              <div className="w-full rounded-t" style={{
+                                height: `${h}%`,
+                                background: t.cnt > 5 ? 'var(--danger)' : t.cnt > 2 ? 'var(--warning)' : 'var(--primary)',
+                                minHeight: t.cnt > 0 ? 4 : 0,
+                                transition: 'height 0.3s',
+                              }} />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>暂无数据</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 筛选 */}
+              <div className="flex gap-2 mb-4">
+                {['', 'low_behavior_score', 'context_mismatch', 'tamper_detected'].map(t => (
+                  <button key={t} className="btn btn-sm" onClick={() => { setSecFilter(t); setSecPage(1); loadTab('security'); }}
+                    style={{
+                      background: secFilter === t ? 'var(--primary)' : 'var(--input-bg)',
+                      color: secFilter === t ? 'white' : 'var(--text)',
+                      border: 'none', fontSize: '0.72rem',
+                    }}>
+                    {{ '': '全部', low_behavior_score: '低行为分', context_mismatch: '上下文异常', tamper_detected: '篡改检测' }[t]}
+                  </button>
+                ))}
+              </div>
+
+              {/* 日志列表 */}
+              <div className="space-y-2">
+                {secLogs.length === 0 ? (
+                  <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>暂无安全日志</p>
+                ) : secLogs.map(log => {
+                  const details = (() => { try { return JSON.parse(log.details || '{}'); } catch { return {}; } })();
+                  const scoreColor = log.score < 20 ? 'var(--danger)' : log.score < 40 ? 'var(--warning)' : log.score < 60 ? 'var(--primary-dark)' : 'var(--success)';
+                  const levelLabel = log.score < 20 ? '高危' : log.score < 40 ? '警告' : log.score < 60 ? '注意' : '正常';
+                  return (
+                    <div key={log.id} className="card" style={{ padding: '12px 16px' }}>
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{ background: scoreColor + '20', color: scoreColor }}>
+                          <i className="fa-solid fa-shield-halved" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="tag" style={{ background: scoreColor + '20', color: scoreColor, fontSize: '0.65rem', padding: '1px 6px' }}>{levelLabel}</span>
+                            <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{log.event_type}</span>
+                            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                              {log.created_at ? new Date(log.created_at * 1000).toLocaleString('zh-CN') : ''}
+                            </span>
+                          </div>
+                          <div className="text-xs space-y-0.5" style={{ color: 'var(--text-light)' }}>
+                            <div>行为评分: <strong style={{ color: scoreColor }}>{log.score}</strong>/100</div>
+                            {log.session_id && <div>会话: <span className="font-mono">{log.session_id.slice(0, 16)}...</span></div>}
+                            {details.behavior?.totalTime && <div>总用时: {details.behavior.totalTime}ms</div>}
+                            {details.behavior?.clickTimes && <div>点击次数: {details.behavior.clickTimes.length}</div>}
+                            {details.behavior?.轨迹 && <div>鼠标轨迹点: {details.behavior.轨迹.length}</div>}
+                            {details.behavior?.touchUsed && <div>使用了触摸: <span style={{ color: 'var(--warning)' }}>是</span></div>}
+                            {details.behavior?.screen && <div>屏幕: {details.behavior.screen}</div>}
+                            {details.behavior?.tz && <div>时区: {details.behavior.tz}</div>}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 分页 */}
+              {secTotal > 50 && (
+                <div className="flex justify-center gap-2 mt-4">
+                  <button className="btn btn-sm btn-outline" disabled={secPage <= 1}
+                    onClick={() => { setSecPage(p => p - 1); loadTab('security'); }}>上一页</button>
+                  <span className="text-sm" style={{ color: 'var(--text-muted)', padding: '6px 12px' }}>
+                    {secPage} / {Math.ceil(secTotal / 50)}
+                  </span>
+                  <button className="btn btn-sm btn-outline" disabled={secPage >= Math.ceil(secTotal / 50)}
+                    onClick={() => { setSecPage(p => p + 1); loadTab('security'); }}>下一页</button>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
 
     </PageLayout>
     <>{VerifyModal}</>
