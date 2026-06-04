@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Starfield Constellation — Apple Style</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+  canvas { display: block; }
+  .overlay {
+    position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+    text-align: center; z-index: 10; pointer-events: none;
+  }
+  .overlay h1 {
+    font-size: 2rem; font-weight: 700; color: #fff;
+    opacity: 0; transform: translateY(20px);
+    transition: all 0.8s cubic-bezier(0.25, 0.1, 0, 1);
+  }
+  .overlay h1.show { opacity: 1; transform: translateY(0); }
+  .overlay p {
+    font-size: 0.9rem; color: rgba(255,255,255,0.5); margin-top: 8px;
+    opacity: 0; transition: opacity 0.6s ease 0.4s;
+  }
+  .overlay p.show { opacity: 1; }
+  .hint {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    color: rgba(255,255,255,0.3); font-size: 0.85rem; z-index: 10;
+    pointer-events: none; transition: opacity 0.5s ease;
+  }
+  .progress-bar {
+    position: fixed; bottom: 0; left: 0; height: 2px;
+    background: linear-gradient(90deg, #A8D8F0, #FFB7C5);
+    transition: width 0.1s linear; z-index: 10;
+  }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div class="hint" id="hint">点击任意位置开始</div>
+<div class="overlay" id="overlay">
+  <h1 id="title">ABDL Space</h1>
+  <p id="subtitle">探索 ABDL 世界</p>
+</div>
+<div class="progress-bar" id="progress" style="width:0%"></div>
+
+<script>
+/**
+ * Starfield Constellation — Apple Style
+ *
+ * 核心架构（模仿 Apple ac-video RAF 系统）：
+ * 1. 共享 RAF 执行器 — 所有动画共享一个 rAF 循环
+ * 2. 分阶段执行：update → draw
+ * 3. 贝塞尔缓动 + 动量物理
+ * 4. 粒子系统 + 摄像机飞行
+ */
+
+// ============================================================
+// 贝塞尔缓动（Apple style）
+// ============================================================
+function createBezier(x1, y1, x2, y2) {
+  // Newton-Raphson 求解 t
+  function sampleCurveX(t) { return ((1 - 3*x2 + 3*x1)*t + (3*x2 - 6*x1))*t + 3*x1*t; }
+  function sampleCurveY(t) { return ((1 - 3*y2 + 3*y1)*t + (3*y2 - 6*y1))*t + 3*y1*t; }
+  function sampleCurveDerivativeX(t) { return (3*(1 - 3*x2 + 3*x1)*t + 2*(3*x2 - 6*x1))*t + 3*x1; }
+  function solveCurveX(x) {
+    let t = x;
+    for (let i = 0; i < 8; i++) {
+      const err = sampleCurveX(t) - x;
+      if (Math.abs(err) < 1e-6) return t;
+      t -= err / sampleCurveDerivativeX(t);
+    }
+    return t;
+  }
+  return function(x) {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    return sampleCurveY(solveCurveX(x));
+  };
+}
+
+// Apple 标准缓动
+const easeApple = createBezier(0.25, 0.1, 0, 1);       // 相机飞行
+const easeParticle = createBezier(0.1, 0.15, 0, 1);   // 粒子成型（Apple sine easing）
+const easeBounce = createBezier(0.34, 1.56, 0.64, 1);
+
+// ============================================================
+// RAF 执行器（Apple style 分阶段）
+// ============================================================
+class RAFExecutor {
+  constructor() {
+    this._subscribers = new Map();
+    this._order = [];
+    this._running = false;
+    this._rafId = null;
+    this.lastTime = 0;
+    this._boundTick = this._tick.bind(this);
+  }
+
+  subscribe(id, callback, priority = false) {
+    this._subscribers.set(id, callback);
+    priority ? this._order.unshift(id) : this._order.push(id);
+    if (!this._running) this._start();
+  }
+
+  unsubscribe(id) {
+    this._subscribers.delete(id);
+    this._order = this._order.filter(i => i !== id);
+    if (this._subscribers.size === 0) this._stop();
+  }
+
+  _start() {
+    this._running = true;
+    this.lastTime = performance.now();
+    this._rafId = requestAnimationFrame(this._boundTick);
+  }
+
+  _stop() {
+    this._running = false;
+    if (this._rafId) cancelAnimationFrame(this._rafId);
+  }
+
+  _tick(time) {
+    if (!this._running) return;
+    const delta = Math.min(time - this.lastTime, 50); // cap 50ms
+    this.lastTime = time;
+    const data = { time, delta, fps: delta > 0 ? 1000/delta : 0, progress: 0 };
+
+    // update 阶段
+    for (const id of this._order) {
+      const cb = this._subscribers.get(id);
+      if (cb) cb('update', data);
+    }
+    // draw 阶段
+    for (const id of this._order) {
+      const cb = this._subscribers.get(id);
+      if (cb) cb('draw', data);
+    }
+
+    this._rafId = requestAnimationFrame(this._boundTick);
+  }
+}
+
+// ============================================================
+// 粒子系统
+// ============================================================
+class Star {
+  constructor(x, y, z, targetX, targetY, targetZ) {
+    // 随机星空位置
+    this.x = x; this.y = y; this.z = z;
+    // Logo 目标位置
+    this.targetX = targetX; this.targetY = targetY; this.targetZ = targetZ;
+    // 当前渲染位置（插值后）
+    this.rx = x; this.ry = y; this.rz = z;
+    // 随机属性
+    this.size = 0.5 + Math.random() * 2;
+    this.brightness = 0.3 + Math.random() * 0.7;
+    this.twinkleSpeed = 0.5 + Math.random() * 2;
+    this.twinkleOffset = Math.random() * Math.PI * 2;
+    // 是否是 Logo 粒子
+    this.isLogo = targetX !== undefined;
+  }
+}
+
+// ============================================================
+// 主场景
+// ============================================================
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const executor = new RAFExecutor();
+
+let W, H;
+let stars = [];
+let cameraZ = 0;
+let cameraProgress = 0; // 相机飞行进度（贝塞尔缓动）
+let cameraX = 0, cameraY = 0;
+let animProgress = 0;
+let isAnimating = false;
+let isComplete = false;
+let morphComplete = false;
+let mouseDown = false;
+let mouseX = 0, mouseY = 0;
+let dragVelX = 0, dragVelY = 0;
+
+// 配置
+const STAR_COUNT = 2000;       // 总粒子数
+const LOGO_STAR_COUNT = 600;   // Logo 粒子数
+const FLY_DURATION = 4000;     // 飞行时长 ms
+const SPREAD = 1500;           // 星空散布范围
+const DEPTH = 3000;            // Z 轴深度
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ============================================================
+// 从 SVG 路径数据直接采样（精确轮廓）
+// ============================================================
+const LOGO_URL = 'https://img.abdl-space.top/file/1779879250278_ABDL_icon.svg';
+let logoPointsCache = null;
+
+async function loadLogoPoints(count) {
+  if (logoPointsCache) return logoPointsCache;
+
+  return new Promise(async (resolve) => {
+    try {
+      const res = await fetch(LOGO_URL);
+      const svgText = await res.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(svgText, 'image/svg+xml');
+      const paths = doc.querySelectorAll('path');
+
+      const viewBox = doc.querySelector('svg').getAttribute('viewBox');
+      let vbW = 8669, vbH = 8669;
+      if (viewBox) {
+        const parts = viewBox.split(/[\s,]+/).map(Number);
+        vbW = parts[2]; vbH = parts[3];
+      }
+
+      const sampleSize = 600;
+      const offscreen = document.createElement('canvas');
+      offscreen.width = sampleSize; offscreen.height = sampleSize;
+      const octx = offscreen.getContext('2d');
+
+      // 所有路径合并绘制到一张图
+      octx.clearRect(0, 0, sampleSize, sampleSize);
+      octx.save();
+      octx.scale(sampleSize / vbW, sampleSize / vbH);
+      for (const path of paths) {
+        const d = path.getAttribute('d');
+        if (!d) continue;
+        octx.fill(new Path2D(d));
+      }
+      octx.restore();
+
+      // 扫描所有填充像素
+      const imgData = octx.getImageData(0, 0, sampleSize, sampleSize);
+      const filled = new Uint8Array(sampleSize * sampleSize);
+      for (let y = 0; y < sampleSize; y++) {
+        for (let x = 0; x < sampleSize; x++) {
+          if (imgData.data[(y * sampleSize + x) * 4 + 3] > 64) {
+            filled[y * sampleSize + x] = 1;
+          }
+        }
+      }
+
+      // 边缘检测：有任意空邻域的像素
+      const edgePoints = [];
+      const fillPoints = [];
+      for (let y = 1; y < sampleSize - 1; y += 2) {
+        for (let x = 1; x < sampleSize - 1; x += 2) {
+          if (!filled[y * sampleSize + x]) continue;
+          const isEdge = !filled[(y-1)*sampleSize+x] || !filled[(y+1)*sampleSize+x] ||
+                         !filled[y*sampleSize+x-1] || !filled[y*sampleSize+x+1];
+          const px = (x - sampleSize/2) * 0.7;
+          const py = (y - sampleSize/2) * 0.7;
+          if (isEdge) edgePoints.push({ x: px, y: py });
+          else fillPoints.push({ x: px, y: py });
+        }
+      }
+
+      // 80% 轮廓 + 20% 内部，保证轮廓清晰
+      const result = [];
+      const edgeCount = Math.floor(count * 0.8);
+      const edgeStep = Math.max(1, Math.floor(edgePoints.length / edgeCount));
+      for (let i = 0; i < edgePoints.length && result.length < edgeCount; i += edgeStep) {
+        result.push(edgePoints[i]);
+      }
+      const fillStep = Math.max(1, Math.floor(fillPoints.length / (count - edgeCount)));
+      for (let i = 0; i < fillPoints.length && result.length < count; i += fillStep) {
+        result.push(fillPoints[i]);
+      }
+      while (result.length < count) {
+        result.push(edgePoints[Math.floor(Math.random() * edgePoints.length)]);
+      }
+
+      logoPointsCache = result.slice(0, count);
+      resolve(logoPointsCache);
+    } catch (err) {
+      console.error('Logo load failed:', err);
+      const result = [];
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2;
+        result.push({ x: Math.cos(angle) * 150, y: Math.sin(angle) * 150 });
+      }
+      logoPointsCache = result;
+      resolve(result);
+    }
+  });
+}
+
+// ============================================================
+// 初始化粒子
+// ============================================================
+async function initStars() {
+  stars = [];
+  const logoPoints = await loadLogoPoints(LOGO_STAR_COUNT);
+
+  // Logo 粒子
+  for (let i = 0; i < LOGO_STAR_COUNT; i++) {
+    const lp = logoPoints[i];
+    const x = (Math.random() - 0.5) * SPREAD;
+    const y = (Math.random() - 0.5) * SPREAD;
+    const z = Math.random() * DEPTH;
+    stars.push(new Star(x, y, z, lp.x, lp.y, 0));
+  }
+
+  // 背景粒子（不参与 Logo）
+  for (let i = 0; i < STAR_COUNT - LOGO_STAR_COUNT; i++) {
+    const x = (Math.random() - 0.5) * SPREAD * 2;
+    const y = (Math.random() - 0.5) * SPREAD * 2;
+    const z = Math.random() * DEPTH;
+    stars.push(new Star(x, y, z));
+  }
+}
+
+// ============================================================
+// 投影 3D → 2D
+// ============================================================
+function project(x, y, z) {
+  const fov = 600;
+  const scale = fov / (fov + z);
+  return {
+    x: W/2 + (x - cameraX) * scale,
+    y: H/2 + (y - cameraY) * scale,
+    scale: scale,
+    z: z,
+  };
+}
+
+// ============================================================
+// 飞行动画
+// ============================================================
+function startFly() {
+  if (isAnimating) return;
+  isAnimating = true;
+  animProgress = 0;
+  cameraProgress = 0;
+  morphComplete = false;
+  document.getElementById('hint').style.opacity = '0';
+
+  const startTime = performance.now();
+  const MORPH_START = 0.35;
+
+  function flyTick() {
+    const elapsed = performance.now() - startTime;
+
+    cameraProgress = Math.min(1, elapsed / FLY_DURATION);
+    cameraZ = -DEPTH * (1 - easeApple(cameraProgress));
+
+    if (cameraProgress >= MORPH_START) {
+      const rawT = (cameraProgress - MORPH_START) / (1 - MORPH_START);
+      animProgress = easeParticle(Math.min(1, rawT));
+      if (rawT >= 1) morphComplete = true;
+    }
+
+    document.getElementById('progress').style.width = (cameraProgress * 100) + '%';
+
+    if (cameraProgress < 1) {
+      requestAnimationFrame(flyTick);
+    } else {
+      isComplete = true;
+      isAnimating = false;
+      setTimeout(() => {
+        document.getElementById('title').classList.add('show');
+        document.getElementById('subtitle').classList.add('show');
+      }, 300);
+    }
+  }
+  requestAnimationFrame(flyTick);
+}
+
+// ============================================================
+// 主渲染循环
+// ============================================================
+executor.subscribe('main', (phase, data) => {
+  if (phase !== 'draw') return;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // 背景渐变
+  const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H) * 0.7);
+  grad.addColorStop(0, '#0a0a12');
+  grad.addColorStop(1, '#000000');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // 透视投影参数
+  const fov = 600;
+  const time = data.time / 1000;
+
+  // 排序（远→近）
+  const sorted = stars.map((s, i) => {
+    // 插值位置（相机贝塞尔飞行 + 粒子线性过渡，不叠加缓动）
+    if (s.isLogo) {
+      const t = animProgress; // 线性，不加缓动
+      s.rx = s.x + (s.targetX - s.x) * t;
+      s.ry = s.y + (s.targetY - s.y) * t;
+      s.rz = s.z + (0 - s.z) * t + cameraZ;
+    } else {
+      s.rx = s.x;
+      s.ry = s.y;
+      s.rz = s.z + cameraZ;
+    }
+    return s;
+  }).sort((a, b) => b.rz - a.rz);
+
+  // 绘制粒子
+  for (const star of sorted) {
+    const z = star.rz;
+    if (z < -fov + 100) continue; // 在相机后面
+
+    const scale = fov / (fov + z);
+    const sx = W/2 + (star.rx - cameraX) * scale;
+    const sy = H/2 + (star.ry - cameraY) * scale;
+
+    if (sx < -50 || sx > W+50 || sy < -50 || sy > H+50) continue;
+
+    // 闪烁
+    const twinkle = 0.5 + 0.5 * Math.sin(time * star.twinkleSpeed + star.twinkleOffset);
+    let alpha = star.brightness * twinkle * scale;
+
+    // Logo 粒子在接近时变亮
+    if (star.isLogo && animProgress > 0.3) {
+      const logoAlpha = (animProgress - 0.3) / 0.7;
+      alpha = Math.max(alpha, logoAlpha * scale);
+    }
+
+    const size = star.size * scale;
+
+    // Logo 粒子颜色：蓝色→粉色渐变
+    if (star.isLogo && animProgress > 0.5) {
+      const hue = 200 + (star.targetX / 200) * 140; // 随 x 位置变色
+      ctx.fillStyle = `hsla(${hue}, 80%, 75%, ${Math.min(1, alpha)})`;
+    } else {
+      ctx.fillStyle = `rgba(200, 210, 240, ${Math.min(1, alpha)})`;
+    }
+
+    ctx.beginPath();
+    ctx.arc(sx, sy, Math.max(0.5, size), 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Logo 粒子之间的连线（成型后）
+  if (animProgress > 0.6) {
+    const lineAlpha = (animProgress - 0.6) / 0.4 * 0.15;
+    ctx.strokeStyle = `rgba(168, 216, 240, ${lineAlpha})`;
+    ctx.lineWidth = 0.5;
+
+    const logoStars = sorted.filter(s => s.isLogo && s.rz > -fov + 100);
+    // 只连接距离近的粒子（避免全连接太密）
+    for (let i = 0; i < logoStars.length; i++) {
+      const a = logoStars[i];
+      const ax = W/2 + (a.rx - cameraX) * (fov / (fov + a.rz));
+      const ay = H/2 + (a.ry - cameraY) * (fov / (fov + a.rz));
+
+      for (let j = i + 1; j < Math.min(i + 8, logoStars.length); j++) {
+        const b = logoStars[j];
+        const bx = W/2 + (b.rx - cameraX) * (fov / (fov + b.rz));
+        const by = H/2 + (b.ry - cameraY) * (fov / (fov + b.rz));
+        const dist = Math.hypot(ax - bx, ay - by);
+
+        if (dist < 40) {
+          ctx.beginPath();
+          ctx.moveTo(ax, ay);
+          ctx.lineTo(bx, by);
+          ctx.stroke();
+        }
+      }
+    }
+  }
+});
+
+// ============================================================
+// 鼠标拖拽控制摄像机（Apple 风格动量）
+// ============================================================
+canvas.addEventListener('mousedown', (e) => {
+  if (!isComplete) { startFly(); return; }
+  mouseDown = true;
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (!mouseDown) return;
+  const dx = e.clientX - mouseX;
+  const dy = e.clientY - mouseY;
+  cameraX -= dx * 0.5;
+  cameraY -= dy * 0.5;
+  dragVelX = dx;
+  dragVelY = dy;
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+
+canvas.addEventListener('mouseup', () => { mouseDown = false; });
+
+// 动量衰减（Apple 风格）
+executor.subscribe('momentum', (phase, data) => {
+  if (phase !== 'update') return;
+  if (mouseDown || isAnimating) return;
+  cameraX += dragVelX * 0.3;
+  cameraY += dragVelY * 0.3;
+  dragVelX *= 0.92; // 衰减
+  dragVelY *= 0.92;
+  // 回弹
+  cameraX *= 0.98;
+  cameraY *= 0.98;
+});
+
+// 触摸支持
+canvas.addEventListener('touchstart', (e) => {
+  if (!isComplete) { startFly(); return; }
+  mouseDown = true;
+  mouseX = e.touches[0].clientX;
+  mouseY = e.touches[0].clientY;
+}, { passive: true });
+
+canvas.addEventListener('touchmove', (e) => {
+  if (!mouseDown) return;
+  const dx = e.touches[0].clientX - mouseX;
+  const dy = e.touches[0].clientY - mouseY;
+  cameraX -= dx * 0.5;
+  cameraY -= dy * 0.5;
+  dragVelX = dx;
+  dragVelY = dy;
+  mouseX = e.touches[0].clientX;
+  mouseY = e.touches[0].clientY;
+}, { passive: true });
+
+canvas.addEventListener('touchend', () => { mouseDown = false; });
+
+// ============================================================
+// 启动
+// ============================================================
+initStars().then(() => {
+  document.getElementById('hint').textContent = '点击任意位置开始';
+});
+</script>
+</body>
+</html>
