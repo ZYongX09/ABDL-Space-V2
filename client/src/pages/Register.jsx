@@ -39,8 +39,8 @@ export default function Register() {
   const { register, saveConsent } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
-  const { trigger: triggerRegVerify, InlineVerify: RegInlineVerify, verified: regVerified } = useInlineVerify();
-  const { trigger: triggerSendCodeVerify, InlineVerify: SendCodeInlineVerify, verified: sendCodeVerified } = useInlineVerify();
+  const { trigger: triggerRegVerify, InlineVerify: RegInlineVerify, verified: regVerified, active: regActive } = useInlineVerify();
+  const { trigger: triggerSendCodeVerify, InlineVerify: SendCodeInlineVerify, verified: sendCodeVerified, active: sendCodeActive } = useInlineVerify();
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -181,7 +181,7 @@ export default function Register() {
                 {regVerified && <span className="text-xs font-semibold" style={{ color: 'var(--success)' }}><i className="fa-solid fa-circle-check mr-1" />已通过</span>}
               </div>
 
-              {!regVerified && (
+              {!regVerified && !regActive && (
                 <div className="flex flex-col items-center justify-center py-4">
                   <p className="text-xs mb-3 text-center" style={{ color: 'var(--text-light)' }}>
                     请完成安全验证<br />每个节点只能点击一次，5次错误将锁定5分钟
@@ -189,9 +189,9 @@ export default function Register() {
                   <button type="button" className="btn btn-outline" onClick={triggerRegVerify}>
                     <i className="fa-solid fa-play" /> 开始验证
                   </button>
-                  {RegInlineVerify}
                 </div>
               )}
+              {RegInlineVerify}
 
               {regVerified && (
                 <div className="flex flex-col items-center justify-center py-4">

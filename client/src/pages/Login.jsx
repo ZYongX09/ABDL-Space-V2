@@ -27,7 +27,7 @@ export default function Login() {
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const { trigger: triggerCaptcha, InlineVerify, verified } = useInlineVerify();
+  const { trigger: triggerCaptcha, InlineVerify, verified, active: captchaActive } = useInlineVerify();
 
   const needCaptcha = failCount >= FAIL_THRESHOLD;
   const canSubmit = !loading && (!needCaptcha || verified) && consented && minorConsented;
@@ -158,7 +158,7 @@ export default function Login() {
                 <label><i className="fa-solid fa-shield-halved mr-1.5" style={{ color: 'var(--primary-dark)' }} />安全验证</label>
                 {verified && <span className="login-captcha-ok"><i className="fa-solid fa-circle-check mr-1" />已通过</span>}
               </div>
-              {!verified && (
+              {!verified && !captchaActive && (
                 <div className="login-captcha-start">
                   <p>检测到多次登录失败，请完成安全验证</p>
                   <button type="button" className="btn btn-outline" onClick={triggerCaptcha}><i className="fa-solid fa-play" /> 开始验证</button>

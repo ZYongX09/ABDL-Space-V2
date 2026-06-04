@@ -331,5 +331,5 @@ export function useInlineVerify() {
     </>
   );
 
-  return { trigger, InlineVerify, verified, tokenRef };
+  return { trigger, InlineVerify, verified, active, tokenRef };
 }
