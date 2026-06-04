@@ -1,15 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
-const TURNSTILE_SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
 
 /**
- * useInlineVerify — 内嵌验证码 Hook（不弹窗，直接渲染在页面中）
- *
- * 用法:
- *   const { trigger, InlineVerify, verified } = useInlineVerify();
- *   // 在 JSX 中: {InlineVerify}
- *   // 触发: trigger()
+ * useInlineVerify — 内嵌验证码 Hook（直接调内部 API，不走 embed.js SDK）
  */
 export function useInlineVerify() {
   const [active, setActive] = useState(false);
@@ -22,10 +16,16 @@ export function useInlineVerify() {
   const tokenRef = useRef(null);
   const turnstileSessionRef = useRef(null);
   const turnstileWidgetRef = useRef(null);
-  const quantumContainerRef = useRef(null);
-  const turnstileBothContainerRef = useRef(null);
   const quantumRendererRef = useRef(null);
   const sdkReadyRef = useRef(!!window.ABDLCaptcha);
+  const canvasRef = useRef(null);
+
+  // Quantum SDK 状态
+  const [quantumState, setQuantumState] = useState({
+    nodes: [], order: [], sessionId: null, ctx: null, timeoutMs: 10000,
+    userSequence: [], successfulEdges: [], attemptCount: 0,
+    isVerified: false, hoveredNode: null, timerExpired: false,
+  });
 
   useEffect(() => {
     if (window.ABDLCaptcha) { sdkReadyRef.current = true; return; }
@@ -40,7 +40,7 @@ export function useInlineVerify() {
     return new Promise((resolve) => {
       if (window.turnstile) { resolve(true); return; }
       const script = document.createElement('script');
-      script.src = TURNSTILE_SCRIPT_URL;
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
       script.async = true;
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
@@ -56,12 +56,6 @@ export function useInlineVerify() {
       try { window.turnstile?.remove(turnstileWidgetRef.current); } catch {}
       turnstileWidgetRef.current = null;
     }
-    if (quantumRendererRef.current && typeof quantumRendererRef.current.destroy === 'function') {
-      try { quantumRendererRef.current.destroy(); } catch {}
-    }
-    quantumRendererRef.current = null;
-    if (quantumContainerRef.current) quantumContainerRef.current.textContent = '';
-    if (turnstileBothContainerRef.current) turnstileBothContainerRef.current.textContent = '';
   }, []);
 
   const trigger = useCallback(() => {
@@ -102,141 +96,264 @@ export function useInlineVerify() {
   // Turnstile 渲染（单模式）
   useEffect(() => {
     if (phase !== 'turnstile' || flow === 'both') return;
+    renderTurnstile('inline-turnstile-container', 'single');
+  }, [phase, flow]);
 
-    (async () => {
-      const ok = await ensureTurnstile();
-      if (!ok) { setError('Turnstile 加载失败'); return; }
-
-      try {
-        const res = await fetch(`${API_BASE}/api/captcha/challenge`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'turnstile' }),
-        });
-        if (!res.ok) throw new Error('Challenge failed');
-        const data = await res.json();
-        turnstileSessionRef.current = data.session_id;
-      } catch {
-        setError('创建验证失败'); return;
-      }
-
-      const container = document.getElementById('inline-turnstile-container');
-      if (!container) return;
-
-      const siteKey = window.__TURNSTILE_SITE_KEY || '';
-      if (!siteKey) { setError('Turnstile 未配置'); return; }
-
-      try {
-        turnstileWidgetRef.current = window.turnstile.render(container, {
-          sitekey: siteKey,
-          callback: async (token) => {
-            try {
-              const res = await fetch(`${API_BASE}/api/captcha/turnstile/verify`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ session_id: turnstileSessionRef.current, token }),
-              });
-              const result = await res.json();
-              if (result.success) {
-                tokenRef.current = token;
-                finishVerify();
-              } else {
-                setError(result.locked ? '验证次数过多，请稍后再试' : '验证失败，请重试');
-              }
-            } catch {
-              setError('验证请求失败');
-            }
-          },
-          'error-callback': () => setError('Turnstile 加载异常'),
-          theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
-        });
-      } catch {
-        setError('Turnstile 渲染失败');
-      }
-    })();
-  }, [phase, flow, ensureTurnstile]);
-
-  // Quantum 渲染
+  // Quantum — 创建 challenge
   useEffect(() => {
     if (phase !== 'quantum') return;
-    if (!sdkReadyRef.current || !window.ABDLCaptcha) return;
-    if (!quantumContainerRef.current) return;
+    createQuantumChallenge();
+  }, [phase]);
 
-    quantumContainerRef.current.textContent = '';
-
-    try {
-      quantumRendererRef.current = window.ABDLCaptcha.render(quantumContainerRef.current, {
-        apiBase: API_BASE,
-        onSuccess: (token) => {
-          tokenRef.current = token;
-          if (flow === 'both') {
-            setPhase('transition');
-            setTimeout(() => setPhase('turnstile-both'), 600);
-          } else {
-            finishVerify();
-          }
-        },
-        onError: () => setError('验证失败，请重试'),
-      });
-    } catch {
-      setError('验证组件渲染失败');
-    }
-  }, [phase, flow]);
+  // Quantum — 渲染 Canvas
+  useEffect(() => {
+    if (phase !== 'quantum' || !quantumState.sessionId) return;
+    if (!canvasRef.current) return;
+    drawQuantum();
+  }, [quantumState, phase]);
 
   // Turnstile 渲染（both 模式第二步）
   useEffect(() => {
     if (phase !== 'turnstile-both') return;
+    renderTurnstile('inline-turnstile-both-container', 'both');
+  }, [phase]);
 
-    (async () => {
-      const ok = await ensureTurnstile();
-      if (!ok) { setError('Turnstile 加载失败'); return; }
+  async function createQuantumChallenge() {
+    try {
+      const res = await fetch(`${API_BASE}/api/captcha/challenge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'quantum' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create challenge');
 
-      try {
-        const res = await fetch(`${API_BASE}/api/captcha/challenge`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'turnstile' }),
-        });
-        if (!res.ok) throw new Error('Challenge failed');
-        const data = await res.json();
-        turnstileSessionRef.current = data.session_id;
-      } catch {
-        setError('创建验证失败'); return;
-      }
+      setQuantumState({
+        nodes: data.challenge.nodes || [],
+        order: data.challenge.order || [],
+        sessionId: data.session_id,
+        ctx: data.challenge.ctx || '',
+        timeoutMs: data.challenge.timeoutMs || 10000,
+        userSequence: [],
+        successfulEdges: [],
+        attemptCount: 0,
+        isVerified: false,
+        hoveredNode: null,
+        timerExpired: false,
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
-      if (!turnstileBothContainerRef.current) return;
-      const siteKey = window.__TURNSTILE_SITE_KEY || '';
-      if (!siteKey) { setError('Turnstile 未配置'); return; }
+  async function renderTurnstile(containerId, mode) {
+    const ok = await ensureTurnstile();
+    if (!ok) { setError('Turnstile 加载失败'); return; }
 
-      try {
-        turnstileWidgetRef.current = window.turnstile.render(turnstileBothContainerRef.current, {
-          sitekey: siteKey,
-          callback: async (token) => {
-            try {
-              const res = await fetch(`${API_BASE}/api/captcha/turnstile/verify`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ session_id: turnstileSessionRef.current, token }),
-              });
-              const result = await res.json();
-              if (result.success) {
-                tokenRef.current = token;
+    try {
+      const res = await fetch(`${API_BASE}/api/captcha/challenge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'turnstile' }),
+      });
+      const data = await res.json();
+      turnstileSessionRef.current = data.session_id;
+    } catch {
+      setError('创建验证失败'); return;
+    }
+
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const siteKey = window.__TURNSTILE_SITE_KEY || '';
+    if (!siteKey) { setError('Turnstile 未配置'); return; }
+
+    try {
+      turnstileWidgetRef.current = window.turnstile.render(container, {
+        sitekey: siteKey,
+        callback: async (token) => {
+          try {
+            const res = await fetch(`${API_BASE}/api/captcha/turnstile/verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ session_id: turnstileSessionRef.current, token }),
+            });
+            const result = await res.json();
+            if (result.success) {
+              tokenRef.current = token;
+              if (mode === 'both') {
                 finishVerify();
               } else {
-                setError(result.locked ? '验证次数过多，请稍后再试' : '验证失败，请重试');
+                finishVerify();
               }
-            } catch {
-              setError('验证请求失败');
+            } else {
+              setError(result.locked ? '验证次数过多，请稍后再试' : '验证失败，请重试');
             }
-          },
-          'error-callback': () => setError('Turnstile 加载异常'),
-          theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
-        });
-      } catch {
-        setError('Turnstile 渲染失败');
+          } catch {
+            setError('验证请求失败');
+          }
+        },
+        'error-callback': () => setError('Turnstile 加载异常'),
+        theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
+      });
+    } catch {
+      setError('Turnstile 渲染失败');
+    }
+  }
+
+  function handleQuantumClick(nodeId) {
+    const st = quantumState;
+    if (st.isVerified || st.timerExpired || st.attemptCount >= 5) return;
+    if (st.userSequence.includes(nodeId)) return;
+
+    const expected = st.order[st.userSequence.length];
+    if (nodeId === expected) {
+      const prev = st.userSequence.length > 0 ? st.userSequence[st.userSequence.length - 1] : null;
+      const newSeq = [...st.userSequence, nodeId];
+      const newEdges = prev ? [...st.successfulEdges, { from: prev, to: nodeId }] : st.successfulEdges;
+      setQuantumState(s => ({ ...s, userSequence: newSeq, successfulEdges: newEdges }));
+
+      if (newSeq.length === st.order.length) {
+        // 验证通过，提交
+        submitQuantum(newSeq);
       }
-    })();
-  }, [phase, ensureTurnstile]);
+    } else {
+      // 错误
+      const newAttempts = st.attemptCount + 1;
+      setQuantumState(s => ({ ...s, attemptCount: newAttempts, userSequence: [], successfulEdges: [] }));
+      if (newAttempts >= 5) {
+        setError('已锁定，请稍后重试');
+      } else {
+        setError('顺序错误，请重试');
+        setTimeout(() => {
+          setError(null);
+          setQuantumState(s => ({ ...s, userSequence: [], successfulEdges: [] }));
+        }, 1500);
+      }
+    }
+  }
+
+  async function submitQuantum(sequence) {
+    try {
+      const res = await fetch(`${API_BASE}/api/captcha/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: quantumState.sessionId,
+          answer: sequence.join(','),
+          ctx: quantumState.ctx,
+        }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        tokenRef.current = result.token;
+        setQuantumState(s => ({ ...s, isVerified: true }));
+        if (flow === 'both') {
+          setPhase('transition');
+          setTimeout(() => setPhase('turnstile-both'), 600);
+        } else {
+          finishVerify();
+        }
+      } else {
+        const newAttempts = quantumState.attemptCount + 1;
+        setQuantumState(s => ({ ...s, attemptCount: newAttempts, userSequence: [], successfulEdges: [] }));
+        if (result.locked) {
+          setError('已锁定，请稍后重试');
+        } else {
+          setError(`验证失败，剩余 ${result.attempts_left} 次`);
+          setTimeout(() => { setError(null); }, 2000);
+        }
+      }
+    } catch {
+      setError('网络错误');
+    }
+  }
+
+  // Canvas 绘制
+  function drawQuantum() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const st = quantumState;
+
+    const drawFrame = () => {
+      ctx.clearRect(0, 0, W, H);
+
+      // 背景网格
+      ctx.strokeStyle = 'rgba(100,120,150,0.08)';
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < W; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke(); }
+      for (let i = 0; i < H; i += 40) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(W, i); ctx.stroke(); }
+
+      // 已激活的边
+      for (const edge of st.successfulEdges) {
+        const f = st.nodes.find(n => n.id === edge.from), t = st.nodes.find(n => n.id === edge.to);
+        if (f && t) {
+          const g = ctx.createLinearGradient(f.x, f.y, t.x, t.y);
+          g.addColorStop(0, '#A8D8F0'); g.addColorStop(1, '#FFB7C5');
+          ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(t.x, t.y);
+          ctx.strokeStyle = g; ctx.lineWidth = 3; ctx.shadowBlur = 8; ctx.shadowColor = '#A8D8F0';
+          ctx.stroke(); ctx.shadowBlur = 0;
+        }
+      }
+
+      const nextId = !st.isVerified && st.userSequence.length < st.order.length ? st.order[st.userSequence.length] : null;
+
+      for (const node of st.nodes) {
+        const activated = st.userSequence.includes(node.id);
+        const isNext = node.id === nextId;
+        const hovered = st.hoveredNode === node.id && !activated;
+
+        ctx.save(); ctx.translate(node.x, node.y);
+
+        if (isNext) {
+          const t = Date.now() / 250, pulse = Math.sin(t) * 0.5 + 0.5;
+          ctx.beginPath(); ctx.arc(0, 0, 26 + pulse * 5, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(255,183,197,${0.3 + pulse * 0.4})`; ctx.lineWidth = 2; ctx.stroke();
+        }
+        if (hovered) { ctx.beginPath(); ctx.arc(0, 0, 23, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(168,216,240,0.5)'; ctx.lineWidth = 2.5; ctx.stroke(); }
+
+        ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2);
+        ctx.fillStyle = activated ? 'rgba(168,216,240,0.35)' : isNext ? 'rgba(255,183,197,0.2)' : hovered ? 'rgba(168,216,240,0.25)' : 'rgba(100,120,150,0.15)';
+        ctx.fill();
+
+        ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2);
+        ctx.fillStyle = activated ? '#A8D8F0' : isNext ? '#F0A0B8' : hovered ? '#8CC8E8' : '#718096';
+        ctx.fill();
+
+        const blink = 0.7 + Math.sin(Date.now() / 300 + node.x) * 0.3;
+        ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${blink})`; ctx.fill();
+
+        ctx.font = 'bold 15px sans-serif';
+        ctx.fillStyle = activated ? '#A8D8F0' : isNext ? '#FFB7C5' : hovered ? '#A8D8F0' : '#A0AAB8';
+        ctx.fillText(node.id, -7, -16);
+        ctx.restore();
+      }
+
+      if (st.isVerified) {
+        ctx.font = 'bold 20px sans-serif'; ctx.fillStyle = '#7BC67E';
+        ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(123,198,126,0.5)';
+        ctx.fillText('验证通过', W / 2 - 40, H - 14); ctx.shadowBlur = 0;
+      }
+
+      requestAnimationFrame(drawFrame);
+    };
+    drawFrame();
+  }
+
+  function getCanvasNode(e) {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    for (const n of quantumState.nodes) {
+      if (Math.hypot(n.x - x, n.y - y) < 28) return n.id;
+    }
+    return null;
+  }
 
   const finishVerify = useCallback(() => {
     setPhase('done');
@@ -261,7 +378,7 @@ export function useInlineVerify() {
 
   const phaseLabel = {
     loading: '正在加载...',
-    quantum: '请完成安全验证',
+    quantum: '请按高亮顺序点击节点',
     transition: '验证中...',
     'turnstile-both': '验证中...',
     turnstile: '请完成人机验证',
@@ -277,22 +394,29 @@ export function useInlineVerify() {
         }
       `}</style>
       <div style={{ marginTop: 12 }}>
-        {/* 状态文字 */}
         <p style={{ fontSize: '.78rem', color: phase === 'done' ? '#5DAE60' : (phase === 'transition' || phase === 'turnstile-both') ? '#D4A830' : 'var(--text-muted)', marginBottom: 10, transition: 'color 0.3s', textAlign: 'center' }}>
           {error || phaseLabel[phase] || '正在加载...'}
         </p>
 
-        {/* 验证区域 */}
         {flow === 'both' ? (
           <div style={getBorderStyle()}>
-            {phase === 'quantum' && <div ref={quantumContainerRef} />}
+            {phase === 'quantum' && quantumState.nodes.length > 0 && (
+              <canvas
+                ref={canvasRef}
+                width={550} height={260}
+                style={{ width: '100%', height: 'auto', borderRadius: 10, cursor: 'crosshair', display: 'block' }}
+                onClick={e => { const id = getCanvasNode(e); if (id) handleQuantumClick(id); }}
+                onMouseMove={e => { const id = getCanvasNode(e); setQuantumState(s => ({ ...s, hoveredNode: id })); }}
+                onMouseLeave={() => setQuantumState(s => ({ ...s, hoveredNode: null }))}
+              />
+            )}
             {phase === 'transition' && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 0', gap: 8 }}>
                 <div style={{ width: 18, height: 18, border: '2.5px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>验证中...</span>
               </div>
             )}
-            {phase === 'turnstile-both' && <div ref={turnstileBothContainerRef} style={{ display: 'flex', justifyContent: 'center' }} />}
+            {phase === 'turnstile-both' && <div id="inline-turnstile-both-container" style={{ display: 'flex', justifyContent: 'center' }} />}
             {phase === 'done' && (
               <div style={{ textAlign: 'center', padding: '4px 0', fontSize: '1.6rem', color: '#5DAE60' }}>
                 <i className="fa-solid fa-circle-check" />
@@ -301,7 +425,16 @@ export function useInlineVerify() {
           </div>
         ) : (
           <div style={getBorderStyle()}>
-            {phase === 'quantum' && <div ref={quantumContainerRef} />}
+            {phase === 'quantum' && quantumState.nodes.length > 0 && (
+              <canvas
+                ref={canvasRef}
+                width={550} height={260}
+                style={{ width: '100%', height: 'auto', borderRadius: 10, cursor: 'crosshair', display: 'block' }}
+                onClick={e => { const id = getCanvasNode(e); if (id) handleQuantumClick(id); }}
+                onMouseMove={e => { const id = getCanvasNode(e); setQuantumState(s => ({ ...s, hoveredNode: id })); }}
+                onMouseLeave={() => setQuantumState(s => ({ ...s, hoveredNode: null }))}
+              />
+            )}
             {phase === 'turnstile' && <div id="inline-turnstile-container" style={{ display: 'flex', justifyContent: 'center' }} />}
             {phase === 'done' && (
               <div style={{ textAlign: 'center', padding: '4px 0', fontSize: '1.6rem', color: '#5DAE60' }}>
@@ -314,6 +447,12 @@ export function useInlineVerify() {
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>加载验证组件...</span>
               </div>
             )}
+          </div>
+        )}
+
+        {quantumState.nodes.length > 0 && phase === 'quantum' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+            <span>尝试: {quantumState.attemptCount}/5</span>
           </div>
         )}
 
