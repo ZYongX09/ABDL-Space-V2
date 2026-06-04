@@ -412,7 +412,7 @@ export function useInlineVerify() {
     quantum: '按高亮顺序点击节点，需在 10 秒内完成',
     transition: '验证中...',
     'turnstile-both': '验证中...',
-    turnstile: '请完成滑动验证',
+    turnstile: '请完成验证',
     done: '验证通过 ✓',
   };
 
