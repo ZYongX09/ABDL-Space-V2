@@ -12,7 +12,16 @@ const TRUSTED_DOMAINS = [
 ];
 
 function getDomain(url) {
-  try { return new URL(url).hostname; } catch { return ''; }
+  try { return new URL(url).hostname; } catch {}
+  // 相对路径 → 当前域名
+  try { return new URL(url, window.location.origin).hostname; } catch {}
+  return '';
+}
+
+function resolveUrl(url) {
+  try { new URL(url); return url; } catch {}
+  try { return new URL(url, window.location.origin).href; } catch {}
+  return '';
 }
 
 function isTrusted(url) {
@@ -23,9 +32,10 @@ function isTrusted(url) {
 export default function ExternalLink() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const url = params.get('url') || '';
-  const domain = getDomain(url);
-  const trusted = isTrusted(url);
+  const rawUrl = params.get('url') || '';
+  const url = resolveUrl(rawUrl);
+  const domain = getDomain(rawUrl);
+  const trusted = isTrusted(rawUrl);
 
   if (!url || !domain) {
     return (
