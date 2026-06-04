@@ -19,6 +19,11 @@ export function useInlineVerify() {
   const quantumRendererRef = useRef(null);
   const sdkReadyRef = useRef(!!window.ABDLCaptcha);
   const canvasRef = useRef(null);
+  const behaviorRef = useRef(null); // 行为采集器
+  const clickTimesRef = useRef([]);
+  const hoverDurationsRef = useRef({});
+  const hoverStartRef = useRef({});
+  const startTimeRef = useRef(0);
 
   // Quantum SDK 状态
   const [quantumState, setQuantumState] = useState({
@@ -29,6 +34,7 @@ export function useInlineVerify() {
   const [countdown, setCountdown] = useState(10);
   const [hint, setHint] = useState('按高亮顺序点击节点，每个节点只能点一次');
   const timerRef = useRef(null);
+  const staleRef = useRef(false);
 
   useEffect(() => {
     if (window.ABDLCaptcha) { sdkReadyRef.current = true; return; }
@@ -52,6 +58,7 @@ export function useInlineVerify() {
   }, []);
 
   const cleanup = useCallback(() => {
+    staleRef.current = true;
     setActive(false); setPhase('loading'); setFlow(null); setError(null);
     tokenRef.current = null;
     turnstileSessionRef.current = null;
@@ -63,6 +70,7 @@ export function useInlineVerify() {
   }, []);
 
   const trigger = useCallback(() => {
+    staleRef.current = false;
     setVerified(false);
     tokenRef.current = null;
     setActive(true);
@@ -123,7 +131,8 @@ export function useInlineVerify() {
         clearInterval(timerRef.current);
         setQuantumState(s => ({ ...s, timerExpired: true, userSequence: [], successfulEdges: [] }));
         setHint('超时，正在重新加载...');
-        setTimeout(() => createQuantumChallenge(), 800);
+        const t = setTimeout(() => { if (!staleRef.current) createQuantumChallenge(); }, 800);
+        timerRef.current = { _timeout: t }; // store for cleanup
       }
     }, 200);
   }
@@ -171,6 +180,9 @@ export function useInlineVerify() {
         timerExpired: false,
       });
       startCountdown();
+      startTimeRef.current = Date.now();
+      clickTimesRef.current = [];
+      hoverDurationsRef.current = {};
     } catch (err) {
       setError(err.message);
     }
@@ -202,6 +214,7 @@ export function useInlineVerify() {
       turnstileWidgetRef.current = window.turnstile.render(container, {
         sitekey: siteKey,
         callback: async (token) => {
+          if (staleRef.current) return;
           try {
             const res = await fetch(`${API_BASE}/api/captcha/turnstile/verify`, {
               method: 'POST',
@@ -235,6 +248,7 @@ export function useInlineVerify() {
     const st = quantumState;
     if (st.isVerified || st.timerExpired || st.attemptCount >= 5) return;
     if (st.userSequence.includes(nodeId)) return;
+    clickTimesRef.current.push(Date.now() - startTimeRef.current);
 
     const expected = st.order[st.userSequence.length];
     if (nodeId === expected) {
@@ -264,6 +278,12 @@ export function useInlineVerify() {
 
   async function submitQuantum(sequence) {
     try {
+      const behavior = {
+        clickTimes: clickTimesRef.current,
+        totalTime: Date.now() - startTimeRef.current,
+        screen: `${screen.width}x${screen.height}`,
+        tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      };
       const res = await fetch(`${API_BASE}/api/captcha/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -271,6 +291,7 @@ export function useInlineVerify() {
           session_id: quantumState.sessionId,
           answer: sequence.join(','),
           ctx: quantumState.ctx,
+          behavior,
         }),
       });
       const result = await res.json();
