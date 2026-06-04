@@ -224,7 +224,7 @@ export function useVerifyModal() {
   /* ---- 样式 ---- */
   const backdropStyle = {
     position: 'fixed', inset: 0, zIndex: 400,
-    background: 'rgba(0,0,0,0.5)',
+    background: 'var(--bg)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     opacity: animState === 'entering' ? 0 : animState === 'exiting' ? 0 : 1,
     transition: 'opacity 0.25s ease',
