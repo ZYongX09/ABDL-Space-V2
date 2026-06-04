@@ -80,8 +80,8 @@ function createBezier(x1, y1, x2, y2) {
 }
 
 // Apple 标准缓动
-const easeApple = createBezier(0.25, 0.1, 0, 1);
-const easeSmooth = createBezier(0.4, 0, 0.2, 1);
+const easeApple = createBezier(0.25, 0.1, 0, 1);       // 相机飞行
+const easeParticle = createBezier(0.1, 0.15, 0, 1);   // 粒子成型（Apple sine easing）
 const easeBounce = createBezier(0.34, 1.56, 0.64, 1);
 
 // ============================================================
@@ -174,9 +174,11 @@ let stars = [];
 let cameraZ = 0;
 let cameraProgress = 0; // 相机飞行进度（贝塞尔缓动）
 let cameraX = 0, cameraY = 0;
-let animProgress = 0;       // 0 = 星空, 1 = Logo 完全成型
+let animProgress = 0;
+let cameraProgress = 0;
 let isAnimating = false;
 let isComplete = false;
+let morphComplete = false;
 let mouseDown = false;
 let mouseX = 0, mouseY = 0;
 let dragVelX = 0, dragVelY = 0;
@@ -338,23 +340,22 @@ function startFly() {
   isAnimating = true;
   animProgress = 0;
   cameraProgress = 0;
+  morphComplete = false;
   document.getElementById('hint').style.opacity = '0';
 
   const startTime = performance.now();
+  const MORPH_START = 0.35;
 
   function flyTick() {
     const elapsed = performance.now() - startTime;
 
-    // 相机：贝塞尔缓动飞行（全程 4 秒）
     cameraProgress = Math.min(1, elapsed / FLY_DURATION);
     cameraZ = -DEPTH * (1 - easeApple(cameraProgress));
 
-    // 粒子：前 40% 时间不动，后 60% 线性过渡（不叠加缓动）
-    const morphStart = 0.4;
-    if (cameraProgress >= morphStart) {
-      animProgress = Math.min(1, (cameraProgress - morphStart) / (1 - morphStart));
-    } else {
-      animProgress = 0;
+    if (cameraProgress >= MORPH_START) {
+      const rawT = (cameraProgress - MORPH_START) / (1 - MORPH_START);
+      animProgress = easeParticle(Math.min(1, rawT));
+      if (rawT >= 1) morphComplete = true;
     }
 
     document.getElementById('progress').style.width = (cameraProgress * 100) + '%';
@@ -362,7 +363,6 @@ function startFly() {
     if (cameraProgress < 1) {
       requestAnimationFrame(flyTick);
     } else {
-      animProgress = 1;
       isComplete = true;
       isAnimating = false;
       setTimeout(() => {
