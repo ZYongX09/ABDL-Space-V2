@@ -296,7 +296,6 @@
       <div class="verify-title">
         <i class="fa-solid fa-shield-halved"></i>
         安全验证
-        <span class="verify-risk-tag" id="v-risk-tag"></span>
       </div>
       <button class="verify-close" onclick="closeVerify()"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -432,7 +431,7 @@ function cleanupVerify() {
   document.getElementById('v-both-zone').style.display = 'none';
   document.getElementById('v-single-zone').style.display = 'none';
   document.getElementById('v-retry').style.display = 'none';
-  document.getElementById('v-risk-tag').textContent = '';
+
 
   const label = document.getElementById('v-phase-label');
   label.textContent = '正在评估安全等级...';
@@ -514,7 +513,7 @@ async function startVerifyFlow() {
   const flow = currentFlow;
   const risk = currentRisk;
 
-  document.getElementById('v-risk-tag').textContent = risk ? `(${risk === 'high' ? '高' : '低'}风险)` : '';
+    // 'v-risk-tag' removed
 
   if (flow === 'both') {
     document.getElementById('v-progress').style.display = 'flex';
@@ -569,7 +568,7 @@ function startQuantum(mode) {
             // → transition 状态
             setProgress(1);
             setZoneColor('yellow');
-            setPhaseLabel('验证完成，正在进行二次验证', '#D4A830');
+            setPhaseLabel('验证中...', '#D4A830');
             document.getElementById('v-both-quantum').style.display = 'none';
             document.getElementById('v-both-transition').style.display = 'block';
             // 延迟后渲染 Turnstile

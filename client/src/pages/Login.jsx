@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { isNBWConfigured, startNBWOAuth } from '../utils/nbwOAuth';
 import AnimatedCharacters from '../components/AnimatedCharacters/AnimatedCharacters';
-import { useVerifyModal } from '../components/VerifyModal';
+import { useInlineVerify } from '../components/useInlineVerify';
 import './Login.css';
 
 const FAIL_THRESHOLD = 2;
@@ -15,7 +15,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [consented, setConsented] = useState(false);
   const [minorConsented, setMinorConsented] = useState(false);
-  const [captchaOk, setCaptchaOk] = useState(false);
+
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [passwordRevealed, setPasswordRevealed] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
@@ -27,10 +27,10 @@ export default function Login() {
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const { trigger: triggerCaptcha, VerifyModal } = useVerifyModal();
+  const { trigger: triggerCaptcha, InlineVerify, verified } = useInlineVerify();
 
   const needCaptcha = failCount >= FAIL_THRESHOLD;
-  const canSubmit = !loading && (!needCaptcha || captchaOk) && consented && minorConsented;
+  const canSubmit = !loading && (!needCaptcha || verified) && consented && minorConsented;
   const isPasswordPlain = passwordRevealed && password.length > 0;
   const isTyping = emailFocused && login.length > 0;
   const nbwConfigured = isNBWConfigured();
@@ -43,8 +43,8 @@ export default function Login() {
     if (passwordVisible && !password) { toast.error('请填写密码'); return; }
     if (!passwordVisible) { setPasswordVisible(true); return; }
     if (!consented) { toast.error('请阅读并同意隐私政策'); return; }
-    if (needCaptcha && !captchaOk) {
-      triggerCaptcha(() => { captchaTokenRef.current = 'verified'; setCaptchaOk(true); });
+    if (needCaptcha && !verified) {
+      triggerCaptcha();
       return;
     }
     try {
@@ -63,7 +63,7 @@ export default function Login() {
         toast.error(msg);
       }
       setFailCount(c => c + 1);
-      if (needCaptcha) { setCaptchaOk(false); captchaTokenRef.current = null; }
+      if (needCaptcha) { captchaTokenRef.current = null; }
     } finally { setLoading(false); }
   };
 
@@ -156,15 +156,16 @@ export default function Login() {
             <div className="login-captcha">
               <div className="login-captcha-header">
                 <label><i className="fa-solid fa-shield-halved mr-1.5" style={{ color: 'var(--primary-dark)' }} />安全验证</label>
-                {captchaOk && <span className="login-captcha-ok"><i className="fa-solid fa-circle-check mr-1" />已通过</span>}
+                {verified && <span className="login-captcha-ok"><i className="fa-solid fa-circle-check mr-1" />已通过</span>}
               </div>
-              {!captchaOk && (
+              {!verified && (
                 <div className="login-captcha-start">
                   <p>检测到多次登录失败，请完成安全验证</p>
-                  <button type="button" className="btn btn-outline" onClick={() => triggerCaptcha(() => { captchaTokenRef.current = 'verified'; setCaptchaOk(true); })}><i className="fa-solid fa-play" /> 开始验证</button>
+                  <button type="button" className="btn btn-outline" onClick={triggerCaptcha}><i className="fa-solid fa-play" /> 开始验证</button>
                 </div>
               )}
-              {captchaOk && (
+              {InlineVerify}
+              {verified && (
                 <div className="login-captcha-done">
                   <i className="fa-solid fa-circle-check" />
                   <p>验证已通过</p>
@@ -198,7 +199,6 @@ export default function Login() {
 
   return (
     <>
-      {VerifyModal}
       {/* 桌面端：左右分栏 */}
       <div className="login-desktop">
         <div className="login-left">

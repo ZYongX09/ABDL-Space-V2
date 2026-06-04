@@ -4,24 +4,21 @@ const API_BASE = import.meta.env.VITE_API_BASE || '';
 const TURNSTILE_SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
 
 /**
- * useVerifyModal — 验证码弹窗 Hook（支持 Turnstile + Quantum 混合验证）
+ * useInlineVerify — 内嵌验证码 Hook（不弹窗，直接渲染在页面中）
  *
- * 流程:
- *   1. trigger(onPass) → 调用 /api/captcha/risk 获取风险等级
- *   2. low risk:  随机选择 turnstile 或 quantum
- *   3. high risk: 先 quantum（灰色边框）→ 二次验证 turnstile（黄色闪烁边框）→ 完成（绿色边框）
- *   4. 验证通过 → 执行 onPass
+ * 用法:
+ *   const { trigger, InlineVerify, verified } = useInlineVerify();
+ *   // 在 JSX 中: {InlineVerify}
+ *   // 触发: trigger()
  */
-export function useVerifyModal() {
-  const [show, setShow] = useState(false);
-  const [animState, setAnimState] = useState('hidden');
-  const [phase, setPhase] = useState('loading'); // loading | quantum | transition | turnstile | done
-  const [flow, setFlow] = useState(null);        // 'turnstile' | 'quantum' | 'both'
-  const [risk, setRisk] = useState(null);
+export function useInlineVerify() {
+  const [active, setActive] = useState(false);
+  const [phase, setPhase] = useState('loading'); // loading | quantum | transition | turnstile-both | turnstile | done
+  const [flow, setFlow] = useState(null);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [verified, setVerified] = useState(false);
 
-  const actionRef = useRef(null);
   const tokenRef = useRef(null);
   const turnstileSessionRef = useRef(null);
   const turnstileWidgetRef = useRef(null);
@@ -52,9 +49,7 @@ export function useVerifyModal() {
   }, []);
 
   const cleanup = useCallback(() => {
-    setShow(false); setAnimState('hidden');
-    setPhase('loading'); setFlow(null); setRisk(null); setError(null);
-    actionRef.current = null;
+    setActive(false); setPhase('loading'); setFlow(null); setError(null);
     tokenRef.current = null;
     turnstileSessionRef.current = null;
     if (turnstileWidgetRef.current) {
@@ -69,18 +64,16 @@ export function useVerifyModal() {
     if (turnstileBothContainerRef.current) turnstileBothContainerRef.current.textContent = '';
   }, []);
 
-  const trigger = useCallback((onPass) => {
-    actionRef.current = onPass;
+  const trigger = useCallback(() => {
+    setVerified(false);
     tokenRef.current = null;
-    setShow(true);
-    setAnimState('entering');
+    setActive(true);
     setError(null);
-    requestAnimationFrame(() => setAnimState('visible'));
   }, []);
 
-  // 弹窗显示后启动流程
+  // 启动流程
   useEffect(() => {
-    if (!show) return;
+    if (!active) return;
 
     (async () => {
       try {
@@ -91,7 +84,6 @@ export function useVerifyModal() {
         });
         if (!res.ok) throw new Error('Risk assessment failed');
         const data = await res.json();
-        setRisk(data.risk);
         setFlow(data.flow);
 
         if (data.flow === 'both') {
@@ -105,7 +97,7 @@ export function useVerifyModal() {
         setError('安全验证服务异常，请刷新重试');
       }
     })();
-  }, [show, retryCount]);
+  }, [active, retryCount]);
 
   // Turnstile 渲染（单模式）
   useEffect(() => {
@@ -128,7 +120,7 @@ export function useVerifyModal() {
         setError('创建验证失败'); return;
       }
 
-      const container = document.getElementById('turnstile-container');
+      const container = document.getElementById('inline-turnstile-container');
       if (!container) return;
 
       const siteKey = window.__TURNSTILE_SITE_KEY || '';
@@ -147,7 +139,7 @@ export function useVerifyModal() {
               const result = await res.json();
               if (result.success) {
                 tokenRef.current = token;
-                finishVerification();
+                finishVerify();
               } else {
                 setError(result.locked ? '验证次数过多，请稍后再试' : '验证失败，请重试');
               }
@@ -178,12 +170,10 @@ export function useVerifyModal() {
         onSuccess: (token) => {
           tokenRef.current = token;
           if (flow === 'both') {
-            // Quantum 通过 → 切换到 transition 状态（显示提示文字）
             setPhase('transition');
-            // 延迟后渲染 Turnstile
             setTimeout(() => setPhase('turnstile-both'), 600);
           } else {
-            finishVerification();
+            finishVerify();
           }
         },
         onError: () => setError('验证失败，请重试'),
@@ -193,7 +183,7 @@ export function useVerifyModal() {
     }
   }, [phase, flow]);
 
-  // Turnstile 渲染（both 模式的第二步）
+  // Turnstile 渲染（both 模式第二步）
   useEffect(() => {
     if (phase !== 'turnstile-both') return;
 
@@ -231,7 +221,7 @@ export function useVerifyModal() {
               const result = await res.json();
               if (result.success) {
                 tokenRef.current = token;
-                finishVerification();
+                finishVerify();
               } else {
                 setError(result.locked ? '验证次数过多，请稍后再试' : '验证失败，请重试');
               }
@@ -248,65 +238,29 @@ export function useVerifyModal() {
     })();
   }, [phase, ensureTurnstile]);
 
-  const finishVerification = useCallback(() => {
+  const finishVerify = useCallback(() => {
     setPhase('done');
-    const action = actionRef.current;
-    setTimeout(() => {
-      setAnimState('exiting');
-      setTimeout(() => {
-        setShow(false);
-        setAnimState('hidden');
-        cleanup();
-        if (action) { action(); actionRef.current = null; }
-      }, 250);
-    }, 600);
+    setVerified(true);
+    setTimeout(() => cleanup(), 1200);
   }, [cleanup]);
 
-  const handleClose = useCallback(() => {
-    setAnimState('exiting');
-    setTimeout(() => cleanup(), 200);
-  }, [cleanup]);
-
-  if (!show) return { trigger, VerifyModal: null, captchaToken: tokenRef };
-
-  /* ---- 边框颜色 ---- */
   const getBorderColor = () => {
-    if (phase === 'done') return '#5DAE60';                          // 绿色
-    if (phase === 'transition' || phase === 'turnstile-both') return '#D4A830'; // 黄色
-    return 'var(--border)';                                           // 默认灰色
+    if (phase === 'done') return '#5DAE60';
+    if (phase === 'transition' || phase === 'turnstile-both') return '#D4A830';
+    return 'var(--border)';
   };
 
-  /* ---- 边框样式（黄色闪烁） ---- */
   const getBorderStyle = () => {
     const color = getBorderColor();
-    const base = { border: `2px solid ${color}`, borderRadius: '1rem', padding: '16px', minHeight: 80, transition: 'border-color 0.3s ease' };
+    const base = { border: `1.5px solid ${color}`, borderRadius: '1rem', padding: '12px', minHeight: 60, transition: 'border-color 0.3s ease' };
     if (phase === 'transition' || phase === 'turnstile-both') {
-      return { ...base, animation: 'borderFlash 1.2s ease-in-out infinite' };
+      return { ...base, animation: 'inlineBorderFlash 1.2s ease-in-out infinite' };
     }
     return base;
   };
 
-  /* ---- 样式 ---- */
-  const backdropStyle = {
-    position: 'fixed', inset: 0, zIndex: 400,
-    background: 'var(--bg)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    opacity: animState === 'entering' ? 0 : animState === 'exiting' ? 0 : 1,
-    transition: 'opacity 0.25s ease',
-  };
-
-  const cardStyle = {
-    background: 'var(--bg-card)', color: 'var(--text)',
-    borderRadius: '1.25rem', padding: '24px', maxWidth: 420, width: '90%',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-    transform: animState === 'entering' ? 'scale(0.9) translateY(16px)' : animState === 'exiting' ? 'scale(0.95) translateY(8px)' : 'scale(1) translateY(0)',
-    opacity: animState === 'entering' ? 0 : animState === 'exiting' ? 0 : 1,
-    transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease',
-    overflow: 'hidden',
-  };
-
   const phaseLabel = {
-    loading: '正在评估安全等级...',
+    loading: '正在加载...',
     quantum: '请完成安全验证',
     transition: '验证中...',
     'turnstile-both': '验证中...',
@@ -314,96 +268,68 @@ export function useVerifyModal() {
     done: '验证通过 ✓',
   };
 
-  const VerifyModal = (
+  const InlineVerify = !active ? null : (
     <>
       <style>{`
-        @keyframes borderFlash {
+        @keyframes inlineBorderFlash {
           0%, 100% { border-color: #D4A830; }
           50% { border-color: rgba(212, 168, 48, 0.3); }
         }
       `}</style>
-      <div style={backdropStyle} onClick={handleClose}>
-        <div style={cardStyle} onClick={e => e.stopPropagation()}>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-base" style={{ color: 'var(--text)' }}>
-              <i className="fa-solid fa-shield-halved mr-2" style={{ color: 'var(--primary-dark)' }} />
-              安全验证
-            </h3>
-            <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem' }}>
-              <i className="fa-solid fa-xmark" />
-            </button>
+      <div style={{ marginTop: 12 }}>
+        {/* 状态文字 */}
+        <p style={{ fontSize: '.78rem', color: phase === 'done' ? '#5DAE60' : (phase === 'transition' || phase === 'turnstile-both') ? '#D4A830' : 'var(--text-muted)', marginBottom: 10, transition: 'color 0.3s', textAlign: 'center' }}>
+          {error || phaseLabel[phase] || '正在加载...'}
+        </p>
+
+        {/* 验证区域 */}
+        {flow === 'both' ? (
+          <div style={getBorderStyle()}>
+            {phase === 'quantum' && <div ref={quantumContainerRef} />}
+            {phase === 'transition' && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 0', gap: 8 }}>
+                <div style={{ width: 18, height: 18, border: '2.5px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>验证中...</span>
+              </div>
+            )}
+            {phase === 'turnstile-both' && <div ref={turnstileBothContainerRef} style={{ display: 'flex', justifyContent: 'center' }} />}
+            {phase === 'done' && (
+              <div style={{ textAlign: 'center', padding: '4px 0', fontSize: '1.6rem', color: '#5DAE60' }}>
+                <i className="fa-solid fa-circle-check" />
+              </div>
+            )}
           </div>
+        ) : (
+          <div style={getBorderStyle()}>
+            {phase === 'quantum' && <div ref={quantumContainerRef} />}
+            {phase === 'turnstile' && <div id="inline-turnstile-container" style={{ display: 'flex', justifyContent: 'center' }} />}
+            {phase === 'done' && (
+              <div style={{ textAlign: 'center', padding: '4px 0', fontSize: '1.6rem', color: '#5DAE60' }}>
+                <i className="fa-solid fa-circle-check" />
+              </div>
+            )}
+            {phase === 'loading' && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 0', gap: 8 }}>
+                <div style={{ width: 18, height: 18, border: '2.5px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>加载验证组件...</span>
+              </div>
+            )}
+          </div>
+        )}
 
-          {/* 进度条（both 模式） */}
-          {flow === 'both' && (
-            <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
-              <div style={{
-                flex: 1, height: 3, borderRadius: 2,
-                background: ['quantum', 'transition', 'turnstile-both', 'done'].includes(phase) ? 'var(--primary)' : 'var(--border)',
-                transition: 'background 0.3s',
-              }} />
-              <div style={{
-                flex: 1, height: 3, borderRadius: 2,
-                background: ['turnstile-both', 'done'].includes(phase) ? 'var(--primary)' : 'var(--border)',
-                transition: 'background 0.3s',
-              }} />
-            </div>
-          )}
-
-          <p style={{ fontSize: '.8rem', color: phase === 'done' ? '#5DAE60' : (phase === 'transition' || phase === 'turnstile-both') ? '#D4A830' : 'var(--text-muted)', marginBottom: '0.75rem', transition: 'color 0.3s' }}>
-            {error || phaseLabel[phase] || '正在加载...'}
-          </p>
-
-          {/* ---- 内容区 ---- */}
-          {flow === 'both' ? (
-            /* both 模式：单容器，根据 phase 切换内容和边框 */
-            <div style={getBorderStyle()}>
-              {phase === 'quantum' && <div ref={quantumContainerRef} />}
-              {phase === 'transition' && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 0' }}>
-                  <div className="spinner" style={{ marginRight: 10 }} />
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>正在切换验证方式...</span>
-                </div>
-              )}
-              {(phase === 'turnstile-both') && <div ref={turnstileBothContainerRef} style={{ display: 'flex', justifyContent: 'center' }} />}
-              {phase === 'done' && (
-                <div style={{ textAlign: 'center', padding: '8px 0', fontSize: '1.8rem', color: '#5DAE60' }}>
-                  <i className="fa-solid fa-circle-check" />
-                </div>
-              )}
-            </div>
-          ) : (
-            /* 单模式 */
-            <div style={{ border: '2px solid var(--border)', borderRadius: '1rem', overflow: 'hidden', padding: '16px', minHeight: 80, transition: 'border-color 0.3s' }}>
-              {phase === 'quantum' && <div ref={quantumContainerRef} />}
-              {phase === 'turnstile' && <div id="turnstile-container" style={{ display: 'flex', justifyContent: 'center' }} />}
-              {phase === 'done' && (
-                <div style={{ textAlign: 'center', padding: '8px 0', fontSize: '1.8rem', color: '#5DAE60' }}>
-                  <i className="fa-solid fa-circle-check" />
-                </div>
-              )}
-              {phase === 'loading' && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 0' }}>
-                  <div className="spinner" style={{ marginRight: 10 }} />
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>加载验证组件...</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {error && (
-            <button
-              className="btn btn-sm btn-primary"
-              style={{ marginTop: '0.75rem', width: '100%' }}
-              onClick={() => { setError(null); setRetryCount(c => c + 1); }}
-            >
-              重试
-            </button>
-          )}
-        </div>
+        {error && (
+          <button
+            className="btn btn-sm btn-outline"
+            style={{ marginTop: 8, width: '100%', fontSize: '0.82rem' }}
+            onClick={() => { setError(null); setRetryCount(c => c + 1); }}
+          >
+            重试
+          </button>
+        )}
       </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
   );
 
-  return { trigger, VerifyModal, captchaToken: tokenRef };
+  return { trigger, InlineVerify, verified, tokenRef };
 }
