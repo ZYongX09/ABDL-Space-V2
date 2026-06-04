@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { isNBWConfigured, startNBWOAuth } from '../utils/nbwOAuth';
 import AnimatedCharacters from '../components/AnimatedCharacters/AnimatedCharacters';
+import { useVerifyModal } from '../components/VerifyModal';
 import './Login.css';
 
 const FAIL_THRESHOLD = 2;
@@ -15,19 +16,18 @@ export default function Login() {
   const [consented, setConsented] = useState(false);
   const [minorConsented, setMinorConsented] = useState(false);
   const [captchaOk, setCaptchaOk] = useState(false);
-  const [captchaStarted, setCaptchaStarted] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [passwordRevealed, setPasswordRevealed] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [failCount, setFailCount] = useState(0);
   const [showNBWConsent, setShowNBWConsent] = useState(false);
-  const captchaContainerRef = useRef(null);
   const captchaTokenRef = useRef(null);
   const { login: authLogin, saveConsent, logout, user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  const { trigger: triggerCaptcha, VerifyModal } = useVerifyModal();
 
   const needCaptcha = failCount >= FAIL_THRESHOLD;
   const canSubmit = !loading && (!needCaptcha || captchaOk) && consented && minorConsented;
@@ -35,28 +35,7 @@ export default function Login() {
   const isTyping = emailFocused && login.length > 0;
   const nbwConfigured = isNBWConfigured();
 
-  useEffect(() => {
-    if (!captchaStarted || !captchaContainerRef.current) return;
-    if (!window.ABDLCaptcha) {
-      const check = setInterval(() => {
-        if (window.ABDLCaptcha) { clearInterval(check); renderCaptcha(); }
-      }, 200);
-      return () => clearInterval(check);
-    }
-    renderCaptcha();
-    function renderCaptcha() {
-      if (!captchaContainerRef.current) return;
-      captchaContainerRef.current.innerHTML = '';
-      const apiKey = window.__ABDL_CAPTCHA_KEY || '';
-      try {
-        window.ABDLCaptcha.render(captchaContainerRef.current, {
-          apiKey,
-          onSuccess: (token) => { captchaTokenRef.current = token; setCaptchaOk(true); },
-          onError: (err) => { if (err.message?.includes('Locked')) toast.error('验证已锁定，请稍后再试'); },
-        });
-      } catch (err) { console.error('Captcha render failed:', err); }
-    }
-  }, [captchaStarted, toast]);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,7 +43,10 @@ export default function Login() {
     if (passwordVisible && !password) { toast.error('请填写密码'); return; }
     if (!passwordVisible) { setPasswordVisible(true); return; }
     if (!consented) { toast.error('请阅读并同意隐私政策'); return; }
-    if (needCaptcha && !captchaOk) { toast.error('请完成安全验证'); return; }
+    if (needCaptcha && !captchaOk) {
+      triggerCaptcha(() => { captchaTokenRef.current = 'verified'; setCaptchaOk(true); });
+      return;
+    }
     try {
       setLoading(true);
       const result = await authLogin({ login: login.trim(), password, captchaToken: captchaTokenRef.current || undefined });
@@ -81,7 +63,7 @@ export default function Login() {
         toast.error(msg);
       }
       setFailCount(c => c + 1);
-      if (needCaptcha) { setCaptchaOk(false); setCaptchaStarted(false); captchaTokenRef.current = null; }
+      if (needCaptcha) { setCaptchaOk(false); captchaTokenRef.current = null; }
     } finally { setLoading(false); }
   };
 
@@ -176,13 +158,12 @@ export default function Login() {
                 <label><i className="fa-solid fa-shield-halved mr-1.5" style={{ color: 'var(--primary-dark)' }} />安全验证</label>
                 {captchaOk && <span className="login-captcha-ok"><i className="fa-solid fa-circle-check mr-1" />已通过</span>}
               </div>
-              {!captchaStarted && !captchaOk && (
+              {!captchaOk && (
                 <div className="login-captcha-start">
                   <p>检测到多次登录失败，请完成安全验证</p>
-                  <button type="button" className="btn btn-outline" onClick={() => setCaptchaStarted(true)}><i className="fa-solid fa-play" /> 开始验证</button>
+                  <button type="button" className="btn btn-outline" onClick={() => triggerCaptcha(() => { captchaTokenRef.current = 'verified'; setCaptchaOk(true); })}><i className="fa-solid fa-play" /> 开始验证</button>
                 </div>
               )}
-              {captchaStarted && !captchaOk && <div ref={captchaContainerRef} />}
               {captchaOk && (
                 <div className="login-captcha-done">
                   <i className="fa-solid fa-circle-check" />
@@ -217,6 +198,7 @@ export default function Login() {
 
   return (
     <>
+      {VerifyModal}
       {/* 桌面端：左右分栏 */}
       <div className="login-desktop">
         <div className="login-left">
