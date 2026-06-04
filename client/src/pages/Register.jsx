@@ -6,6 +6,7 @@ import { authAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { isNBWConfigured } from '../utils/nbwOAuth';
+import { useVerifyModal } from '../components/VerifyModal';
 
 export default function Register() {
   const location = useLocation();
@@ -28,21 +29,19 @@ export default function Register() {
   const [codeSent, setCodeSent] = useState(false);
   const [sendCodeCount, setSendCodeCount] = useState(0);
   const [sendCodeCaptchaOk, setSendCodeCaptchaOk] = useState(false);
-  const [sendCodeCaptchaStarted, setSendCodeCaptchaStarted] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [agreeMinor, setAgreeMinor] = useState(false);
   const [captchaOk, setCaptchaOk] = useState(false);
-  const [captchaStarted, setCaptchaStarted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const regContainerRef = useRef(null);
-  const sendCodeContainerRef = useRef(null);
   const regTokenRef = useRef(null);
   const sendCodeTokenRef = useRef(null);
   const { register, saveConsent } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const { trigger: triggerRegVerify, VerifyModal: RegVerifyModal } = useVerifyModal();
+  const { trigger: triggerSendCodeVerify, VerifyModal: SendCodeVerifyModal } = useVerifyModal();
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -50,46 +49,19 @@ export default function Register() {
     return () => clearTimeout(t);
   }, [cooldown]);
 
-  // 渲染 SDK 的通用函数
-  const renderSDK = useCallback((container, onVerified) => {
-    if (!container || !window.ABDLCaptcha) return;
-    container.innerHTML = '';
-    const apiKey = window.__ABDL_CAPTCHA_KEY || '';
-    try {
-      window.ABDLCaptcha.render(container, {
-        apiKey,
-        onSuccess: (token) => onVerified(token),
-        onError: (err) => {
-          if (err.message?.includes('Locked')) toast.error('验证已锁定');
-        },
-      });
-    } catch (err) {
-      console.error('Captcha render failed:', err);
-    }
-  }, [toast]);
 
-  // 注册验证码 SDK
-  useEffect(() => {
-    if (!captchaStarted || !regContainerRef.current) return;
-    const wait = setInterval(() => {
-      if (window.ABDLCaptcha) { clearInterval(wait); renderSDK(regContainerRef.current, (token) => { regTokenRef.current = token; setCaptchaOk(true); }); }
-    }, 200);
-    return () => clearInterval(wait);
-  }, [captchaStarted, renderSDK]);
-
-  // 发送验证码 SDK
-  useEffect(() => {
-    if (!sendCodeCaptchaStarted || !sendCodeContainerRef.current) return;
-    const wait = setInterval(() => {
-      if (window.ABDLCaptcha) { clearInterval(wait); renderSDK(sendCodeContainerRef.current, (token) => { sendCodeTokenRef.current = token; setSendCodeCaptchaOk(true); }); }
-    }, 200);
-    return () => clearInterval(wait);
-  }, [sendCodeCaptchaStarted, renderSDK]);
 
   const handleSendCode = useCallback(async () => {
     if (!email.trim()) { toast.error('请输入邮箱'); return; }
     if (!email.includes('@')) { toast.error('请输入合法邮箱'); return; }
-    if (sendCodeCount >= 2 && !sendCodeCaptchaOk) { toast.error('请先完成安全验证'); return; }
+    if (sendCodeCount >= 2 && !sendCodeCaptchaOk) {
+      triggerSendCodeVerify(() => {
+        setSendCodeCaptchaOk(true);
+        // 自动重试发送
+        handleSendCode();
+      });
+      return;
+    }
     setLoading(true);
     try {
       await authAPI.sendCode({ email: email.trim(), type: 'register', captchaToken: sendCodeTokenRef.current || undefined });
@@ -134,6 +106,8 @@ export default function Register() {
 
   return (
     <>
+      {RegVerifyModal}
+      {SendCodeVerifyModal}
       <PageLayout hero={{ icon: 'fa-user-plus', title: '注册', subtitle: '加入 ABDL Space 大家庭' }}>
         <div className="card max-w-md mx-auto">
           {nbwState && (
@@ -167,16 +141,12 @@ export default function Register() {
                 <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--text)' }}>
                   <i className="fa-solid fa-shield-halved mr-1" style={{ color: 'var(--primary-dark)' }} />安全验证
                 </label>
-                {!sendCodeCaptchaStarted ? (
-                  <div className="text-center">
-                    <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>频繁获取验证码需要安全验证</p>
-                    <button type="button" className="btn btn-outline btn-sm" onClick={() => setSendCodeCaptchaStarted(true)}>
-                      <i className="fa-solid fa-play" /> 开始验证
-                    </button>
-                  </div>
-                ) : (
-                  <div ref={sendCodeContainerRef} style={{ minHeight: 280 }} />
-                )}
+                <div className="text-center">
+                  <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>频繁获取验证码需要安全验证</p>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => triggerSendCodeVerify(() => { setSendCodeCaptchaOk(true); })}>
+                    <i className="fa-solid fa-play" /> 开始验证
+                  </button>
+                </div>
               </div>
             )}
 
@@ -217,19 +187,15 @@ export default function Register() {
                 {captchaOk && <span className="text-xs font-semibold" style={{ color: 'var(--success)' }}><i className="fa-solid fa-circle-check mr-1" />已通过</span>}
               </div>
 
-              {!captchaStarted && !captchaOk && (
+              {!captchaOk && (
                 <div className="flex flex-col items-center justify-center py-4">
                   <p className="text-xs mb-3 text-center" style={{ color: 'var(--text-light)' }}>
                     请完成安全验证<br />每个节点只能点击一次，5次错误将锁定5分钟
                   </p>
-                  <button type="button" className="btn btn-outline" onClick={() => setCaptchaStarted(true)}>
+                  <button type="button" className="btn btn-outline" onClick={() => triggerRegVerify(() => { regTokenRef.current = 'verified'; setCaptchaOk(true); })}>
                     <i className="fa-solid fa-play" /> 开始验证
                   </button>
                 </div>
-              )}
-
-              {captchaStarted && !captchaOk && (
-                <div ref={regContainerRef} />
               )}
 
               {captchaOk && (
