@@ -212,8 +212,6 @@ async function loadLogoPoints(count) {
       const doc = parser.parseFromString(svgText, 'image/svg+xml');
       const paths = doc.querySelectorAll('path');
 
-      // 用离屏 canvas 的 Path2D 解析路径并采样
-      const allPoints = [];
       const viewBox = doc.querySelector('svg').getAttribute('viewBox');
       let vbW = 8669, vbH = 8669;
       if (viewBox) {
@@ -221,85 +219,67 @@ async function loadLogoPoints(count) {
         vbW = parts[2]; vbH = parts[3];
       }
 
-      const sampleSize = 500;
+      const sampleSize = 600;
       const offscreen = document.createElement('canvas');
       offscreen.width = sampleSize; offscreen.height = sampleSize;
       const octx = offscreen.getContext('2d');
 
-      // 绘制每个路径并扫描轮廓
+      // 所有路径合并绘制到一张图
+      octx.clearRect(0, 0, sampleSize, sampleSize);
+      octx.save();
+      octx.scale(sampleSize / vbW, sampleSize / vbH);
       for (const path of paths) {
         const d = path.getAttribute('d');
         if (!d) continue;
+        octx.fill(new Path2D(d));
+      }
+      octx.restore();
 
-        octx.clearRect(0, 0, sampleSize, sampleSize);
-        octx.save();
-        octx.scale(sampleSize / vbW, sampleSize / vbH);
-        const p2d = new Path2D(d);
-        octx.fill(p2d);
-        octx.restore();
-
-        // 扫描填充像素
-        const imgData = octx.getImageData(0, 0, sampleSize, sampleSize);
-        for (let y = 0; y < sampleSize; y += 2) {
-          for (let x = 0; x < sampleSize; x += 2) {
-            if (imgData.data[(y * sampleSize + x) * 4 + 3] > 128) {
-              allPoints.push({
-                x: (x - sampleSize / 2) * 0.85,
-                y: (y - sampleSize / 2) * 0.85,
-              });
-            }
+      // 扫描所有填充像素
+      const imgData = octx.getImageData(0, 0, sampleSize, sampleSize);
+      const filled = new Uint8Array(sampleSize * sampleSize);
+      for (let y = 0; y < sampleSize; y++) {
+        for (let x = 0; x < sampleSize; x++) {
+          if (imgData.data[(y * sampleSize + x) * 4 + 3] > 64) {
+            filled[y * sampleSize + x] = 1;
           }
         }
       }
 
-      // 轮廓点提取：只保留边缘像素（内部像素被 4 邻域包围的去掉）
-      const edgeSet = new Set();
-      const gridSize = sampleSize;
-      const filled = new Uint8Array(gridSize * gridSize);
-      for (const p of allPoints) {
-        const ix = Math.round(p.x / 0.85 + sampleSize / 2);
-        const iy = Math.round(p.y / 0.85 + sampleSize / 2);
-        if (ix >= 0 && ix < gridSize && iy >= 0 && iy < gridSize) {
-          filled[iy * gridSize + ix] = 1;
-        }
-      }
-
+      // 边缘检测：有任意空邻域的像素
       const edgePoints = [];
-      for (let y = 1; y < gridSize - 1; y++) {
-        for (let x = 1; x < gridSize - 1; x++) {
-          if (!filled[y * gridSize + x]) continue;
-          // 如果 4 邻域有任何一个为空，则是边缘
-          if (!filled[(y-1)*gridSize+x] || !filled[(y+1)*gridSize+x] ||
-              !filled[y*gridSize+x-1] || !filled[y*gridSize+x+1]) {
-            edgePoints.push({
-              x: (x - sampleSize / 2) * 0.85,
-              y: (y - sampleSize / 2) * 0.85,
-            });
-          }
+      const fillPoints = [];
+      for (let y = 1; y < sampleSize - 1; y += 2) {
+        for (let x = 1; x < sampleSize - 1; x += 2) {
+          if (!filled[y * sampleSize + x]) continue;
+          const isEdge = !filled[(y-1)*sampleSize+x] || !filled[(y+1)*sampleSize+x] ||
+                         !filled[y*sampleSize+x-1] || !filled[y*sampleSize+x+1];
+          const px = (x - sampleSize/2) * 0.7;
+          const py = (y - sampleSize/2) * 0.7;
+          if (isEdge) edgePoints.push({ x: px, y: py });
+          else fillPoints.push({ x: px, y: py });
         }
       }
 
-      // 用边缘点 + 部分填充点混合
+      // 80% 轮廓 + 20% 内部，保证轮廓清晰
       const result = [];
-      const edgeStep = Math.max(1, Math.floor(edgePoints.length / (count * 0.7)));
-      for (let i = 0; i < edgePoints.length && result.length < count * 0.7; i += edgeStep) {
+      const edgeCount = Math.floor(count * 0.8);
+      const edgeStep = Math.max(1, Math.floor(edgePoints.length / edgeCount));
+      for (let i = 0; i < edgePoints.length && result.length < edgeCount; i += edgeStep) {
         result.push(edgePoints[i]);
       }
-      // 补充内部填充点（让 Logo 更饱满）
-      const fillStep = Math.max(1, Math.floor(allPoints.length / (count * 0.3)));
-      for (let i = 0; i < allPoints.length && result.length < count; i += fillStep) {
-        result.push(allPoints[i]);
+      const fillStep = Math.max(1, Math.floor(fillPoints.length / (count - edgeCount)));
+      for (let i = 0; i < fillPoints.length && result.length < count; i += fillStep) {
+        result.push(fillPoints[i]);
       }
-      // 最终补充
       while (result.length < count) {
-        result.push(allPoints[Math.floor(Math.random() * allPoints.length)]);
+        result.push(edgePoints[Math.floor(Math.random() * edgePoints.length)]);
       }
 
       logoPointsCache = result.slice(0, count);
       resolve(logoPointsCache);
     } catch (err) {
       console.error('Logo load failed:', err);
-      // fallback
       const result = [];
       for (let i = 0; i < count; i++) {
         const angle = (i / count) * Math.PI * 2;
