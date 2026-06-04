@@ -26,6 +26,9 @@ export function useInlineVerify() {
     userSequence: [], successfulEdges: [], attemptCount: 0,
     isVerified: false, hoveredNode: null, timerExpired: false,
   });
+  const [countdown, setCountdown] = useState(10);
+  const [hint, setHint] = useState('按高亮顺序点击节点，每个节点只能点一次');
+  const timerRef = useRef(null);
 
   useEffect(() => {
     if (window.ABDLCaptcha) { sdkReadyRef.current = true; return; }
@@ -52,6 +55,7 @@ export function useInlineVerify() {
     setActive(false); setPhase('loading'); setFlow(null); setError(null);
     tokenRef.current = null;
     turnstileSessionRef.current = null;
+    if (timerRef.current) clearInterval(timerRef.current);
     if (turnstileWidgetRef.current) {
       try { window.turnstile?.remove(turnstileWidgetRef.current); } catch {}
       turnstileWidgetRef.current = null;
@@ -105,6 +109,31 @@ export function useInlineVerify() {
     createQuantumChallenge();
   }, [phase]);
 
+  // 倒计时
+  function startCountdown() {
+    setCountdown(10);
+    setHint('按高亮顺序点击节点，每个节点只能点一次');
+    if (timerRef.current) clearInterval(timerRef.current);
+    const start = Date.now();
+    timerRef.current = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const remaining = Math.max(0, 10000 - elapsed);
+      setCountdown(Math.ceil(remaining / 1000));
+      if (remaining <= 0) {
+        clearInterval(timerRef.current);
+        setQuantumState(s => ({ ...s, timerExpired: true, userSequence: [], successfulEdges: [] }));
+        setHint('超时，正在重新加载...');
+        setTimeout(() => createQuantumChallenge(), 800);
+      }
+    }, 200);
+  }
+
+  function resetQuantum() {
+    setQuantumState(s => ({ ...s, userSequence: [], successfulEdges: [], timerExpired: false }));
+    setHint('按高亮顺序点击节点，每个节点只能点一次');
+    startCountdown();
+  }
+
   // Quantum — 渲染 Canvas
   useEffect(() => {
     if (phase !== 'quantum' || !quantumState.sessionId) return;
@@ -141,6 +170,7 @@ export function useInlineVerify() {
         hoveredNode: null,
         timerExpired: false,
       });
+      startCountdown();
     } catch (err) {
       setError(err.message);
     }
@@ -214,19 +244,18 @@ export function useInlineVerify() {
       setQuantumState(s => ({ ...s, userSequence: newSeq, successfulEdges: newEdges }));
 
       if (newSeq.length === st.order.length) {
-        // 验证通过，提交
         submitQuantum(newSeq);
       }
     } else {
-      // 错误
       const newAttempts = st.attemptCount + 1;
       setQuantumState(s => ({ ...s, attemptCount: newAttempts, userSequence: [], successfulEdges: [] }));
       if (newAttempts >= 5) {
+        if (timerRef.current) clearInterval(timerRef.current);
         setError('已锁定，请稍后重试');
       } else {
-        setError('顺序错误，请重试');
+        setHint('顺序错误，请重试');
         setTimeout(() => {
-          setError(null);
+          setHint('按高亮顺序点击节点，每个节点只能点一次');
           setQuantumState(s => ({ ...s, userSequence: [], successfulEdges: [] }));
         }, 1500);
       }
@@ -247,7 +276,9 @@ export function useInlineVerify() {
       const result = await res.json();
       if (result.success) {
         tokenRef.current = result.token;
+        if (timerRef.current) clearInterval(timerRef.current);
         setQuantumState(s => ({ ...s, isVerified: true }));
+        setHint('验证通过 ✓');
         if (flow === 'both') {
           setPhase('transition');
           setTimeout(() => setPhase('turnstile-both'), 600);
@@ -452,7 +483,40 @@ export function useInlineVerify() {
 
         {quantumState.nodes.length > 0 && phase === 'quantum' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+            <span style={{ flex: 1, fontSize: '0.72rem', color: quantumState.isVerified ? '#5DAE60' : quantumState.timerExpired ? '#ef476f' : 'var(--text-light)' }}>{hint}</span>
+            <span style={{
+              fontVariantNumeric: 'tabular-nums',
+              padding: '2px 8px',
+              borderRadius: 8,
+              background: countdown <= 3 ? 'rgba(239,71,111,0.1)' : 'rgba(0,0,0,0.04)',
+              color: countdown <= 3 ? '#ef476f' : 'var(--text-muted)',
+              fontWeight: countdown <= 3 ? 600 : 400,
+            }}>{countdown}s</span>
             <span>尝试: {quantumState.attemptCount}/5</span>
+            <button
+              type="button"
+              onClick={resetQuantum}
+              style={{
+                padding: '3px 10px', borderRadius: 6,
+                border: '1px solid var(--border)', background: 'var(--input-bg)',
+                fontSize: '0.72rem', cursor: 'pointer', color: 'var(--text)',
+              }}
+              onMouseEnter={e => { e.target.style.borderColor = 'var(--primary)'; e.target.style.color = 'var(--primary-dark)'; }}
+              onMouseLeave={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--text)'; }}
+            >重置</button>
+          </div>
+        )}
+
+        {/* 进度条 */}
+        {quantumState.nodes.length > 0 && phase === 'quantum' && (
+          <div style={{ height: 2, background: 'var(--border)', borderRadius: '0 0 10px 10px', overflow: 'hidden', marginTop: 4 }}>
+            <div style={{
+              height: '100%',
+              width: `${Math.min(100, ((10 - countdown) / 10) * 100)}%`,
+              background: countdown <= 3 ? '#ef476f' : 'var(--primary)',
+              transition: 'width 0.2s linear',
+              borderRadius: 2,
+            }} />
           </div>
         )}
 
