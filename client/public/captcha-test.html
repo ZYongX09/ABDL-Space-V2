@@ -39,7 +39,6 @@
       transition: background 0.3s ease, color 0.3s ease;
     }
 
-    /* ====== 顶部导航 ====== */
     .top-bar {
       position: sticky; top: 0; z-index: 50; height: 56px;
       background: rgba(26, 29, 35, 0.65);
@@ -63,10 +62,7 @@
       transition: background 0.2s ease, color 0.2s ease;
     }
     .top-bar-btn:hover { background: var(--primary-light); color: var(--text); }
-    .theme-switch {
-      display: flex; gap: 4px; padding: 3px;
-      background: var(--input-bg); border-radius: 8px;
-    }
+    .theme-switch { display: flex; gap: 4px; padding: 3px; background: var(--input-bg); border-radius: 8px; }
     .theme-btn {
       width: 28px; height: 28px; border-radius: 6px; border: none;
       cursor: pointer; font-size: 0.75rem;
@@ -75,7 +71,6 @@
     }
     .theme-btn.active { background: var(--bg-card); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
 
-    /* ====== 主页面板 ====== */
     .page-wrap { max-width: 520px; width: 100%; margin: 0 auto; padding: 24px 16px 40px; }
     .card {
       background: var(--bg-card); border: 1px solid var(--border);
@@ -96,7 +91,6 @@
       font-size: 0.95rem; font-weight: 600; cursor: pointer;
       transition: all 0.25s var(--miui-spring);
       border: none; font-family: var(--font);
-      -webkit-tap-highlight-color: transparent;
     }
     .btn:active { transform: scale(0.94); transition-duration: 0.1s; }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
@@ -171,10 +165,10 @@
     .animate-in:nth-child(2) { animation-delay: 0.06s; }
     .animate-in:nth-child(3) { animation-delay: 0.12s; }
 
-    /* ====== 弹窗（和主站 VerifyModal 一致，无毛玻璃） ====== */
+    /* ====== 弹窗 ====== */
     .verify-backdrop {
       position: fixed; inset: 0; z-index: 400;
-      background: #1A1D23;
+      background: var(--bg);
       display: flex; align-items: center; justify-content: center;
       opacity: 0; transition: opacity 0.25s ease;
       pointer-events: none;
@@ -185,14 +179,11 @@
       background: var(--bg-card); color: var(--text);
       border-radius: 1.25rem; padding: 24px; max-width: 420px; width: 90%;
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      transform: scale(0.9) translateY(16px);
-      opacity: 0;
+      transform: scale(0.9) translateY(16px); opacity: 0;
       transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
       overflow: hidden;
     }
-    .verify-backdrop.visible .verify-card {
-      transform: scale(1) translateY(0); opacity: 1;
-    }
+    .verify-backdrop.visible .verify-card { transform: scale(1) translateY(0); opacity: 1; }
 
     .verify-header {
       display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
@@ -216,31 +207,26 @@
     }
     .verify-progress .bar.active { background: var(--primary); }
 
-    .verify-phase-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
+    .verify-phase-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; transition: color 0.3s; }
 
-    .verify-widget-box {
-      border: 1.5px solid var(--border); border-radius: 1rem;
-      overflow: hidden; padding: 12px; min-height: 80px;
+    /* 验证区域容器 */
+    .verify-zone {
+      border: 2px solid var(--border); border-radius: 1rem;
+      padding: 16px; min-height: 80px;
+      transition: border-color 0.3s ease;
+    }
+    .verify-zone.gray   { border-color: var(--border); }
+    .verify-zone.yellow { border-color: #D4A830; animation: borderFlash 1.2s ease-in-out infinite; }
+    .verify-zone.green  { border-color: #5DAE60; }
+
+    @keyframes borderFlash {
+      0%, 100% { border-color: #D4A830; }
+      50% { border-color: rgba(212, 168, 48, 0.3); }
     }
 
-    /* both 模式滑动容器 */
-    .verify-slider-wrap { overflow: hidden; border-radius: 1rem; }
-    .verify-slider {
-      display: flex; width: 200%;
-      transform: translateX(0);
-      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .verify-slider.slide-1 { transform: translateX(-50%); }
-    .verify-slide { width: 50%; flex-shrink: 0; }
-    .verify-slide:first-child { padding-right: 12px; }
-    .verify-slide:last-child { padding-left: 12px; }
-    .verify-slide-inner {
-      border: 1.5px solid var(--border); border-radius: 1rem;
-      padding: 12px; min-height: 80px;
-    }
-
-    .verify-done-icon { text-align: center; padding: 20px 0; font-size: 2rem; color: var(--success); }
+    .verify-done-icon { text-align: center; padding: 8px 0; font-size: 1.8rem; color: #5DAE60; }
     .verify-retry-btn { margin-top: 12px; width: 100%; }
+
     .verify-loading {
       display: flex; align-items: center; justify-content: center; padding: 24px 0;
       gap: 10px; color: var(--text-muted); font-size: 0.85rem;
@@ -255,7 +241,6 @@
 </head>
 <body>
 
-<!-- 顶部导航 -->
 <div class="top-bar">
   <div class="top-bar-logo"><i class="fa-solid fa-flask-vial"></i></div>
   <span class="top-bar-title">验证码测试</span>
@@ -272,32 +257,17 @@
 </div>
 
 <div class="page-wrap">
-
-  <!-- 风险评估 -->
   <div class="card animate-in">
     <div class="card-title"><i class="fa-solid fa-shield-halved"></i> 风险评估</div>
-    <div class="info-row">
-      <span class="info-label">当前 IP</span>
-      <span class="info-value" id="risk-ip">-</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">风险等级</span>
-      <span id="risk-level">-</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">验证流程</span>
-      <span class="info-value" id="risk-flow">-</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">Turnstile Key</span>
-      <span id="risk-key">-</span>
-    </div>
+    <div class="info-row"><span class="info-label">当前 IP</span><span class="info-value" id="risk-ip">-</span></div>
+    <div class="info-row"><span class="info-label">风险等级</span><span id="risk-level">-</span></div>
+    <div class="info-row"><span class="info-label">验证流程</span><span class="info-value" id="risk-flow">-</span></div>
+    <div class="info-row"><span class="info-label">Turnstile Key</span><span id="risk-key">-</span></div>
     <button class="btn btn-outline btn-sm btn-block" style="margin-top:12px" onclick="checkRisk()">
       <i class="fa-solid fa-rotate-right"></i> 重新检测
     </button>
   </div>
 
-  <!-- 手动触发 -->
   <div class="card animate-in">
     <div class="card-title"><i class="fa-solid fa-hand-pointer"></i> 触发验证</div>
     <label>验证模式</label>
@@ -319,10 +289,9 @@
   </div>
 </div>
 
-<!-- ====== 验证弹窗（和主站 VerifyModal 一致，无毛玻璃） ====== -->
+<!-- ====== 验证弹窗 ====== -->
 <div class="verify-backdrop" id="verifyBackdrop" onclick="handleBackdropClick(event)">
   <div class="verify-card" id="verifyCard">
-    <!-- header -->
     <div class="verify-header">
       <div class="verify-title">
         <i class="fa-solid fa-shield-halved"></i>
@@ -341,46 +310,40 @@
     <!-- 阶段提示 -->
     <div class="verify-phase-label" id="v-phase-label">正在评估安全等级...</div>
 
-    <!-- both 模式：滑动卡片（Quantum 先，Turnstile 后） -->
-    <div id="v-slider-wrap" style="display:none">
-      <div class="verify-slider" id="v-slider">
-        <div class="verify-slide">
-          <div class="verify-slide-inner">
-            <div id="quantum-container-both"></div>
+    <!-- both 模式：单容器 -->
+    <div id="v-both-zone" style="display:none">
+      <div class="verify-zone gray" id="v-zone-box">
+        <div id="v-both-quantum"></div>
+        <div id="v-both-transition" style="display:none">
+          <div class="verify-loading">
+            <div class="spinner"></div>
+            <span>正在切换验证方式...</span>
           </div>
         </div>
-        <div class="verify-slide">
-          <div class="verify-slide-inner">
-            <div id="turnstile-container-both" style="display:flex;justify-content:center"></div>
-          </div>
+        <div id="v-both-turnstile" style="display:none; display:flex; justify-content:center"></div>
+        <div id="v-both-done" style="display:none">
+          <div class="verify-done-icon"><i class="fa-solid fa-circle-check"></i></div>
         </div>
       </div>
     </div>
 
     <!-- 单模式 -->
-    <div id="v-single-box" style="display:none">
-      <div class="verify-widget-box">
-        <div id="v-single-quantum" style="display:none">
-          <div id="quantum-container-single"></div>
-        </div>
-        <div id="v-single-turnstile" style="display:none">
-          <div id="turnstile-container-single" style="display:flex;justify-content:center"></div>
-        </div>
+    <div id="v-single-zone" style="display:none">
+      <div class="verify-zone gray">
+        <div id="v-single-quantum" style="display:none"></div>
+        <div id="v-single-turnstile" style="display:none; display:flex; justify-content:center"></div>
         <div id="v-single-loading">
           <div class="verify-loading">
             <div class="spinner"></div>
             <span>加载验证组件...</span>
           </div>
         </div>
+        <div id="v-single-done" style="display:none">
+          <div class="verify-done-icon"><i class="fa-solid fa-circle-check"></i></div>
+        </div>
       </div>
     </div>
 
-    <!-- done -->
-    <div id="v-done" style="display:none">
-      <div class="verify-done-icon"><i class="fa-solid fa-circle-check"></i></div>
-    </div>
-
-    <!-- 重试 -->
     <button class="btn btn-primary btn-sm verify-retry-btn" id="v-retry" style="display:none" onclick="retryVerify()">
       重试
     </button>
@@ -393,7 +356,6 @@ const panelLogEl = document.getElementById('panel-log');
 
 let currentFlow = null;
 let currentRisk = null;
-let slideIndex = 0;
 let turnstileSessionId = null;
 let turnstileWidgetId = null;
 
@@ -443,62 +405,70 @@ async function checkRisk() {
 }
 
 // ====== 弹窗控制 ======
-function openVerify() {
-  document.getElementById('verifyBackdrop').classList.add('visible');
-}
+function openVerify() { document.getElementById('verifyBackdrop').classList.add('visible'); }
 function closeVerify() {
   document.getElementById('verifyBackdrop').classList.remove('visible');
   cleanupVerify();
 }
-function handleBackdropClick(e) {
-  if (e.target === e.currentTarget) closeVerify();
-}
+function handleBackdropClick(e) { if (e.target === e.currentTarget) closeVerify(); }
+
 function cleanupVerify() {
   if (turnstileWidgetId) {
     try { window.turnstile?.remove(turnstileWidgetId); } catch {}
     turnstileWidgetId = null;
   }
   turnstileSessionId = null;
-  currentFlow = null;
-  currentRisk = null;
-  slideIndex = 0;
+
+  ['v-both-quantum','v-both-transition','v-both-turnstile','v-both-done',
+   'v-single-quantum','v-single-turnstile','v-single-loading','v-single-done'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
+  const zoneBox = document.getElementById('v-zone-box');
+  if (zoneBox) { zoneBox.className = 'verify-zone gray'; }
 
   document.getElementById('v-progress').style.display = 'none';
-  document.getElementById('v-slider-wrap').style.display = 'none';
-  document.getElementById('v-single-box').style.display = 'none';
-  document.getElementById('v-done').style.display = 'none';
+  document.getElementById('v-both-zone').style.display = 'none';
+  document.getElementById('v-single-zone').style.display = 'none';
   document.getElementById('v-retry').style.display = 'none';
   document.getElementById('v-risk-tag').textContent = '';
-  document.getElementById('v-phase-label').textContent = '正在评估安全等级...';
-  document.getElementById('v-phase-label').style.color = '';
-  document.getElementById('v-slider').className = 'verify-slider';
 
-  ['quantum-container-both','turnstile-container-both','quantum-container-single','turnstile-container-single'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = '';
-  });
+  const label = document.getElementById('v-phase-label');
+  label.textContent = '正在评估安全等级...';
+  label.style.color = '';
+
+  document.getElementById('v-both-quantum').textContent = '';
+  document.getElementById('v-both-turnstile').textContent = '';
+  document.getElementById('v-single-quantum').textContent = '';
+  document.getElementById('v-single-turnstile').textContent = '';
 }
 
-function setPhaseLabel(text) {
+function setPhaseLabel(text, color) {
   const el = document.getElementById('v-phase-label');
   el.textContent = text;
-  el.style.color = '';
+  el.style.color = color || '';
+}
+function setZoneColor(cls) {
+  document.getElementById('v-zone-box').className = 'verify-zone ' + cls;
 }
 function setProgress(idx) {
   document.getElementById('v-bar-0').className = 'bar' + (idx >= 0 ? ' active' : '');
   document.getElementById('v-bar-1').className = 'bar' + (idx >= 1 ? ' active' : '');
 }
 function showError(msg) {
-  const el = document.getElementById('v-phase-label');
-  el.textContent = msg;
-  el.style.color = 'var(--danger)';
+  setPhaseLabel(msg, 'var(--danger)');
   document.getElementById('v-retry').style.display = 'block';
 }
 function retryVerify() {
   document.getElementById('v-retry').style.display = 'none';
   const mode = document.getElementById('mode-select').value;
   cleanupVerify();
-  currentFlow = mode === 'auto' ? currentFlow : mode;
+  if (mode === 'auto') {
+    currentFlow = currentFlow; // keep last auto result
+  } else {
+    currentFlow = mode;
+  }
   openVerify();
   startVerifyFlow();
 }
@@ -524,6 +494,7 @@ async function triggerFromPanel() {
       panelLog(`返回: risk=${data.risk}, flow=${flow}`);
     } else {
       panelLog(`手动模式: ${mode}`);
+      currentRisk = null;
     }
 
     currentFlow = flow;
@@ -546,29 +517,34 @@ async function startVerifyFlow() {
   document.getElementById('v-risk-tag').textContent = risk ? `(${risk === 'high' ? '高' : '低'}风险)` : '';
 
   if (flow === 'both') {
-    // both: Quantum 先 → Turnstile 后
     document.getElementById('v-progress').style.display = 'flex';
-    document.getElementById('v-slider-wrap').style.display = 'block';
-    document.getElementById('v-single-box').style.display = 'none';
+    document.getElementById('v-both-zone').style.display = 'block';
+    document.getElementById('v-single-zone').style.display = 'none';
+    document.getElementById('v-both-quantum').style.display = 'block';
+    document.getElementById('v-both-transition').style.display = 'none';
+    document.getElementById('v-both-turnstile').style.display = 'none';
+    document.getElementById('v-both-done').style.display = 'none';
     setProgress(0);
-    setPhaseLabel('第 1 步：请完成安全验证');
+    setZoneColor('gray');
+    setPhaseLabel('请完成安全验证', '');
     startQuantum('both');
   } else if (flow === 'quantum') {
-    document.getElementById('v-single-box').style.display = 'block';
-    document.getElementById('v-slider-wrap').style.display = 'none';
+    document.getElementById('v-single-zone').style.display = 'block';
+    document.getElementById('v-both-zone').style.display = 'none';
     document.getElementById('v-single-quantum').style.display = 'block';
     document.getElementById('v-single-turnstile').style.display = 'none';
     document.getElementById('v-single-loading').style.display = 'none';
-    setPhaseLabel('请完成安全验证');
+    document.getElementById('v-single-done').style.display = 'none';
+    setPhaseLabel('请完成安全验证', '');
     startQuantum('single');
   } else {
-    // turnstile
-    document.getElementById('v-single-box').style.display = 'block';
-    document.getElementById('v-slider-wrap').style.display = 'none';
-    document.getElementById('v-single-turnstile').style.display = 'block';
+    document.getElementById('v-single-zone').style.display = 'block';
+    document.getElementById('v-both-zone').style.display = 'none';
+    document.getElementById('v-single-turnstile').style.display = 'flex';
     document.getElementById('v-single-quantum').style.display = 'none';
     document.getElementById('v-single-loading').style.display = 'none';
-    setPhaseLabel('请完成人机验证');
+    document.getElementById('v-single-done').style.display = 'none';
+    setPhaseLabel('请完成人机验证', '');
     startTurnstile('single');
   }
 }
@@ -576,7 +552,7 @@ async function startVerifyFlow() {
 // ====== Quantum ======
 function startQuantum(mode) {
   panelLog('加载 Quantum...');
-  const containerId = mode === 'both' ? 'quantum-container-both' : 'quantum-container-single';
+  const containerId = mode === 'both' ? 'v-both-quantum' : 'v-single-quantum';
 
   const render = () => {
     const container = document.getElementById(containerId);
@@ -590,11 +566,18 @@ function startQuantum(mode) {
         onSuccess: (token) => {
           panelLog('Quantum 验证通过 ✓');
           if (currentFlow === 'both') {
-            // 滑动到 Turnstile
+            // → transition 状态
             setProgress(1);
-            setPhaseLabel('第 2 步：请完成人机验证');
-            document.getElementById('v-slider').className = 'verify-slider slide-1';
-            setTimeout(() => startTurnstile('both'), 400);
+            setZoneColor('yellow');
+            setPhaseLabel('验证完成，正在进行二次验证', '#D4A830');
+            document.getElementById('v-both-quantum').style.display = 'none';
+            document.getElementById('v-both-transition').style.display = 'block';
+            // 延迟后渲染 Turnstile
+            setTimeout(() => {
+              document.getElementById('v-both-transition').style.display = 'none';
+              document.getElementById('v-both-turnstile').style.display = 'flex';
+              startTurnstile('both');
+            }, 800);
           } else {
             finishVerify();
           }
@@ -620,7 +603,7 @@ function startQuantum(mode) {
 // ====== Turnstile ======
 async function startTurnstile(mode) {
   panelLog('加载 Turnstile...');
-  const containerId = mode === 'both' ? 'turnstile-container-both' : 'turnstile-container-single';
+  const containerId = mode === 'both' ? 'v-both-turnstile' : 'v-single-turnstile';
 
   if (!window.turnstile) {
     await new Promise((resolve, reject) => {
@@ -679,19 +662,24 @@ async function startTurnstile(mode) {
 
 // ====== 完成 ======
 function finishVerify() {
-  const el = document.getElementById('v-phase-label');
-  el.textContent = '验证通过 ✓';
-  el.style.color = 'var(--success)';
+  const label = document.getElementById('v-phase-label');
+  label.textContent = '验证通过 ✓';
+  label.style.color = '#5DAE60';
 
-  document.getElementById('v-slider-wrap').style.display = 'none';
-  document.getElementById('v-single-box').style.display = 'none';
-  document.getElementById('v-progress').style.display = 'none';
-  document.getElementById('v-done').style.display = 'block';
+  if (currentFlow === 'both') {
+    setZoneColor('green');
+    document.getElementById('v-both-turnstile').style.display = 'none';
+    document.getElementById('v-both-done').style.display = 'block';
+  } else {
+    document.getElementById('v-single-quantum').style.display = 'none';
+    document.getElementById('v-single-turnstile').style.display = 'none';
+    document.getElementById('v-single-loading').style.display = 'none';
+    document.getElementById('v-single-done').style.display = 'block';
+  }
 
   setTimeout(() => closeVerify(), 800);
 }
 
-// ====== 初始化 ======
 checkRisk();
 </script>
 </body>
