@@ -307,10 +307,10 @@ export function useVerifyModal() {
 
   const phaseLabel = {
     loading: '正在评估安全等级...',
-    quantum: '请完成安全验证',
+    quantum: '按高亮顺序点击节点，需在 10 秒内完成',
     transition: '验证中...',
     'turnstile-both': '验证中...',
-    turnstile: '请完成人机验证',
+    turnstile: '请完成滑动验证',
     done: '验证通过 ✓',
   };
 

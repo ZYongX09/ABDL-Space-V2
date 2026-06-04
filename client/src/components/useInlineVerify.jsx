@@ -112,7 +112,7 @@ export function useInlineVerify() {
   // 倒计时
   function startCountdown() {
     setCountdown(10);
-    setHint('按高亮顺序点击节点，每个节点只能点一次');
+    setHint('按高亮顺序点击节点，需在 10 秒内完成');
     if (timerRef.current) clearInterval(timerRef.current);
     const start = Date.now();
     timerRef.current = setInterval(() => {
@@ -130,7 +130,7 @@ export function useInlineVerify() {
 
   function resetQuantum() {
     setQuantumState(s => ({ ...s, userSequence: [], successfulEdges: [], timerExpired: false }));
-    setHint('按高亮顺序点击节点，每个节点只能点一次');
+    setHint('按高亮顺序点击节点，需在 10 秒内完成');
     startCountdown();
   }
 
@@ -255,7 +255,7 @@ export function useInlineVerify() {
       } else {
         setHint('顺序错误，请重试');
         setTimeout(() => {
-          setHint('按高亮顺序点击节点，每个节点只能点一次');
+          setHint('按高亮顺序点击节点，需在 10 秒内完成');
           setQuantumState(s => ({ ...s, userSequence: [], successfulEdges: [] }));
         }, 1500);
       }
@@ -409,10 +409,10 @@ export function useInlineVerify() {
 
   const phaseLabel = {
     loading: '正在加载...',
-    quantum: '请按高亮顺序点击节点',
+    quantum: '按高亮顺序点击节点，需在 10 秒内完成',
     transition: '验证中...',
     'turnstile-both': '验证中...',
-    turnstile: '请完成人机验证',
+    turnstile: '请完成滑动验证',
     done: '验证通过 ✓',
   };
 
