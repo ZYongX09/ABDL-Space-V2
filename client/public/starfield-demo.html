@@ -172,7 +172,7 @@ const executor = new RAFExecutor();
 let W, H;
 let stars = [];
 let cameraZ = 0;
-let targetCameraZ = 0;
+let cameraProgress = 0; // 相机飞行进度（贝塞尔缓动）
 let cameraX = 0, cameraY = 0;
 let animProgress = 0;       // 0 = 星空, 1 = Logo 完全成型
 let isAnimating = false;
@@ -337,28 +337,34 @@ function startFly() {
   if (isAnimating) return;
   isAnimating = true;
   animProgress = 0;
+  cameraProgress = 0;
   document.getElementById('hint').style.opacity = '0';
 
   const startTime = performance.now();
 
   function flyTick() {
     const elapsed = performance.now() - startTime;
-    animProgress = Math.min(1, elapsed / FLY_DURATION);
-    const eased = easeApple(animProgress);
 
-    // 摄像机向 Logo 平面飞行
-    cameraZ = -DEPTH * (1 - eased);
-    targetCameraZ = cameraZ;
+    // 相机：贝塞尔缓动飞行（全程 4 秒）
+    cameraProgress = Math.min(1, elapsed / FLY_DURATION);
+    cameraZ = -DEPTH * (1 - easeApple(cameraProgress));
 
-    // 更新进度条
-    document.getElementById('progress').style.width = (animProgress * 100) + '%';
+    // 粒子：前 40% 时间不动，后 60% 线性过渡（不叠加缓动）
+    const morphStart = 0.4;
+    if (cameraProgress >= morphStart) {
+      animProgress = Math.min(1, (cameraProgress - morphStart) / (1 - morphStart));
+    } else {
+      animProgress = 0;
+    }
 
-    if (animProgress < 1) {
+    document.getElementById('progress').style.width = (cameraProgress * 100) + '%';
+
+    if (cameraProgress < 1) {
       requestAnimationFrame(flyTick);
     } else {
+      animProgress = 1;
       isComplete = true;
       isAnimating = false;
-      // 显示标题
       setTimeout(() => {
         document.getElementById('title').classList.add('show');
         document.getElementById('subtitle').classList.add('show');
@@ -389,9 +395,9 @@ executor.subscribe('main', (phase, data) => {
 
   // 排序（远→近）
   const sorted = stars.map((s, i) => {
-    // 插值位置
-    const t = easeSmooth(animProgress);
+    // 插值位置（相机贝塞尔飞行 + 粒子线性过渡，不叠加缓动）
     if (s.isLogo) {
+      const t = animProgress; // 线性，不加缓动
       s.rx = s.x + (s.targetX - s.x) * t;
       s.ry = s.y + (s.targetY - s.y) * t;
       s.rz = s.z + (0 - s.z) * t + cameraZ;
