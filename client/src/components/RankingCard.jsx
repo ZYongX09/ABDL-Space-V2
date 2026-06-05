@@ -11,8 +11,8 @@ export default function RankingCard() {
   const isDark = theme === 'dark';
 
   useEffect(() => {
-    rankingsAPI.list({ sort: 'avg_score', order: 'DESC', limit: 5 })
-      .then(data => setItems(data.diapers || []))
+    rankingsAPI.get('hot', undefined, 5)
+      .then(data => setItems(data.rankings || data.diapers || []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

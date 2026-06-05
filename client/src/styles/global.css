@@ -674,33 +674,41 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: 100%;
+  width: calc(100% - 16px);
   padding: 10px 16px;
-  margin-bottom: 8px;
+  margin: 4px 8px 8px;
   background: var(--primary);
   color: #fff;
   border: none;
-  border-radius: var(--radius);
+  border-radius: 999px;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.2s;
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
   font-family: var(--font);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  letter-spacing: 0.5px;
+}
+[data-theme="dark"] .sidebar-compose-btn {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 .sidebar-compose-btn:hover {
-  background: var(--primary-dark);
-  transform: scale(1.02);
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
 }
 .sidebar-compose-btn:active {
-  transform: scale(0.98);
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 .sidebar-collapsible:not(.expanded) .sidebar-compose-btn {
-  padding: 10px;
+  padding: 0;
   border-radius: 50%;
   width: 40px;
   height: 40px;
   margin: 0 auto 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 .sidebar-collapsible:not(.expanded) .sidebar-compose-btn .sidebar-link-label {
   display: none;
