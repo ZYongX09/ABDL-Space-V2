@@ -343,29 +343,38 @@
     requestAnimationFrame(flyTick);
   }
 
-  // --- Cleanup (Bug #2/#6/#11 fix: unified cleanup) ---
+  // --- Cleanup (Bug #2/#6/#11 fix: unified cleanup, #E3: includes removeChild) ---
   var failsafeTimer = null;
+  var fadeOutTimer = null;
+  var cleaned = false;
 
   function cleanup() {
+    if (cleaned) return; // #E1 fix: guard against double cleanup
+    cleaned = true;
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
     window.removeEventListener('resize', resize);
     mq.removeEventListener('change', applyMobile);
     window.removeEventListener('mouseup', onMouseUp);
     window.removeEventListener('touchend', onTouchEnd);
     if (failsafeTimer) { clearTimeout(failsafeTimer); failsafeTimer = null; }
+    if (fadeOutTimer) { clearTimeout(fadeOutTimer); fadeOutTimer = null; }
     window.__introMounted = true; // Bug #1 fix: mark as mounted
   }
 
   // --- Dismiss logic ---
   var reactReady = false;
 
-  function tryDismiss() {
-    if (!reactReady || !isComplete) return;
+  function fadeOutAndCleanup() {
     overlay.style.opacity = '0';
-    setTimeout(function () {
+    fadeOutTimer = setTimeout(function () {
       if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
       cleanup();
     }, 800);
+  }
+
+  function tryDismiss() {
+    if (!reactReady || !isComplete) return;
+    fadeOutAndCleanup();
   }
 
   window.__introReady = function () {
@@ -414,11 +423,7 @@
   // Failsafe: if something goes wrong, remove after 15s
   failsafeTimer = setTimeout(function () {
     if (overlay.parentNode) {
-      overlay.style.opacity = '0';
-      setTimeout(function () {
-        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-        cleanup();
-      }, 800);
+      fadeOutAndCleanup();
     }
   }, 15000);
 })();
