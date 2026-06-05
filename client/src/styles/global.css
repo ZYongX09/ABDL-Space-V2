@@ -457,11 +457,10 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 
 /* ====== 模态弹窗 ====== */
 .modal-overlay {
-  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5);
-  z-index: 300; display: flex; align-items: flex-start; justify-content: center;
+  position: fixed; inset: 0; background: var(--overlay-bg, rgba(0, 0, 0, 0.5));
+  z-index: 300; display: flex; align-items: center; justify-content: center;
   animation: fadeIn 0.25s ease-out;
-  backdrop-filter: blur(4px);
-  overflow-y: auto; padding: 40px 16px;
+  overflow-y: auto; padding: 24px 16px;
 }
 .modal {
   background: var(--bg-card); color: var(--text);
@@ -730,9 +729,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .sidebar-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: var(--overlay-bg, rgba(0, 0, 0, 0.5));
   z-index: 30;
   animation: fadeIn 0.2s ease;
 }
@@ -1060,9 +1057,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 /* 侧边抽屉 */
 .profile-drawer-overlay {
   position: fixed; inset: 0; z-index: 60;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  background: var(--overlay-bg, rgba(0, 0, 0, 0.5));
   animation: fadeIn 0.2s ease;
 }
 .profile-drawer {
@@ -2219,10 +2214,8 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
 /* ====== EditProfile ====== */
 .ep-overlay {
   position: fixed; inset: 0; z-index: 300;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  display: flex; align-items: flex-end; justify-content: center;
+  background: var(--overlay-bg, rgba(0, 0, 0, 0.5));
+  display: flex; align-items: center; justify-content: center;
   animation: fadeIn 0.2s ease;
 }
 .ep-sheet {
@@ -2415,10 +2408,7 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
 
 /* Desktop: centered modal */
 @media (min-width: 769px) {
-  .ep-overlay {
-    align-items: center;
-    padding: 24px;
-  }
+  .ep-overlay { padding: 24px; }
   .ep-sheet {
     max-height: 85vh;
     border-radius: 20px;
@@ -2427,14 +2417,15 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
   .ep-drag-handle { display: none; }
 }
 
-/* Mobile: full bottom sheet */
+/* Mobile: centered, slightly smaller */
 @media (max-width: 768px) {
+  .ep-overlay { padding: 16px; }
   .ep-sheet {
     max-width: none;
-    max-height: 95vh;
-    border-radius: 16px 16px 0 0;
+    max-height: 88vh;
+    border-radius: 16px;
   }
-  .ep-drag-handle { display: flex; }
+  .ep-drag-handle { display: none; }
   .ep-header { padding: 12px 16px; }
   .ep-content { padding: 4px 16px 24px; }
   .ep-row { grid-template-columns: 1fr; }

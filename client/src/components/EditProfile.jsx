@@ -116,9 +116,6 @@ export default function EditProfile({ onClose }) {
           </button>
         </div>
 
-        {/* Drag handle (mobile) */}
-        <div className="ep-drag-handle"><div className="ep-drag-bar" /></div>
-
         {/* Content */}
         <div className="ep-content">
           {/* Avatar */}
