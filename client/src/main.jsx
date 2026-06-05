@@ -20,3 +20,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </React.StrictMode>
 );
+
+// Signal intro animation that React is mounted
+window.__introMounted = true;
+if (window.__introReady) window.__introReady();
