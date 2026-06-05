@@ -383,27 +383,24 @@
   }
 
   // --- Central finish logic ---
-  // Called whenever a major state change happens (animation done OR React ready)
+  // Called from flyTick end and __introReady
   function scheduleFinish() {
     if (cleaned) return;
 
-    // Case 1: Animation still playing + React ready → show skip buttons
+    // Animation still playing + React ready → show skip buttons
     if (isAnimating && reactReady && fullAnim && shouldShowButtons()) {
       if (!skipBtnWrap && !skipBtnTimer) {
         skipBtnTimer = setTimeout(showSkipButtons, 500);
       }
-      return; // Wait for animation to end
     }
 
-    // Case 2: Animation done + React ready → enter page
-    if (isComplete && reactReady) {
+    // Animation done → always enter page (with or without buttons)
+    if (isComplete) {
       if (skipBtnWrap) return; // Buttons showing, let user decide
-      dismissTimer = setTimeout(fadeOutAndCleanup, 1000);
-      return;
+      if (!dismissTimer) {
+        dismissTimer = setTimeout(fadeOutAndCleanup, 1000);
+      }
     }
-
-    // Case 3: Animation done + React NOT ready → wait (do nothing, __introReady will call again)
-    // Case 4: Animation playing + React NOT ready → wait (do nothing)
   }
 
   // --- Fly animation ---
@@ -440,7 +437,7 @@
           title.style.transform = 'translateY(0)';
           subtitle.style.opacity = '1';
         }, 300);
-        // Animation done → check if we can finish
+        // Always schedule dismiss 1s after animation
         scheduleFinish();
       }
     }
