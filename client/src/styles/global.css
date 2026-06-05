@@ -2216,32 +2216,231 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
 }
 
 /* 编辑资料全屏面板 */
-.edit-profile-sheet {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: 520px;
-  max-height: 90vh;
+/* ====== EditProfile ====== */
+.ep-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+.ep-sheet {
+  display: flex; flex-direction: column;
+  width: 100%; max-width: 540px;
+  max-height: 92vh;
   background: var(--bg-card);
   border-radius: 20px 20px 0 0;
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  box-shadow: 0 -8px 40px rgba(0,0,0,0.12);
-  animation: sheetUp 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 -4px 32px rgba(0,0,0,0.18);
+  animation: sheetUp 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   overflow: hidden;
 }
-.edit-profile-content {
-  flex: 1;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+.ep-drag-handle {
+  display: none;
+  justify-content: center;
+  padding: 8px 0 0;
 }
-@media (max-width: 768px) {
-  .edit-profile-sheet {
-    max-width: none;
-    max-height: 100vh;
-    border-radius: 0;
-    height: 100vh;
+.ep-drag-bar {
+  width: 36px; height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+}
+.ep-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.ep-close {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px; border: none;
+  background: var(--input-bg);
+  color: var(--text-light);
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.15s;
+}
+.ep-close:hover { background: var(--border); color: var(--text); }
+.ep-title {
+  font-size: 1rem; font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+.ep-save {
+  padding: 7px 20px;
+  border-radius: 10px;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ep-save:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.ep-save:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.ep-content {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 8px 20px 32px;
+}
+.ep-section {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.ep-section:last-child { border-bottom: none; }
+.ep-section-title {
+  font-size: 0.82rem; font-weight: 700;
+  color: var(--text);
+  margin: 0 0 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.ep-section-title i { color: var(--primary-dark); font-size: 0.78rem; }
+.ep-section-sub {
+  font-size: 0.72rem; font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+.ep-avatar-row {
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 8px;
+}
+.ep-avatar-wrap {
+  position: relative;
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.ep-avatar-img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.ep-avatar-fallback {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--primary-light), var(--primary));
+  color: #fff;
+  font-size: 1.6rem; font-weight: 700;
+}
+.ep-avatar-loading {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.45);
+  color: #fff; font-size: 1.1rem;
+}
+.ep-avatar-actions {
+  display: flex; gap: 8px; align-items: center;
+}
+.ep-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin: 4px 0 0;
+}
+.ep-field {
+  margin-bottom: 12px;
+  flex: 1;
+}
+.ep-field:last-child { margin-bottom: 0; }
+.ep-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-light);
+  margin-bottom: 5px;
+}
+.ep-unit {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.ep-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+.ep-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 168, 216, 240), 0.15);
+}
+.ep-input::placeholder { color: var(--text-muted); }
+.ep-textarea {
+  resize: vertical;
+  min-height: 72px;
+  line-height: 1.5;
+}
+.ep-counter {
+  display: block;
+  text-align: right;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+.ep-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.ep-row-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.ep-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  font-size: 0.8rem; font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ep-btn-sm { padding: 6px 14px; font-size: 0.75rem; }
+.ep-btn-outline {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--text);
+}
+.ep-btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+.ep-btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+.ep-btn-ghost:hover { color: var(--text); background: var(--input-bg); }
+.ep-btn-danger { color: var(--danger, #e74c3c); }
+.ep-btn-danger:hover { background: rgba(231, 76, 60, 0.08); }
+
+/* Desktop: centered modal */
+@media (min-width: 769px) {
+  .ep-overlay {
+    align-items: center;
+    padding: 24px;
   }
+  .ep-sheet {
+    max-height: 85vh;
+    border-radius: 20px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+  }
+  .ep-drag-handle { display: none; }
+}
+
+/* Mobile: full bottom sheet */
+@media (max-width: 768px) {
+  .ep-sheet {
+    max-width: none;
+    max-height: 95vh;
+    border-radius: 16px 16px 0 0;
+  }
+  .ep-drag-handle { display: flex; }
+  .ep-header { padding: 12px 16px; }
+  .ep-content { padding: 4px 16px 24px; }
+  .ep-row { grid-template-columns: 1fr; }
+  .ep-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .ep-avatar-wrap { width: 64px; height: 64px; }
+  .ep-avatar-fallback { font-size: 1.4rem; }
 }
 
 /* ====== 移动端细节打磨 ====== */

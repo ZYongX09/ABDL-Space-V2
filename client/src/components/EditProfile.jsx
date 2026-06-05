@@ -23,7 +23,6 @@ export default function EditProfile({ onClose }) {
     avatar: user?.avatar || null,
   });
 
-  // user 加载后同步表单
   useEffect(() => {
     if (user) {
       setForm({
@@ -39,6 +38,13 @@ export default function EditProfile({ onClose }) {
     }
   }, [user]);
 
+  // Lock body scroll
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   const update = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
   const handleAvatarUpload = async (e) => {
@@ -46,7 +52,6 @@ export default function EditProfile({ onClose }) {
     if (!file) return;
     if (!file.type.startsWith('image/')) { toast.error('请选择图片文件'); return; }
     if (file.size > 5 * 1024 * 1024) { toast.error('图片不能超过 5MB'); return; }
-
     setAvatarUploading(true);
     try {
       if (!modelReady) {
@@ -59,17 +64,13 @@ export default function EditProfile({ onClose }) {
         setAvatarUploading(false);
         return;
       }
-
       const formData = new FormData();
       formData.append('file', file);
       const res = await fetch(`${API_BASE}/api/images/upload?returnFormat=full`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
+        method: 'POST', credentials: 'include', body: formData,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '上传失败');
-
       update('avatar', data.url);
       toast.success('头像已上传');
     } catch (err) {
@@ -102,120 +103,108 @@ export default function EditProfile({ onClose }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="edit-profile-sheet" onClick={e => e.stopPropagation()}>
-        {/* 标题栏 */}
-        <div className="flex items-center justify-between" style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', fontSize: '1.1rem' }}>
+    <div className="ep-overlay" onClick={onClose}>
+      <div className="ep-sheet" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="ep-header">
+          <button className="ep-close" onClick={onClose} aria-label="关闭">
             <i className="fa-solid fa-xmark" />
           </button>
-          <h3 className="font-bold" style={{ color: 'var(--text)' }}>编辑资料</h3>
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={handleSave}
-            disabled={saving}
-            style={{ fontSize: '0.8rem', padding: '5px 16px' }}
-          >
+          <h3 className="ep-title">编辑资料</h3>
+          <button className="ep-save" onClick={handleSave} disabled={saving}>
             {saving ? <i className="fa-solid fa-spinner fa-spin" /> : '保存'}
           </button>
         </div>
 
-        {/* 表单内容 */}
-        <div className="edit-profile-content" style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
-          {/* 头像 */}
-          <div className="mb-6">
-            <h4 className="text-sm font-bold mb-3" style={{ color: 'var(--text)' }}>
-              <i className="fa-solid fa-image mr-1.5" style={{ color: 'var(--primary-dark)' }} />
-              头像
-            </h4>
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold overflow-hidden"
-                  style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
-                  {form.avatar
-                    ? <img src={form.avatar} alt="" className="w-full h-full rounded-full object-cover" />
-                    : user?.username?.[0]?.toUpperCase()
-                  }
-                </div>
+        {/* Drag handle (mobile) */}
+        <div className="ep-drag-handle"><div className="ep-drag-bar" /></div>
+
+        {/* Content */}
+        <div className="ep-content">
+          {/* Avatar */}
+          <section className="ep-section">
+            <div className="ep-avatar-row">
+              <div className="ep-avatar-wrap">
+                {form.avatar
+                  ? <img src={form.avatar} alt="" className="ep-avatar-img" />
+                  : <div className="ep-avatar-fallback">{user?.username?.[0]?.toUpperCase()}</div>
+                }
                 {avatarUploading && (
-                  <div className="absolute inset-0 flex items-center justify-center rounded-full" style={{ background: 'rgba(0,0,0,0.4)' }}>
-                    <i className="fa-solid fa-spinner fa-spin text-white" />
+                  <div className="ep-avatar-loading">
+                    <i className="fa-solid fa-spinner fa-spin" />
                   </div>
                 )}
               </div>
-              <div>
-                <label className="btn btn-outline btn-sm cursor-pointer" style={{ fontSize: '0.75rem' }}>
-                  <i className="fa-solid fa-upload mr-1" />
-                  {form.avatar ? '更换头像' : '上传头像'}
+              <div className="ep-avatar-actions">
+                <label className="ep-btn ep-btn-outline ep-btn-sm">
+                  <i className="fa-solid fa-camera" />
+                  <span>{form.avatar ? '更换' : '上传头像'}</span>
                   <input type="file" accept="image/*" hidden onChange={handleAvatarUpload} disabled={avatarUploading} />
                 </label>
                 {form.avatar && (
-                  <button className="btn btn-outline btn-sm ml-2" style={{ fontSize: '0.75rem', color: 'var(--danger)', borderColor: 'var(--danger)' }}
-                    onClick={() => update('avatar', null)}>
-                    <i className="fa-solid fa-trash mr-1" />移除
+                  <button className="ep-btn ep-btn-ghost ep-btn-sm ep-btn-danger" onClick={() => update('avatar', null)}>
+                    <i className="fa-solid fa-trash-can" />
                   </button>
                 )}
-                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>支持 JPG/PNG/GIF/WEBP，最大 5MB</p>
               </div>
             </div>
-          </div>
+            <p className="ep-hint">支持 JPG / PNG / GIF / WEBP，最大 5MB</p>
+          </section>
 
-          {/* 基本信息 */}
-          <div className="mb-6">
-            <h4 className="text-sm font-bold mb-3" style={{ color: 'var(--text)' }}>
-              <i className="fa-solid fa-circle-user mr-1.5" style={{ color: 'var(--primary-dark)' }} />
-              基本信息
+          {/* Basic Info */}
+          <section className="ep-section">
+            <h4 className="ep-section-title">
+              <i className="fa-solid fa-user" /> 基本信息
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>地区</label>
-                <input className="form-control" value={form.region} onChange={e => update('region', e.target.value)} placeholder="如：北京" />
+            <div className="ep-field">
+              <label className="ep-label">个人简介</label>
+              <textarea className="ep-input ep-textarea" value={form.bio} onChange={e => update('bio', e.target.value)} rows={3} maxLength={200} placeholder="介绍一下自己..." />
+              <span className="ep-counter">{(form.bio || '').length}/200</span>
+            </div>
+            <div className="ep-row">
+              <div className="ep-field">
+                <label className="ep-label">地区</label>
+                <input className="ep-input" value={form.region} onChange={e => update('region', e.target.value)} placeholder="如：北京" />
               </div>
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>年龄</label>
-                <input type="number" className="form-control" value={form.age} onChange={e => update('age', e.target.value)} placeholder="如：25" min="1" max="150" />
+              <div className="ep-field">
+                <label className="ep-label">年龄</label>
+                <input type="number" className="ep-input" value={form.age} onChange={e => update('age', e.target.value)} placeholder="25" min="1" max="150" />
               </div>
             </div>
-            <div className="mt-3">
-              <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>个人简介</label>
-              <textarea className="form-control" value={form.bio} onChange={e => update('bio', e.target.value)} rows={3} placeholder="介绍一下自己..." />
-            </div>
-          </div>
+          </section>
 
-          {/* 身体数据 */}
-          <div className="mb-6">
-            <h4 className="text-sm font-bold mb-3" style={{ color: 'var(--text)' }}>
-              <i className="fa-solid fa-ruler mr-1.5" style={{ color: 'var(--primary-dark)' }} />
-              身体数据
-              <span className="text-xs font-normal ml-2" style={{ color: 'var(--text-muted)' }}>用于 AI 推荐尺码，可选填</span>
+          {/* Body Data */}
+          <section className="ep-section">
+            <h4 className="ep-section-title">
+              <i className="fa-solid fa-ruler" /> 身体数据
+              <span className="ep-section-sub">用于 AI 推荐尺码</span>
             </h4>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>体重 (kg)</label>
-                <input type="number" className="form-control" value={form.weight} onChange={e => update('weight', e.target.value)} placeholder="65" min="1" max="500" step="0.1" />
+            <div className="ep-row ep-row-3">
+              <div className="ep-field">
+                <label className="ep-label">体重 <span className="ep-unit">kg</span></label>
+                <input type="number" className="ep-input" value={form.weight} onChange={e => update('weight', e.target.value)} placeholder="65" min="1" max="500" step="0.1" />
               </div>
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>腰围 (cm)</label>
-                <input type="number" className="form-control" value={form.waist} onChange={e => update('waist', e.target.value)} placeholder="75" min="1" max="300" step="0.1" />
+              <div className="ep-field">
+                <label className="ep-label">腰围 <span className="ep-unit">cm</span></label>
+                <input type="number" className="ep-input" value={form.waist} onChange={e => update('waist', e.target.value)} placeholder="75" min="1" max="300" step="0.1" />
               </div>
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>臀围 (cm)</label>
-                <input type="number" className="form-control" value={form.hip} onChange={e => update('hip', e.target.value)} placeholder="95" min="1" max="300" step="0.1" />
+              <div className="ep-field">
+                <label className="ep-label">臀围 <span className="ep-unit">cm</span></label>
+                <input type="number" className="ep-input" value={form.hip} onChange={e => update('hip', e.target.value)} placeholder="95" min="1" max="300" step="0.1" />
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* 偏好 */}
-          <div className="mb-6">
-            <h4 className="text-sm font-bold mb-3" style={{ color: 'var(--text)' }}>
-              <i className="fa-solid fa-heart mr-1.5" style={{ color: 'var(--accent)' }} />
-              偏好
+          {/* Preferences */}
+          <section className="ep-section">
+            <h4 className="ep-section-title">
+              <i className="fa-solid fa-heart" /> 偏好
             </h4>
-            <div>
-              <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-light)' }}>风格偏好</label>
-              <input className="form-control" value={form.style_preference} onChange={e => update('style_preference', e.target.value)} placeholder="如：日系、可爱风、简约" />
+            <div className="ep-field">
+              <label className="ep-label">风格偏好</label>
+              <input className="ep-input" value={form.style_preference} onChange={e => update('style_preference', e.target.value)} placeholder="如：日系、可爱风、简约" />
             </div>
-          </div>
+          </section>
         </div>
       </div>
     </div>
