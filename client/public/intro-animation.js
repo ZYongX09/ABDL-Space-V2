@@ -4,6 +4,9 @@
 (function () {
   'use strict';
 
+  // Skip if already played this session (prevents re-trigger on /external redirects etc.)
+  try { if (sessionStorage.getItem('intro_played')) { var ph0 = document.getElementById('intro-placeholder'); if (ph0) ph0.remove(); return; } } catch (e) {}
+
   if (window.__introMounted) {
     var ph0 = document.getElementById('intro-placeholder');
     if (ph0) ph0.remove();
@@ -12,10 +15,10 @@
 
   var placeholder = document.getElementById('intro-placeholder');
   var FLY_DURATION = 4000;
-  var SPREAD = 1500;
-  var DEPTH = 3000;
-  var STAR_COUNT = 2000;
-  var LOGO_STAR_COUNT = 600;
+  var SPREAD = 1200;
+  var DEPTH = 2400;
+  var STAR_COUNT = 1500;
+  var LOGO_STAR_COUNT = 500;
   var LOGO_URL = 'https://img.abdl-space.top/file/1779879250278_ABDL_icon.svg';
 
   function createBezier(x1, y1, x2, y2) {
@@ -62,28 +65,32 @@
   progressBar.style.cssText = 'position:absolute;bottom:0;left:0;height:2px;background:linear-gradient(90deg,#A8D8F0,#FFB7C5);transition:width 0.1s linear;width:0%;';
   overlay.appendChild(progressBar);
 
-  // Skip buttons — show immediately if full anim enabled
+  // Skip buttons — top right
+  var isMobile = /Android|iPhone|iPod/i.test(navigator.userAgent) && !/iPad|Tablet/i.test(navigator.userAgent);
   if (fullAnim) {
     var skipWrap = document.createElement('div');
     skipWrap.style.cssText = 'position:absolute;top:16px;right:16px;display:flex;gap:8px;opacity:0;transition:opacity 0.6s ease 1s;pointer-events:auto;z-index:10;';
+
+    // 永久关闭 — desktop only
+    if (!isMobile) {
+      var closeBtn = document.createElement('button');
+      closeBtn.textContent = '永久关闭';
+      closeBtn.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.2);font-size:11px;padding:6px 12px;border-radius:20px;cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,sans-serif;transition:all 0.2s;';
+      closeBtn.onmouseenter = function(){closeBtn.style.color='rgba(255,255,255,0.5)';closeBtn.style.borderColor='rgba(255,255,255,0.15)';};
+      closeBtn.onmouseleave = function(){closeBtn.style.color='rgba(255,255,255,0.2)';closeBtn.style.borderColor='rgba(255,255,255,0.06)';};
+      closeBtn.onclick = function(){try{localStorage.setItem('abdl_intro_full_anim','false');}catch(e){}fadeOutAndCleanup();};
+      skipWrap.appendChild(closeBtn);
+    }
 
     var skipBtn = document.createElement('button');
     skipBtn.textContent = '跳过';
     skipBtn.style.cssText = 'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.35);font-size:12px;padding:6px 14px;border-radius:20px;cursor:pointer;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-family:-apple-system,BlinkMacSystemFont,sans-serif;transition:all 0.2s;letter-spacing:0.5px;';
     skipBtn.onmouseenter = function(){skipBtn.style.background='rgba(255,255,255,0.12)';skipBtn.style.color='rgba(255,255,255,0.6)';skipBtn.style.borderColor='rgba(255,255,255,0.2)';};
     skipBtn.onmouseleave = function(){skipBtn.style.background='rgba(255,255,255,0.06)';skipBtn.style.color='rgba(255,255,255,0.35)';skipBtn.style.borderColor='rgba(255,255,255,0.1)';};
-
-    var closeBtn = document.createElement('button');
-    closeBtn.textContent = '关闭';
-    closeBtn.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.2);font-size:11px;padding:6px 10px;border-radius:20px;cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,sans-serif;transition:all 0.2s;';
-    closeBtn.onmouseenter = function(){closeBtn.style.color='rgba(255,255,255,0.5)';closeBtn.style.borderColor='rgba(255,255,255,0.15)';};
-    closeBtn.onmouseleave = function(){closeBtn.style.color='rgba(255,255,255,0.2)';closeBtn.style.borderColor='rgba(255,255,255,0.06)';};
+    skipBtn.onclick = function(){fadeOutAndCleanup();};
 
     skipWrap.appendChild(skipBtn);
-    skipWrap.appendChild(closeBtn);
     overlay.appendChild(skipWrap);
-
-    // Fade in buttons after 1s
     requestAnimationFrame(function(){skipWrap.style.opacity='1';});
   }
 
@@ -121,6 +128,9 @@
     this.twinkleSpeed = 0.5 + Math.random() * 2; this.twinkleOffset = Math.random() * Math.PI * 2;
     this.isLogo = tx !== undefined;
   }
+
+  // Pre-allocated sort buffer to avoid GC pressure
+  var sortBuf = [];
 
   var logoPointsCache = null;
   function loadLogoPoints(count) {
@@ -168,37 +178,75 @@
   }
 
   var rafId = null, lastTime = 0;
+  var fov = 600, fovInv = 1 / fov;
+
   function tick(time) {
-    var dt = Math.min(time - lastTime, 50); lastTime = time; var sec = time / 1000;
+    var dt = Math.min(time - lastTime, 50); lastTime = time; var sec = time * 0.001;
     ctx.clearRect(0, 0, W, H);
-    var g = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H) * 0.7);
+    var g = ctx.createRadialGradient(W*0.5, H*0.5, 0, W*0.5, H*0.5, Math.max(W, H) * 0.7);
     g.addColorStop(0, '#0a0a12'); g.addColorStop(1, '#000000');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    var fov = 600;
-    var sorted = stars.map(function (s) {
-      if (s.isLogo) { var t = animProgress; s.rx = s.x+(s.targetX-s.x)*t; s.ry = s.y+(s.targetY-s.y)*t; s.rz = s.z+(0-s.z)*t+cameraZ; }
-      else { s.rx = s.x; s.ry = s.y; s.rz = s.z+cameraZ; }
-      return s;
-    }).sort(function (a, b) { return b.rz - a.rz; });
-    for (var i = 0; i < sorted.length; i++) {
-      var s = sorted[i], z = s.rz; if (z < -fov+100) continue;
-      var sc = fov/(fov+z), sx = W/2+(s.rx-cameraX)*sc, sy = H/2+(s.ry-cameraY)*sc;
-      if (sx<-50||sx>W+50||sy<-50||sy>H+50) continue;
-      var tw = 0.5+0.5*Math.sin(sec*s.twinkleSpeed+s.twinkleOffset), al = s.brightness*tw*sc;
-      if (s.isLogo && animProgress>0.3) { al = Math.max(al, ((animProgress-0.3)/0.7)*sc); }
-      var sz = s.size*sc;
-      if (s.isLogo && animProgress>0.5) { var t=(s.targetX+150)/300, h=200+t*140; ctx.fillStyle='hsla('+h+',80%,75%,'+Math.min(1,al)+')'; }
-      else ctx.fillStyle='rgba(200,210,240,'+Math.min(1,al)+')';
-      ctx.beginPath(); ctx.arc(sx,sy,Math.max(0.5,sz),0,Math.PI*2); ctx.fill();
+
+    // Update positions
+    var len = stars.length;
+    for (var i = 0; i < len; i++) {
+      var s = stars[i];
+      if (s.isLogo) {
+        var t = animProgress;
+        s.rx = s.x + (s.targetX - s.x) * t;
+        s.ry = s.y + (s.targetY - s.y) * t;
+        s.rz = s.z + (0 - s.z) * t + cameraZ;
+      } else {
+        s.rx = s.x; s.ry = s.y; s.rz = s.z + cameraZ;
+      }
+      s._sortZ = s.rz;
     }
+
+    // Sort by z (reuse buffer)
+    sortBuf.length = len;
+    for (var i = 0; i < len; i++) sortBuf[i] = i;
+    sortBuf.sort(function (a, b) { return stars[b]._sortZ - stars[a]._sortZ; });
+
+    var hw = W * 0.5, hh = H * 0.5;
+    for (var n = 0; n < len; n++) {
+      var s = stars[sortBuf[n]], z = s.rz;
+      if (z < -fov + 100) continue;
+      var sc = fov / (fov + z), sx = hw + (s.rx - cameraX) * sc, sy = hh + (s.ry - cameraY) * sc;
+      if (sx < -50 || sx > W + 50 || sy < -50 || sy > H + 50) continue;
+
+      var tw = 0.5 + 0.5 * Math.sin(sec * s.twinkleSpeed + s.twinkleOffset);
+      var al = s.brightness * tw * sc;
+      if (s.isLogo && animProgress > 0.3) { al = Math.max(al, ((animProgress - 0.3) * 1.4286) * sc); }
+      var sz = s.size * sc;
+
+      if (s.isLogo && animProgress > 0.5) {
+        var hue = 200 + ((s.targetX + 150) * 0.00333) * 140;
+        ctx.fillStyle = 'hsla(' + hue + ',80%,75%,' + Math.min(1, al) + ')';
+      } else {
+        ctx.fillStyle = 'rgba(200,210,240,' + Math.min(1, al) + ')';
+      }
+      ctx.beginPath(); ctx.arc(sx, sy, Math.max(0.5, sz), 0, 6.2832); ctx.fill();
+    }
+
+    // Connections
     if (animProgress > 0.6) {
-      var la = (animProgress-0.6)/0.4*0.15; ctx.strokeStyle='rgba(168,216,240,'+la+')'; ctx.lineWidth=0.5;
-      var ls = sorted.filter(function(s){return s.isLogo&&s.rz>-fov+100;});
-      for (var i=0;i<ls.length;i++){var a=ls[i],ax=W/2+(a.rx-cameraX)*(fov/(fov+a.rz)),ay=H/2+(a.ry-cameraY)*(fov/(fov+a.rz));
-        for(var j=i+1;j<Math.min(i+8,ls.length);j++){var b=ls[j],bx=W/2+(b.rx-cameraX)*(fov/(fov+b.rz)),by=H/2+(b.ry-cameraY)*(fov/(fov+b.rz));
-          if(Math.hypot(ax-bx,ay-by)<40){ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();}}}
+      var la = (animProgress - 0.6) * 0.375;
+      ctx.strokeStyle = 'rgba(168,216,240,' + la + ')';
+      ctx.lineWidth = 0.5;
+      var prevAx = -999, prevAy = -999;
+      for (var n = 0; n < len; n++) {
+        var s = stars[sortBuf[n]];
+        if (!s.isLogo || s.rz <= -fov + 100) continue;
+        var ax = hw + (s.rx - cameraX) * (fov / (fov + s.rz));
+        var ay = hh + (s.ry - cameraY) * (fov / (fov + s.rz));
+        if (Math.hypot(ax - prevAx, ay - prevAy) < 40) {
+          ctx.beginPath(); ctx.moveTo(prevAx, prevAy); ctx.lineTo(ax, ay); ctx.stroke();
+        }
+        prevAx = ax; prevAy = ay;
+      }
     }
-    if (!mouseDown && !isAnimating) { cameraX+=dragVelX*0.3; cameraY+=dragVelY*0.3; dragVelX*=0.92; dragVelY*=0.92; cameraX*=0.98; cameraY*=0.98; }
+
+    if (!mouseDown && !isAnimating) { cameraX += dragVelX * 0.3; cameraY += dragVelY * 0.3; dragVelX *= 0.92; dragVelY *= 0.92; cameraX *= 0.98; cameraY *= 0.98; }
     rafId = requestAnimationFrame(tick);
   }
 
@@ -214,18 +262,13 @@
     if (failsafeTimer) { clearTimeout(failsafeTimer); failsafeTimer = null; }
     if (fadeOutTimer) { clearTimeout(fadeOutTimer); fadeOutTimer = null; }
     window.__introMounted = true;
+    try { sessionStorage.setItem('intro_played', '1'); } catch (e) {}
   }
 
   function fadeOutAndCleanup() {
     if (cleaned) return;
     overlay.style.opacity = '0';
     fadeOutTimer = setTimeout(function () { if (overlay.parentNode) overlay.remove(); cleanup(); }, 800);
-  }
-
-  // Wire up skip/close button clicks
-  if (fullAnim && skipBtn) {
-    skipBtn.onclick = function(){fadeOutAndCleanup();};
-    closeBtn.onclick = function(){try{localStorage.setItem('abdl_intro_full_anim','false');}catch(e){}fadeOutAndCleanup();};
   }
 
   window.__introReady = function () {};
@@ -239,7 +282,7 @@
       var cp = Math.min(1, elapsed / FLY_DURATION);
       cameraZ = -DEPTH * (1 - easeApple(cp));
       var ms = 0.4;
-      animProgress = cp >= ms ? Math.min(1, (cp - ms) / (1 - ms)) : 0;
+      animProgress = cp >= ms ? Math.min(1, (cp - ms) * 1.6667) : 0;
       progressBar.style.width = (cp * 100) + '%';
       if (cp < 1) { requestAnimationFrame(flyTick); }
       else {
