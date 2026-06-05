@@ -1779,3 +1779,220 @@ try {
 9. Bug #12（z 边界软化）— 3 分钟
 10. Bug #13（typed array 优化）— 30 分钟
 11. Bug #14（a11y）— 15 分钟
+
+---
+
+## [审查时间] intro-animation.js 修复版二次审查（PASS 验证 + 残留/新增 Bug）
+
+**审查范围**：`client/public/intro-animation.js`（424 行，修复版）
+**审查方法**：逐项对照原版 vs 修复版，验证修复正确性 + 检查新增 Bug + 排查遗漏边界
+
+---
+
+### ✅ 修复验证（PASS）
+
+| Bug | 状态 | 验证 |
+|-----|------|------|
+| **#1** `__introMounted` 漏写 | ✅ **PASS** | `cleanup()` 末尾 `window.__introMounted = true;`（L357），tryDismiss 路径和 failsafe 路径都通过 cleanup 设置 |
+| **#2/#6/#11** cleanup 抽函数 | ✅ **PASS** | L343-358，7 项清理：rafId / resize / mq / mouseup / touchend / failsafeTimer / __introMounted。4 对 add/remove 配对确认（addEventListener L84/93/391/405 ↔ removeEventListener L351-354） |
+| **#3** mouseup window 级 | ✅ **PASS** | L391 `window.addEventListener('mouseup', onMouseUp);` L405 touchend 同。命名函数引用一致，removeEventListener 能匹配上 |
+| **#4** pointerEvents: none | ✅ **PASS** | L316 `overlay.style.pointerEvents = 'none';` 在 isComplete=true 后立即执行，紧接 `tryDismiss()`，中间无时间窗口，hit-test 立即失效 |
+| **#7** tick 启动延后 | ✅ **PASS** | L412-415 `initStars().then(function () { lastTime = ...; rafId = requestAnimationFrame(tick); startFly(); });` 不再在 IIFE 末尾立即启动 |
+| **#8** edgePoints 空保护 | ✅ **PASS** | L154-161 `while (result.length < count)` 内 `if (edgePoints.length === 0)` 退化为螺旋，`else` 走原逻辑。无 `Math.random() * 0` 崩溃 |
+| **#9** hint 死代码 | ✅ **PASS** | `grep "hint"` 无匹配（exit 1），元素已完全移除 |
+| **#10** hue 归一化 | ✅ **PASS** | L207-208 `var t = (star.targetX + 150) / 300; var hue = 200 + t * 140;` 验算：targetX=-150→hue=200（蓝），=0→270（紫），=150→340（粉），与品牌色一致 |
+
+---
+
+### ⚠️ 修复引入的副作用 / 边界问题
+
+#### Bug #N1 — P3（修复副作用：window mouseup/touchend 监听器在脚本启动时立即生效）
+- **位置**：L391 / L405
+- **现象**：
+  ```js
+  // 脚本启动后立即注册，不等 isComplete
+  window.addEventListener('mouseup', onMouseUp);
+  window.addEventListener('touchend', onTouchEnd);
+  ```
+  整个动画期间（4s+React 启动期，最长 15s）所有 mouseup/touchend 都会被 `onMouseUp/onTouchEnd` 拦截。
+- **影响**：
+  - `onMouseUp` 只是 `mouseDown = false`，对 mouseDown 已为 false 的情况是 no-op
+  - **但**：会**阻止冒泡**到其他监听器吗？不会 —— `addEventListener` 默认 capture=false（冒泡），仍会冒泡到其他 listener
+  - 副作用可忽略
+- **建议**：可接受。或加一个 `isComplete` 守卫：`if (!isComplete) return;` 在 onMouseUp 内，节省少量函数调用
+
+#### Bug #N2 — P3（修复副作用：pointerEvents: none 后拖动失效）
+- **位置**：L316
+- **现象**：动画完成 → pointerEvents: none → 用户**不能拖动星空**（hit-test 不命中 overlay）→ 只能在 React 启动的 800ms-3s 等待期内看着星空静止
+- **影响**：
+  - 修复前：用户能在动画完成后拖动，但页面被覆盖无法操作
+  - 修复后：用户能操作页面，但拖动功能失效
+  - **这是合理的 UX 权衡**（页面操作优先），但失去了"探索星空"的小乐趣
+- **建议**：可接受，或在 `__introReady` 触发前保留 pointer-events，让用户短暂体验拖动（可改为 `__introReady` 后才设为 none）
+
+#### Bug #N3 — P3（修复副作用：cleanup 跑多次安全但有轻微抖动风险）
+- **位置**：cleanup 在 tryDismiss 和 failsafe 路径都会被调用
+- **现象**：
+  - 正常路径：tryDismiss → cleanup 一次 → failsafeTimer 已被 clearTimeout
+  - failsafe 路径：failsafe → cleanup 一次 → 若后续 __introReady 触发 tryDismiss，800ms 后 cleanup 第二次
+  - 多次 cleanup 因每个操作都有 `if` 保护，**无副作用**
+  - **但**：`overlay.style.opacity = '0';` 在 tryDismiss 内先设置（800ms 淡出），若 failsafe 在 800ms 期间触发会**再设置一次**（no-op）
+- **影响**：无
+- **建议**：可接受，无需修改
+
+---
+
+### 🔴 未修复的 Bug（残留）
+
+#### Bug #R1 — P1（CORS 风险未根本解决）
+- **位置**：L88-152 `loadLogoPoints`
+- **现象**：
+  - 修复版**只加了 `console.warn` 让降级可见**（`.catch(function (err) { console.warn(...))`）
+  - **CORS 失败时仍然降级为圆形 logo** —— 根本问题没解决
+  - 用户首次加载看到"圆形粒子"会困惑（不是品牌 logo）
+- **影响**：
+  - 若 CDN `img.abdl-space.top` 未配 `Access-Control-Allow-Origin` 头，**首次用户 100% 看到降级 logo**
+  - console.warn 仅开发者可见，用户感知不到
+- **建议**（三选一）：
+  1. **首选**：CDN 加 `Access-Control-Allow-Origin: *`（5 分钟）
+  2. **备选**：把 SVG 内联到 `intro-animation.js`（无 CORS 问题，但增加 ~10-30KB JS）
+  3. **回退**：在 catch 内尝试 `new Image()` + `crossOrigin="anonymous"` + drawImage 二次降级
+
+#### Bug #R2 — P2（z 接近 -fov+100 边界时 scale 突变，未修复）
+- **位置**：L184
+- **现象**：
+  - `if (z < -fov + 100) continue;` 过滤 z < -500
+  - `scale = fov / (fov + z)` 中 z = -499.9 时 scale ≈ 6 倍
+  - morph 过程中（cameraZ 从 -3000 飞到 0），z 在边界附近的粒子会"突然放大 6 倍"
+  - **视觉上**：动画中段（约 0.5-1.5s）粒子大小闪烁
+- **影响**：可见但不严重
+- **建议**：
+  ```js
+  if (z < -fov + 100) continue;
+  if (z < 50) continue;  // 跳过过近的
+  ```
+
+#### Bug #R3 — P3（可访问性未改善）
+- **位置**：overlay / title / subtitle
+- **现象**：
+  - 缺 `role="dialog"` / `aria-busy="true"` / `aria-label`
+  - 缺 `prefers-reduced-motion: reduce` 适配（动画对前庭敏感用户不友好）
+  - title/subtitle 初始 `opacity:0`，屏幕阅读器在过渡完成后才能感知
+- **影响**：可访问性合规问题
+- **建议**：
+  ```js
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-busy', 'true');
+  overlay.setAttribute('aria-label', 'Loading ABDL Space');
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    FLY_DURATION = 800; // 缩短到 1/5
+  }
+  ```
+
+#### Bug #R4 — P3（性能：每帧 .map().sort() 未优化）
+- **位置**：L173
+- **现象**：`var sorted = stars.map(function (s) { ... }).sort(...);` —— 2000 元素每帧分配新数组 + 22k 比较
+- **影响**：现代设备 60fps 流畅，老移动端可能掉帧
+- **建议**：用 Float32Array z 缓冲 + 索引排序
+
+---
+
+### 🔍 额外发现（修复后浮现的细节）
+
+#### Bug #E1 — P3（failsafe 嵌套 setTimeout 无法被 cleanup 取消）
+- **位置**：L417-425
+- **现象**：
+  ```js
+  failsafeTimer = setTimeout(function () {
+    if (overlay.parentNode) {
+      overlay.style.opacity = '0';
+      setTimeout(function () {   // ← 这个嵌套 setTimeout 没被追踪
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        cleanup();
+      }, 800);
+    }
+  }, 15000);
+  ```
+  - cleanup 内 `clearTimeout(failsafeTimer)` 只能取消外层 15s 那个
+  - 内层 800ms setTimeout 启动后，**无法被 cleanup 取消**
+  - 如果用户在 failsafe 触发的 800ms 内**导航到其他页面**（同源），嵌套 setTimeout 仍会跑（在新页面的 setTimeout 队列中）
+  - 但因为 IIFE 闭包在新页面是新的实例，旧实例随页面 unload GC，所以这个嵌套 setTimeout 引用的是旧 IIFE，**新页面 GC 旧 IIFE 时也会回收这个 setTimeout**
+  - 实际无副作用
+- **建议**：可接受。如要严谨，failsafe 内层 setTimeout 也用 failsafeTimer 引用
+  ```js
+  failsafeTimer = setTimeout(function () {
+    if (overlay.parentNode) {
+      overlay.style.opacity = '0';
+      failsafeTimer = setTimeout(function () { ... }, 800);
+    }
+  }, 15000);
+  ```
+
+#### Bug #E2 — P3（cleanup 内 window.removeEventListener 引用 hoisting 函数）
+- **位置**：L353-354 cleanup 内引用 `onMouseUp` / `onTouchEnd`
+- **现象**：
+  - `function onMouseUp()` 是 function declaration（hoisted）
+  - cleanup 第一次执行时（800ms 后），onMouseUp/onTouchEnd 早已定义（脚本同步执行到底）
+  - **addEventListener 和 removeEventListener 用同一个函数引用，能匹配上**
+  - **无 bug**
+- **影响**：无
+- **建议**：无需修改，但建议改成 `const onMouseUp = ...` 显式表达（项目当前用 var，IIFE 风格一致，可不改）
+
+#### Bug #E3 — P3（cleanup 顺序问题）
+- **位置**：L343-358
+- **现象**：
+  ```js
+  function cleanup() {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    window.removeEventListener('resize', resize);
+    mq.removeEventListener('change', applyMobile);
+    window.removeEventListener('mouseup', onMouseUp);
+    window.removeEventListener('touchend', onTouchEnd);
+    if (failsafeTimer) { clearTimeout(failsafeTimer); failsafeTimer = null; }
+    window.__introMounted = true;
+  }
+  ```
+  - 顺序合理：先停动画 → 移除监听器 → 清 timer → 标记挂载
+  - **但**：`overlay.removeChild` 由调用方（tryDismiss / failsafe）处理，cleanup 不知道
+  - 这导致**调用方需要记得** removeChild + cleanup
+  - 未来若添加新调用路径可能漏 removeChild
+- **建议**：把 removeChild 也移到 cleanup 内：
+  ```js
+  function cleanup() {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = null;
+    // ... 监听器 ...
+    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    window.__introMounted = true;
+  }
+  // 调用方：overlay.style.opacity = '0'; setTimeout(cleanup, 800);
+  ```
+  这样调用方只负责"淡出 + 延迟"，removeChild 和 cleanup 绑定在一起
+
+---
+
+### 📊 整体修复评价
+
+**修复完成度：8/10**
+- 8 个 P0/P1/P2 修复全部正确，零回归
+- 修复代码质量高（统一 cleanup 函数、函数命名规范、console.warn 增强可观测性）
+- 4 对 addEventListener/removeEventListener 配对正确
+- 命名函数引用一致，removeEventListener 匹配无问题
+
+**残留风险：1 个 P1 + 2 个 P3**
+- **Bug #R1 CORS** —— 这是 P1，CDN 配置是必经之路，必须在动画上线前解决
+- **Bug #R2 z 边界** —— P2，视觉抖动，不阻塞
+- **Bug #R3 a11y** —— P3，合规问题，可后续
+
+**建议优先级**：
+1. **Bug #R1（CORS）** —— 阻塞上线，5 分钟（CDN 加头）或 30 分钟（内联 SVG）
+2. **Bug #E3（cleanup 统一 removeChild）** —— 5 分钟，未来更易维护
+3. **Bug #E1（failsafe 嵌套 timer 追踪）** —— 3 分钟，增强健壮性
+4. **Bug #R2（z 边界）** —— 3 分钟，提升视觉
+5. **Bug #R3（a11y）** —— 15 分钟，合规
+6. **Bug #R4（性能）** —— 30 分钟，老移动端
+
+**可以上线吗？**
+- ✅ 是，**前提是 CDN CORS 已配**（Bug #R1）
+- ⚠️ 若 CDN CORS 未配，**首次用户 100% 看到圆形降级 logo** —— 不建议上线
+
