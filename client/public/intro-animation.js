@@ -328,16 +328,22 @@
         requestAnimationFrame(flyTick);
       } else {
         animProgress = 1;
-        isComplete = true;
         isAnimating = false;
-        // Bug #4 fix: allow interaction while waiting for React
+        // Allow interaction while waiting
         overlay.style.pointerEvents = 'none';
+        // Show title/subtitle
         setTimeout(function () {
           title.style.opacity = '1';
           title.style.transform = 'translateY(0)';
           subtitle.style.opacity = '1';
         }, 300);
-        tryDismiss();
+        isComplete = true;
+        // If React already ready and user logged in, show skip buttons
+        if (reactReady && fullAnim) {
+          skipBtnTimer = setTimeout(showSkipButtons, 500);
+        }
+        // Wait 1s, then dismiss (skip buttons may cancel this)
+        dismissTimer = setTimeout(function () { fadeOutAndCleanup(); }, 1000);
       }
     }
     requestAnimationFrame(flyTick);
@@ -346,10 +352,12 @@
   // --- Cleanup (Bug #2/#6/#11 fix: unified cleanup, #E3: includes removeChild) ---
   var failsafeTimer = null;
   var fadeOutTimer = null;
+  var dismissTimer = null;
+  var skipBtnTimer = null;
   var cleaned = false;
 
   function cleanup() {
-    if (cleaned) return; // #E1 fix: guard against double cleanup
+    if (cleaned) return;
     cleaned = true;
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
     window.removeEventListener('resize', resize);
@@ -358,17 +366,18 @@
     window.removeEventListener('touchend', onTouchEnd);
     if (failsafeTimer) { clearTimeout(failsafeTimer); failsafeTimer = null; }
     if (fadeOutTimer) { clearTimeout(fadeOutTimer); fadeOutTimer = null; }
+    if (dismissTimer) { clearTimeout(dismissTimer); dismissTimer = null; }
     if (skipBtnTimer) { clearTimeout(skipBtnTimer); skipBtnTimer = null; }
-    window.__introMounted = true; // Bug #1 fix: mark as mounted
+    window.__introMounted = true;
   }
 
   // --- Dismiss logic ---
   var reactReady = false;
-  // Read setting: full animation (default true) or skip when ready
   var fullAnim = true;
   try { fullAnim = localStorage.getItem('abdl_intro_full_anim') !== 'false'; } catch (e) {}
 
   function fadeOutAndCleanup() {
+    if (cleaned) return;
     overlay.style.opacity = '0';
     fadeOutTimer = setTimeout(function () {
       if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
@@ -376,23 +385,17 @@
     }, 800);
   }
 
-  function tryDismiss() {
-    if (!reactReady) return;
-    if (fullAnim && !isComplete) return; // Full mode: must wait for animation
-    // Skip mode: React ready → dismiss immediately
-    fadeOutAndCleanup();
-  }
-
   // --- Skip/close buttons (shown when page loaded + user logged in) ---
   var skipBtnWrap = null;
-  var skipBtnTimer = null;
 
   function showSkipButtons() {
     if (skipBtnWrap || cleaned) return;
-    // Only show if user is logged in
     var isLoggedIn = false;
     try { isLoggedIn = !!localStorage.getItem('abdl_active_account'); } catch (e) {}
     if (!isLoggedIn) return;
+
+    // Cancel auto-dismiss so user can interact
+    if (dismissTimer) { clearTimeout(dismissTimer); dismissTimer = null; }
 
     skipBtnWrap = document.createElement('div');
     skipBtnWrap.style.cssText = 'position:absolute;bottom:80px;right:20px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;opacity:0;transition:opacity 0.6s ease;pointer-events:auto;z-index:10;';
@@ -417,19 +420,19 @@
     skipBtnWrap.appendChild(skipBtn);
     skipBtnWrap.appendChild(closeBtn);
     overlay.appendChild(skipBtnWrap);
-    // Restore pointer-events for buttons
     overlay.style.pointerEvents = 'auto';
-    // Fade in
     requestAnimationFrame(function () { skipBtnWrap.style.opacity = '1'; });
+
+    // Auto-dismiss after 5s even if user doesn't click
+    dismissTimer = setTimeout(function () { fadeOutAndCleanup(); }, 5000);
   }
 
   window.__introReady = function () {
     reactReady = true;
-    // Show skip buttons after 0.5s if in full animation mode
-    if (fullAnim) {
+    // Show skip buttons after 0.5s if in full animation mode and animation done
+    if (fullAnim && isComplete) {
       skipBtnTimer = setTimeout(showSkipButtons, 500);
     }
-    tryDismiss();
   };
 
   // --- Input handlers (Bug #3 fix: window-level mouseup/touchend) ---
