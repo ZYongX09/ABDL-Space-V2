@@ -18,7 +18,6 @@
   var LOGO_STAR_COUNT = 600;
   var LOGO_URL = 'https://img.abdl-space.top/file/1779879250278_ABDL_icon.svg';
 
-  // Bezier
   function createBezier(x1, y1, x2, y2) {
     function sampleCurveX(t) { return ((1 - 3*x2 + 3*x1)*t + (3*x2 - 6*x1))*t + 3*x1*t; }
     function sampleCurveY(t) { return ((1 - 3*y2 + 3*y1)*t + (3*y2 - 6*y1))*t + 3*y1*t; }
@@ -32,7 +31,6 @@
   }
   var easeApple = createBezier(0.25, 0.1, 0, 1);
 
-  // Overlay
   var overlay = document.createElement('div');
   overlay.id = 'intro-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000;opacity:1;transition:opacity 0.8s ease;';
@@ -63,7 +61,6 @@
   document.body.appendChild(overlay);
   if (placeholder) placeholder.remove();
 
-  // Responsive
   var mq = window.matchMedia('(max-width: 768px)');
   function applyMobile(e) {
     if (e.matches) {
@@ -77,14 +74,12 @@
   applyMobile(mq);
   mq.addEventListener('change', applyMobile);
 
-  // Canvas
   var W, H;
   var ctx = canvas.getContext('2d');
   function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
   window.addEventListener('resize', resize);
   resize();
 
-  // Stars
   var stars = [];
   var cameraZ = 0, cameraX = 0, cameraY = 0;
   var animProgress = 0, isAnimating = false, isComplete = false;
@@ -98,7 +93,6 @@
     this.isLogo = tx !== undefined;
   }
 
-  // Load logo
   var logoPointsCache = null;
   function loadLogoPoints(count) {
     if (logoPointsCache) return Promise.resolve(logoPointsCache);
@@ -144,7 +138,6 @@
     });
   }
 
-  // RAF
   var rafId = null, lastTime = 0;
   function tick(time) {
     var dt = Math.min(time - lastTime, 50); lastTime = time; var sec = time / 1000;
@@ -180,7 +173,6 @@
     rafId = requestAnimationFrame(tick);
   }
 
-  // State
   var cleaned = false, fadeOutTimer = null, failsafeTimer = null;
 
   function cleanup() {
@@ -201,7 +193,43 @@
     fadeOutTimer = setTimeout(function () { if (overlay.parentNode) overlay.remove(); cleanup(); }, 800);
   }
 
-  // Fly
+  // Skip buttons
+  var skipBtnWrap = null;
+  function showSkipButtons() {
+    if (skipBtnWrap || cleaned) return;
+    skipBtnWrap = document.createElement('div');
+    skipBtnWrap.style.cssText = 'position:absolute;bottom:80px;right:20px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;opacity:0;transition:opacity 0.6s ease;pointer-events:auto;z-index:10;';
+    var sb = document.createElement('button');
+    sb.textContent = '跳过动画';
+    sb.style.cssText = 'background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.4);font-size:12px;padding:5px 12px;border-radius:16px;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-family:-apple-system,BlinkMacSystemFont,sans-serif;transition:background 0.2s,color 0.2s;';
+    sb.onmouseenter = function(){sb.style.background='rgba(255,255,255,0.15)';sb.style.color='rgba(255,255,255,0.7)';};
+    sb.onmouseleave = function(){sb.style.background='rgba(255,255,255,0.08)';sb.style.color='rgba(255,255,255,0.4)';};
+    sb.onclick = function(){fadeOutAndCleanup();};
+    var cb = document.createElement('button');
+    cb.textContent = '永久关闭动画';
+    cb.style.cssText = 'background:transparent;border:none;color:rgba(255,255,255,0.2);font-size:11px;padding:3px 8px;cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,sans-serif;transition:color 0.2s;text-decoration:underline;text-underline-offset:2px;';
+    cb.onmouseenter = function(){cb.style.color='rgba(255,255,255,0.5)';};
+    cb.onmouseleave = function(){cb.style.color='rgba(255,255,255,0.2)';};
+    cb.onclick = function(){try{localStorage.setItem('abdl_intro_full_anim','false');}catch(e){}fadeOutAndCleanup();};
+    skipBtnWrap.appendChild(sb); skipBtnWrap.appendChild(cb);
+    overlay.appendChild(skipBtnWrap);
+    overlay.style.pointerEvents = 'auto';
+    requestAnimationFrame(function(){skipBtnWrap.style.opacity='1';});
+  }
+
+  function shouldShowButtons() {
+    try { return !!localStorage.getItem('abdl_active_account'); } catch (e) { return false; }
+  }
+
+  // __introReady: show buttons if logged in (regardless of animation state)
+  window.__introReady = function () {
+    var fullA = true;
+    try { fullA = localStorage.getItem('abdl_intro_full_anim') !== 'false'; } catch (e) {}
+    if (fullA && shouldShowButtons()) {
+      showSkipButtons();
+    }
+  };
+
   function startFly() {
     if (isAnimating) return;
     isAnimating = true; animProgress = 0;
@@ -217,59 +245,13 @@
       else {
         animProgress = 1; isAnimating = false; isComplete = true;
         overlay.style.pointerEvents = 'none';
-        // DEBUG: show state on overlay
-        var dbg = document.createElement('div');
-        dbg.style.cssText = 'position:absolute;top:10px;left:10px;color:lime;font-size:14px;z-index:10;pointer-events:none;font-family:monospace;';
-        dbg.textContent = 'ANIM_DONE | t=' + Math.round(performance.now()/1000) + 's';
-        overlay.appendChild(dbg);
-        setTimeout(function () {
-          title.style.opacity='1'; title.style.transform='translateY(0)'; subtitle.style.opacity='1';
-          dbg.textContent += ' | TITLE_SHOWN';
-        }, 300);
-        // Dismiss 8s after animation ends
-        setTimeout(function () {
-          dbg.textContent += ' | DISMISS_NOW';
-          fadeOutAndCleanup();
-        }, 8000);
+        setTimeout(function () { title.style.opacity='1'; title.style.transform='translateY(0)'; subtitle.style.opacity='1'; }, 300);
+        setTimeout(fadeOutAndCleanup, 3000);
       }
     }
     requestAnimationFrame(flyTick);
   }
 
-  // React callback — only used for skip buttons
-  window.__introReady = function () {
-    if (!isAnimating || cleaned) return; // animation already done, ignore
-    // Check if user is logged in and wants full anim
-    var loggedIn = false;
-    try { loggedIn = !!localStorage.getItem('abdl_active_account'); } catch (e) {}
-    var fullA = true;
-    try { fullA = localStorage.getItem('abdl_intro_full_anim') !== 'false'; } catch (e) {}
-    if (loggedIn && fullA) {
-      setTimeout(function () {
-        if (cleaned || !isAnimating) return;
-        var wrap = document.createElement('div');
-        wrap.style.cssText = 'position:absolute;bottom:80px;right:20px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;opacity:0;transition:opacity 0.6s ease;pointer-events:auto;z-index:10;';
-        var sb = document.createElement('button');
-        sb.textContent = '跳过动画';
-        sb.style.cssText = 'background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.4);font-size:12px;padding:5px 12px;border-radius:16px;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-family:-apple-system,BlinkMacSystemFont,sans-serif;transition:background 0.2s,color 0.2s;';
-        sb.onmouseenter = function(){sb.style.background='rgba(255,255,255,0.15)';sb.style.color='rgba(255,255,255,0.7)';};
-        sb.onmouseleave = function(){sb.style.background='rgba(255,255,255,0.08)';sb.style.color='rgba(255,255,255,0.4)';};
-        sb.onclick = function(){fadeOutAndCleanup();};
-        var cb = document.createElement('button');
-        cb.textContent = '永久关闭动画';
-        cb.style.cssText = 'background:transparent;border:none;color:rgba(255,255,255,0.2);font-size:11px;padding:3px 8px;cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,sans-serif;transition:color 0.2s;text-decoration:underline;text-underline-offset:2px;';
-        cb.onmouseenter = function(){cb.style.color='rgba(255,255,255,0.5)';};
-        cb.onmouseleave = function(){cb.style.color='rgba(255,255,255,0.2)';};
-        cb.onclick = function(){try{localStorage.setItem('abdl_intro_full_anim','false');}catch(e){}fadeOutAndCleanup();};
-        wrap.appendChild(sb); wrap.appendChild(cb);
-        overlay.appendChild(wrap);
-        overlay.style.pointerEvents = 'auto';
-        requestAnimationFrame(function(){wrap.style.opacity='1';});
-      }, 500);
-    }
-  };
-
-  // Input
   function onMouseUp() { mouseDown = false; }
   function onTouchEnd() { mouseDown = false; }
   overlay.addEventListener('mousedown', function (e) { if (!isComplete) return; mouseDown=true; mouseX=e.clientX; mouseY=e.clientY; });
@@ -279,11 +261,8 @@
   overlay.addEventListener('touchmove', function (e) { if (!mouseDown) return; var dx=e.touches[0].clientX-mouseX, dy=e.touches[0].clientY-mouseY; cameraX-=dx*0.5; cameraY-=dy*0.5; dragVelX=dx; dragVelY=dy; mouseX=e.touches[0].clientX; mouseY=e.touches[0].clientY; }, {passive:true});
   window.addEventListener('touchend', onTouchEnd);
 
-  // Boot
   initStars().then(function () { lastTime = performance.now(); rafId = requestAnimationFrame(tick); startFly(); });
 
-  // Failsafe: 15s for slow networks
   failsafeTimer = setTimeout(function () { if (!cleaned && overlay.parentNode) fadeOutAndCleanup(); }, 15000);
-  // Early failsafe: 8s in case initStars never resolves
   setTimeout(function () { if (!cleaned && overlay.parentNode) fadeOutAndCleanup(); }, 8000);
 })();
