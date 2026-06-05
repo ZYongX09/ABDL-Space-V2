@@ -48,10 +48,6 @@
   canvas.style.cssText = 'display:block;width:100%;height:100%;';
   overlay.appendChild(canvas);
 
-  var hint = document.createElement('div');
-  hint.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,0.3);font-size:0.85rem;pointer-events:none;transition:opacity 0.5s ease;white-space:nowrap;font-family:-apple-system,BlinkMacSystemFont,sans-serif;opacity:0;';
-  overlay.appendChild(hint);
-
   var titleWrap = document.createElement('div');
   titleWrap.style.cssText = 'position:absolute;bottom:40px;left:50%;transform:translateX(-50%);text-align:center;width:90%;max-width:600px;pointer-events:none;';
 
@@ -80,7 +76,6 @@
       title.style.fontSize = '1.4rem';
       subtitle.style.fontSize = '0.8rem';
       subtitle.style.marginTop = '4px';
-      hint.style.fontSize = '0.75rem';
       titleWrap.style.bottom = '24px';
       progressBar.style.height = '1px';
     }
@@ -172,12 +167,21 @@
         for (var i = 0; i < edgePoints.length && result.length < edgeCount; i += edgeStep) result.push(edgePoints[i]);
         var fillStep = Math.max(1, Math.floor(fillPoints.length / (count - edgeCount)));
         for (var i = 0; i < fillPoints.length && result.length < count; i += fillStep) result.push(fillPoints[i]);
-        while (result.length < count) result.push(edgePoints[Math.floor(Math.random() * edgePoints.length)]);
+        // Bug #8 fix: protect against empty edgePoints
+        while (result.length < count) {
+          if (edgePoints.length === 0) {
+            var angle = (result.length / count) * Math.PI * 2;
+            result.push({ x: Math.cos(angle) * 100, y: Math.sin(angle) * 100 });
+          } else {
+            result.push(edgePoints[Math.floor(Math.random() * edgePoints.length)]);
+          }
+        }
 
         logoPointsCache = result.slice(0, count);
         return logoPointsCache;
       })
-      .catch(function () {
+      .catch(function (err) {
+        console.warn('[intro-animation] Logo SVG fetch failed, using fallback circle:', err);
         var result = [];
         for (var i = 0; i < count; i++) {
           var angle = (i / count) * Math.PI * 2;
@@ -212,8 +216,6 @@
   var lastTime = 0;
 
   function tick(time) {
-    if (!isAnimating && !isComplete) { rafId = requestAnimationFrame(tick); return; }
-
     var delta = Math.min(time - lastTime, 50);
     lastTime = time;
     var sec = time / 1000;
@@ -255,8 +257,10 @@
       }
       var size = star.size * scale;
 
+      // Bug #10 fix: normalize hue to 200-340 (blue→pink brand range)
       if (star.isLogo && animProgress > 0.5) {
-        var hue = 200 + (star.targetX / 200) * 140;
+        var t = (star.targetX + 150) / 300; // 0-1
+        var hue = 200 + t * 140;
         ctx.fillStyle = 'hsla(' + hue + ', 80%, 75%, ' + Math.min(1, alpha) + ')';
       } else {
         ctx.fillStyle = 'rgba(200, 210, 240, ' + Math.min(1, alpha) + ')';
@@ -326,41 +330,53 @@
         animProgress = 1;
         isComplete = true;
         isAnimating = false;
+        // Bug #4 fix: allow interaction while waiting for React
+        overlay.style.pointerEvents = 'none';
         setTimeout(function () {
           title.style.opacity = '1';
           title.style.transform = 'translateY(0)';
           subtitle.style.opacity = '1';
         }, 300);
-        // Try to dismiss immediately
         tryDismiss();
       }
     }
     requestAnimationFrame(flyTick);
   }
 
+  // --- Cleanup (Bug #2/#6/#11 fix: unified cleanup) ---
+  var failsafeTimer = null;
+
+  function cleanup() {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    window.removeEventListener('resize', resize);
+    mq.removeEventListener('change', applyMobile);
+    window.removeEventListener('mouseup', onMouseUp);
+    window.removeEventListener('touchend', onTouchEnd);
+    if (failsafeTimer) { clearTimeout(failsafeTimer); failsafeTimer = null; }
+    window.__introMounted = true; // Bug #1 fix: mark as mounted
+  }
+
   // --- Dismiss logic ---
   var reactReady = false;
-  var animDone = false;
 
   function tryDismiss() {
     if (!reactReady || !isComplete) return;
-    // Both conditions met — fade out
     overlay.style.opacity = '0';
     setTimeout(function () {
       if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-      // Cleanup
-      window.removeEventListener('resize', resize);
-      if (rafId) cancelAnimationFrame(rafId);
+      cleanup();
     }, 800);
   }
 
-  // React calls this when app is mounted and interactive
   window.__introReady = function () {
     reactReady = true;
     tryDismiss();
   };
 
-  // --- Input handlers (drag only after animation complete) ---
+  // --- Input handlers (Bug #3 fix: window-level mouseup/touchend) ---
+  function onMouseUp() { mouseDown = false; }
+  function onTouchEnd() { mouseDown = false; }
+
   overlay.addEventListener('mousedown', function (e) {
     if (!isComplete) return;
     mouseDown = true; mouseX = e.clientX; mouseY = e.clientY;
@@ -372,7 +388,7 @@
     dragVelX = dx; dragVelY = dy;
     mouseX = e.clientX; mouseY = e.clientY;
   });
-  overlay.addEventListener('mouseup', function () { mouseDown = false; });
+  window.addEventListener('mouseup', onMouseUp);
 
   overlay.addEventListener('touchstart', function (e) {
     if (!isComplete) return;
@@ -386,21 +402,23 @@
     dragVelX = dx; dragVelY = dy;
     mouseX = e.touches[0].clientX; mouseY = e.touches[0].clientY;
   }, { passive: true });
-  overlay.addEventListener('touchend', function () { mouseDown = false; });
+  window.addEventListener('touchend', onTouchEnd);
 
-  // --- Boot ---
-  lastTime = performance.now();
-  rafId = requestAnimationFrame(tick);
-
+  // --- Boot (Bug #7 fix: delay tick until stars loaded) ---
   initStars().then(function () {
+    lastTime = performance.now();
+    rafId = requestAnimationFrame(tick);
     startFly();
   });
 
   // Failsafe: if something goes wrong, remove after 15s
-  setTimeout(function () {
+  failsafeTimer = setTimeout(function () {
     if (overlay.parentNode) {
       overlay.style.opacity = '0';
-      setTimeout(function () { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 800);
+      setTimeout(function () {
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        cleanup();
+      }, 800);
     }
   }, 15000);
 })();
