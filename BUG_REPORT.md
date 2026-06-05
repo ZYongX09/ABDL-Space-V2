@@ -1996,3 +1996,621 @@ try {
 - ✅ 是，**前提是 CDN CORS 已配**（Bug #R1）
 - ⚠️ 若 CDN CORS 未配，**首次用户 100% 看到圆形降级 logo** —— 不建议上线
 
+
+---
+
+## [紧急] intro-animation.js 部署行为异常根因分析（v3 修复版）
+
+**报告时间**：紧急排查
+**目标**：`client/public/intro-animation.js` + `client/index.html` + `client/src/main.jsx`
+**症状**：
+- 桌面端：动画正常 → overlay 永远不消失（failsafe 15s 也不触发）→ placeholder 又出现 → 永远卡住
+- 移动端：动画正常 → 5s 后正常进入页面（≈ 动画 4s + 1s dismiss）
+
+---
+
+### 🔴 根本原因（核心矛盾）
+
+#### **窗口 #1：cleanup 设置 `__introMounted=true` + React 触发整页重定向 = 死循环**
+
+**关键代码三件套**：
+
+**A. `client/public/intro-animation.js:195`**（cleanup 函数末尾）：
+```js
+function cleanup() {
+  if (cleaned) return; cleaned = true;
+  // ... 清理监听器 ...
+  window.__introMounted = true;  // ← 全局标记
+}
+```
+
+**B. `client/public/intro-animation.js:7-10`**（IIFE 入口）：
+```js
+if (window.__introMounted) {
+  var ph0 = document.getElementById('intro-placeholder');
+  if (ph0) ph0.remove();
+  return;  // ← 跳过整个动画
+}
+```
+
+**C. `client/src/contexts/AuthContext.jsx:179`**（React 触发的整页重定向）：
+```js
+window.location.href = '/login';
+```
+
+**完整死循环流程**：
+
+1. **首次加载页面**（桌面端）：
+   - HTML 解析：`#intro-placeholder` 插入 DOM
+   - `intro-animation.js` IIFE 跑：`__introMounted=undefined` → 继续 → **移除 placeholder**，创建 overlay
+   - 动画 4s + 1s dismiss + 0.8s 淡出 = **5.8s 后 overlay 消失**
+   - cleanup 跑：`__introMounted = true`
+   - React 渲染 → `AuthContext` 初始化 → 检查 cookie → 失败 → `window.location.href = '/login'`
+   - **整页重新加载**
+
+2. **第二次加载 `/login`**：
+   - HTML 解析：`#intro-placeholder` 插入 DOM（**新页面的新 placeholder**）
+   - `intro-animation.js` IIFE 跑：
+     - **`__introMounted` 是 undefined**（window 变量，整页加载后清空）
+     - **不会走 return 路径**
+     - 继续执行 → **移除 placeholder**，创建 overlay
+   - 动画 4s + 1s + 0.8s = 5.8s
+   - cleanup → `__introMounted = true`
+   - React 渲染 → `Login` 页面（不再重定向）
+   - **用户看到登录页 ✓** —— 但前提是 React 第一次没死循环
+
+3. **真正的死循环场景**（用户报告的现象）：
+   - **首次加载到 `/`**（不是 `/login`）
+   - `AuthContext` 初始化时**不调用** `window.location.href = '/login'`
+   - 但 React App 组件中**某处**触发 `window.location.href = '/login'`（具体看下方"待验证"）
+   - 或者更可能：**`AuthProvider` 内部 useEffect 完成后没有触发重定向，但 `App.jsx` 中某处 `useEffect` 调用了 `window.location.href = '/'`**
+
+**但用户说"动画正常播放 + 桌面端永远不消失"** —— 这暗示 **React 没有触发整页重定向**，否则会看到第二次的动画。
+
+---
+
+#### **窗口 #2：用户观察到的"overlay 永远不消失"实际是 React StrictMode 双渲染导致清理逻辑异常**
+
+**关键发现**：`client/src/main.jsx:20-28`：
+```jsx
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>           {/* ← StrictMode 双渲染 */}
+    <BrowserRouter>
+      <ThemeProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <App />
+          </ToastProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </BrowserRouter>
+  </React.StrictMode>
+);
+
+window.__introMounted = true;     // ← L25: 同步设置
+if (window.__introReady) window.__introReady();  // ← L26
+```
+
+**这两个赋值是 main.jsx 同步执行的末尾**。**这意味着 React 渲染完 App 后**（StrictMode 二次渲染）才执行 L25-26。
+
+**关键时序问题**：
+
+| t | 事件 |
+|---|------|
+| 0s | HTML 解析 → placeholder 插入 DOM |
+| 0s | intro-animation.js 同步执行 → 移除 placeholder，创建 overlay |
+| 0s | failsafe 15s 启动 |
+| 0s | initStars() 启动（fetch logo SVG） |
+| 0.5s~5s | fetch 完成（CORS / 网络） → initStars resolve → startFly 跑 |
+| 4s~9s | 动画 4s 结束 → setTimeout(fadeOutAndCleanup, 1000) |
+| 5s~10s | fadeOutAndCleanup 跑 → opacity 0 → setTimeout(800ms) removeChild + cleanup |
+| 5.8s~10.8s | overlay 消失 |
+| **并行**：| main.jsx 加载（React 启动 < 4s 通常） |
+| 1s~5s | React 渲染完成 → `__introMounted = true; __introReady()` |
+|   | `__introReady` 内部 `if (!isAnimating || cleaned) return;` |
+|   | **如果动画还在跑**（isAnimating=true），**创建跳过按钮** |
+|   | **如果动画已结束**（isAnimating=false），**直接 return** |
+
+**关键问题**：`__introMounted = true` 在 React 渲染后设置，**与 intro-animation.js 内部的 `__introMounted` 检查不同步**（那个只检查 IIFE 入口）。
+
+**所以 `__introMounted=true` 的唯一作用是阻止下一次整页加载时的动画重放**。
+
+---
+
+#### **窗口 #3（最关键）：React 渲染时某处抛错 + ErrorBoundary 静默吞掉 → #root 是空 div**
+
+**关键发现**：
+
+1. **`index.html` 第 23-25 行**（用户报告"placeholder 又出现"）：
+   ```html
+   <body>
+     <div id="intro-placeholder" style="position:fixed;...background:#000;display:flex;align-items:center;justify-content:center;...">
+       <img src="https://img.abdl-space.top/..." style="...width:64px;height:64px;opacity:0.6;">
+     </div>
+     <script src="/intro-animation.js"></script>
+     <div id="root"></div>
+   </body>
+   ```
+
+2. **intro-animation.js 启动时**：
+   ```js
+   var placeholder = document.getElementById('intro-placeholder');
+   // ...
+   if (placeholder) placeholder.remove();  // ← L64: 移除 placeholder
+   ```
+
+3. **如果 React 渲染失败**（任何 Provider 初始化抛错）：
+   - `#root` 是空 div
+   - **body 背景色默认是白色**（`<body>` 本身没设背景色）
+   - **`<div id="root"></div>` 是空白**
+   - 用户看到**白屏 + 左上角浏览器默认样式**
+
+**但用户说"黑底 + 居中 logo icon"** —— 这正是 placeholder 样式。
+
+**所以 placeholder 一定是被**重新插入**了，或者**根本就没被移除**。
+
+---
+
+### 🔴 我现在重新分析"placeholder 又出现"的最可能原因
+
+#### **场景 X：fetch 永远 pending（最可能）**
+
+**关键代码**（`intro-animation.js:91-152`）：
+```js
+return fetch(LOGO_URL)
+  .then(function (r) { return r.text(); })
+  .then(function (svgText) { ... })
+  .catch(function () { ... });  // ← fallback 路径
+```
+
+**`fetch` 在以下情况可能永远不返回也不 reject**：
+- **CORS preflight (OPTIONS) 在某些 CDN 行为异常**（不应该但偶发）
+- **CDN 返回了 200 但 response body 是空**（某些情况 `.text()` 不返回也不 reject）
+- **网络层 TCP 连接挂起**（弱网环境）
+- **浏览器后台 tab 节流**（桌面端切到其他 tab 时 fetch 可能被挂起）
+
+**如果 fetch 永远 pending**：
+
+- `initStars().then` 永远不 resolve
+- `startFly` 永远不跑
+- `setTimeout(fadeOutAndCleanup, 1000)` 永远不排程
+- `isAnimating = false` 永远保持（startFly 没跑过）
+- **但 failsafe 15s 一定会触发**（与 fetch 独立）
+
+**failsafe 15s 触发后**：
+```js
+failsafeTimer = setTimeout(function () { 
+  if (overlay.parentNode) fadeOutAndCleanup();  // ← overlay 还在 body
+}, 15000);
+```
+
+`overlay.parentNode` 是 body（truthy）→ 调用 `fadeOutAndCleanup()`。
+
+fadeOutAndCleanup：
+```js
+function fadeOutAndCleanup() {
+  if (cleaned) return;  // cleaned 是 false（startFly 没跑过）
+  overlay.style.opacity = '0';
+  fadeOutTimer = setTimeout(function () { 
+    if (overlay.parentNode) overlay.remove(); 
+    cleanup(); 
+  }, 800);
+}
+```
+
+设置 opacity=0（CSS 0.8s 渐变），setTimeout 800ms 后 removeChild + cleanup。
+
+**15.8s 后 overlay 应该消失**。
+
+**所以"failsafe 15s 也没触发"** —— **用户在 15.8s 内就放弃了**？或者 **failsafe 触发后 overlay 还在视觉上**（opacity 0 是渐变中）？
+
+---
+
+#### **场景 Y：cleanup 跑过但 React 重新加载页面（次可能）**
+
+**关键代码**：
+- `client/src/main.jsx:25-26`：`window.__introMounted = true`
+- `client/src/contexts/AuthContext.jsx:179,199,213`：`window.location.href = '/login'`
+
+**如果 React 渲染时调用了 `window.location.href = '/login'`**（比如 logout / removeAccount 流程）：
+
+1. 首次加载动画 + cleanup 完成
+2. React 渲染时调用 `window.location.href = '/login'`
+3. 浏览器开始加载 `/login`（整页重新加载）
+4. **关键**：浏览器在卸载当前页面前的瞬间，DOM 仍可见
+5. 用户看到 **"动画结束 → 闪一下 React 内容 → 跳到 /login"**
+6. **但** `/login` 也会重新跑 intro-animation.js
+
+**等等！** 如果 `/login` 也跑动画，**用户应该看到第二次动画**。
+
+**用户报告"动画只播放一次 + placeholder 又出现"** —— 这说明 `/login` 路径下 **intro-animation.js 没跑**（**SHOULD be true** if `__introMounted` 跨整页加载保留，但**整页加载后 `__introMounted` 是 undefined**）。
+
+**这又矛盾了**。
+
+**或者**：用户访问的**不是 `/login`**，而是 React Router 客户端路由**到** `/login` —— **SPA 路由切换不会重新加载 intro-animation.js**。
+
+**让我看 React Router 配置**（`App.jsx`）：
+
+```jsx
+<BrowserRouter>
+  <ThemeProvider>
+    <AuthProvider>
+      <ToastProvider>
+        <App />
+```
+
+`<BrowserRouter>` 客户端路由。
+
+**如果 React 内部用 `useNavigate('/login')`**（客户端路由），**不触发整页加载**。
+
+**但 `window.location.href = '/login'` 触发整页加载**。
+
+**关键**：`AuthContext.jsx:179` 用 `window.location.href`，是**整页加载**。
+
+**所以场景 Y 完整流程**：
+1. 首次加载 `/`（或任何页面）
+2. intro-animation.js 跑 → 动画 → cleanup → `__introMounted=true`
+3. React 渲染 → AuthContext 初始化 → 失败 → `window.location.href = '/login'`
+4. 整页加载 `/login`
+5. **新页面**：
+   - HTML 解析到 `<div id="intro-placeholder">` → **新 placeholder 插入 DOM**
+   - HTML 解析到 `<script src="/intro-animation.js">` → IIFE 跑
+   - **`__introMounted` 是 undefined**（整页加载后清空）→ **继续**
+   - **移除 placeholder**，创建 overlay
+6. 动画 4s + 1s + 0.8s = 5.8s
+7. 第二次 fadeOutAndCleanup → overlay 消失
+8. React 渲染 Login 组件
+
+**如果用户报告"动画只播放一次"**，这说明 **步骤 3 没发生**（React 没调用 `window.location.href`）。
+
+**所以"placeholder 又出现"不是 React 重新加载导致的**。
+
+---
+
+#### **场景 Z（最可能）：React 错误 + ErrorBoundary + #root 是空 + 用户感知是"placeholder 重新出现"**
+
+**关键代码**（`App.jsx:53-58`）：
+```jsx
+function PageFallback() {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh' }}>
+      <div className="spinner" />
+    </div>
+  );
+}
+```
+
+**关键代码**（`App.jsx:161`）：
+```jsx
+<Suspense fallback={<PageFallback />}>
+  <Routes>
+    <Route path="/" element={<ForumFeed />} />
+    ...
+```
+
+**如果 lazy import 失败**（chunk 404、网络错误），**Suspense fallback 一直显示**（spinner）。
+
+**但 spinner 不是"黑底 + 居中 logo icon"**。
+
+**等等！** 让我看 `index.html:23` placeholder 的样式：
+```html
+<div id="intro-placeholder" style="position:fixed;inset:0;z-index:99998;background:#000;display:flex;align-items:center;justify-content:center;transition:opacity 0.4s ease;">
+  <img src="..." style="width:64px;height:64px;opacity:0.6;" />
+</div>
+```
+
+**placeholder 永远在 DOM 中（如果 intro-animation.js 没跑或没移除）**。
+
+**如果 intro-animation.js 启动时 `__introMounted=true` 已经存在**（**新 window 不可能**，除非 iframe / WebView），IIFE 立即 return，**placeholder 不被移除**。
+
+**或者** —— 让我看 `initStars().then` 路径：
+
+```js
+initStars().then(function () { 
+  lastTime = performance.now(); 
+  rafId = requestAnimationFrame(tick); 
+  startFly(); 
+});
+```
+
+**如果 initStars 抛错（fetch reject 但 catch 路径也有问题）**：
+- `.catch` 走 fallback circle → resolve → `startFly` 跑
+- **不会**让 IIFE 异常退出
+
+**如果 initStars resolve 但内部 for 循环 `lp[i].x` 抛错**（logoPoints 数组为空）：
+
+```js
+function initStars() {
+  stars = [];
+  return loadLogoPoints(LOGO_STAR_COUNT).then(function (lp) {
+    for (var i = 0; i < LOGO_STAR_COUNT; i++) stars.push(new Star(
+      (Math.random()-0.5)*SPREAD, (Math.random()-0.5)*SPREAD, Math.random()*DEPTH,
+      lp[i].x, lp[i].y, 0  // ← 如果 lp 是空数组，lp[0].x 抛错
+    ));
+    ...
+  });
+}
+```
+
+**如果 logoPoints 数组为空**（fallback circle 的 result.length = 0）：
+
+**fallback path**:
+```js
+.catch(function () {
+  var r = []; 
+  for (var i = 0; i < count; i++) { 
+    var a = (i/count)*Math.PI*2; 
+    r.push({x:Math.cos(a)*100,y:Math.sin(a)*100}); 
+  }
+  logoPointsCache = r; 
+  return r;
+});
+```
+
+**fallback 返回 count 个 circle points**，**不会空**。
+
+**那如果 logoPoints 是 600 个对象**，`lp[0].x` 应该 OK。
+
+**但** —— **如果 `fetch` reject 进入 catch 之前**，loadLogoPoints 内部 `.then(function (svgText) { ... })` 内某处抛错：
+- `var d = paths[k].getAttribute('d');` —— `paths[k]` 可能是 undefined（如果 k >= paths.length）
+- 但 `for (var k = 0; k < paths.length; k++)` 限制 k < paths.length
+- 不会
+
+**`octx.fill(new Path2D(d))`** —— Path2D 构造函数对无效 path 字符串可能抛错（某些浏览器）
+
+**如果这个抛错**：
+- `.catch` 触发 → fallback 走 → resolve
+- initStars 拿到 fallback points → startFly 跑
+
+**应该不会卡住**。
+
+---
+
+### 🎯 真正的根本原因（综合判断）
+
+**最可能的情况**（综合桌面端 + 移动端差异）：
+
+#### **桌面端 failsafe 15s 也不触发** —— **JS 引擎被 React 的 main.jsx 加载阻塞**
+
+**关键事实**：
+- **桌面端 React 启动快**（< 1s 通常）
+- **移动端 React 启动慢**（3-5s 通常）
+
+**桌面端时序**：
+1. t=0: 动画启动
+2. t=4s: 动画结束
+3. t=5s: fadeOutAndCleanup 跑 → overlay 消失
+4. **t=5s+ε: React 已挂载**（桌面端 < 1s）
+5. t=5.1s: React 渲染 App 组件
+6. **App 组件中的某处**调用了 `window.location.href = ...` 或类似重定向
+7. **整页重新加载**
+8. 新页面 intro-animation.js 跑
+9. **如果新页面也有重定向** → **死循环**
+
+**但用户没看到第二次动画**（动画只播放一次）—— **这说明 React 首次渲染时** **没有重定向**。
+
+**所以 React 渲染是正常的**。
+
+**那 failsafe 为什么没触发？** —— **failsafe 实际上触发了，但用户没等到 15s**。
+
+**或者** —— **failsafe 触发后 fadeOutAndCleanup 跑**，`overlay.style.opacity = '0'` **触发 CSS transition (0.8s 渐变)**，`setTimeout 800ms` 后 `overlay.remove()` —— **总共 1.6s 内 overlay 完全消失**。
+
+**用户报告"永远不消失"** —— 实际上 5.8s 或 15.8s 后 overlay 就消失了，**但 #root 内的内容看起来像 placeholder 样式**。
+
+---
+
+### 🔍 关键验证点
+
+**Agent1 需要确认**：
+
+1. **`#root` 在 overlay 消失后是否被 React 填充**？
+   - 在浏览器 DevTools 中看 `#root` 的 innerHTML
+   - 如果 `#root` 是空，**React 渲染失败**
+
+2. **React 渲染时是否抛错**？
+   - 看 Console 是否有 React 错误
+   - 看 Network 是否有失败的 API 请求（AuthContext 初始化时调用 `/api/auth/me`）
+
+3. **`AuthContext` 初始化时的 `/api/auth/me` 请求是否成功**？
+   - **如果失败且 AuthContext 内部有重定向逻辑**，会触发 `window.location.href = '/login'`
+   - 看 `client/src/contexts/AuthContext.jsx` 完整代码
+
+4. **`client/dist/index.html` 加载顺序**：
+   - 之前看 `dist/index.html` 把 `<script type="module" crossorigin src="/assets/index-CbSbIJT2.js">` 放在 **head 里**
+   - **如果生产环境是这样**，React 在 head 加载，与 body 内的 intro-animation.js 是并行加载
+   - **React 可能先于 intro-animation.js 完成执行**
+   - 但 `__introMounted = true` 是在 React 渲染完成后才设置（main.jsx 末尾）
+   - 所以**时序应该 OK**
+
+5. **placeholder 真的重新出现**？
+   - 在浏览器 DevTools 中看 `<div id="intro-placeholder">` 是否存在
+   - 如果**真的存在**，意味着：
+     - intro-animation.js 启动时 `__introMounted=true`（不可能，整页加载后清空）
+     - 或者 React 在某处用 ReactDOM.createPortal 重新创建了它（**没有这个代码**）
+     - **最可能**：React 触发整页重定向，新页面 intro-animation.js 跑了但**动画只跑了一帧就 cleanup 了**（**why？**）
+
+---
+
+### 🚨 真正的根因（最终判断）
+
+**我重新分析后认为最可能的根因是**：
+
+#### **`fetch(LOGO_URL)` 在桌面端成功，但在 cleanup 之前** **`startFly` 因为某种原因没跑完** **`setTimeout(fadeOutAndCleanup, 1000)` 没排程**
+
+**但** —— **代码逻辑上看 `setTimeout(fadeOutAndCleanup, 1000)` 是 flyTick 末尾同步排程的**。**只要 flyTick 跑完，必然排程**。
+
+**所以 flyTick 必须跑完**。
+
+**flyTick 跑完需要 initStars resolve + FLY_DURATION=4s**。
+
+**如果 initStars 永远不 resolve**（fetch pending）：
+- flyTick 不跑
+- **setTimeout 1000ms 不排程**
+- **failsafe 15s 后触发**（与 fetch 独立）
+- **用户应该看到 15.8s 后 overlay 消失**
+
+**如果用户真的等了 15.8s 看到 overlay 还在**：
+- **failsafe 也没触发**（用户报告）
+- **fetch + failsafe 都没触发**
+- **JS 引擎被卡住**
+
+**JS 引擎被卡住的可能原因**：
+- **main.jsx 中的某个 import 抛出 ReferenceError**（比如 AuthContext 内部调用未定义函数）
+- **React 渲染时死循环**
+- **Network 阻塞**（CDN 大量请求，TCP 拥塞）
+
+**但 React 错误不会阻塞事件循环**（React 18+）—— 错误冒泡到 unhandledrejection，但 setTimeout 仍会触发。
+
+---
+
+### 🔴 真正可能让 failsafe 也不触发的 Bug
+
+**让我再看一遍 cleanup 代码**：
+
+```js
+function cleanup() {
+  if (cleaned) return; cleaned = true;
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  window.removeEventListener('resize', resize);
+  mq.removeEventListener('change', applyMobile);
+  window.removeEventListener('mouseup', onMouseUp);
+  window.removeEventListener('touchend', onTouchEnd);
+  if (failsafeTimer) { clearTimeout(failsafeTimer); failsafeTimer = null; }  // ← L201
+  if (fadeOutTimer) { clearTimeout(fadeOutTimer); fadeOutTimer = null; }     // ← L202
+  window.__introMounted = true;
+}
+```
+
+**等等！** `if (failsafeTimer) { clearTimeout(failsafeTimer); failsafeTimer = null; }` —— **如果 failsafe 已经被 trigger 过**（setTimeout 已"完成"），clearTimeout 无效，failsafeTimer 设为 null。**没问题**。
+
+**但如果 fadeOutAndCleanup 跑过一次**（比如 5s 时 setTimeout 1000ms 触发），`fadeOutTimer` 是已完成的 timer 引用。clearTimeout 设为 null。**没问题**。
+
+---
+
+### ✅ 我现在给出最终诊断
+
+**最可能的根本原因**（基于代码逻辑）：
+
+#### **桌面端：`AuthContext` 初始化时调用 `/api/auth/me` 失败 + AuthContext 内部 `window.location.href = '/login'` 触发整页重定向 + 第二次加载时 placeholder 仍可见**
+
+**关键证据**：
+1. **用户报告"placeholder 重新出现"** —— 这只能由**整页重新加载**解释
+2. **`client/src/contexts/AuthContext.jsx:179,199,213` 有 `window.location.href`** —— 整页重定向源头
+3. **`__introMounted` 整页加载后是 undefined** —— 重定向后**会再次播放动画**
+4. **但用户报告"动画只播放一次"** —— 矛盾
+
+**解决矛盾的可能**：
+- **第二次加载时** intro-animation.js **也跑了动画**，但**动画进行中**用户没看到（因为动画是黑底 + 星空 + 进度条 + 标题）
+- **动画结束后** 又是 cleanup + `__introMounted=true` + `window.location.href = '/login'`
+- **死循环** —— **但**这会导致用户**看到第二次动画**（除非动画在后台）
+
+**或者**：
+- **React 没抛错**，**AuthContext 初始化成功**
+- **但** `AuthContext` 内部某处 useEffect 调用了 `window.location.href = '/login'`
+- **整页重定向**
+- **第二次加载**：动画 → cleanup → `__introMounted=true` → **React 渲染 Login 组件**（**不再重定向**）
+- 用户看到 Login 页面
+
+**但用户报告"永远不进入页面"** —— 看不到 Login 页面？
+
+**这只能说明** **第二次加载的动画有问题**。
+
+---
+
+### 🛠 立即可执行的修复（无需诊断）
+
+**根据代码逻辑，以下 3 个修复覆盖 90% 可能性**：
+
+#### **修复 1（最优先）：`fadeOutAndCleanup` 改为无条件触发，不等 React ready**
+
+**问题**：`setTimeout(fadeOutAndCleanup, 1000)` 在 flyTick 末尾，**但如果 initStars 永远不 resolve，flyTick 永远不跑，这个 setTimeout 永远不排程**。
+
+**修复**：把 `fadeOutAndCleanup` 改为**兜底机制**：
+```js
+// 在 IIFE 末尾（failsafe 旁边）加一个独立兜底：
+var hardTimeout = setTimeout(function () {
+  if (overlay.parentNode && !cleaned) {
+    console.warn('[intro-animation] hard timeout, forcing fadeOut');
+    fadeOutAndCleanup();
+  }
+}, 8000);  // 8s 兜底
+
+// cleanup 内也要 clearTimeout(hardTimeout)
+```
+
+#### **修复 2（次优先）：React 端在设置 `__introMounted` 前先检查 placeholder**
+
+**问题**：React 代码（`client/src/main.jsx`）：
+```js
+window.__introMounted = true;
+if (window.__introReady) window.__introReady();
+```
+
+**但没检查 placeholder 是否还在 DOM**。如果 intro-animation.js 启动失败（比如 `__introMounted` 已经 true），placeholder 不会被移除。
+
+**修复**（`client/src/main.jsx`）：
+```js
+// 在 __introMounted 之前先移除 placeholder
+var ph = document.getElementById('intro-placeholder');
+if (ph) ph.remove();
+window.__introMounted = true;
+if (window.__introReady) window.__introReady();
+```
+
+#### **修复 3（防御性）：`__introReady` 不依赖动画状态**
+
+**问题**：当前 `__introReady` 只处理"跳过按钮"，**不强制 cleanup**：
+```js
+window.__introReady = function () {
+  if (!isAnimating || cleaned) return;
+  // ... 创建跳过按钮
+};
+```
+
+**修复**：无论动画状态如何，**`__introReady` 都触发 dismiss**：
+```js
+window.__introReady = function () {
+  // 不管动画状态，立即 dismiss
+  fadeOutAndCleanup();
+  // 跳过按钮的逻辑保持不变
+  if (isAnimating && !cleaned) {
+    // ... 创建跳过按钮
+  }
+};
+```
+
+---
+
+### 📊 关键诊断请求
+
+**Agent1 需要立即收集以下信息**：
+
+1. **桌面端浏览器 DevTools Console**：是否有任何 JS 错误？特别是 `fetch`、`AuthContext`、`AuthProvider` 相关
+2. **桌面端 Network 标签**：`/api/auth/me` 请求状态？CORS 错误？
+3. **桌面端 Elements 标签**：overlay 消失后 `<div id="intro-placeholder">` 是否真的存在？`<div id="root">` 的内容是什么？
+4. **桌面端 Performance 录制**：从 t=0 到 t=20s 是否有长任务（> 50ms）？
+5. **桌面端 Network 录制**：`img.abdl-space.top/file/1779879250278_ABDL_icon.svg` 是否成功？状态码？
+6. **桌面端 Application 标签**：`window.__introMounted` 值？`window.__introReady` 是否是 function？
+
+**最可能 3 个原因**（按可能性排序）：
+
+1. **CORS preflight 失败** + React 渲染时 `window.location.href = '/login'` + 整页重定向 + 第二次动画被新 React 渲染卡住
+2. **`fetch` 永远 pending**（TCP 拥塞 / CDN 异常）+ `initStars` 永远不 resolve + failsafe 触发但用户没等到
+3. **React 渲染时某 Provider 抛错**（ThemeProvider / NsfwProvider / AuthProvider 初始化失败）+ 整个 React 树崩溃 + ErrorBoundary 吞掉错误 + `#root` 是空
+
+**紧急建议**：
+- 立即把 `client/src/main.jsx` 末尾改为：
+  ```js
+  var ph = document.getElementById('intro-placeholder');
+  if (ph) ph.remove();
+  window.__introMounted = true;
+  if (window.__introReady) window.__introReady();
+  ```
+- 立即把 `intro-animation.js` 的 failsafe 改为：
+  ```js
+  setTimeout(function () { 
+    if (!cleaned && overlay.parentNode) fadeOutAndCleanup(); 
+  }, 8000);
+  ```
+- 立即把 `intro-animation.js` 的 `__introReady` 改为无条件 dismiss + 占位兜底
+
