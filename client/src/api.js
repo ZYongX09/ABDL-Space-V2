@@ -449,14 +449,14 @@ export const rankingsAPI = {
 // 广场 Posts（后端路径 /api/posts）
 // =====================================================================
 export const forumAPI = {
-  feed: async ({ page = 1, limit = 20, search, excludeNsfw } = {}) => {
+  feed: async ({ page = 1, limit = 20, search, excludeNsfw, filter } = {}) => {
     if (USE_API) {
-      const qs = new URLSearchParams({ page, limit });
+      const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (search) qs.set('search', search);
       if (excludeNsfw) qs.set('exclude_nsfw', '1');
+      if (filter) qs.set('filter', filter);
       const cacheKey = `feed:${qs}`;
-      // 搜索不缓存
-      if (search) return apiFetch(`/api/posts?${qs}`);
+      if (search || filter) return apiFetch(`/api/posts?${qs}`);
       return cachedFetch(cacheKey, () => apiFetch(`/api/posts?${qs}`), CACHE_TTL.short);
     }
     let posts = LS.get('posts') || [];
@@ -498,9 +498,9 @@ export const forumAPI = {
     };
   },
 
-  create: async ({ content, diaper_id, images, captchaToken }) => {
+  create: async ({ content, diaper_id, images, captchaToken, repost_id, is_announcement }) => {
     if (USE_API) {
-      const result = await apiFetch('/api/posts', { method: 'POST', body: JSON.stringify({ content, diaper_id, images, captchaToken }) });
+      const result = await apiFetch('/api/posts', { method: 'POST', body: JSON.stringify({ content, diaper_id, images, captchaToken, repost_id, is_announcement }) });
       cacheInvalidate('feed:');
       return result;
     }
@@ -511,6 +511,28 @@ export const forumAPI = {
     posts.unshift(post);
     LS.set('posts', posts);
     return { id: post.id, message: '发布成功' };
+  },
+
+  repost: async (postId, comment, captchaToken) => {
+    if (USE_API) {
+      const result = await apiFetch('/api/posts', { method: 'POST', body: JSON.stringify({ content: comment || '', repost_id: postId, captchaToken }) });
+      cacheInvalidate('feed:');
+      return result;
+    }
+    const user = LS.get('currentUser');
+    if (!user) throw new Error('请先登录');
+    const posts = LS.get('posts') || [];
+    const post = { id: Date.now(), user_id: user.id, content: comment || '', repost_id: postId, pinned: false, is_announcement: 0, created_at: new Date().toISOString() };
+    posts.unshift(post);
+    LS.set('posts', posts);
+    return { id: post.id, message: '转发成功' };
+  },
+
+  latestAnnouncement: async () => {
+    if (USE_API) return apiFetch('/api/posts/announcements/latest');
+    const posts = LS.get('posts') || [];
+    const ann = posts.filter(p => p.is_announcement).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+    return { announcement: ann || null };
   },
 
   delete: async (id) => {

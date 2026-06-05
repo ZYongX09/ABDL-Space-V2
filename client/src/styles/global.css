@@ -668,6 +668,165 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 }
 .bottom-nav-floating a i { font-size: 1.35rem; }
 
+/* 侧边栏发帖按钮 — 特殊样式 */
+.sidebar-compose-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  margin-bottom: 8px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s;
+  font-family: var(--font);
+}
+.sidebar-compose-btn:hover {
+  background: var(--primary-dark);
+  transform: scale(1.02);
+}
+.sidebar-compose-btn:active {
+  transform: scale(0.98);
+}
+.sidebar-collapsible:not(.expanded) .sidebar-compose-btn {
+  padding: 10px;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 8px;
+}
+.sidebar-collapsible:not(.expanded) .sidebar-compose-btn .sidebar-link-label {
+  display: none;
+}
+
+/* ====== HomeV2 三栏布局 ====== */
+.home-layout {
+  display: flex;
+  gap: 0;
+  min-height: 100vh;
+}
+.home-feed {
+  flex: 1;
+  min-width: 0;
+  max-width: 600px;
+  border-right: 1px solid var(--border);
+}
+.home-right {
+  width: clamp(280px, 25vw, 400px);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  align-self: flex-start;
+  scrollbar-width: none;
+  padding: 0 16px;
+}
+.home-right::-webkit-scrollbar { display: none; }
+
+/* 药丸分段器 */
+.pill-selector-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+[data-theme="dark"] .pill-selector-wrapper {
+  background: rgba(17, 17, 17, 0.85);
+}
+[data-theme="colorful"] .pill-selector-wrapper {
+  background: rgba(245, 240, 255, 0.85);
+}
+.pill-selector {
+  display: flex;
+  position: relative;
+  background: var(--input-bg);
+  border-radius: 20px;
+  padding: 3px;
+  gap: 2px;
+}
+.pill-tab {
+  flex: 1;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 18px;
+  position: relative;
+  z-index: 2;
+  transition: color 0.2s;
+  font-family: var(--font);
+}
+.pill-tab.active {
+  color: var(--text);
+}
+.pill-tab:not(.active):hover {
+  color: var(--text-light);
+}
+.pill-indicator {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  height: calc(100% - 6px);
+  background: var(--bg-card);
+  border-radius: 18px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  z-index: 1;
+  pointer-events: none;
+}
+[data-theme="dark"] .pill-indicator {
+  background: var(--bg-sidebar);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 帖子公告标签 */
+.post-announcement-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 8px;
+  padding: 2px 8px;
+  background: rgba(var(--primary-rgb, 59, 130, 246), 0.1);
+  border-radius: 4px;
+}
+.post-announcement {
+  border-left: 3px solid var(--primary);
+}
+
+/* 右侧栏卡片间距 */
+.right-card + .right-card {
+  margin-top: 12px;
+}
+
+/* ====== HomeV2 响应式 ====== */
+@media (max-width: 1024px) {
+  .home-right { display: none; }
+  .home-feed { max-width: 100%; border-right: none; }
+}
+@media (max-width: 768px) {
+  .home-layout { flex-direction: column; }
+  .home-feed { max-width: 100%; border-right: none; }
+  .pill-selector-wrapper { padding: 8px 12px; }
+}
+
 /* ====== 响应式 ====== */
 @media (max-width: 768px) {
   html, body { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: auto; }

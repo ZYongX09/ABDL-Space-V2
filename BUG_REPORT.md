@@ -2969,3 +2969,430 @@ return (
 
 **强烈建议**：P0 修复立即上，这是 90% 根因。
 
+
+---
+
+## [2026-06-06 04:30] HomeV2 广场页重构审查报告
+
+> 审查范围：x.com 风格三栏布局 + 公告系统 + 转发功能
+> 审查文件：12 个（后端 4 + 前端 8）
+> 审查重点：SQL 注入、权限控制、XSS、状态管理、路由冲突、CSRF/CORS、CSS 兼容性
+
+---
+
+### 重点关注 7 项审查结论
+
+| # | 审查项 | 结论 | 严重度 |
+|---|--------|------|--------|
+| 1 | SQL 注入（filter=following） | ✅ 确认安全 | — |
+| 2 | 公告权限控制（is_announcement） | ✅ 确认安全（但需 P3 改进） | P3 |
+| 3 | XSS（RichContent） | ✅ 确认无 XSS | — |
+| 4 | 点赞状态管理 | ❌ 误报——发现更严重问题 | P1 |
+| 5 | 路由冲突（announcements/latest） | ✅ 无冲突 | — |
+| 6 | 图片上传 CSRF/CORS | ⚠️ 需补充——发现另一个问题 | P1 |
+| 7 | CSS 兼容性 | ✅ 兼容性良好 | — |
+
+---
+
+### Bug #H2-1 — P1 点赞去抖丢失（HomeV2 缺少防抖）
+- **文件**：`client/src/pages/HomeV2.jsx:60-66` + `PostCard.jsx:34-37,49-50`
+- **问题**：HomeV2 拆解 ForumFeed 时**漏掉了点赞去抖逻辑**。原 `ForumFeed.jsx` 用 `likingRef = useRef(new Set())` 防止重复点击；HomeV2 改成 `likingRef = useRef(false)` 后**未在 handleLike 中检查/设置**，导致：
+  1. 快速双击点赞按钮会发送两个 `POST /api/likes` 请求
+  2. 第二个请求的乐观更新会把状态翻回去
+  3. 请求返回顺序不保证，最终状态可能错乱（点赞 +1/-1 竞态）
+  4. catch 块的 rollback 用 `p.has_liked` 读取**当前状态**而非原状态，也会回滚错误
+- **复现路径**：
+  ```
+  1. 登录用户打开 HomeV2（/）
+  2. 快速双击任一帖子的 ❤ 按钮（间隔 < 200ms）
+  3. 观察网络面板：看到 2 个 POST /api/likes
+  4. 帖子最终状态可能错误
+  ```
+- **影响**：所有 HomeV2 用户的点赞功能都有此竞态
+- **建议**：
+  ```jsx
+  // HomeV2.jsx line 60
+  const likingRef = useRef(new Set());
+  
+  const handleLike = useCallback(async (postId) => {
+    if (!user) { toast.error('请先登录'); return; }
+    if (likingRef.current.has(postId)) return;  // 防抖
+    likingRef.current.add(postId);
+    setPosts(prev => prev.map(p => p.id === postId ? {
+      ...p,
+      has_liked: !p.has_liked,
+      like_count: p.has_liked ? p.like_count - 1 : p.like_count + 1,
+    } : p));
+    try {
+      await forumAPI.like({ target_type: 'post', target_id: postId });
+    } catch (e) {
+      setPosts(prev => prev.map(p => p.id === postId ? {
+        ...p,
+        has_liked: !p.has_liked,  // 同样问题：用当前状态回滚
+        like_count: p.has_liked ? p.like_count - 1 : p.like_count + 1,
+      } : p));
+      toast.error(e.message);
+    } finally {
+      likingRef.current.delete(postId);
+    }
+  }, [user]);
+  ```
+- **附加建议**：rollback 应当保存 toggle 前的状态（prevHasLiked / prevCount）独立回滚，而不是依赖当前 has_liked 二次取反
+
+---
+
+### Bug #H2-2 — P1 删除被转发的帖子会触发外键约束失败
+- **文件**：`schemas/schema.sql:73` + `server/src/routes/posts.ts:319-343`
+- **问题**：`posts` 表的 `repost_id` 外键定义为：
+  ```sql
+  FOREIGN KEY (repost_id) REFERENCES posts(id)
+  ```
+  **缺少 `ON DELETE` 子句**。这意味着：
+  - 用户 A 发帖
+  - 用户 B 转发该帖（repost_id = A 的帖子 ID）
+  - 用户 A 试图删除原帖 → D1 **直接拒绝**，返回 500
+  
+  本次重构**激活了此 bug**（之前没有 repost 流程，不会触发；现在用户可主动转发，产生"被转发的原帖"概率显著提升）
+- **影响**：帖子作者和 admin 删除任何被转发过的原帖时，会得到 500 错误
+- **建议**：
+  ```sql
+  -- 新增迁移 0025_posts_repost_fk.sql
+  -- SQLite/D1 不支持直接修改 FK 约束，必须重建表
+  -- 方案 1: 使用 ON DELETE SET NULL（推荐，转发保留，原帖标 NULL 后前端显示"原帖已删除"）
+  ALTER TABLE posts DROP CONSTRAINT posts_repost_id_foreign_key;  -- SQLite 12+ 支持
+  -- 若不支持，则用 PRAGMA foreign_keys=OFF → 重建表 → PRAGMA foreign_keys=ON
+  
+  -- 方案 2: 业务层处理，删除前先把 repost_id 置 NULL
+  -- 见下方 server 端建议
+  ```
+  
+  **更轻量的方案（不改 schema）**：
+  ```typescript
+  // posts.ts DELETE /:id 处理器，在 DELETE 之前先清理被引用
+  await run(c.env.abdl_space_db,
+    'UPDATE posts SET repost_id = NULL WHERE repost_id = ?', [id])
+  // 然后再删除原帖
+  await run(c.env.abdl_space_db, 'DELETE FROM posts WHERE id = ?', [id])
+  ```
+- **状态**：待修复
+
+---
+
+### Bug #H2-3 — P1 `posts.get('/:id')` 详情接口在转发原帖被删除时返回不一致数据
+- **文件**：`server/src/routes/posts.ts:208-243` + `client/src/components/PostCard.jsx:55-56`
+- **问题**：当 `post.repost_id` 指向的帖子已被删除：
+  - 后端 `getPost` 静默返回 `repost: null`，但 `repost_id` 字段仍为已删除的 ID
+  - 前端 `isRepost = !!post.repost_id && post.repost` 判定为 false，**不会**渲染转发提示
+  - 详情页（`PostDetail`）用户可能看到"该转发引用的原帖已删除"占位
+  
+  **真正的 P1 风险**：在 `posts.get('/')` 列表接口中（line 130-137），转发数据的 batch query 是用 `postIds` 而非 `repostIds` 过滤的，所以**已经处理了 repost 为 null 的情况**。但 detail 端点对 repost_id 的处理是 `if (post.repost_id) {...}`——如果原帖被删除但 repost_id 仍存在，前端详情页可能看到"已删除"或不一致状态。
+- **建议**：
+  ```typescript
+  // posts.ts getPost 处理器，把 repost_id 也置 null
+  if (post.repost_id) {
+    const origPost = await queryOne<...>(...)
+    if (origPost) {
+      repost = { ... }
+    } else {
+      // 原帖已删除，清理 repost_id 引用
+      await run(c.env.abdl_space_db,
+        'UPDATE posts SET repost_id = NULL WHERE id = ?', [postId])
+      post.repost_id = null
+    }
+  }
+  ```
+- **附加建议**：可以同时在列表接口做一致处理（forward fix）
+- **状态**：待修复
+
+---
+
+### Bug #H2-4 — P2 切换到「关注」Tab 触发无意义的 API 请求（未登录场景）
+- **文件**：`client/src/pages/HomeV2.jsx:101-108`
+- **问题**：`handleTabChange` 顺序错误：
+  ```jsx
+  const handleTabChange = useCallback((tab) => {
+    setActiveTab(tab);  // 1. 先切到 following
+    if (tab === 'following' && !user) {
+      toast.error('请先登录');
+      setActiveTab('latest');  // 2. 再切回 latest
+      return;
+    }
+  }, [user]);
+  ```
+  React 18 会**批处理两个 setState**（不会渲染中间态），但**第一个 useEffect 已经把 loadPosts('following') 入队了**。最终结果：
+  - 短暂地发出一个 `GET /api/posts?filter=following` 请求
+  - 后端返回 401
+  - 错误被 toast 吞掉，但用户仍看到「请先登录」
+  - 然后再发一次 `GET /api/posts`（无 filter）
+- **影响**：未登录用户每次切到「关注」Tab 都会产生一次 401 请求
+- **建议**：
+  ```jsx
+  const handleTabChange = useCallback((tab) => {
+    if (tab === 'following' && !user) {
+      toast.error('请先登录');
+      return;  // 提前 return，不调用 setActiveTab
+    }
+    setActiveTab(tab);
+  }, [user]);
+  ```
+- **状态**：待修复
+
+---
+
+### Bug #H2-5 — P2 `post.created_at` 时间格式化假设 UTC（隐性 bug）
+- **文件**：`client/src/components/PostCard.jsx:21-31` + `AnnouncementCard.jsx:36`
+- **问题**：
+  ```javascript
+  function relativeTime(dateStr) {
+    const d = new Date(dateStr + 'Z');  // 强制当作 UTC
+    // ...
+  }
+  ```
+  D1 存储 `CURRENT_TIMESTAMP` 是 UTC（无时区标记的字符串）。后端在 `posts.ts` 返回 `created_at` 时**直接传字符串**（未转换时区），前端强制加 'Z' 当作 UTC 处理。**当前实现是对的**。
+  
+  **隐患**：如果未来后端改为返回 `2026-06-06T12:00:00+08:00`（带时区），前端再加 'Z' 会变成错误的双时区解析。当前没有时区转换层，**任何后端格式变更都会引起前端时间错误**。
+- **建议**：后端统一返回 ISO 8601 字符串（带 'Z' 后缀），前端去掉 `+ 'Z'` 逻辑
+  ```javascript
+  // server/src/routes/posts.ts:165 (类似位置)
+  // 现在：created_at: r.created_at
+  // 建议：created_at: new Date(r.created_at + 'Z').toISOString() 或直接依赖 D1 格式
+  ```
+  
+  **当前优先级 P2**，因为现状能工作。建议跟进一个 tech debt 修复。
+- **状态**：待修复
+
+---
+
+### Bug #H2-6 — P2 排序索引对新查询不最优（性能）
+- **文件**：`server/src/routes/posts.ts:118` + `schemas/schema.sql:75`
+- **问题**：新排序为 `ORDER BY p.is_announcement DESC, p.pinned DESC, p.created_at DESC`，但现有索引为：
+  - `idx_posts_pinned_created ON posts(pinned DESC, created_at DESC)`（旧）
+  - `idx_posts_announcement ON posts(is_announcement, created_at DESC)`（新加，缺少 DESC 关键字）
+  
+  新查询最优索引应是 `(is_announcement DESC, pinned DESC, created_at DESC)`。当前：
+  - 旧索引的 leading column `pinned` 不是查询的 leading column → 失效
+  - 新索引 `is_announcement` 是 leading column ✅，但缺少 `pinned` 中间列 → 无法完全避免排序
+  - 实际查询会全表扫描 + 内存排序
+- **影响**：广场页帖子量大时（>1000 条）会变慢
+- **建议**：
+  ```sql
+  -- 替换 0024 的索引为更优的复合索引
+  DROP INDEX IF EXISTS idx_posts_announcement;
+  DROP INDEX IF EXISTS idx_posts_pinned_created;
+  CREATE INDEX idx_posts_feed_sort ON posts(is_announcement DESC, pinned DESC, created_at DESC);
+  ```
+  并加一个针对 `filter=following` 的索引：
+  ```sql
+  CREATE INDEX idx_posts_user_announcement_created 
+    ON posts(user_id, is_announcement DESC, pinned DESC, created_at DESC)
+    WHERE is_announcement = 0;  -- 关注流通常不显示公告
+  ```
+- **状态**：性能待优化（看生产数据量决定优先级）
+
+---
+
+### Bug #H2-7 — P2 `handlePostCreated` 强制全量刷新（性能 + UX）
+- **文件**：`client/src/pages/HomeV2.jsx:97-99`
+- **问题**：发帖成功后调用 `loadPosts(1)` 重新拉取**整个**第一页（最多 20 条），而不是把新帖子 prepend 到列表头部。
+- **影响**：
+  - 浪费一次完整 API 请求
+  - 用户看到「Loading skeleton」闪一下（loadingMore 没设但 loading 设了）
+  - 当前 Tab 的滚动位置可能跳到顶部
+- **建议**：
+  ```jsx
+  const handlePostCreated = useCallback((result) => {
+    // 选项 A: 静默 prepend（需要后端返回完整 post 对象）
+    setPosts(prev => [newPost, ...prev]);
+    
+    // 选项 B: 重新拉取（当前实现）但保持滚动位置
+    loadPosts(1, false);
+  }, [loadPosts]);
+  ```
+  
+  后端 `POST /api/posts` 当前只返回 `{ id, message }`，不返回完整 post 对象（posts.ts:312）。如果想用选项 A，需要扩展后端返回完整 post 或拉取单帖。
+- **状态**：优化项
+
+---
+
+### Bug #H2-8 — P3 死代码：未使用的 `handleQuickRepost`
+- **文件**：`client/src/components/PostCard.jsx:57-62`
+- **问题**：
+  ```jsx
+  const handleQuickRepost = () => {
+    if (!user) { toast.error('请先登录'); return; }
+    if (confirm('确认转发？')) {
+      handleRepost('');
+    }
+  };
+  ```
+  函数已定义但**全文未引用**（无 onClick、无调用点）。RepostModal 内已有「直接转发」按钮提供等价功能。
+- **影响**：增加维护成本，但不影响功能
+- **建议**：删除该函数。或在 PostCard 操作栏添加「直接转发」按钮（无弹窗体验）作为快速操作
+- **状态**：清理项
+
+---
+
+### Bug #H2-9 — P3 公告被任何人删除时静默（业务逻辑）
+- **文件**：`server/src/routes/posts.ts:319-343`（DELETE /:id）
+- **问题**：当前逻辑允许帖子作者删除自己的公告（既是 admin 又是 owner）。但**没有任何保护**防止：
+  1. 普通用户的公告（理论上不可能，因为 POST 时已过滤，但若以后改流程可能漏）
+  2. 公告被删除时，无通知、无审计
+- **建议**：
+  ```typescript
+  // posts.ts DELETE 处理器
+  if (post.is_announcement && user.role !== 'admin') {
+    return c.json({ error: '公告只能由管理员删除' }, 403)
+  }
+  ```
+- **状态**：业务规则待确认
+
+---
+
+### Bug #H2-10 — P3 pill-selector-wrapper 主题色与设计系统脱节
+- **文件**：`client/src/styles/global.css:739-746`
+- **问题**：
+  ```css
+  .pill-selector-wrapper {
+    background: rgba(var(--bg-rgb, 255, 255, 255), 0.85);  /* 浅色 */
+  }
+  [data-theme="dark"] .pill-selector-wrapper {
+    background: rgba(17, 17, 17, 0.85);  /* 深色硬编码 */
+  }
+  ```
+  - `--bg-rgb` 变量在全局 CSS 中**从未定义**（搜索确认：line 16/49/79 只定义了 `--bg`，无 `--bg-rgb`）
+  - 浅色模式 fallback 到 `rgba(255, 255, 255, 0.85)`（白），但 `--bg` 实际是 `#F5F8FC`（淡蓝），所以药丸栏背景与页面背景**有色差**
+  - 深色模式硬编码 `rgba(17, 17, 17, 0.85)`，没有跟随设计 token
+- **建议**：
+  ```css
+  /* 在 :root 和 [data-theme="dark"] 中定义 */
+  :root { --bg-rgb: 245, 248, 252; }
+  [data-theme="dark"] { --bg-rgb: 17, 17, 17; }
+  
+  .pill-selector-wrapper {
+    background: rgba(var(--bg-rgb), 0.85);
+  }
+  ```
+- **状态**：CSS 待对齐
+
+---
+
+### Bug #H2-11 — P3 `navigate('/create-post')` 与 InlineComposer 重复入口
+- **文件**：`client/src/components/Sidebar.jsx:118-130` + `client/src/pages/HomeV2.jsx`（InlineComposer）
+- **问题**：现在用户**有两个发帖入口**：
+  1. Sidebar 底部的「发帖」按钮 → 跳到 `/create-post`（独立页面）
+  2. InlineComposer（首页内嵌）
+  
+  行为不一致：
+  - Sidebar 按钮：始终跳到 `/create-post` 页面
+  - InlineComposer：仅在首页可见，且只在登录后展开
+- **影响**：用户体验割裂。手机端看不到 Sidebar 按钮（@media 隐藏），看不到 InlineComposer（在 HomeV2 之外的页面），只能去 `/create-post`（如有移动端适配则 OK）
+- **建议**：
+  - 选项 A: Sidebar 按钮改为 `<a href="#composer">` 锚点 + 滚动到 InlineComposer（仅在首页有效）
+  - 选项 B: Sidebar 按钮在首页隐藏（让 InlineComposer 担当），其他页保持跳转 `/create-post`
+  - 选项 C: 保留现状但加注释说明设计意图
+- **状态**：UX 待统一
+
+---
+
+## ⚠️ 误报澄清
+
+### 误报 #1: `filter=following` SQL 注入风险
+- **审查者假设**：参数化子查询可能漏掉某个边界
+- **实际验证**：
+  ```typescript
+  // posts.ts:84-87
+  if (filter === 'following') {
+    if (!userId) return c.json({ error: '请先登录' }, 401)
+    conditions.push('p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)')
+    params.push(userId)  // userId 来自 JWT.sub，不是用户输入
+  }
+  ```
+  - `userId` 来源：`payload.sub`（JWT.sub，服务器签发，不接受客户端输入）
+  - `filter` 参数经过 `if (filter === 'following')` 严格白名单匹配
+  - SQL 字符串中**无任何拼接**，全部走 `?` 占位符
+- **结论**：✅ 确认安全，**无 SQL 注入风险**
+
+### 误报 #2: `is_announcement` 权限绕过
+- **审查者假设**：可能存在非 admin 通过 body 设置 is_announcement 的途径
+- **实际验证**：
+  ```typescript
+  // posts.ts:269
+  const announceFlag = is_announcement && user.role === 'admin' ? 1 : 0
+  ```
+  - `user` 来自 `authMiddleware` 设置的 `c.get('user')`
+  - `user.role` 来自 JWT 解析，**完全不被请求体控制**
+  - 逻辑与（&&）保证：仅当 `is_announcement=true` **且** `role==='admin'` 才置 1
+- **结论**：✅ 确认安全，**无权限绕过**
+
+### 误报 #3: `RichContent` XSS 漏洞
+- **审查者假设**：可能存在 `dangerouslySetInnerHTML` 使用
+- **实际验证**：
+  - `RichContent.jsx` 全文**搜索**：`dangerouslySetInnerHTML` → 无匹配
+  - 渲染方式：parts 数组 + `<span>` 包裹，React 自动转义
+  - 链接处理：仅替换 URL 段为 `<a>` 组件，文本部分仍是 `<span>{p.value}</span>`，转义安全
+  - 提取的正则已规避 `[\s<>"'`,\;)}\]\u3000-\u303f\uff00-\uffef\u4e00-\u9fff` 等危险字符
+- **结论**：✅ 确认无 XSS 风险
+
+### 误报 #4: `/api/posts/announcements/latest` 路由冲突
+- **审查者假设**：会被 `GET /api/posts/:id` 拦截
+- **实际验证**：
+  - Hono 路由注册顺序（posts.ts）：
+    1. `posts.get('/', ...)` （line 50）
+    2. `posts.get('/announcements/latest', ...)` （line 168）← 静态路径
+    3. `posts.get('/:id', ...)` （line 196）← 动态路径
+  - Hono 使用 **Trie-based router**，静态路径优先匹配
+  - 即使被误匹配到 `/:id`，`parseInt('announcements')` = NaN，DB 查询返回空 → 404，**不会**泄漏数据
+  - `getOne` 在 detail 端点做了 404 兜底
+- **结论**：✅ 无冲突
+- **可加固建议**（非必须）：在 `posts.get('/:id', ...)` 第一行增加 `if (isNaN(postId)) return c.json({error:'Invalid post id'}, 400)` 作为显式防御
+
+### 误报 #5: 图片上传 CSRF
+- **审查者假设**：InlineComposer 用 `fetch(..., { credentials: 'include' })` 可能存在 CSRF
+- **实际验证**：
+  - `POST /api/images/upload` 走 `authMiddleware`（images.ts:13），需 JWT 或 Cookie
+  - 服务端 CORS 配置（index.ts:71-83）：`credentials: true` + 白名单 Origin（`.abdl-space.top` 及其子域）
+  - InlineComposer 用了 `credentials: 'include'`，会带上 HttpOnly cookie
+  - **CSRF 防御缺失点**：服务端未校验 `Origin` 头（仅 CORS 限制跨域读取响应，**不阻止**跨域提交）
+  - 攻击场景：恶意网站 `evil.com` 不可读响应，但可让用户**提交**上传请求
+  - **但因**：上传操作需要有效登录态 cookie + 5MB 文件大小限制，单用户影响有限
+  - **额外风险**：用户在登录态下被诱导到恶意网站，可能产生垃圾上传
+- **结论**：⚠️ 严格意义上**存在** CSRF 风险（origin 不校验），但实际影响**有限**（需要登录 + 写入图床 + 用户主动配合）
+- **可加固建议**（非必须）：
+  ```typescript
+  // images.ts upload 处理器
+  images.post('/upload', authMiddleware, async (c) => {
+    // CSRF 防御：校验 origin
+    const origin = c.req.header('origin') || c.req.header('referer') || ''
+    if (!ALLOWED_ORIGINS.some(o => origin.startsWith(o))) {
+      return c.json({ error: 'Invalid origin' }, 403)
+    }
+    // ... 继续
+  })
+  ```
+- **严重度评估**：P2（理论风险，实际利用门槛高）
+
+### 误报 #6: CSS 兼容性
+- **审查者假设**：`backdrop-filter` 和 `clamp()` 在旧浏览器不支持
+- **实际验证**：
+  - `backdrop-filter`：在源码中**全部**有 `-webkit-backdrop-filter` 前缀（grep 确认 9 处全部成对）
+  - `clamp(280px, 25vw, 400px)`：Chrome 79+、Firefox 75+、Safari 13.1+、Edge 79+ 全部支持（覆盖率 > 98%）
+  - 移动端：项目本身就有 1024px / 768px 两个断点，**不依赖** `clamp()` 在小屏的工作
+  - 旧浏览器（IE11 / 旧 Safari）：背景会变成纯色 `rgba(255,255,255,0.85)`，仍可见可用
+- **结论**：✅ 兼容性良好，无回退需求
+
+---
+
+## 📊 审查统计
+
+| 严重度 | 数量 | 状态 |
+|--------|------|------|
+| P0 崩溃/安全 | 0 | — |
+| P1 功能异常 | 3 | 待修复 |
+| P2 体验问题 | 4 | 待优化 |
+| P3 代码质量 | 4 | 清理项 |
+| **合计** | **11** | — |
+
+**强烈建议优先修复 P1**：
+1. **H2-1**：HomeV2 点赞去抖（影响所有用户）
+2. **H2-2**：删除转发原帖的外键冲突（用户能遇到 500）
+3. **H2-3**：详情页转发原帖已删除的不一致状态

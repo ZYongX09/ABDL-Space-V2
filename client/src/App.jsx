@@ -17,7 +17,8 @@ import ScrollProgress from './components/ScrollProgress';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useExternalLinkInterceptor } from './hooks/useExternalLinkInterceptor';
 
-// 路由级懒加载 — 首屏只加载 ForumFeed
+// 路由级懒加载 — 首屏只加载 HomeV2
+const HomeV2 = lazy(() => import('./pages/HomeV2'));
 const ForumFeed = lazy(() => import('./pages/ForumFeed'));
 const PostDetail = lazy(() => import('./pages/PostDetail'));
 const Home = lazy(() => import('./pages/Home'));
@@ -157,11 +158,11 @@ export default function App() {
       <Sidebar />
       <MobileHeaderLayout />
       <div className="app-main-content">
-        <div key={pathname} className="container mx-auto px-5 py-6 page-transition-enter" style={{ maxWidth: 'min(1920px, calc(100vw - 80px))' }}>
+        <div key={pathname} className={`${pathname === '/' ? '' : 'container mx-auto px-5 py-6'} page-transition-enter`} style={pathname === '/' ? {} : { maxWidth: 'min(1920px, calc(100vw - 80px))' }}>
           <ErrorBoundary>
             <Suspense fallback={<PageFallback />}>
               <Routes>
-                <Route path="/" element={<ForumFeed />} />
+                <Route path="/" element={<HomeV2 />} />
                 <Route path="/forum/:id" element={<PostDetail />} />
                 <Route path="/diapers" element={<Home />} />
                 <Route path="/diaper/:id" element={<DiaperDetail />} />

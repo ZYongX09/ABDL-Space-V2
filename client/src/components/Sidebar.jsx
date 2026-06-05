@@ -117,6 +117,17 @@ export default function Sidebar() {
 
         {/* 底部 */}
         <div className="sidebar-footer">
+          {/* 发帖按钮 — 特殊样式，区别于普通导航按钮 */}
+          {user && (
+            <NavLink
+              to="/create-post"
+              className="sidebar-compose-btn"
+              title="发帖"
+            >
+              <i className="fa-solid fa-pen" />
+              <span className="sidebar-link-label">发帖</span>
+            </NavLink>
+          )}
           {user ? (
             <AccountSwitcher collapsed={!expanded} />
           ) : (
