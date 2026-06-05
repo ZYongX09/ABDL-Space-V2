@@ -8,7 +8,14 @@
   'use strict';
 
   // Skip if already mounted (SPA navigation)
-  if (window.__introMounted) return;
+  if (window.__introMounted) {
+    var ph = document.getElementById('intro-placeholder');
+    if (ph) ph.parentNode.removeChild(ph);
+    return;
+  }
+
+  // Remove static placeholder (animation takes over)
+  var placeholder = document.getElementById('intro-placeholder');
 
   var FLY_DURATION = 4000;
   var SPREAD = 1500;
@@ -68,6 +75,8 @@
   overlay.appendChild(progressBar);
 
   document.body.appendChild(overlay);
+  // Remove placeholder now that animation overlay is live
+  if (placeholder && placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
 
   // --- Responsive ---
   var mq = window.matchMedia('(max-width: 768px)');
@@ -338,12 +347,15 @@
           subtitle.style.opacity = '1';
         }, 300);
         isComplete = true;
-        // If React already ready and user logged in, show skip buttons
+        // Wait 1s, then show page (skip buttons may cancel this)
+        dismissTimer = setTimeout(function () {
+          if (skipBtnWrap) return; // buttons showing, let them handle it
+          fadeOutAndCleanup();
+        }, 1000);
+        // If React already ready, try showing skip buttons now
         if (reactReady && fullAnim) {
           skipBtnTimer = setTimeout(showSkipButtons, 500);
         }
-        // Wait 1s, then dismiss (skip buttons may cancel this)
-        dismissTimer = setTimeout(function () { fadeOutAndCleanup(); }, 1000);
       }
     }
     requestAnimationFrame(flyTick);
@@ -422,9 +434,6 @@
     overlay.appendChild(skipBtnWrap);
     overlay.style.pointerEvents = 'auto';
     requestAnimationFrame(function () { skipBtnWrap.style.opacity = '1'; });
-
-    // Auto-dismiss after 5s even if user doesn't click
-    dismissTimer = setTimeout(function () { fadeOutAndCleanup(); }, 5000);
   }
 
   window.__introReady = function () {
