@@ -217,9 +217,20 @@
       else {
         animProgress = 1; isAnimating = false; isComplete = true;
         overlay.style.pointerEvents = 'none';
-        setTimeout(function () { title.style.opacity='1'; title.style.transform='translateY(0)'; subtitle.style.opacity='1'; }, 300);
-        // Dismiss 5s after animation ends — give time to see the title
-        setTimeout(fadeOutAndCleanup, 5000);
+        // DEBUG: show state on overlay
+        var dbg = document.createElement('div');
+        dbg.style.cssText = 'position:absolute;top:10px;left:10px;color:lime;font-size:14px;z-index:10;pointer-events:none;font-family:monospace;';
+        dbg.textContent = 'ANIM_DONE | t=' + Math.round(performance.now()/1000) + 's';
+        overlay.appendChild(dbg);
+        setTimeout(function () {
+          title.style.opacity='1'; title.style.transform='translateY(0)'; subtitle.style.opacity='1';
+          dbg.textContent += ' | TITLE_SHOWN';
+        }, 300);
+        // Dismiss 8s after animation ends
+        setTimeout(function () {
+          dbg.textContent += ' | DISMISS_NOW';
+          fadeOutAndCleanup();
+        }, 8000);
       }
     }
     requestAnimationFrame(flyTick);
