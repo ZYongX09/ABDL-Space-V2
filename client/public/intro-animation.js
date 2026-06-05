@@ -49,8 +49,7 @@
   overlay.appendChild(canvas);
 
   var hint = document.createElement('div');
-  hint.textContent = '点击任意位置开始';
-  hint.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,0.3);font-size:0.85rem;pointer-events:none;transition:opacity 0.5s ease;white-space:nowrap;font-family:-apple-system,BlinkMacSystemFont,sans-serif;';
+  hint.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,0.3);font-size:0.85rem;pointer-events:none;transition:opacity 0.5s ease;white-space:nowrap;font-family:-apple-system,BlinkMacSystemFont,sans-serif;opacity:0;';
   overlay.appendChild(hint);
 
   var titleWrap = document.createElement('div');
@@ -304,7 +303,6 @@
     if (isAnimating) return;
     isAnimating = true;
     animProgress = 0;
-    hint.style.opacity = '0';
 
     var startTime = performance.now();
 
@@ -362,9 +360,9 @@
     tryDismiss();
   };
 
-  // --- Input handlers ---
+  // --- Input handlers (drag only after animation complete) ---
   overlay.addEventListener('mousedown', function (e) {
-    if (!isComplete) { startFly(); return; }
+    if (!isComplete) return;
     mouseDown = true; mouseX = e.clientX; mouseY = e.clientY;
   });
   overlay.addEventListener('mousemove', function (e) {
@@ -377,7 +375,7 @@
   overlay.addEventListener('mouseup', function () { mouseDown = false; });
 
   overlay.addEventListener('touchstart', function (e) {
-    if (!isComplete) { startFly(); return; }
+    if (!isComplete) return;
     mouseDown = true;
     mouseX = e.touches[0].clientX; mouseY = e.touches[0].clientY;
   }, { passive: true });
@@ -395,7 +393,7 @@
   rafId = requestAnimationFrame(tick);
 
   initStars().then(function () {
-    hint.textContent = '点击任意位置开始';
+    startFly();
   });
 
   // Failsafe: if something goes wrong, remove after 15s
