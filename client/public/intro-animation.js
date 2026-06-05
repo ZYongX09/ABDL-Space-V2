@@ -75,7 +75,6 @@
   overlay.appendChild(progressBar);
 
   document.body.appendChild(overlay);
-  // Remove placeholder now that animation overlay is live
   if (placeholder && placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
 
   // --- Responsive ---
@@ -309,64 +308,6 @@
     rafId = requestAnimationFrame(tick);
   }
 
-  // --- Fly animation ---
-  function startFly() {
-    if (isAnimating) return;
-    isAnimating = true;
-    animProgress = 0;
-
-    var startTime = performance.now();
-
-    function flyTick() {
-      var elapsed = performance.now() - startTime;
-      var cameraProgress = Math.min(1, elapsed / FLY_DURATION);
-      cameraZ = -DEPTH * (1 - easeApple(cameraProgress));
-
-      var morphStart = 0.4;
-      if (cameraProgress >= morphStart) {
-        animProgress = Math.min(1, (cameraProgress - morphStart) / (1 - morphStart));
-      } else {
-        animProgress = 0;
-      }
-
-      progressBar.style.width = (cameraProgress * 100) + '%';
-
-      if (cameraProgress < 1) {
-        requestAnimationFrame(flyTick);
-      } else {
-        animProgress = 1;
-        // If React already loaded during animation, we're done
-        if (reactReady) {
-          isAnimating = false;
-          isComplete = true;
-          overlay.style.pointerEvents = 'none';
-          setTimeout(function () {
-            title.style.opacity = '1';
-            title.style.transform = 'translateY(0)';
-            subtitle.style.opacity = '1';
-          }, 300);
-          // Not logged in or not full anim: wait 1s then enter
-          if (!fullAnim || !shouldShowButtons()) {
-            dismissTimer = setTimeout(fadeOutAndCleanup, 1000);
-          }
-          // Logged in + full anim: buttons already showing, let them handle
-        } else {
-          // React not ready yet, keep overlay visible
-          isAnimating = false;
-          isComplete = true;
-          overlay.style.pointerEvents = 'none';
-          setTimeout(function () {
-            title.style.opacity = '1';
-            title.style.transform = 'translateY(0)';
-            subtitle.style.opacity = '1';
-          }, 300);
-          // scheduleFinish will be called when __introReady fires
-        }
-      }
-    }
-    requestAnimationFrame(flyTick);
-  }
-
   // --- State ---
   var reactReady = false;
   var fullAnim = true;
@@ -397,7 +338,6 @@
   // --- Fade out ---
   function fadeOutAndCleanup() {
     if (cleaned) return;
-    // Cancel any pending timers
     if (dismissTimer) { clearTimeout(dismissTimer); dismissTimer = null; }
     if (skipBtnTimer) { clearTimeout(skipBtnTimer); skipBtnTimer = null; }
     overlay.style.opacity = '0';
@@ -405,23 +345,6 @@
       if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
       cleanup();
     }, 800);
-  }
-
-  // --- Finish logic (called from __introReady) ---
-  function scheduleFinish() {
-    // If animation still playing → show skip buttons (if logged in + full anim)
-    if (isAnimating && fullAnim && shouldShowButtons()) {
-      if (!skipBtnWrap && !skipBtnTimer) {
-        skipBtnTimer = setTimeout(showSkipButtons, 500);
-      }
-      return;
-    }
-    // If animation already done → buttons may already be showing, or dismiss
-    if (isComplete) {
-      if (skipBtnWrap) return; // user will click skip
-      // No buttons (not logged in or not full anim): wait 1s then enter
-      dismissTimer = setTimeout(fadeOutAndCleanup, 1000);
-    }
   }
 
   function shouldShowButtons() {
@@ -459,9 +382,75 @@
     requestAnimationFrame(function () { skipBtnWrap.style.opacity = '1'; });
   }
 
+  // --- Central finish logic ---
+  // Called whenever a major state change happens (animation done OR React ready)
+  function scheduleFinish() {
+    if (cleaned) return;
+
+    // Case 1: Animation still playing + React ready → show skip buttons
+    if (isAnimating && reactReady && fullAnim && shouldShowButtons()) {
+      if (!skipBtnWrap && !skipBtnTimer) {
+        skipBtnTimer = setTimeout(showSkipButtons, 500);
+      }
+      return; // Wait for animation to end
+    }
+
+    // Case 2: Animation done + React ready → enter page
+    if (isComplete && reactReady) {
+      if (skipBtnWrap) return; // Buttons showing, let user decide
+      dismissTimer = setTimeout(fadeOutAndCleanup, 1000);
+      return;
+    }
+
+    // Case 3: Animation done + React NOT ready → wait (do nothing, __introReady will call again)
+    // Case 4: Animation playing + React NOT ready → wait (do nothing)
+  }
+
+  // --- Fly animation ---
+  function startFly() {
+    if (isAnimating) return;
+    isAnimating = true;
+    animProgress = 0;
+
+    var startTime = performance.now();
+
+    function flyTick() {
+      var elapsed = performance.now() - startTime;
+      var cameraProgress = Math.min(1, elapsed / FLY_DURATION);
+      cameraZ = -DEPTH * (1 - easeApple(cameraProgress));
+
+      var morphStart = 0.4;
+      if (cameraProgress >= morphStart) {
+        animProgress = Math.min(1, (cameraProgress - morphStart) / (1 - morphStart));
+      } else {
+        animProgress = 0;
+      }
+
+      progressBar.style.width = (cameraProgress * 100) + '%';
+
+      if (cameraProgress < 1) {
+        requestAnimationFrame(flyTick);
+      } else {
+        animProgress = 1;
+        isAnimating = false;
+        isComplete = true;
+        overlay.style.pointerEvents = 'none';
+        setTimeout(function () {
+          title.style.opacity = '1';
+          title.style.transform = 'translateY(0)';
+          subtitle.style.opacity = '1';
+        }, 300);
+        // Animation done → check if we can finish
+        scheduleFinish();
+      }
+    }
+    requestAnimationFrame(flyTick);
+  }
+
   // --- React ready callback ---
   window.__introReady = function () {
     reactReady = true;
+    // React ready → check if we can finish
     scheduleFinish();
   };
 
