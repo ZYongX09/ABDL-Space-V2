@@ -90,7 +90,7 @@ export default function NotificationsPage() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm" style={{ color: 'var(--text)' }}>{n.message}</p>
                 <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  {new Date(n.created_at).toLocaleString('zh-CN')}
+                  {new Date(n.created_at + 'Z').toLocaleString('zh-CN')}
                 </span>
               </div>
             </div>

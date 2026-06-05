@@ -54,6 +54,21 @@ export default function ForumFeed() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  // 获取帖子中用户的关注状态
+  useEffect(() => {
+    if (!user || posts.length === 0) return;
+    const userIds = [...new Set(posts.map(p => p.user?.id).filter(id => id && id !== user.id))];
+    if (userIds.length === 0) return;
+    (async () => {
+      try {
+        const results = await Promise.all(userIds.map(id => followsAPI.status(id).catch(() => null)));
+        const map = {};
+        userIds.forEach((id, i) => { if (results[i]) map[id] = results[i].following; });
+        if (Object.keys(map).length > 0) setFollowMap(prev => ({ ...prev, ...map }));
+      } catch {}
+    })();
+  }, [posts, user]);
+
   const handleLike = async (postId) => {
     if (!user) { toast.error('请先登录'); return; }
     if (likingRef.current.has(postId)) return;
@@ -181,7 +196,7 @@ export default function ForumFeed() {
               </div>
               {/* Line 2: timestamp */}
               <div className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
-                {new Date(post.created_at).toLocaleString('zh-CN')}
+                {new Date(post.created_at + 'Z').toLocaleString('zh-CN')}
               </div>
               {/* Line 3: content */}
               <Link to={`/forum/${post.id}`} className="block" style={{ color: 'var(--text)', textDecoration: 'none' }}>

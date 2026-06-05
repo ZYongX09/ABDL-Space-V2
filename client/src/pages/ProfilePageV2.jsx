@@ -849,7 +849,7 @@ export default function ProfilePageV2() {
     (async () => {
       try {
         setPostsLoading(true);
-        const data = await forumAPI.feed({ user_id: targetId, limit: 20 });
+        const data = await usersAPI.getPosts(targetId, { limit: 20 });
         setPosts(data.posts || []);
       } catch (e) {
         console.error(e);
@@ -886,7 +886,7 @@ export default function ProfilePageV2() {
         const [followersData, followingData, pData, wData] = await Promise.all([
           followsAPI.followers(targetId).catch(() => ({ total: 0 })),
           followsAPI.following(targetId).catch(() => ({ total: 0 })),
-          forumAPI.feed({ user_id: targetId, limit: 1 }).catch(() => ({ total: 0 })),
+          usersAPI.getPosts(targetId, { limit: 1 }).catch(() => ({ total: 0 })),
           usersAPI.getWorn(targetId).catch(() => ({ total: 0 })),
         ]);
         setCounts({
@@ -1054,7 +1054,7 @@ export default function ProfilePageV2() {
                     <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>
                       <span><i className="fa-regular fa-heart mr-1" />{post.like_count || 0}</span>
                       <span><i className="fa-regular fa-comment mr-1" />{post.comment_count || 0}</span>
-                      <span>{post.created_at ? new Date(post.created_at).toLocaleDateString('zh-CN') : ''}</span>
+                      <span>{post.created_at ? new Date(post.created_at + 'Z').toLocaleDateString('zh-CN') : ''}</span>
                     </div>
                   </div>
                 ))}

@@ -312,7 +312,7 @@ export default function AdminPage() {
                     <div className="flex items-center gap-2 mb-1">
                       {p.pinned && <i className="fa-solid fa-thumbtack text-xs" style={{ color: 'var(--warning)' }} title="已置顶" />}
                       <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        {p.user?.username || '匿名'} · {p.created_at ? new Date(p.created_at).toLocaleString('zh-CN') : '-'}
+                        {p.user?.username || '匿名'} · {p.created_at ? new Date(p.created_at + 'Z').toLocaleString('zh-CN') : '-'}
                       </span>
                     </div>
                     <Link to={`/forum/${p.id}`} className="text-sm hover:underline block" style={{ color: 'var(--text)', textDecoration: 'none' }}>
@@ -627,7 +627,7 @@ export default function AdminPage() {
                           {{ nsfw: '敏感内容', spam: '垃圾广告', other: '其他' }[r.reason]}
                         </span>
                         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                          举报人: {r.reporter_name} · {r.created_at ? new Date(r.created_at).toLocaleString('zh-CN') : ''}
+                          举报人: {r.reporter_name} · {r.created_at ? new Date(r.created_at + 'Z').toLocaleString('zh-CN') : ''}
                         </span>
                       </div>
                       <p className="text-sm truncate" style={{ color: 'var(--text-light)' }}>{r.content_preview}</p>

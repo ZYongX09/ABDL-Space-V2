@@ -243,7 +243,7 @@ export default function PostDetail() {
               {post.user?.role === 'admin' && <OfficialBadge className="flex-shrink-0" />}
             </div>
             <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              {new Date(post.created_at).toLocaleString('zh-CN')}
+              {new Date(post.created_at + 'Z').toLocaleString('zh-CN')}
             </div>
           </div>
           {/* 更多按钮 */}
@@ -353,7 +353,7 @@ export default function PostDetail() {
                 </div>
                 <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{c.user?.username || '匿名'}</span>
                 {c.user?.role === 'admin' && <OfficialBadge className="ml-1.5" />}
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{new Date(c.created_at).toLocaleString('zh-CN')}</span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{new Date(c.created_at + 'Z').toLocaleString('zh-CN')}</span>
               </div>
               <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--text)' }}><RichContent text={c.content} /></p>
               {c.images && c.images.length > 0 && <ImageGrid images={c.images} />}
