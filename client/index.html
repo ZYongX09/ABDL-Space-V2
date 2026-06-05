@@ -9,6 +9,16 @@
   <script src="https://api.abdl-space.top/api/v1/captcha/embed.js" defer></script>
   <script>window.__ABDL_CAPTCHA_KEY = '%VITE_CAPTCHA_KEY%';</script>
   <script>window.__TURNSTILE_SITE_KEY = '%VITE_TURNSTILE_SITE_KEY%';</script>
+  <script>
+  (function(){
+    var _hmt = _hmt || [];
+    var s = document.createElement('script');
+    s.src = 'https://hm.baidu.com/hm.js?45f30315297c806e5581a3703a7e2a9a';
+    s.onerror = function() { try { sessionStorage.setItem('adblock_detected','1'); } catch(e){} };
+    s.onload = function() { try { sessionStorage.removeItem('adblock_detected'); } catch(e){} };
+    document.head.appendChild(s);
+  })();
+  </script>
 </head>
 <body>
   <div id="intro-placeholder" style="position:fixed;inset:0;z-index:99998;background:#000;display:flex;align-items:center;justify-content:center;transition:opacity 0.4s ease;">

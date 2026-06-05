@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNsfw } from '../contexts/NsfwContext';
@@ -102,7 +103,7 @@ export default function EditProfile({ onClose }) {
     }
   };
 
-  return (
+  return createPortal(
     <div className="ep-overlay" onClick={onClose}>
       <div className="ep-sheet" onClick={e => e.stopPropagation()}>
         {/* Header */}
@@ -204,6 +205,7 @@ export default function EditProfile({ onClose }) {
           </section>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

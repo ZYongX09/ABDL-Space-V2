@@ -10,6 +10,7 @@ import MobileHeader from './components/MobileHeader';
 import MobileBottomNav from './components/MobileBottomNav';
 import RedirectNotice from './components/RedirectNotice';
 import CookieConsent from './components/CookieConsent';
+import AdBlockNotice from './components/AdBlockNotice';
 import BackToTop from './components/BackToTop';
 import ToastPopup from './components/ToastPopup';
 import ScrollProgress from './components/ScrollProgress';
@@ -219,6 +220,7 @@ export default function App() {
       <ToastPopup />
       <MobileBottomNav />
       </NotificationProvider>
+      <AdBlockNotice />
       <CookieConsent />
       <ScrollProgress />
       <BackToTop />
