@@ -358,6 +358,7 @@
     window.removeEventListener('touchend', onTouchEnd);
     if (failsafeTimer) { clearTimeout(failsafeTimer); failsafeTimer = null; }
     if (fadeOutTimer) { clearTimeout(fadeOutTimer); fadeOutTimer = null; }
+    if (skipBtnTimer) { clearTimeout(skipBtnTimer); skipBtnTimer = null; }
     window.__introMounted = true; // Bug #1 fix: mark as mounted
   }
 
@@ -382,8 +383,52 @@
     fadeOutAndCleanup();
   }
 
+  // --- Skip/close buttons (shown when page loaded + user logged in) ---
+  var skipBtnWrap = null;
+  var skipBtnTimer = null;
+
+  function showSkipButtons() {
+    if (skipBtnWrap || cleaned) return;
+    // Only show if user is logged in
+    var isLoggedIn = false;
+    try { isLoggedIn = !!localStorage.getItem('abdl_active_account'); } catch (e) {}
+    if (!isLoggedIn) return;
+
+    skipBtnWrap = document.createElement('div');
+    skipBtnWrap.style.cssText = 'position:absolute;bottom:80px;right:20px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;opacity:0;transition:opacity 0.6s ease;pointer-events:auto;z-index:10;';
+
+    var skipBtn = document.createElement('button');
+    skipBtn.textContent = '跳过动画';
+    skipBtn.style.cssText = 'background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.4);font-size:12px;padding:5px 12px;border-radius:16px;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-family:-apple-system,BlinkMacSystemFont,sans-serif;transition:background 0.2s,color 0.2s;';
+    skipBtn.onmouseenter = function () { skipBtn.style.background = 'rgba(255,255,255,0.15)'; skipBtn.style.color = 'rgba(255,255,255,0.7)'; };
+    skipBtn.onmouseleave = function () { skipBtn.style.background = 'rgba(255,255,255,0.08)'; skipBtn.style.color = 'rgba(255,255,255,0.4)'; };
+    skipBtn.onclick = function () { fadeOutAndCleanup(); };
+
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = '永久关闭动画';
+    closeBtn.style.cssText = 'background:transparent;border:none;color:rgba(255,255,255,0.2);font-size:11px;padding:3px 8px;cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,sans-serif;transition:color 0.2s;text-decoration:underline;text-underline-offset:2px;';
+    closeBtn.onmouseenter = function () { closeBtn.style.color = 'rgba(255,255,255,0.5)'; };
+    closeBtn.onmouseleave = function () { closeBtn.style.color = 'rgba(255,255,255,0.2)'; };
+    closeBtn.onclick = function () {
+      try { localStorage.setItem('abdl_intro_full_anim', 'false'); } catch (e) {}
+      fadeOutAndCleanup();
+    };
+
+    skipBtnWrap.appendChild(skipBtn);
+    skipBtnWrap.appendChild(closeBtn);
+    overlay.appendChild(skipBtnWrap);
+    // Restore pointer-events for buttons
+    overlay.style.pointerEvents = 'auto';
+    // Fade in
+    requestAnimationFrame(function () { skipBtnWrap.style.opacity = '1'; });
+  }
+
   window.__introReady = function () {
     reactReady = true;
+    // Show skip buttons after 0.5s if in full animation mode
+    if (fullAnim) {
+      skipBtnTimer = setTimeout(showSkipButtons, 500);
+    }
     tryDismiss();
   };
 
