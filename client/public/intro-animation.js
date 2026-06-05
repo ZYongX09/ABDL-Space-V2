@@ -31,6 +31,10 @@
   }
   var easeApple = createBezier(0.25, 0.1, 0, 1);
 
+  // Check settings
+  var fullAnim = true;
+  try { fullAnim = localStorage.getItem('abdl_intro_full_anim') !== 'false'; } catch (e) {}
+
   var overlay = document.createElement('div');
   overlay.id = 'intro-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000;opacity:1;transition:opacity 0.8s ease;';
@@ -57,6 +61,31 @@
   var progressBar = document.createElement('div');
   progressBar.style.cssText = 'position:absolute;bottom:0;left:0;height:2px;background:linear-gradient(90deg,#A8D8F0,#FFB7C5);transition:width 0.1s linear;width:0%;';
   overlay.appendChild(progressBar);
+
+  // Skip buttons — show immediately if full anim enabled
+  if (fullAnim) {
+    var skipWrap = document.createElement('div');
+    skipWrap.style.cssText = 'position:absolute;top:16px;right:16px;display:flex;gap:8px;opacity:0;transition:opacity 0.6s ease 1s;pointer-events:auto;z-index:10;';
+
+    var skipBtn = document.createElement('button');
+    skipBtn.textContent = '跳过';
+    skipBtn.style.cssText = 'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.35);font-size:12px;padding:6px 14px;border-radius:20px;cursor:pointer;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-family:-apple-system,BlinkMacSystemFont,sans-serif;transition:all 0.2s;letter-spacing:0.5px;';
+    skipBtn.onmouseenter = function(){skipBtn.style.background='rgba(255,255,255,0.12)';skipBtn.style.color='rgba(255,255,255,0.6)';skipBtn.style.borderColor='rgba(255,255,255,0.2)';};
+    skipBtn.onmouseleave = function(){skipBtn.style.background='rgba(255,255,255,0.06)';skipBtn.style.color='rgba(255,255,255,0.35)';skipBtn.style.borderColor='rgba(255,255,255,0.1)';};
+
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = '关闭';
+    closeBtn.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.2);font-size:11px;padding:6px 10px;border-radius:20px;cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,sans-serif;transition:all 0.2s;';
+    closeBtn.onmouseenter = function(){closeBtn.style.color='rgba(255,255,255,0.5)';closeBtn.style.borderColor='rgba(255,255,255,0.15)';};
+    closeBtn.onmouseleave = function(){closeBtn.style.color='rgba(255,255,255,0.2)';closeBtn.style.borderColor='rgba(255,255,255,0.06)';};
+
+    skipWrap.appendChild(skipBtn);
+    skipWrap.appendChild(closeBtn);
+    overlay.appendChild(skipWrap);
+
+    // Fade in buttons after 1s
+    requestAnimationFrame(function(){skipWrap.style.opacity='1';});
+  }
 
   document.body.appendChild(overlay);
   if (placeholder) placeholder.remove();
@@ -193,42 +222,13 @@
     fadeOutTimer = setTimeout(function () { if (overlay.parentNode) overlay.remove(); cleanup(); }, 800);
   }
 
-  // Skip buttons
-  var skipBtnWrap = null;
-  function showSkipButtons() {
-    if (skipBtnWrap || cleaned) return;
-    skipBtnWrap = document.createElement('div');
-    skipBtnWrap.style.cssText = 'position:absolute;bottom:80px;right:20px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;opacity:0;transition:opacity 0.6s ease;pointer-events:auto;z-index:10;';
-    var sb = document.createElement('button');
-    sb.textContent = '跳过动画';
-    sb.style.cssText = 'background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.4);font-size:12px;padding:5px 12px;border-radius:16px;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-family:-apple-system,BlinkMacSystemFont,sans-serif;transition:background 0.2s,color 0.2s;';
-    sb.onmouseenter = function(){sb.style.background='rgba(255,255,255,0.15)';sb.style.color='rgba(255,255,255,0.7)';};
-    sb.onmouseleave = function(){sb.style.background='rgba(255,255,255,0.08)';sb.style.color='rgba(255,255,255,0.4)';};
-    sb.onclick = function(){fadeOutAndCleanup();};
-    var cb = document.createElement('button');
-    cb.textContent = '永久关闭动画';
-    cb.style.cssText = 'background:transparent;border:none;color:rgba(255,255,255,0.2);font-size:11px;padding:3px 8px;cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,sans-serif;transition:color 0.2s;text-decoration:underline;text-underline-offset:2px;';
-    cb.onmouseenter = function(){cb.style.color='rgba(255,255,255,0.5)';};
-    cb.onmouseleave = function(){cb.style.color='rgba(255,255,255,0.2)';};
-    cb.onclick = function(){try{localStorage.setItem('abdl_intro_full_anim','false');}catch(e){}fadeOutAndCleanup();};
-    skipBtnWrap.appendChild(sb); skipBtnWrap.appendChild(cb);
-    overlay.appendChild(skipBtnWrap);
-    overlay.style.pointerEvents = 'auto';
-    requestAnimationFrame(function(){skipBtnWrap.style.opacity='1';});
+  // Wire up skip/close button clicks
+  if (fullAnim && skipBtn) {
+    skipBtn.onclick = function(){fadeOutAndCleanup();};
+    closeBtn.onclick = function(){try{localStorage.setItem('abdl_intro_full_anim','false');}catch(e){}fadeOutAndCleanup();};
   }
 
-  function shouldShowButtons() {
-    try { return !!localStorage.getItem('abdl_active_account'); } catch (e) { return false; }
-  }
-
-  // __introReady: show buttons if logged in (regardless of animation state)
-  window.__introReady = function () {
-    var fullA = true;
-    try { fullA = localStorage.getItem('abdl_intro_full_anim') !== 'false'; } catch (e) {}
-    if (fullA && shouldShowButtons()) {
-      showSkipButtons();
-    }
-  };
+  window.__introReady = function () {};
 
   function startFly() {
     if (isAnimating) return;
@@ -246,7 +246,7 @@
         animProgress = 1; isAnimating = false; isComplete = true;
         overlay.style.pointerEvents = 'none';
         setTimeout(function () { title.style.opacity='1'; title.style.transform='translateY(0)'; subtitle.style.opacity='1'; }, 300);
-        setTimeout(fadeOutAndCleanup, 3000);
+        setTimeout(fadeOutAndCleanup, 2000);
       }
     }
     requestAnimationFrame(flyTick);
