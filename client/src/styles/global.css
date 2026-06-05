@@ -2220,11 +2220,11 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
 .ep-sheet {
   display: flex; flex-direction: column;
   width: 100%; max-width: 540px;
-  max-height: 92vh;
+  max-height: 85vh;
   background: var(--bg-card);
-  border-radius: 20px 20px 0 0;
-  box-shadow: 0 -4px 32px rgba(0,0,0,0.18);
-  animation: sheetUp 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+  animation: fadeInScale 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   overflow: hidden;
 }
 .ep-drag-handle {
@@ -2405,15 +2405,9 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
 .ep-btn-danger { color: var(--danger, #e74c3c); }
 .ep-btn-danger:hover { background: rgba(231, 76, 60, 0.08); }
 
-/* Desktop: centered modal */
+/* Desktop */
 @media (min-width: 769px) {
   .ep-overlay { padding: 24px; }
-  .ep-sheet {
-    max-height: 85vh;
-    border-radius: 20px;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.25);
-  }
-  .ep-drag-handle { display: none; }
 }
 
 /* Mobile: centered, slightly smaller */
