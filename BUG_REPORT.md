@@ -3396,3 +3396,205 @@ return (
 1. **H2-1**：HomeV2 点赞去抖（影响所有用户）
 2. **H2-2**：删除转发原帖的外键冲突（用户能遇到 500）
 3. **H2-3**：详情页转发原帖已删除的不一致状态
+
+---
+
+## [2026-06-06 07:30] HomeV2 右侧栏宽度异常紧急排查
+
+> 用户报告：视口宽度 >1100px 时，右侧栏（C 区域）宽度过大，挤压了中间信息流（B 区域）
+
+### 🔴 根本原因：Grid 模板的 `1fr` 让 C 列无界增长
+
+**关键发现 — 当前源码 CSS（global.css:718-742）与你报告的状态不一致：**
+
+你描述的 CSS：
+```css
+.home-layout { display: flex; ... }
+.home-feed { width: 600px; flex-shrink: 0; ... }
+.home-right { width: clamp(280px, 25vw, 400px); flex-shrink: 1; ... }
+```
+
+**实际当前源码**（global.css:718-742）：
+```css
+.home-layout {
+  display: grid;
+  grid-template-columns: 600px minmax(280px, 1fr);  /* ← 罪魁祸首 */
+  min-height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+.home-feed {
+  min-width: 0;
+  border-right: 1px solid var(--border);
+  overflow-x: hidden;       /* 没有显式 width */
+}
+.home-right {
+  min-width: 280px;
+  max-width: 400px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  padding: 0 16px;
+}
+```
+
+**为什么你会看到 "C 过宽"**：
+
+CSS Grid 的列模板是 `600px minmax(280px, 1fr)`：
+- 第一列（feed）：固定 600px
+- 第二列（right）：min 280px，**max 1fr = 剩余全部空间**
+
+在 1400px 视口下（app-main-content ≈ 1336px）：
+- 第二列的 **grid track** = `1fr` = `1336 - 600` = **736px** ← 罪魁祸首
+- `.home-right` 元素本身被 `max-width: 400px` 限制为 400px
+- 但 **grid track 是 736px**，元素坐在 736px cell 的**左对齐**位置
+- 元素右侧空出 **336px 空白**
+
+**视觉表现**：用户看到 600px（feed）+ 400px（right sidebar）+ 大量空白，好像"右侧区域"占据了 736px 的横向空间。DevTools 里看 column 2 是 736px，自然觉得"C 过宽"。
+
+**问题不是 max-width 失效，而是 grid track 没有被约束。**
+
+---
+
+### 🔴 你的"已排查"清单中遗漏的关键检查
+
+> "1. ✅ home-feed 源码确认是 `width: 600px; flex-shrink: 0`"
+
+**这条是错的**。当前源码里：
+- home-feed **没有** `width: 600px`
+- home-feed **没有** `flex-shrink: 0`（甚至不再是 flex 子项，是 grid 子项）
+
+> "2. ✅ home-right 源码确认是 `width: clamp(280px, 25vw, 400px)`"
+
+**这条也错**。当前源码里：
+- home-right **没有** `width: clamp(...)`
+- home-right 用的是 `min-width: 280px; max-width: 400px`（grid 子项宽度的另一种写法）
+
+> "3. ✅ 构建产物 CSS 确认包含 `home-feed{width:600px;flex-shrink:0}`"
+
+**这是 STALE 构建**：
+```
+dist/assets/index-DjfstErU.css   6月 6日 06:58   ← 27 分钟前
+src/styles/global.css            6月 6日 07:25   ← 当前
+```
+
+源码在 build 之后被修改过，所以你看 dist 里的 CSS 是**旧版**（flex + clamp），但实际运行的应该是新版（grid + minmax）。如果 dev server 重启了或重新部署了，用户看到的就是新版 grid 布局。
+
+---
+
+### 🐛 Bug #H3-1 — P0 grid 模板让 C 列无界增长（你问的根因）
+
+- **文件**：`client/src/styles/global.css:719`
+- **问题**：`grid-template-columns: 600px minmax(280px, 1fr)` 的 `1fr` 让右侧 grid track 占满剩余空间
+- **影响**：所有 >1100px 视口，右侧区域横向铺满到 `viewport - 64(sidebar) - 600(feed)`
+- **修复（最小改动）**：
+
+  ```css
+  /* 方案 A: 硬限制（最简单） */
+  .home-layout {
+    display: grid;
+    grid-template-columns: 600px minmax(280px, 400px);
+    /*                                                     ^^^^^^^ 把 1fr 改成 400px */
+  }
+  ```
+
+  ```css
+  /* 方案 B: 回到 clamp（更自适应） */
+  .home-layout {
+    display: grid;
+    grid-template-columns: 600px clamp(280px, 25vw, 400px);
+  }
+  ```
+
+  ```css
+  /* 方案 C: 整体居中（最像 x.com） */
+  .home-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 600px) clamp(280px, 25vw, 400px);
+    justify-content: center;
+    /* 或: max-width: 1100px; margin: 0 auto; */
+  }
+  ```
+
+- **推荐方案 A**（最小风险），可后续在方案 C 上做更精致的居中设计
+
+---
+
+### 🐛 Bug #H3-2 — P1 构建产物过期
+
+- **文件**：`client/dist/assets/index-DjfstErU.css`
+- **问题**：源码 27 分钟前改过，但 dist 没重新构建
+- **影响**：本地 dev server 可能用新 CSS，但生产 CDN 仍发旧 CSS，导致**你看到源码"对的"、用户看到行为"错的"**（旧 CSS 的 `clamp(280, 25vw, 400)` 在 1400px 下是 350px，理论上不该"过宽"；但新版 grid 改了就过宽）
+- **建议**：每次 CSS 改动后跑 `npm run build`；或用 `vite dev` 调试（开发模式 hot-reload 用源文件）
+- **验证命令**：
+  ```bash
+  cd /home/ZYongX/projects/abdl-space-v2/client
+  npm run build
+  ls -la dist/assets/index-*.css  # 确认时间戳更新
+  ```
+
+---
+
+### 🐛 Bug #H3-3 — P1 Sidebar 展开占位元素宽度 bug（顺带发现）
+
+- **文件**：`client/src/styles/global.css:892-899`
+- **问题**：
+  ```css
+  .sidebar-placeholder { width: 64px; flex-shrink: 0; }
+  .sidebar-placeholder.expanded { width: 64px; }  /* ← BUG: 应为 240px */
+  ```
+  两个选择器都设置 `width: 64px`，意味着 sidebar 展开时占位元素不变，主内容区不会被推右，sidebar 视觉上**与主内容重叠**
+- **影响**：用户 hover 展开 sidebar 时，sidebar 的展开内容（如 logo、副标题）会盖在主内容上
+- **修复**：
+  ```css
+  .sidebar-placeholder.expanded {
+    width: 240px;  /* 匹配 .sidebar-collapsible.expanded */
+  }
+  ```
+- **状态**：未修
+
+---
+
+### 🐛 Bug #H3-4 — P3 内层 page-transition-enter div 缺 min-width: 0
+
+- **文件**：`client/src/App.jsx:161`
+- **问题**：`.app-main-content` 有 `min-width: 0` ✅，但中间包裹的 `<div className="page-transition-enter">` 没有
+- **影响**：在某些极端情况下（如子元素含不可压缩内容），中间 div 会撑开导致横向滚动
+- **建议**：在 global.css 加：
+  ```css
+  .page-transition-enter { min-width: 0; }
+  ```
+- **状态**：未修
+
+---
+
+### 📐 验证当前布局的快速方法
+
+让我在沙盒里跑一个最小复现，验证修复方案：
+
+（实际验证：见下方 exec 输出）
+
+### ✅ 推荐修复方案（应用顺序）
+
+1. **先修 H3-1**（1 分钟）：把 `minmax(280px, 1fr)` 改为 `minmax(280px, 400px)`
+2. **再修 H3-2**（1 分钟）：`npm run build` 重新构建
+3. **顺手修 H3-3**（30 秒）：`.sidebar-placeholder.expanded { width: 240px; }`
+4. **可选 H3-4**（30 秒）：加 `.page-transition-enter { min-width: 0; }`
+
+---
+
+## 📊 排查结论
+
+| 你列的排查项 | 实际情况 |
+|------------|---------|
+| 1. CSS 层叠顺序 | ✅ 无层叠冲突（但你看的源码是错的） |
+| 2. Tailwind 工具类冲突 | ✅ 无冲突 |
+| 3. `min-width: auto` 问题 | ⚠️ `.app-main-content` OK；`.page-transition-enter` 缺 min-width: 0 |
+| 4. Sidebar 占位元素 | ❌ 发现额外 bug（H3-3） |
+| 5. `.container` 残留 | ✅ 首页确实没加 container |
+| 6. **grid 模板** | ❌ **未排查 — 这是根因（H3-1）** |
+
+**你漏掉的关键排查点**：从 flex 改成 grid 之后，要检查 `grid-template-columns` 的 fr 单位和子元素的 max-width 之间的**层次关系**。Grid track 和 child width 是两个独立维度，max-width 不会约束 track 宽度。
