@@ -2135,16 +2135,15 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
     background: var(--hover-bg);
   }
 
-  /* 模态框 MIUI 底部弹出 */
+  /* 模态框居中 */
   .modal-overlay {
-    align-items: flex-end;
-    padding: 0;
+    align-items: center;
+    padding: 16px;
   }
   .modal {
-    border-radius: 20px 20px 0 0;
+    border-radius: 16px;
     max-height: 85vh;
     overflow-y: auto;
-    animation: slideUp 0.3s cubic-bezier(0.2, 0, 0, 1);
   }
 
   /* 输入框 MIUI 风格 */
