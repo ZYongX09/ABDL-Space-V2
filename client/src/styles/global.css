@@ -834,8 +834,8 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   .home-feed { width: 100%; border-right: none; }
 }
 @media (max-width: 768px) {
-  .home-layout { flex-direction: column; }
-  .home-feed { max-width: 100%; border-right: none; }
+  .home-layout { grid-template-columns: 1fr; }
+  .home-feed { border-right: none; }
   .pill-selector-wrapper { padding: 8px 12px; }
 }
 
