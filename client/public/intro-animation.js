@@ -271,6 +271,8 @@
   // Boot
   initStars().then(function () { lastTime = performance.now(); rafId = requestAnimationFrame(tick); startFly(); });
 
-  // Failsafe
-  failsafeTimer = setTimeout(function () { if (overlay.parentNode) fadeOutAndCleanup(); }, 15000);
+  // Failsafe: 15s for slow networks
+  failsafeTimer = setTimeout(function () { if (!cleaned && overlay.parentNode) fadeOutAndCleanup(); }, 15000);
+  // Early failsafe: 8s in case initStars never resolves
+  setTimeout(function () { if (!cleaned && overlay.parentNode) fadeOutAndCleanup(); }, 8000);
 })();

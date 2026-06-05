@@ -22,5 +22,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 );
 
 // Signal intro animation that React is mounted
+// Also remove placeholder in case React loaded before intro-animation.js
+var __ph = document.getElementById('intro-placeholder');
+if (__ph) __ph.remove();
 window.__introMounted = true;
 if (window.__introReady) window.__introReady();
