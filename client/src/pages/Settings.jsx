@@ -22,6 +22,16 @@ export default function Settings() {
       return next;
     });
   };
+  const [introFullAnim, setIntroFullAnim] = useState(() => {
+    try { return localStorage.getItem('abdl_intro_full_anim') !== 'false'; } catch { return true; }
+  });
+  const toggleIntroFullAnim = () => {
+    setIntroFullAnim(prev => {
+      const next = !prev;
+      try { localStorage.setItem('abdl_intro_full_anim', String(next)); } catch {}
+      return next;
+    });
+  };
 
 
   return (
@@ -141,6 +151,41 @@ export default function Settings() {
               width: '22px', height: '22px', borderRadius: '50%',
               background: 'white', position: 'absolute', top: '2px',
               left: searchNsfw ? '24px' : '2px',
+              transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            }} />
+          </button>
+        </div>
+      </div>
+
+      {/* 加载动画 */}
+      <div className="card mb-5">
+        <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
+          <i className="fa-solid fa-wand-magic-sparkles mr-2" style={{ color: 'var(--primary-dark)' }} />
+          加载动画
+        </h3>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>完整展示开场动画</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+              {introFullAnim
+                ? '每次加载都播放完整动画，页面在后台并行加载'
+                : '页面加载完毕后直接进入，跳过剩余动画'
+              }
+            </div>
+          </div>
+          <button
+            onClick={toggleIntroFullAnim}
+            style={{
+              width: '48px', height: '26px', borderRadius: '13px',
+              border: introFullAnim ? 'none' : '1px solid var(--text-muted)', cursor: 'pointer',
+              background: introFullAnim ? 'var(--primary)' : 'var(--border)',
+              position: 'relative', transition: 'background 0.2s, border 0.2s',
+            }}
+          >
+            <div style={{
+              width: '22px', height: '22px', borderRadius: '50%',
+              background: 'white', position: 'absolute', top: '2px',
+              left: introFullAnim ? '24px' : '2px',
               transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
             }} />
           </button>

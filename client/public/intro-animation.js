@@ -363,6 +363,9 @@
 
   // --- Dismiss logic ---
   var reactReady = false;
+  // Read setting: full animation (default true) or skip when ready
+  var fullAnim = true;
+  try { fullAnim = localStorage.getItem('abdl_intro_full_anim') !== 'false'; } catch (e) {}
 
   function fadeOutAndCleanup() {
     overlay.style.opacity = '0';
@@ -373,7 +376,9 @@
   }
 
   function tryDismiss() {
-    if (!reactReady || !isComplete) return;
+    if (!reactReady) return;
+    if (fullAnim && !isComplete) return; // Full mode: must wait for animation
+    // Skip mode: React ready → dismiss immediately
     fadeOutAndCleanup();
   }
 
