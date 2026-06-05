@@ -176,7 +176,6 @@
         for (var i = 0; i < edgePoints.length && result.length < edgeCount; i += edgeStep) result.push(edgePoints[i]);
         var fillStep = Math.max(1, Math.floor(fillPoints.length / (count - edgeCount)));
         for (var i = 0; i < fillPoints.length && result.length < count; i += fillStep) result.push(fillPoints[i]);
-        // Bug #8 fix: protect against empty edgePoints
         while (result.length < count) {
           if (edgePoints.length === 0) {
             var angle = (result.length / count) * Math.PI * 2;
@@ -266,9 +265,8 @@
       }
       var size = star.size * scale;
 
-      // Bug #10 fix: normalize hue to 200-340 (blue→pink brand range)
       if (star.isLogo && animProgress > 0.5) {
-        var t = (star.targetX + 150) / 300; // 0-1
+        var t = (star.targetX + 150) / 300;
         var hue = 200 + t * 140;
         ctx.fillStyle = 'hsla(' + hue + ', 80%, 75%, ' + Math.min(1, alpha) + ')';
       } else {
@@ -338,7 +336,6 @@
       } else {
         animProgress = 1;
         isAnimating = false;
-        // Allow interaction while waiting
         overlay.style.pointerEvents = 'none';
         // Show title/subtitle
         setTimeout(function () {
@@ -347,27 +344,25 @@
           subtitle.style.opacity = '1';
         }, 300);
         isComplete = true;
-        // Wait 1s, then show page (skip buttons may cancel this)
-        dismissTimer = setTimeout(function () {
-          if (skipBtnWrap) return; // buttons showing, let them handle it
-          fadeOutAndCleanup();
-        }, 1000);
-        // If React already ready, try showing skip buttons now
-        if (reactReady && fullAnim) {
-          skipBtnTimer = setTimeout(showSkipButtons, 500);
-        }
+        // Try to finish: show buttons or dismiss
+        scheduleFinish();
       }
     }
     requestAnimationFrame(flyTick);
   }
 
-  // --- Cleanup (Bug #2/#6/#11 fix: unified cleanup, #E3: includes removeChild) ---
-  var failsafeTimer = null;
-  var fadeOutTimer = null;
-  var dismissTimer = null;
+  // --- State ---
+  var reactReady = false;
+  var fullAnim = true;
+  try { fullAnim = localStorage.getItem('abdl_intro_full_anim') !== 'false'; } catch (e) {}
+  var skipBtnWrap = null;
   var skipBtnTimer = null;
+  var dismissTimer = null;
+  var fadeOutTimer = null;
+  var failsafeTimer = null;
   var cleaned = false;
 
+  // --- Cleanup ---
   function cleanup() {
     if (cleaned) return;
     cleaned = true;
@@ -383,13 +378,12 @@
     window.__introMounted = true;
   }
 
-  // --- Dismiss logic ---
-  var reactReady = false;
-  var fullAnim = true;
-  try { fullAnim = localStorage.getItem('abdl_intro_full_anim') !== 'false'; } catch (e) {}
-
+  // --- Fade out ---
   function fadeOutAndCleanup() {
     if (cleaned) return;
+    // Cancel any pending timers
+    if (dismissTimer) { clearTimeout(dismissTimer); dismissTimer = null; }
+    if (skipBtnTimer) { clearTimeout(skipBtnTimer); skipBtnTimer = null; }
     overlay.style.opacity = '0';
     fadeOutTimer = setTimeout(function () {
       if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
@@ -397,17 +391,29 @@
     }, 800);
   }
 
-  // --- Skip/close buttons (shown when page loaded + user logged in) ---
-  var skipBtnWrap = null;
+  // --- Finish logic: called when both animation done AND React ready ---
+  function scheduleFinish() {
+    if (!isComplete || !reactReady) return;
+    // In full anim mode, logged-in users get skip buttons
+    if (fullAnim && shouldShowButtons()) {
+      skipBtnTimer = setTimeout(showSkipButtons, 500);
+      // Also set a dismiss fallback in case buttons don't appear
+      dismissTimer = setTimeout(function () {
+        if (!skipBtnWrap) fadeOutAndCleanup();
+      }, 3000);
+    } else {
+      // Not logged in or not full anim: wait 1s then dismiss
+      dismissTimer = setTimeout(fadeOutAndCleanup, 1000);
+    }
+  }
 
+  function shouldShowButtons() {
+    try { return !!localStorage.getItem('abdl_active_account'); } catch (e) { return false; }
+  }
+
+  // --- Skip/close buttons ---
   function showSkipButtons() {
     if (skipBtnWrap || cleaned) return;
-    var isLoggedIn = false;
-    try { isLoggedIn = !!localStorage.getItem('abdl_active_account'); } catch (e) {}
-    if (!isLoggedIn) return;
-
-    // Cancel auto-dismiss so user can interact
-    if (dismissTimer) { clearTimeout(dismissTimer); dismissTimer = null; }
 
     skipBtnWrap = document.createElement('div');
     skipBtnWrap.style.cssText = 'position:absolute;bottom:80px;right:20px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;opacity:0;transition:opacity 0.6s ease;pointer-events:auto;z-index:10;';
@@ -436,15 +442,13 @@
     requestAnimationFrame(function () { skipBtnWrap.style.opacity = '1'; });
   }
 
+  // --- React ready callback ---
   window.__introReady = function () {
     reactReady = true;
-    // Show skip buttons after 0.5s if in full animation mode and animation done
-    if (fullAnim && isComplete) {
-      skipBtnTimer = setTimeout(showSkipButtons, 500);
-    }
+    scheduleFinish();
   };
 
-  // --- Input handlers (Bug #3 fix: window-level mouseup/touchend) ---
+  // --- Input handlers ---
   function onMouseUp() { mouseDown = false; }
   function onTouchEnd() { mouseDown = false; }
 
@@ -475,17 +479,15 @@
   }, { passive: true });
   window.addEventListener('touchend', onTouchEnd);
 
-  // --- Boot (Bug #7 fix: delay tick until stars loaded) ---
+  // --- Boot ---
   initStars().then(function () {
     lastTime = performance.now();
     rafId = requestAnimationFrame(tick);
     startFly();
   });
 
-  // Failsafe: if something goes wrong, remove after 15s
+  // Failsafe
   failsafeTimer = setTimeout(function () {
-    if (overlay.parentNode) {
-      fadeOutAndCleanup();
-    }
+    if (overlay.parentNode) fadeOutAndCleanup();
   }, 15000);
 })();
