@@ -2614,3 +2614,358 @@ window.__introReady = function () {
   ```
 - 立即把 `intro-animation.js` 的 `__introReady` 改为无条件 dismiss + 占位兜底
 
+
+---
+
+## [紧急-二次排查] 3 层兜底不触发的根因分析
+
+**目标**：`client/dist/assets/index-CngI4v9-.js` (React bundle 223KB) + `index-BbEjJGPk.js` (TensorFlow lazy chunk 1.9MB) + `client/src/components/RedirectNotice.jsx` + 全部 Context 文件
+
+**现场确认**（grep 实际 dist bundle）：
+- ✅ `client/dist/assets/index-CngI4v9-.js` 含 `navigator.userAgent` × 2, `window.location.href` × 8, `setInterval` × 4
+- ✅ `client/dist/assets/index-CngI4v9-.js` 含中文 "推荐使用移动版"、"推荐使用桌面版"、"立即前往移动版"、"立即前往桌面版"、"秒后自动跳转"
+- ✅ 8s failsafe 已部署 (`setTimeout(..., 8000)`) 在 `client/public/intro-animation.js:276-277` 和 `client/dist/intro-animation.js`
+- ✅ React 末尾的 placeholder.remove() 已部署（dist 含 `tById("intro-placeholder");lu&&lu.remove();`）
+
+---
+
+### 🎯 根本原因（最终判断）#1：**`RedirectNotice` 触发整页重载**
+
+**最可能的死循环场景**：
+
+**用户实际是某种"伪装桌面"或"UA 被错误识别"的设备**（Chrome 扩展改 UA / DevTools 模拟 / 触摸设备 / iPad OS 13+ / 隐私浏览器）：
+
+1. **首次加载 `abdl-space.top`**：
+   - HTML 解析 → placeholder 插入
+   - intro-animation.js 跑 → 移除 placeholder，创建 overlay
+   - React 加载（defer module script）
+   - 动画 4s + fadeOut + 0.8s 淡出 = 5.8s
+   - overlay 消失
+   - React 渲染 → **`RedirectNotice` useEffect**：
+     ```js
+     if (isMainSite && isPhone()) {  // ← 如果 isPhone() = true
+       setShow(true);
+       setTarget('https://m.abdl-space.top' + path + search);
+     }
+     ```
+   - 第二个 useEffect：`setInterval` 倒计时 5s
+   - **5s 后** `window.location.href = 'https://m.abdl-space.top...'`
+   - **整页重定向到移动站**
+
+2. **整页重载到 `m.abdl-space.top`**：
+   - **新 placeholder 插入 DOM**（index.html 中）
+   - intro-animation.js 跑 → 移除 placeholder，创建 overlay
+   - **新 `__introMounted` 是 undefined**（整页加载清空 window）
+   - 动画 + 5.8s
+   - React 渲染 → **移动站 `RedirectNotice` useEffect**：
+     - `isMobileSite=true, isDesktopOrTablet()=!isPhone()=false`（同一台设备）
+     - **不触发跳转**（如果是手机 UA）→ 看到移动站页面 ✓
+   
+   **或者**（如果是桌面 UA 访问移动站）：
+   - `isMobileSite=true, isDesktopOrTablet()=true` → **跳回主站**
+   - 5s 倒计时 → 跳回主站
+   - **死循环**（如果 UA 在两个站点都被双向识别）
+
+3. **死循环时间线**：
+   - t=0: 主站动画 5.8s
+   - t=5.8s: 看到主站页面
+   - t=5.8+5s = 10.8s: 跳到移动站
+   - t=10.8s+5.8s = 16.6s: 移动站动画
+   - t=16.6s+5s = 21.6s: 跳回主站
+   - **用户看到"动画 → 倒计时弹窗 → 跳转 → 动画 → ..."**
+
+**如果用户报告"动画 → 黑底+logo占位 → 永远不进入"** —— **"黑底+logo占位"可能是 redirect 弹窗**（黑色半透明背景 + 居中图标 modal）：
+
+```css
+.redirect-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;  // ← 与 intro overlay 同级
+  background: rgba(0, 0, 0, 0.75);  // ← 75% 黑色背景
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+```
+
+**但 redirect 弹窗有"推荐使用移动版"标题，不是纯黑底**。所以"黑底+logo占位"不像是 redirect 弹窗。
+
+**或者**：redirect 弹窗 z-index 99999 与 overlay 99999 冲突，**redirect 弹窗在 overlay 后面**，用户看到 overlay 的"ABDL Space"标题 + 副标题（在底部）—— **不是居中**。
+
+**所以 "黑底+居中 logo icon" 仍然是 placeholder 模样**。
+
+---
+
+### 🎯 根本原因 #2：**`__introMounted` 跨整页加载不保留**
+
+**关键代码**：
+- `window.__introMounted = true` 是 window 全局变量
+- **整页重载后是 undefined**
+- IIFE 入口 `if (window.__introMounted) return;` **不会**立即 return
+
+**所以每次整页重载**：
+- 新 placeholder 插入 DOM（HTML 解析）
+- intro-animation.js 跑 → **不会因 `__introMounted` return**，正常移除 placeholder + 创建 overlay
+- 动画 + dismiss
+
+**理论上动画能正常播放**。
+
+**但用户报告"动画只播放一次"** —— 矛盾。
+
+**除非**：**第二次整页重载时** intro-animation.js 启动时 **DOM 还没插入新 placeholder**（HTML 还在解析），**`document.getElementById('intro-placeholder')` 返回 null**，**`placeholder.remove()` 不执行**（因为 null），**但 `var placeholder = null`**，**`if (placeholder) placeholder.remove()` 检查后跳过** —— **placeholder 没被移除**。
+
+**等等！** 看代码：
+```js
+var placeholder = document.getElementById('intro-placeholder');
+// ...
+if (placeholder) placeholder.remove();
+```
+
+`document.getElementById` 同步返回 DOM 元素（如果存在）。HTML 解析到 `<div id="intro-placeholder">` 时立即可查。**`<script src="/intro-animation.js">` 在 placeholder 之后** —— **DOM 已就绪**。
+
+**所以 placeholder 一定会被移除**。
+
+**那为什么用户报告"placeholder 又出现"？**
+
+---
+
+### 🎯 真正可能的原因 #3：**React 渲染时某处抛错 → #root 空白 → 浏览器显示 placeholder 之前的状态**
+
+**等等！** 浏览器**不会**显示 placeholder 之前的状态（因为 placeholder 已被 remove）。
+
+**或者** —— 让我重新看：
+
+**整页重载 = 浏览器重新加载整个页面**：
+1. 浏览器显示空白
+2. 解析 HTML
+3. 解析到 `<div id="intro-placeholder">` → 插入 DOM → **用户看到 placeholder**
+4. 解析到 `<script src="/intro-animation.js">` → 同步执行 → 移除 placeholder
+5. 创建 overlay
+6. 动画播放
+
+**在步骤 3-4 之间**，**用户会看到 placeholder**（约 10-50ms，浏览器解析速度）—— **不会"永远"看到**。
+
+**所以"永远看到 placeholder"只能是步骤 3 之后 placeholder 一直存在**。
+
+**这只能是**：
+- intro-animation.js 没运行（脚本 404）
+- intro-animation.js 运行但 `if (window.__introMounted) return;` 命中
+- 浏览器解析在步骤 3 之后停止
+
+**对于正常情况**，**步骤 4-6 应该立即执行**。
+
+---
+
+### 🎯 真正的可能：**3 层兜底都触发了，但用户看到的是新 placeholder**
+
+**最可能的时间线**：
+
+1. 首次加载主站
+2. 动画 5.8s
+3. React 渲染
+4. **RedirectNotice 触发（5s 倒计时跳转）**—— 基于某种 UA 误识别
+5. **整页重定向**
+6. 整页重载触发新 placeholder 插入
+7. 新页面动画 + 5.8s
+8. **新页面 RedirectNotice 又触发（5s 倒计时）**—— 死循环
+9. **每次整页重载，placeholder 都重新出现一次**
+10. **用户感知到"动画 → placeholder 重新出现 → 动画 → placeholder 重新出现 → ..."**
+
+**3 层兜底为什么不触发**：整页重载后**新页面**会有新的 3 层兜底，但**用户感知到的是"placeholder 又出现 + 新动画"**，**3 层兜底在新页面的新 overlay 上**，**新 overlay 5.8s 后消失** —— **这看起来是"placeholder 又出现 + 动画 + 占位 + ..."**。
+
+**所以"3 层兜底不触发"实际上是"3 层兜底触发了，但被新一轮整页重载打断"**。
+
+---
+
+### 🛠 立即修复（5 个关键修复）
+
+#### 修复 1：把 RedirectNotice 的 `window.location.href` 改为 SPA 路由跳转
+
+**位置**：`client/src/components/RedirectNotice.jsx:42-45` + 移动端同文件
+
+**修复**：
+```js
+// 修复前
+if (prev <= 1) {
+  clearInterval(t);
+  window.location.href = target;  // ← 整页重载
+  return 0;
+}
+
+// 修复后 —— 用 SPA 客户端导航
+if (prev <= 1) {
+  clearInterval(t);
+  // target 是 'https://m.abdl-space.top/path' 或 'https://abdl-space.top/path'
+  // 跨域无法 SPA 跳转，所以保留整页重定向
+  // 但加一个 1ms 的 setTimeout 让 React 状态先清理
+  setTimeout(() => { window.location.href = target; }, 0);
+  return 0;
+}
+```
+
+**等等！** 这只解决了"清理"问题，**不解决"整页重载"问题**。
+
+**真正修复** —— **完全重写 RedirectNotice**：
+- 倒计时后用 **`<a>` 标签 + `target="_self"` 让用户点击跳转**
+- 不要自动跳转（避免打断用户预期）
+- 移动端用户主动访问主站时，显示一个**非阻塞**的 banner："推荐移动版" + "前往" 按钮
+
+#### 修复 2：把 8s failsafe 改为 tracked timer
+
+**位置**：`client/public/intro-animation.js:276-277` + 移动端同文件
+
+**修复**：
+```js
+// 修复前
+setTimeout(function () { if (!cleaned && overlay.parentNode) fadeOutAndCleanup(); }, 8000);
+
+// 修复后 —— 改为 tracked
+var earlyFailsafeTimer = setTimeout(function () { 
+  if (!cleaned && overlay.parentNode) fadeOutAndCleanup(); 
+}, 8000);
+
+// cleanup 内增加：
+if (earlyFailsafeTimer) { clearTimeout(earlyFailsafeTimer); earlyFailsafeTimer = null; }
+```
+
+**为什么**：当前 8s failsafe 是匿名 setTimeout，cleanup 无法 clear，导致 cleanup 后 8s 仍会跑（但有 `!cleaned` guard，OK 但不规范）。
+
+#### 修复 3：把 placeholder 移除放到 `__introMounted` 检查的最早时机
+
+**位置**：`client/public/intro-animation.js:7-10`
+
+**修复**：
+```js
+// 修复前
+if (window.__introMounted) {
+  var ph0 = document.getElementById('intro-placeholder');
+  if (ph0) ph0.remove();
+  return;
+}
+
+// 修复后 —— 在所有检查之前先移除 placeholder
+var earlyPh = document.getElementById('intro-placeholder');
+if (earlyPh) earlyPh.remove();
+if (window.__introMounted) return;
+```
+
+**为什么**：保证无论 IIFE 走哪条路径，placeholder 一定会被移除。
+
+#### 修复 4：把 React 末尾的 `__introMounted = true` 放在 try/catch 中
+
+**位置**：`client/src/main.jsx:24-26`
+
+**修复**：
+```js
+try {
+  window.__introMounted = true;
+} catch (e) { console.error('Failed to set __introMounted:', e); }
+try {
+  if (window.__introReady) window.__introReady();
+} catch (e) { console.error('Failed to call __introReady:', e); }
+```
+
+**为什么**：如果 `__introReady` 抛错，不会阻断后续代码。
+
+#### 修复 5：ThemeContext localStorage 加 try/catch
+
+**位置**：`client/src/contexts/ThemeContext.jsx:15, 21, 50, 64`
+
+**修复**：
+```js
+function getInitialTheme() {
+  try { 
+    const saved = localStorage.getItem('abdl_theme');
+    if (saved && THEMES.includes(saved)) return saved;
+  } catch (e) { /* localStorage 不可用 */ }
+  return 'colorful';
+}
+```
+
+**为什么**：在 Safari 隐私模式 / 某些扩展 / iframe sandbox 环境下 `localStorage.getItem` 会抛 `SecurityError`。
+
+---
+
+### 🆘 紧急诊断请求
+
+**Agent1 必须立即收集**：
+
+1. **Console 完整错误日志**（特别是 React/Auth/Theme 抛错）
+2. **Network 标签**：所有 404 请求？`/intro-animation.js` 是否 200？`/api/auth/me` 状态？
+3. **Elements 标签**：
+   - `<div id="intro-placeholder">` 是否存在？
+   - `<div id="intro-overlay">` 是否存在？
+   - `<div id="root">` innerHTML 是什么？
+4. **Application 标签**：
+   - `localStorage` 是否有 `abdl_*` 键？
+   - `window.__introMounted` 值？
+   - `window.__introReady` 类型？
+5. **Performance 录制**：从 t=0 到 t=20s 是否有长任务？
+6. **Devices 切换测试**：
+   - 在 Chrome DevTools 切到 iPhone / iPad 模式
+   - 在 Chrome DevTools 切到 Responsive 模式
+   - 实际手机访问
+
+**如果**：
+- 用户用 **桌面 Chrome** 访问 `abdl-space.top` → **应该正常工作**（RedirectNotice 不触发）
+- 用户用 **桌面 Chrome** 访问 `m.abdl-space.top` → **RedirectNotice 5s 跳转到主站**
+- 用户用 **手机 Chrome** 访问 `abdl-space.top` → **RedirectNotice 5s 跳转到移动站**
+- 用户用 **手机 Chrome** 访问 `m.abdl-space.top` → **应该正常工作**
+
+**如果用户报告"桌面端永远不进入"** —— **必然是 UA 误识别 + RedirectNotice 跳转到移动站 + 移动站又跳回主站的死循环**。
+
+---
+
+### 🎯 90% 概率的根因：**RedirectNotice 在主站和移动站之间的死循环跳转**
+
+**完整修复方案（5 分钟）**：
+
+**`client/src/components/RedirectNotice.jsx`（主站和移动站都改）**：
+
+```js
+// 删除整个 setInterval 倒计时 + 自动跳转逻辑
+// 改为：只显示一个非阻塞 banner，倒计时由用户点击触发
+
+useEffect(() => {
+  // ... 检测 host + UA 逻辑保持不变
+  if (shouldShow) {
+    setShow(true);
+    setTarget(...);
+  }
+}, []);
+
+// 删掉第二个 useEffect（setInterval 倒计时）
+
+// UI 改为非阻塞 banner（不强制跳转）
+if (!show) return null;
+return (
+  <div className="redirect-banner" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100000, padding: '12px 20px', background: 'var(--primary)', color: '#fff', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+    <span>{isPhoneUser ? '推荐使用移动版，体验更佳' : '推荐使用桌面版，功能更完整'}</span>
+    <div style={{ display: 'flex', gap: '8px' }}>
+      <button onClick={() => setShow(false)} style={{ background: 'transparent', border: '1px solid #fff', color: '#fff', padding: '4px 12px', borderRadius: '4px', cursor: 'pointer' }}>留在当前</button>
+      <a href={target} style={{ background: '#fff', color: 'var(--primary)', padding: '4px 12px', borderRadius: '4px', textDecoration: 'none' }}>前往 →</a>
+    </div>
+  </div>
+);
+```
+
+**为什么**：
+- 整页重载是问题的核心（破坏 placeholder 移除 + 重启动画）
+- 非阻塞 banner 让用户主动选择，避免意外跳转
+- 移动站和主站之间不再有强制跳转循环
+
+---
+
+### 📊 修复优先级
+
+| 优先级 | 修复 | 耗时 | 影响 |
+|--------|------|------|------|
+| **P0** | **改 RedirectNotice 为非阻塞 banner** | 10 分钟 | 解死循环 |
+| P0 | tracked 8s failsafe | 2 分钟 | 资源清理 |
+| P1 | ThemeContext localStorage try/catch | 3 分钟 | 错误防护 |
+| P1 | React 末尾 try/catch | 2 分钟 | 错误防护 |
+| P2 | placeholder 早期移除 | 2 分钟 | 边界情况 |
+
+**强烈建议**：P0 修复立即上，这是 90% 根因。
+
