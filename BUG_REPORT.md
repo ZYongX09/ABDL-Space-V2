@@ -930,3 +930,852 @@ try {
 2. **`NBW_CLIENT_SECRET_MOBILE` rotate**（之前 chat 里明文贴过，视为泄露）
 3. D1 跑 `ALTER TABLE users ADD COLUMN password_changed_at DATETIME;`（如果之前没跑过）
 4. 第一次部署后**发一封测试邮件**验证 SES 模板 ID 正确
+
+## [2026-06-04 18:53] 审查报告 — 验证码 v2 + 安全中心 + SES_REGION 配置化
+
+**审查范围**：`/home/ZYongX/projects/git/abdl-space` 4 个 commit（`ae91d7f` / `2e76383` / `4cfcbb6` / `69f01ad`），后端 6 文件 + 前端 5 文件
+
+**改动核心**：
+- 后端 `captcha.ts` 重写：节点位置随机化、隐蔽 ctx HMAC、行为分析、security_logs 记录
+- 后端 `admin.ts` 新增 `/security/logs` + `/security/stats` API
+- `risk-assessment.ts` 阈值从 40 降到 25，UA 短字符从 < 20 改 < 50
+- `ses.ts` 新增 `SES_REGION` 配置
+- 前端 `useInlineVerify.jsx` 全新 hook，绕过 embed.js SDK
+- 前端 `VerifyModal.jsx` 改为 Quantum→Turnstile
+- `AdminPage.jsx` 新增「安全」Tab
+
+**总体评价**：**5 个 P0（其中 2 个生产环境可被利用）必须先修**。验证码系统的「前后端整合」完全没有完成——前端费力气收集 token 提交，后端**完全忽略**。安全中心 API 漏了 `adminMiddleware`，任何人可读所有安全日志。ctx 隐蔽上下文校验逻辑是反的，行为分析在前端没接入。
+
+---
+
+### Bug #1 — P0（安全：安全中心 API 完全无鉴权）
+- **文件**：`src/routes/admin.ts:427, 449`
+- **问题**：
+  ```typescript
+  // src/routes/admin.ts:427
+  admin.get('/security/logs', async (c) => {  // ❌ 缺 adminMiddleware
+    ...
+  })
+  // src/routes/admin.ts:449
+  admin.get('/security/stats', async (c) => {  // ❌ 缺 adminMiddleware
+    ...
+  })
+  ```
+  对比 `admin.get('/stats', adminMiddleware, ...)`（line 34）、`admin.get('/users', adminMiddleware, ...)`（line 55）等所有其他 admin 端点，**只有这两个新加的端点漏了 `adminMiddleware`**。
+- **影响**：
+  1. **任何匿名用户**（无登录、无 cookie）`GET /api/admin/security/logs` 即可读取 `security_logs` 全表
+  2. 暴露的字段包括 `session_id`、`score`（行为评分）、`details`（完整 JSON，含 `clickTimes` 数组、`总用时`、触摸事件、`screen` 分辨率、`tz` 时区）、`event_type`
+  3. `security_logs` 表有 `ip` 和 `user_agent` 列（migration 定义了），但 `logSuspiciousBehavior` INSERT 时**没写这两个字段**——所以攻击者目前拿不到真实 IP/UA，但能拿到可疑行为画像
+  4. `/security/stats` 暴露「24h 可疑事件数」「7 天事件分布」「按小时趋势」「评分分级（critical/warning/info/normal）」——攻击者可据此**摸清防御节奏**、找到低谷时段批量攻击
+- **建议**：
+  ```typescript
+  admin.get('/security/logs', adminMiddleware, async (c) => { ... })
+  admin.get('/security/stats', adminMiddleware, async (c) => { ... })
+  ```
+  修复前可以临时在两个 handler 开头加 `const user = c.get('user'); if (!user || user.role !== 'admin') return c.json({error: 'forbidden'}, 403)`。
+
+---
+
+### Bug #2 — P0（安全：auth.ts 完全忽略 captchaToken）
+- **文件**：`src/routes/auth.ts:83-180`（send-code）、`223-330`（register）、`336-376`（login）
+- **问题**：
+  1. **前端发送**（`client/src/contexts/AuthContext.jsx:87-95, 129-136`）：
+     ```jsx
+     const headers = { 'Content-Type': 'application/json' };
+     if (captchaToken) headers['X-Captcha-Token'] = captchaToken;  // ✅ 客户端有发
+     ```
+  2. **后端接收**（`src/routes/auth.ts:336-376`）：
+     ```typescript
+     const body = await c.req.json<LoginRequest>()
+     const { login, password } = body  // ❌ 没读 captchaToken
+     // 而且 LoginRequest 类型里就只有 { login, password }，没有 captchaToken
+     ```
+  3. 全仓库 grep 结果：
+     ```
+     grep "X-Captcha-Token\|captcha_token\|verifyCaptchaToken" src/routes/auth.ts → 0 命中
+     grep "captchaToken" src/routes/  → 0 命中
+     ```
+  4. `captchaMiddleware`（`src/middleware/captcha.ts`）也**从未被任何路由 import**（全仓库 grep 0 命中 `captchaMiddleware` 的实际引用）
+- **影响**：
+  1. **整个 captcha 系统对 auth 端点零保护**——攻击者根本不需要过验证，可直接暴力撞库
+  2. 前端 useInlineVerify / VerifyModal 收集的 token 是「空气 token」，传给后端就丢了
+  3. 风险评估接口（`/api/captcha/risk`）给高风险 IP 返回 `flow: 'both'`，用户要多做一遍 Turnstile——但**后端根本不强制**，等于「给用户多添堵但对攻击者没效果」
+  4. 设计意图（防撞库、防刷注册）完全失败
+- **建议**（按优先级）：
+  1. **方案 A（推荐）**：在 `auth.post('/login')` / `/register` / `/send-code` 三个端点读 `X-Captcha-Token` 头，调 `verifyCaptchaToken` 校验——但要先修 Bug #3（签名问题）
+  2. **方案 B**：把 `captchaMiddleware` 挂到这三个端点（`auth.post('/login', captchaMiddleware, ...)`），并修 Bug #3 + #4
+  3. **方案 C**：在限流层加 captcha token 校验（`checkD1RateLimit` 接受 token，token 存在时放行 10x 配额）
+
+---
+
+### Bug #3 — P0（安全：captcha token 签名未验证，可任意伪造）
+- **文件**：`src/lib/captcha.ts:195-221`
+- **问题**：
+  ```typescript
+  function createToken(sessionId: string, secret: string): string {
+    const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).replace(/=/g, '')
+    const payload = btoa(JSON.stringify({ sub: sessionId, iat: now, exp: now + TOKEN_TTL_S, type: 'captcha' })).replace(/=/g, '')
+    const sig = btoa(sessionId + secret + now).replace(/=/g, '').slice(0, 43)  // ❌ 只是 btoa + 截断
+    return `${header}.${payload}.${sig}`
+  }
+
+  export function verifyToken(token: string, secret: string): boolean {
+    try {
+      const parts = token.split('.')
+      if (parts.length !== 3) return false
+      const payload = JSON.parse(atob(parts[1]))
+      if (payload.exp < Math.floor(Date.now() / 1000)) return false
+      if (payload.type !== 'captcha') return false
+      return true  // ❌ 从不校验签名！secret 参数都没用
+    } catch { return false }
+  }
+  ```
+- **影响**：
+  1. 攻击者可手工构造：把 `{"sub":"x","iat":now,"exp":<2min later>,"type":"captcha"}` base64 一下，header 也 base64 一下，signature 随便填三个字符——**`verifyToken` 一律返回 true**
+  2. 当前 captchaMiddleware 没被任何路由使用（见 Bug #2），所以**暂未造成实际损失**——但如果有人按 Bug #2 方案 B 把 `captchaMiddleware` 挂上去，攻击者立刻就能 100% 绕过
+  3. 等于本 commit 引入了一个「将来一接就崩」的地雷
+- **建议**：用 Web Crypto API 实现标准 HS256：
+  ```typescript
+  async function createToken(sessionId: string, secret: string): Promise<string> {
+    const header = b64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+    const now = Math.floor(Date.now() / 1000)
+    const payload = b64url(JSON.stringify({ sub: sessionId, iat: now, exp: now + TOKEN_TTL_S, type: 'captcha' }))
+    const data = `${header}.${payload}`
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+    const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data))
+    const sig = b64urlBytes(new Uint8Array(sigBuf))
+    return `${data}.${sig}`
+  }
+
+  export async function verifyToken(token: string, secret: string): Promise<boolean> {
+    const [header, payload, sig] = token.split('.')
+    if (!header || !payload || !sig) return false
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify'])
+    const valid = await crypto.subtle.verify('HMAC', key, new TextEncoder().encode(`${header}.${payload}`), b64urlDecode(sig))
+    if (!valid) return false
+    const claims = JSON.parse(atob(payload))
+    return claims.exp > Math.floor(Date.now() / 1000) && claims.type === 'captcha'
+  }
+  ```
+  注意改成 async——`verifyCaptchaToken` 调用点也要 `await`。
+
+---
+
+### Bug #4 — P0（构建/类型：`verifyCaptchaToken` 未导出，import 会报 undefined）
+- **文件**：`src/middleware/captcha.ts:3, 20` vs `src/lib/captcha.ts:209`
+- **问题**：
+  ```typescript
+  // src/middleware/captcha.ts:3
+  import { verifyCaptchaToken } from '../lib/captcha.ts'   // ❌ 没这个导出
+
+  // src/middleware/captcha.ts:20
+  const valid = await verifyCaptchaToken(token, c.env.JWT_SECRET)  // ❌ undefined
+
+  // src/lib/captcha.ts:209
+  export function verifyToken(token: string, secret: string): boolean { ... }  // 实际叫 verifyToken
+  ```
+- **影响**：
+  1. TypeScript 编译会报 TS2305: 「Module has no exported member 'verifyCaptchaToken'」——如果 CI 开了 `noImplicitAny` 或 `strict` 就直接 fail
+  2. 如果绕过 TS 编译（Cloudflare Workers 默认不在 build 时检查），运行期会抛 `verifyCaptchaToken is not a function`
+  3. 该中间件当前**没被任何路由 import**（grep 验证 0 命中），所以是个埋着的雷——一旦有人按 Bug #2 方案 B 挂上去就立刻爆
+- **建议**：把 `src/lib/captcha.ts:209` 的 `verifyToken` 重命名为 `verifyCaptchaToken`（和 middleware import 名一致），或者在 middleware 改 import 名为 `verifyToken`。**Bug #3 修复后顺带改**。
+
+---
+
+### Bug #5 — P0（安全：ctx 隐蔽上下文校验逻辑反了）
+- **文件**：`src/lib/captcha.ts:124-147`（createContextToken / verifyContextToken）、`383-393`（verify 调用）
+- **问题**：
+  ```typescript
+  // 创建挑战时：order = 原始正确顺序
+  const order = shuffleArray(NODE_IDS)
+  const ctx = await createContextToken(sessionId, nodes, order, secret)  // ctx 是 (sessionId, nodes, 原始order) 的 HMAC
+
+  // 验证时（line 380-383）：
+  const challengeData = JSON.parse(session.challenge)
+  const order = answer.split(',')           // ❌ order 取的是用户答案！
+  const ctxValid = await verifyContextToken(ctx, sessionId, challengeData.nodes, order, secret)
+  ```
+  ```typescript
+  // verifyContextToken（line 138-147）：
+  async function verifyContextToken(ctx, sessionId, nodes, order, secret) {
+    const expected = await createContextToken(sessionId, nodes, order, secret)  // 用传入的 order 算 HMAC
+    return ctx === expected
+  }
+  ```
+  也就是说：**HMAC 用「用户提交的答案」做输入**重新算一遍，然后跟「原始 ctx」比较。
+- **后果推导**：
+  - 用户答案正确 → `order = 原始order` → `expected = HMAC(原始order)` = 原始 ctx → 校验通过
+  - 用户答案错误 → `order ≠ 原始order` → `expected = HMAC(错误order)` ≠ 原始 ctx → 校验失败
+  - **ctx 校验完全退化成「答案正确性」的二次确认**——和 HMAC「防篡改」的语义毫无关系
+- **真实攻击场景**：
+  1. 攻击者调用 `/api/captcha/challenge` 拿到 challenge（含 nodes、ctx）
+  2. 攻击者**完全不需要 ctx**——只要把所有 5! = 120 种排列都试一遍，**纯靠答案穷举**就能过
+  3. 服务端 ctx 校验对穷举攻击零保护
+  4. 5 次锁定 + 5 分钟冷却 → 240 秒可试 5 次 = 4 分钟/次 → 5! = 120 次需要 120 × 4 = **8 小时**才能穷举完（理论值）——但 `attempts` 是 session 级锁定，攻击者可以反复 `/challenge` 拿新 session
+  5. 每次 `/challenge` 限速 `IP_MAX_CHALLENGES = 20`/5min → 攻击者 5min 内可拿 20 个新 session × 5 次 attempts = **100 次/5min**，8h 就能穷举 9600 次——5! 远远够
+- **建议**：ctx 校验应该用「原始 ctx 字符串直接比较」或「HMAC 用原始 order 校验」：
+  ```typescript
+  // 方案 A（最简单）：存的就是 ctx，直接比
+  async verify(db, sessionId, answer, secret, behavior, ctx) {
+    ...
+    const challengeData = JSON.parse(session.challenge)
+    if (ctx !== challengeData.ctx) {
+      // ctx 被篡改或重放（注意：重放防护要靠 session.used 标记，靠 ctx 比对不够）
+      console.warn(`[Captcha] Context mismatch for session ${sessionId.slice(0, 8)}`)
+    }
+    // 然后保留 answer hash 校验作为主要验证手段
+  }
+
+  // 方案 B（保留 HMAC 语义）：把 order 也存到 challenge JSON 里
+  // 改 challengeData = { nodes, width, height, ctx, originalOrder: order }
+  // 然后 verify 时用 challengeData.originalOrder 算 HMAC 与 ctx 比较
+  ```
+  顺带：**`session.used` 标记是真正的防重放机制**——但需要 `verifyToken` 之后立刻 `UPDATE ... SET used = 1`（当前已实现）——这个不能漏。
+  实际生产环境的真正安全靠的是：① 节点位置随机 + ② HMAC ctx + ③ 答案 hash + ④ session 过期 + ⑤ attempts 锁定。当前 #1/#3/#4/#5 都到位，只有 #2（HMAC ctx）反了，攻击者可绕过 ctx 校验但仍需穷举 5! 答案。**先修这个**。
+
+---
+
+### Bug #6 — P1（功能：行为分析是死代码，前端从不发 behavior）
+- **文件**：`client/src/components/useInlineVerify.jsx:268-274` vs `src/lib/captcha.ts:354-421`
+- **问题**：前端 `submitQuantum` 的 fetch body：
+  ```jsx
+  body: JSON.stringify({
+    session_id: quantumState.sessionId,
+    answer: sequence.join(','),
+    ctx: quantumState.ctx,
+  }),  // ❌ 没有 behavior 字段
+  ```
+  后端 `assessBehavior(null)` 永远返回 50（中间分）：
+  ```typescript
+  function assessBehavior(data: BehaviorData | null): number {
+    if (!data) return 50
+    ...
+  }
+  ```
+- **影响**：
+  1. `behavior_score` 字段在响应里永远是 50（除非有人直接 curl 调 API 传假数据）
+  2. `if (behaviorScore < 30)` 分支永远不进入
+  3. `logSuspiciousBehavior` 几乎不会被调用
+  4. `security_logs` 表基本空着，安全中心的「事件趋势」一片空白
+- **建议**：
+  - **方案 A（推荐）**：前端在 useInlineVerify 里加行为采集（mousemove 节流存轨迹、click 时间戳、节点悬停时长），提交时一起发
+  - **方案 B**：去掉行为分析逻辑，简化代码——既然 UI 没采就别假装分析了
+  - 顺带把 `BehaviorData.轨迹` 中文 key 改成英文 `mousePath`（跨工具链友好，避免某些 IDE/lint 误报）
+
+---
+
+### Bug #7 — P1（安全/UX：Turnstile 回调无 stale guard，关闭后仍标记成功）
+- **文件**：`client/src/components/useInlineVerify.jsx:228-249`（renderTurnstile 的 callback）、`useEffect` 在 phase 变化时
+- **问题**：
+  ```jsx
+  callback: async (token) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/captcha/turnstile/verify`, ...)
+      const result = await res.json()
+      if (result.success) {
+        tokenRef.current = token
+        if (mode === 'both') { finishVerify(); } else { finishVerify(); }  // ❌ 不检查组件是否还 active
+      }
+    }
+  }
+  ```
+  `cleanup()` 会移除 Turnstile widget + 清理 timer，但**没有 abort 标记**。如果用户点 × 关闭弹窗 → cleanup() 跑了，但 Turnstile 的内部 `await fetch` 还在飞，resolve 后会调 `finishVerify()` → `setVerified(true)`，导致：
+  - 用户看到「验证已放弃」却实际 verified=true → 下次 submit 携带这个已过期的 captchaToken
+  - tokenRef.current 被覆盖为「已关闭后获得的 token」，逻辑混乱
+- **建议**：
+  ```jsx
+  const activeRef = useRef(false)
+
+  useEffect(() => {
+    activeRef.current = active
+  }, [active])
+
+  callback: async (token) => {
+    if (!activeRef.current) return  // ✅ stale guard
+    ...
+  }
+
+  cleanup: () => {
+    activeRef.current = false
+    ...
+  }
+  ```
+  同样适用于 `submitQuantum` 的 fetch 回调。
+
+---
+
+### Bug #8 — P1（竞态：重试按钮 + 多次 trigger 产生多个 in-flight 请求）
+- **文件**：`client/src/components/useInlineVerify.jsx:113-130`（risk effect）、`438-446`（重试按钮）
+- **问题**：
+  ```jsx
+  // 风险接口 effect
+  useEffect(() => {
+    if (!active) return;
+    (async () => {
+      const res = await fetch(`${API_BASE}/api/captcha/risk`, ...)
+      if (!res.ok) throw new Error('Risk assessment failed');
+      const data = await res.json();
+      setFlow(data.flow);
+      ...
+    })();  // ❌ 无 cleanup、无 AbortController
+  }, [active, retryCount]);  // retryCount 变化 → 重发
+
+  // 重试按钮
+  onClick={() => { setError(null); setRetryCount(c => c + 1); }}
+  ```
+  场景：用户连点 3 下「重试」→ retryCount 0→1→2→3 → 4 个 `/risk` 请求并发飞，**最后一个 resolve 决定 phase**。中间 resolve 会被覆盖，phase 短暂闪烁。
+  另外：用户点 trigger() 多次（首次 active=true → cleanup 还没跑完 → 第二次 trigger()）也会产生孤儿 effect。
+- **建议**：
+  1. 用 `useRef` 存 abort controller，cleanup 里 abort：
+     ```jsx
+     const abortRef = useRef(null)
+     useEffect(() => {
+       if (!active) return
+       const ac = new AbortController()
+       abortRef.current = ac
+       ;(async () => {
+         try {
+           const res = await fetch(..., { signal: ac.signal })
+           ...
+         } catch (e) { if (e.name === 'AbortError') return; ... }
+       })()
+       return () => ac.abort()
+     }, [active, retryCount])
+     ```
+  2. 在 `cleanup()` 里 abort：`abortRef.current?.abort()`
+
+---
+
+### Bug #9 — P1（内存泄漏：startCountdown 内的 setTimeout 不可清理）
+- **文件**：`client/src/components/useInlineVerify.jsx:163-176`
+- **问题**：
+  ```jsx
+  function startCountdown() {
+    ...
+    timerRef.current = setInterval(() => {
+      ...
+      if (remaining <= 0) {
+        clearInterval(timerRef.current)
+        setQuantumState(s => ({ ...s, timerExpired: true, ... }))
+        setHint('超时，正在重新加载...')
+        setTimeout(() => createQuantumChallenge(), 800)  // ❌ 没存 ref
+      }
+    }, 200)
+  }
+  ```
+  `cleanup()` 清理了 `timerRef.current` 但**不清理 `setTimeout`**。场景：
+  1. 倒计时归零 → 启动 800ms setTimeout
+  2. 用户立刻点 × 关闭 → cleanup 跑（active=false）
+  3. 800ms 后 setTimeout 触发 `createQuantumChallenge()` → fetch + setState on unmounted-like state
+  4. React 会 warn "Can't perform a React state update on an unmounted component"
+- **建议**：
+  ```jsx
+  const setTimeoutRef = useRef(null)
+  function startCountdown() {
+    ...
+    if (setTimeoutRef.current) clearTimeout(setTimeoutRef.current)
+    timerRef.current = setInterval(() => {
+      ...
+      if (remaining <= 0) {
+        ...
+        setTimeoutRef.current = setTimeout(() => {
+          if (activeRef.current) createQuantumChallenge()  // ✅ stale guard
+        }, 800)
+      }
+    }, 200)
+  }
+  cleanup: () => {
+    if (setTimeoutRef.current) clearTimeout(setTimeoutRef.current)
+    ...
+  }
+  ```
+
+---
+
+### Bug #10 — P2（数据：security_logs 表的 ip/user_agent 列从未被写入）
+- **文件**：`migrations/005_security_logs.sql` vs `src/lib/captcha.ts:441-453`
+- **问题**：migration 创建的表：
+  ```sql
+  CREATE TABLE security_logs (
+    ...
+    ip TEXT,
+    user_agent TEXT,
+    details TEXT,
+    ...
+  )
+  ```
+  但 `logSuspiciousBehavior` INSERT：
+  ```typescript
+  `INSERT INTO security_logs (session_id, event_type, score, details, created_at)
+   VALUES (?, ?, ?, ?, ?)`
+  // ❌ 没写 ip, user_agent
+  ```
+  字段名也误导：
+  ```typescript
+  JSON.stringify({
+    behavior: behavior || null,
+    ua: behavior?.screen || '',   // ❌ 'ua' 实际是 screen（分辨率），不是真正的 User-Agent
+    tz: behavior?.tz || '',
+  })
+  ```
+- **影响**：
+  1. 真正的 `ip` 和 `user_agent` 列永远是 NULL——如果以后想按 IP 查/封，data 缺失
+  2. `details.ua` 字段名具有误导性（实际是分辨率），未来维护者会困惑
+- **建议**：
+  ```typescript
+  async function logSuspiciousBehavior(db, sessionId, behavior, score, ip, userAgent) {
+    await run(db,
+      `INSERT INTO security_logs (session_id, event_type, score, ip, user_agent, details, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [sessionId, 'low_behavior_score', score, ip, userAgent, JSON.stringify({
+        behavior: behavior || null,
+        screen: behavior?.screen || '',
+        tz: behavior?.tz || '',
+      }), Math.floor(Date.now() / 1000)]
+    )
+  }
+  // 调用点：caller 传入 c.req.header('CF-Connecting-IP') 和 'User-Agent'
+  ```
+  rename `ua` → `screen`（`behavior?.screen` 是分辨率），单独存 `user_agent` 列。
+
+---
+
+### Bug #11 — P2（React 闭包：submitQuantum 读 quantumState 可能 stale）
+- **文件**：`client/src/components/useInlineVerify.jsx:271-288`
+- **问题**：
+  ```jsx
+  async function submitQuantum(sequence) {
+    ...
+    } else {
+      const newAttempts = quantumState.attemptCount + 1  // ❌ 读的是闭包捕获的 quantumState
+      setQuantumState(s => ({ ...s, attemptCount: newAttempts, ... }))
+    }
+  }
+  ```
+  `submitQuantum` 在 `handleQuantumClick` 内部创建，捕获当时的 `quantumState`。如果用户操作极快（不可能但理论上），或者 React 18 并发模式下，闭包可能读到旧值。`setQuantumState(s => ({...s, attemptCount: s.attemptCount + 1}))` 是函数式更新，更安全。
+- **建议**：把 `quantumState.attemptCount + 1` 改成 `s.attemptCount + 1` 形式（用 functional updater）。`handleQuantumClick` 里也有同样模式。
+  当前调用栈同步触发，**实际不会触发 bug**，但写错了就埋雷。
+
+---
+
+### Bug #12 — P2（风控过严：阈值 25 太低，真实用户容易踩 both 流程）
+- **文件**：`src/lib/risk-assessment.ts:60-79`
+- **问题**：
+  ```typescript
+  // 1 小时内失败超过 1 次 → +40
+  if (factors.ipFailureCount > 1) score += 40
+  // 有失败记录 → +25
+  else if (factors.ipFailureCount > 0) score += 25
+  ```
+  场景：
+  - 用户输错一次密码 → 1h 内有失败记录 → +25
+  - 真实浏览器 UA（> 50 字符）→ 不可疑
+  - 第一次 `/risk` 调用 → 0 次请求
+  - 合计：25 → ≥25 → 触发 `both` 流程（quantum + turnstile）
+  - 即「输错一次密码」就升级到最强验证，**用户体感差**（要做两遍）
+- **建议**：
+  1. 调阈值到 30-35，或
+  2. 失败记录加分曲线调陡：`ipFailureCount === 1` → +15（而不是 +25），`> 1` → +30，`> 3` → +40
+  3. 增加「IP 历史通过率」因子：长期正常用户首次失败不升级
+  4. 或者：`both` 流程改为「quantum 不通过才升级到 turnstile」而不是强制两步
+
+---
+
+### Bug #13 — P3（类型：BehaviorData 用中文 key「轨迹」）
+- **文件**：`src/lib/captcha.ts:46`
+- **问题**：
+  ```typescript
+  interface BehaviorData {
+    轨迹?: number[][]  // ❌ 中文 key
+    ...
+  }
+  ```
+  TypeScript 允许但**会污染 JSON 序列化字段名**——前端如果用 JS 对象，最终 JSON 里有 `"轨迹": [...]` 这种字段，移动端/第三方工具处理时会乱码或丢失。
+- **建议**：统一改为英文 `mousePath?: number[][]`
+
+---
+
+### Bug #14 — P3（dead code：test page 仍加载 embed.js）
+- **文件**：`client/public/captcha-test.html:10`
+- **问题**：
+  ```html
+  <script src="https://api.abdl-space.top/api/v1/captcha/embed.js" async defer></script>
+  ```
+  但 JS 代码（line 551 注释明示「直接调内部 API，不用 embed.js SDK」）全用 `fetch` 直接打 `/api/captcha/*`，不调 `window.ABDLCaptcha.*`。embed.js 完全没用。
+- **影响**：
+  1. 浪费 50-200KB 带宽
+  2. SDK 内部有 `setInterval` 轮询 + event listener，会泄漏（test page 不卸载所以无所谓，但模式不好）
+- **建议**：删掉 line 10 的 script 标签。
+
+---
+
+### Bug #15 — P3（dead code：test page 残留 .verify-risk-tag CSS + 引用）
+- **文件**：`client/public/captcha-test.html:196`（CSS）+ 516（注释「v-risk-tag removed」）
+- **问题**：
+  ```css
+  .verify-risk-tag { font-size: 0.7rem; color: var(--text-light); margin-left: 4px; }  /* 死 */
+  ```
+  元素已删除，CSS 残留。
+- **建议**：删 line 196 的 CSS 块。
+
+---
+
+### 总体评价
+
+**方向都对**——节点随机化、隐蔽 ctx、行为分析、风险阈值收紧、安全中心可视化、SES_REGION 配置化，这些都是该做的。
+
+**但 P0 有 5 个，其中 2 个生产可被利用**：
+1. **#1 安全中心 API 无鉴权**（任何人可读 security_logs）
+2. **#2 auth.ts 完全忽略 captchaToken**（前后端断链，验证码形同虚设）
+3. **#3 verifyToken 不验证签名**（一旦有人接上 middleware 立刻崩）
+4. **#4 middleware import 名字错**（埋雷）
+5. **#5 ctx 校验逻辑反了**（HMAC 退化成答案二次确认，绕过风险高）
+
+**最优先修复顺序**：
+1. **Bug #1**（一行加 `adminMiddleware`）—— 10 秒
+2. **Bug #2 + #3 + #4 一起修**（把 `verifyToken` 重命名 + 实现真 HS256 + 把 `captchaMiddleware` 挂到 auth 三个端点）—— 30 分钟
+3. **Bug #5**（ctx 校验改用 storedCtx 比较）—— 5 分钟
+4. **Bug #6**（行为采集接上）—— 1 小时
+5. **Bug #7/#8/#9**（React 竞态）—— 30 分钟
+6. **Bug #10**（security_logs ip/user_agent）—— 5 分钟
+7. 后续 P2/P3 cleanup
+
+**建议**：Bug #1 修完前**不要把 admin 安全 Tab 上线**——任何人都能 curl 拉到全表行为画像。
+
+---
+
+## [审查时间] client/public/intro-animation.js 全量审查
+
+**审查范围**：`client/public/intro-animation.js`（337 行）
+**审查视角**：动画灵动性 + Bug（内存泄漏、事件监听、竞态、边界、CORS、可访问性）
+**部署位置**：`client/index.html` 通过 `<script src="/intro-animation.js">` 全站加载，主站 + 移动端共用
+
+---
+
+### Bug #1 — P0（设计逻辑缺陷：SPA 跳过机制失效）
+- **文件**：`client/public/intro-animation.js:11` + 全文
+- **问题**：
+  ```js
+  // 第 11 行：判断已挂载就跳过
+  if (window.__introMounted) return;
+  // ...
+  // 全文搜索结果：只读不写
+  $ grep "__introMounted" client/public/intro-animation.js
+  11:  if (window.__introMounted) return;   ← 只读
+  358: window.__introReady = function () {   ← 但写的是 __introReady
+  ```
+  `__introMounted` 全程只读取，从未赋值为 `true`。`tryDismiss()` / `__introReady()` / 任何回调里都没有 `window.__introMounted = true`。
+- **影响**：
+  - 注释和设计意图说"SPA 跳过后续不重复播放"，但这个机制**实际永远不会触发**（永远为 undefined）
+  - 如果未来有人把脚本做成按需 import、或被 HMR / 测试框架多次求值，动画就会重复播放
+  - 现在的"侥幸可用"是因为 `<script src="/intro-animation.js">` 在 full reload 时才会执行，客户端 SPA 路由不会重新执行外部脚本 IIFE
+- **建议**：
+  ```js
+  // 在 tryDismiss 的 overlay 移除前加入：
+  window.__introMounted = true;
+  ```
+
+---
+
+### Bug #2 — P1（failsafe 15s 分支资源泄漏）
+- **文件**：`client/public/intro-animation.js:386-393`
+- **问题**：
+  ```js
+  setTimeout(function () {
+    if (overlay.parentNode) {
+      overlay.style.opacity = '0';
+      setTimeout(function () { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 800);
+    }
+  }, 15000);
+  ```
+  failsafe 触发后**只移除 overlay**，但：
+  - `rafId` 没 `cancelAnimationFrame` —— tick 循环**继续以 60fps 运行**
+  - `window` 上的 `resize` 监听器没移除
+  - `mq` 的 `change` 监听器没移除（applyMobile 闭包持有 5 个 DOM 节点引用）
+  - overlay 上的 6 个 mouse/touch 监听器随节点走，但闭包没释放
+  - `stars` 数组（2000 元素 + 闭包）持续占用
+  - `ctx` (CanvasRenderingContext2D) 持续引用 offscreen canvas（sampleSize² = 360000 像素 buffer）
+- **影响**：
+  - 用户在 failsafe 触发后 30s 内**持续浪费 CPU**（每帧排序 2000 粒子 + 画连线）
+  - DOM 节点被 `applyMobile` 闭包持有**无法 GC**（mobile 切换窗口时还会调用 .style 访问已脱离文档的节点）
+  - 长会话（用户停留在站内多小时）内存持续累积
+- **建议**：把清理逻辑抽成函数 `cleanup()`，failsafe 和正常 tryDismiss 都调用：
+  ```js
+  function cleanup() {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = null;
+    window.removeEventListener('resize', resize);
+    mq.removeEventListener('change', applyMobile);
+    clearTimeout(failsafeTimer);
+  }
+  ```
+
+---
+
+### Bug #3 — P1（mousedown 跨边界拖动卡死）
+- **文件**：`client/public/intro-animation.js:336, 349`（mousedown 在 overlay，mouseup 也在 overlay）
+- **问题**：`mouseup` 监听挂在 overlay 上。若用户在 overlay 边缘按下后**拖出浏览器窗口**释放（系统菜单、其他 app），`mouseup` 不会触发，`mouseDown` 永远 = `true`，后续 `mousemove` 在 overlay 内会一直被认为是拖动，相机被持续偏移，inertia 永远不停。
+- **影响**：动画完成后用户操作时如果出现"鼠标出窗释放"，整个 starfield 永远漂移，无法停止。
+- **建议**：
+  ```js
+  // mouseup / mouseleave 改为 window 级（参考主流拖动库做法）
+  window.addEventListener('mouseup', function () { mouseDown = false; });
+  // mousemove 同样可以挪到 window，让 overlay 外也能继续拖
+  ```
+
+---
+
+### Bug #4 — P1（动画完成 → React ready 窗口期 overlay 阻挡交互）
+- **文件**：`client/public/intro-animation.js` 整体
+- **问题**：`isComplete=true` 后，动画停在星空 + 用户可拖动状态，等待 `__introReady()` 被 React 调用。这期间 overlay `pointer-events` **默认 auto**（从未设 none），全屏 fixed 元素会**屏蔽所有点击和滚动**。
+- **影响**：
+  - 移动端 React 启动慢（3-5s 是常态），用户看到动画完但**无法滚动页面**，会误以为页面卡死
+  - 桌面端 React 启动也常 >1s，loading 结束后用户立刻想点导航栏/链接，命中死区
+  - 注释说"动画完成 + React 挂载就绪后淡出"，但中间的等待期 UX 灾难
+- **建议**：在 isComplete=true 那一帧（flyTick 末尾）立即把 overlay 设为 `pointer-events: none`，让 React 启动期间用户能正常操作：
+  ```js
+  // isComplete=true 后立即：
+  overlay.style.pointerEvents = 'none';
+  ```
+
+---
+
+### Bug #5 — P1（CORS 风险：跨域 SVG 拉取）
+- **文件**：`client/public/intro-animation.js:89-94` + `LOGO_URL = 'https://img.abdl-space.top/...'`
+- **问题**：
+  - 主站部署在 `abdl-space.top`（或某个域）
+  - Logo CDN 在子域 `img.abdl-space.top`
+  - `fetch(LOGO_URL).then(r => r.text())` 跨子域**必须 CORS 头**（`Access-Control-Allow-Origin`）才能读取 body
+  - CDN 默认不返回 CORS 头（除非显式配置）
+- **影响**：
+  - 若 CDN 没配 CORS，fetch 直接 reject，进 `.catch` 走**降级路径**：圆形 logo（`Math.cos/sin` 圆环），完全失去品牌识别
+  - 同时这次 fetch 的 reject 是用户感知不到的"暗降级"
+- **建议**（按推荐顺序）：
+  1. **首选**：让 CDN 加 `Access-Control-Allow-Origin: *`（img 类公共资源一般可开）
+  2. **次选**：改用 `new Image()` 加载 SVG，`img.crossOrigin = 'anonymous'`，drawImage 到 offscreen canvas，同样需要 CORS 头
+  3. **备选**：把 SVG 内联进 `intro-animation.js`（体积可控，logo 不会变）
+  4. **临时缓解**：在 catch 之前打印 `console.warn` 让降级可见
+
+---
+
+### Bug #6 — P1（mq 监听器 + 多处事件监听器未清理）
+- **文件**：`client/public/intro-animation.js:79` + `tryDismiss` (340-345) + failsafe (386-393)
+- **问题**：
+  - `mq.addEventListener('change', applyMobile)` 永久挂载，无对应 `removeEventListener`
+  - `tryDismiss` 内只清理了 `resize` 和 `rafId`，**漏掉 mq 监听**
+  - `applyMobile` 闭包持有 `title` / `subtitle` / `hint` / `titleWrap` / `progressBar` 5 个 DOM 节点 → 即使 overlay 被移除，这些节点仍被闭包引用**无法 GC**
+- **影响**：见 Bug #2，单次会话内多次进入 SPA 子页面（或 HMR）累积内存
+- **建议**：见 Bug #2 cleanup 函数
+
+---
+
+### Bug #7 — P1（tick 在 isAnimating=false 期间空转 60fps）
+- **文件**：`client/public/intro-animation.js:163-166`
+- **问题**：
+  ```js
+  function tick(time) {
+    if (!isAnimating && !isComplete) { rafId = requestAnimationFrame(tick); return; }
+    // ... 实际渲染
+  }
+  ```
+  `tick` 在脚本启动后立即 `requestAnimationFrame(tick)`，但动画要等 `initStars().then(startFly)` 才进入 `isAnimating=true`。**logo 加载期间（网络慢时 1-3s）tick 每帧 60fps 空转**，只做 setTimeout 一样的循环，无任何渲染。
+- **影响**：
+  - 慢网络下空跑 60fps 浪费 CPU/电
+  - 移动端影响更明显
+- **建议**：
+  ```js
+  // 把 rafId = requestAnimationFrame(tick) 移到 initStars().then 内
+  initStars().then(function () {
+    lastTime = performance.now();
+    rafId = requestAnimationFrame(tick);
+    startFly();
+  });
+  ```
+
+---
+
+### Bug #8 — P2（edgePoints 为空时 while 循环崩溃）
+- **文件**：`client/public/intro-animation.js:147-150`
+- **问题**：
+  ```js
+  while (result.length < count) {
+    result.push(edgePoints[Math.floor(Math.random() * edgePoints.length)]);
+  }
+  ```
+  兜底分支假设 `edgePoints.length > 0`。但如果：
+  - SVG fetch 成功（不进 catch）
+  - SVG 中 path 都有但 fill 后 alpha 都 < 64（颜色过淡、图透明）
+  - 或 path 是空 d 属性（虽然代码有 `if (d) octx.fill(...)` 跳过空 d）
+  
+  → `edgePoints` 和 `fillPoints` 都为空 → `result.length` 始终 0 → 死循环 + `edgePoints[0] = undefined` → `lp.x` 崩溃
+- **影响**：边缘 case 触发后整页 JS 卡死，且因为 IIFE 顶层 try-catch 都没有，会显示白屏
+- **建议**：
+  ```js
+  while (result.length < count) {
+    if (edgePoints.length === 0) {
+      // 退化到螺旋
+      var angle = (result.length / count) * Math.PI * 2;
+      result.push({ x: Math.cos(angle) * 100, y: Math.sin(angle) * 100 });
+    } else {
+      result.push(edgePoints[Math.floor(Math.random() * edgePoints.length)]);
+    }
+  }
+  ```
+
+---
+
+### Bug #9 — P2（死代码 / 未使用变量）
+- **文件**：`client/public/intro-animation.js:36, 115, 69`
+- **问题**：
+  - `var animDone = false;` (line 337) — 定义后未使用
+  - `hint` 元素 (line 69) — 创建并 append，opacity 永为 0，从未触发显示
+- **影响**：代码噪音，误导维护者以为有进度提示或加载完成标志
+- **建议**：删除
+
+---
+
+### Bug #10 — P2（Logo 粒子 hue 计算溢出 0-360 范围）
+- **文件**：`client/public/intro-animation.js:204`
+- **问题**：
+  ```js
+  var hue = 200 + (star.targetX / 200) * 140;
+  ```
+  - `star.targetX` 范围约 -150 到 +150（`px = (x - sampleSize/2) * 0.5`，sampleSize=600）
+  - 实际 hue 范围 = 200 + (-0.75 ~ 0.75) * 140 = **95 ~ 305**
+  - hue 95 是**青绿色**，与品牌粉蓝渐变 `#A8D8F0 → #FFB7C5`（HSL 约 200-340）不符
+  - 负 hue 在 CSS 中会按 (hue + 360) 解释，导致颜色分布偏向不一致
+- **影响**：动画完成时 logo 中心偏左粒子偏绿、偏右粒子偏粉，整体色调**不统一**，且色相分布并非平滑（应是 200-340 单调）
+- **建议**：
+  ```js
+  // 用归一化距离从中心映射到色相 200-340
+  var t = (star.targetX + 150) / 300;  // 0-1
+  var hue = 200 + t * 140;
+  ```
+
+---
+
+### Bug #11 — P2（tryDismiss 内的 setTimeout 清理不完整）
+- **文件**：`client/public/intro-animation.js:340-349`
+- **问题**：
+  ```js
+  setTimeout(function () {
+    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    window.removeEventListener('resize', resize);
+    if (rafId) cancelAnimationFrame(rafId);
+  }, 800);
+  ```
+  缺：
+  - `mq.removeEventListener('change', applyMobile)` （见 Bug #6）
+  - failsafe 那个 setTimeout 没被 `clearTimeout`
+  - 6 个 overlay 上的 mouse/touch 监听器没显式移除（依赖 overlay 移除后 GC，但持有 closure 的 mousedown 状态变量无法 GC）
+- **影响**：见 Bug #2 累积
+- **建议**：抽 `cleanup()` 统一处理
+
+---
+
+### Bug #12 — P2（z 接近 0 附近粒子 scale 突变）
+- **文件**：`client/public/intro-animation.js:189, 194`
+- **问题**：
+  - `if (z < -fov + 100) continue;` 过滤 z < -500
+  - `scale = fov / (fov + z)` 中 z = -499.9 时 scale = 600/100.1 ≈ **6 倍**
+  - z = 0 时 scale = 1
+  - morph 结束 (cameraZ=0) 时，星空 z 范围 0-3000，最小的 5% 粒子 z 在 0-150 范围，scale 1-1.33，**正常**
+  - 但 morph 过程中 (cameraZ = -3000 → 0)，z 在 -fov+100 ~ 0 边界的粒子会"突然放大 6 倍"再收缩，产生**视觉抖动**
+- **影响**：动画中段可见的粒子大小闪烁
+- **建议**：
+  ```js
+  // 收紧近裁面，或加 z>0 但 scale 软上限
+  if (z < -fov + 100) continue;
+  if (z < 50) continue;  // 跳过太近的
+  ```
+
+---
+
+### Bug #13 — P3（性能：每帧 stars.map().sort() 创建大数组）
+- **文件**：`client/public/intro-animation.js:178`
+- **问题**：2000 元素 .map 创建新数组，sort 是 2000·log2(2000) ≈ 22k 比较，每秒 60 次。GC 压力不小。
+- **建议**：改用索引数组 + Float32Array z 缓冲，避免每帧分配：
+  ```js
+  // 预分配 z 缓冲
+  var zBuffer = new Float32Array(stars.length);
+  // 每帧：for 循环填 zBuffer，typed array sort 按引用排序 stars
+  ```
+
+---
+
+### Bug #14 — P3（可访问性：缺 ARIA 语义）
+- **文件**：overlay / title / subtitle
+- **问题**：
+  - overlay 缺 `role="dialog" aria-busy="true" aria-label="Loading"`
+  - title / subtitle 初始 opacity:0，屏幕阅读器在过渡完成后才能感知
+  - `prefers-reduced-motion: reduce` 用户也会看完整 4 秒动画，违反可访问性偏好
+- **建议**：
+  ```js
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-busy', 'true');
+  overlay.setAttribute('aria-label', 'Loading ABDL Space');
+  // 检测 prefers-reduced-motion，缩短到 1s 或跳过
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    FLY_DURATION = 800;
+  }
+  ```
+
+---
+
+### Bug #15 — P3（拖动 inertia 在拖动时无即时反馈）
+- **文件**：`client/public/intro-animation.js:218-225`
+- **问题**：`cameraX/Y *= 0.98; dragVelX/Y *= 0.92;` 衰减系数固定，但**用户松手后立即拖动**时 velocity 被覆盖，无渐入感。
+- **建议**：可加 velocity 上限 `Math.max(-30, Math.min(30, dragVelX))` 避免单帧突变
+
+---
+
+### 灵动性评价（动画视觉效果）
+
+**优点**：
+1. **缓动曲线选择精准** — `cubic-bezier(0.25, 0.1, 0, 1)`（苹果标准 ease-out），相机飞行前 30% 飞过 70% 距离，后 70% 缓停，对应人眼预期，符合"加速进入 → 减速聚合"的视觉节律
+2. **粒子层次** — 2000 星空 + 600 logo 双层，星空 z 范围比 logo 广 2 倍（`SPREAD*2`），营造"前景 logo + 远景星空"层次
+3. **Twinkle 闪烁** — 每星独立 `twinkleSpeed` 0.5-2.5 + `twinkleOffset` 0-2π，避免整齐划一的"假"感
+4. **Morph 节奏** — `morphStart=0.4` 错开相机飞行与粒子聚合，前 40% 让相机先建立"飞行感"，后 60% 才让 logo 显形，节奏感好
+5. **品牌色呼应** — 进度条 `linear-gradient(90deg, #A8D8F0, #FFB7C5)` 粉蓝渐变，标题白 + 副标题灰白，色阶克制不刺眼
+6. **Logo 边缘 vs 填充分层** — `edgeCount = 0.8 * count` 边缘粒子 + 20% 填充，让 logo 先有轮廓再有血肉，符合"先描边后填色"的视觉规律
+7. **连接线在 morph 后期浮现** — `animProgress > 0.6` 才绘制，line alpha 也随 progress 0→0.15 渐入，避免一开始就有"网线"破坏神秘感
+8. **Failsafe 15s** — 兜底防止 React 挂死导致 overlay 永驻
+9. **背景径向渐变** — `#0a0a12` 中心 + `#000000` 边缘，"星云"感而不是平面黑
+10. **拖动 inertia** — `* 0.92` 速度衰减 + `* 0.98` 位置衰减，松手后星空缓慢漂移，符合物理直觉
+
+**改进建议**：
+1. **缺开场"启动"反馈** — 动画启动后 200-300ms 视觉无变化（粒子 z 范围太广、相机在远处），可加 `< 200ms` 的"聚拢提示"（如中心出现一个亮斑扩散）
+2. **Logo 颜色可更"品牌"** — 当前 hue 95-305 含青绿，偏离品牌色。建议 hue 范围 200-340（蓝→粉）单调分布
+3. **结尾"驻留态"略空** — 动画完成到 React ready 中间，星空静止，只有 twinkle。可以让 logo 缓慢自转（如 ±2°/s）或呼吸缩放（scale 0.98-1.02），让用户感到"在等什么"而非"卡住了"
+4. **拖动可加视差** — 当前拖动是相机平移，星空无 z 方向响应；可让 logo 粒子对拖动有反向 inertia 增强"立体感"
+5. **进度条可加点细节** — 当前是底部 2px 渐变细条，过于低调。可在进度条上方加一个跟随光点（"扫描线"效果）
+6. **缺音效可选开关** — 多数产品会给 intro 加 1-2s 的轻微环境音（流星 / 粒子聚拢 "whoosh"），但要尊重浏览器 autoplay 策略和用户偏好
+7. **缺 viewport meta 适配** — iOS Safari 地址栏收缩/展开时 `window.innerHeight` 变化，已有 resize 监听但 canvas 重置没有用 `dpr` 适配，高 DPR 设备会模糊
+
+---
+
+### 总体评价
+
+**视觉设计水平高**：Bezier 缓动、Twinkle 闪烁、Morph 节奏、颜色呼应都体现了对动效细节的把控，是商业级 loading 动画的水准。
+
+**技术债务集中在清理逻辑**：
+- `__introMounted` P0 漏写 → 修复成本 1 行
+- failsafe / tryDismiss 资源清理不完整 → 抽 `cleanup()` 函数 5 行
+- mousedown 跨边界 → window 级监听 2 行
+- React ready 等待期 UX → `pointer-events:none` 1 行
+- CORS 风险 → 配 CDN 头 / 改用 Image / 内联 SVG 三选一
+
+**性能瓶颈在每帧 sort**：2000 元素 .map().sort() 是动画全程最热的部分，但 60fps 现代设备无感知，老移动端可能掉帧。
+
+**建议优先级**：
+1. Bug #1（__introMounted 漏写）— 1 分钟
+2. Bug #4（pointer-events）— 1 分钟，立刻提升 UX
+3. Bug #2/#6/#11（cleanup 抽函数）— 10 分钟
+4. Bug #3（window mouseup）— 5 分钟
+5. Bug #5（CORS）— 配 CDN 头 5 分钟
+6. Bug #7（tick 启动延后）— 2 分钟
+7. Bug #10（hue 归一化）— 2 分钟
+8. Bug #8（edgePoints 空保护）— 3 分钟
+9. Bug #12（z 边界软化）— 3 分钟
+10. Bug #13（typed array 优化）— 30 分钟
+11. Bug #14（a11y）— 15 分钟
