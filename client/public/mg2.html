@@ -11,6 +11,7 @@
   .overlay {
     position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
     text-align: center; z-index: 10; pointer-events: none;
+    width: 90%; max-width: 600px;
   }
   .overlay h1 {
     font-size: 2rem; font-weight: 700; color: #fff;
@@ -27,6 +28,14 @@
     position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
     color: rgba(255,255,255,0.3); font-size: 0.85rem; z-index: 10;
     pointer-events: none; transition: opacity 0.5s ease;
+    white-space: nowrap;
+  }
+  @media (max-width: 768px) {
+    .overlay { bottom: 24px; }
+    .overlay h1 { font-size: 1.4rem; }
+    .overlay p { font-size: 0.8rem; margin-top: 4px; }
+    .hint { font-size: 0.75rem; }
+    .progress-bar { height: 1px; }
   }
   .progress-bar {
     position: fixed; bottom: 0; left: 0; height: 2px;
@@ -254,8 +263,8 @@ async function loadLogoPoints(count) {
           if (!filled[y * sampleSize + x]) continue;
           const isEdge = !filled[(y-1)*sampleSize+x] || !filled[(y+1)*sampleSize+x] ||
                          !filled[y*sampleSize+x-1] || !filled[y*sampleSize+x+1];
-          const px = (x - sampleSize/2) * 0.7;
-          const py = (y - sampleSize/2) * 0.7;
+          const px = (x - sampleSize/2) * 0.5;
+          const py = (y - sampleSize/2) * 0.5;
           if (isEdge) edgePoints.push({ x: px, y: py });
           else fillPoints.push({ x: px, y: py });
         }
@@ -283,7 +292,7 @@ async function loadLogoPoints(count) {
       const result = [];
       for (let i = 0; i < count; i++) {
         const angle = (i / count) * Math.PI * 2;
-        result.push({ x: Math.cos(angle) * 150, y: Math.sin(angle) * 150 });
+        result.push({ x: Math.cos(angle) * 100, y: Math.sin(angle) * 100 });
       }
       logoPointsCache = result;
       resolve(result);
