@@ -218,8 +218,8 @@
         animProgress = 1; isAnimating = false; isComplete = true;
         overlay.style.pointerEvents = 'none';
         setTimeout(function () { title.style.opacity='1'; title.style.transform='translateY(0)'; subtitle.style.opacity='1'; }, 300);
-        // ALWAYS dismiss 2.5s after animation ends (title 0.8s + subtitle delay 0.4s + 0.6s + buffer)
-        setTimeout(fadeOutAndCleanup, 2500);
+        // Dismiss 5s after animation ends — give time to see the title
+        setTimeout(fadeOutAndCleanup, 5000);
       }
     }
     requestAnimationFrame(flyTick);
