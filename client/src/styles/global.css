@@ -475,7 +475,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   display: flex; height: 100vh; overflow: hidden;
 }
 .app-main-content {
-  flex: 1; min-width: 0; min-height: 0; overflow-y: auto;
+  flex: 1; min-width: 0; min-height: 0; overflow-x: hidden; overflow-y: auto;
 }
 
 /* ====== MIUI 风格标签栏 ====== */
@@ -719,6 +719,8 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   display: flex;
   gap: 0;
   min-height: 100vh;
+  width: 100%;
+  overflow: hidden;
 }
 .home-feed {
   width: 600px;
@@ -728,7 +730,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 }
 .home-right {
   width: clamp(280px, 25vw, 400px);
-  flex-shrink: 0;
+  flex-shrink: 1;
   position: sticky;
   top: 0;
   height: 100vh;
