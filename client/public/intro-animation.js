@@ -335,17 +335,33 @@
         requestAnimationFrame(flyTick);
       } else {
         animProgress = 1;
-        isAnimating = false;
-        overlay.style.pointerEvents = 'none';
-        // Show title/subtitle
-        setTimeout(function () {
-          title.style.opacity = '1';
-          title.style.transform = 'translateY(0)';
-          subtitle.style.opacity = '1';
-        }, 300);
-        isComplete = true;
-        // Try to finish: show buttons or dismiss
-        scheduleFinish();
+        // If React already loaded during animation, we're done
+        if (reactReady) {
+          isAnimating = false;
+          isComplete = true;
+          overlay.style.pointerEvents = 'none';
+          setTimeout(function () {
+            title.style.opacity = '1';
+            title.style.transform = 'translateY(0)';
+            subtitle.style.opacity = '1';
+          }, 300);
+          // Not logged in or not full anim: wait 1s then enter
+          if (!fullAnim || !shouldShowButtons()) {
+            dismissTimer = setTimeout(fadeOutAndCleanup, 1000);
+          }
+          // Logged in + full anim: buttons already showing, let them handle
+        } else {
+          // React not ready yet, keep overlay visible
+          isAnimating = false;
+          isComplete = true;
+          overlay.style.pointerEvents = 'none';
+          setTimeout(function () {
+            title.style.opacity = '1';
+            title.style.transform = 'translateY(0)';
+            subtitle.style.opacity = '1';
+          }, 300);
+          // scheduleFinish will be called when __introReady fires
+        }
       }
     }
     requestAnimationFrame(flyTick);
@@ -391,18 +407,19 @@
     }, 800);
   }
 
-  // --- Finish logic: called when both animation done AND React ready ---
+  // --- Finish logic (called from __introReady) ---
   function scheduleFinish() {
-    if (!isComplete || !reactReady) return;
-    // In full anim mode, logged-in users get skip buttons
-    if (fullAnim && shouldShowButtons()) {
-      skipBtnTimer = setTimeout(showSkipButtons, 500);
-      // Also set a dismiss fallback in case buttons don't appear
-      dismissTimer = setTimeout(function () {
-        if (!skipBtnWrap) fadeOutAndCleanup();
-      }, 3000);
-    } else {
-      // Not logged in or not full anim: wait 1s then dismiss
+    // If animation still playing → show skip buttons (if logged in + full anim)
+    if (isAnimating && fullAnim && shouldShowButtons()) {
+      if (!skipBtnWrap && !skipBtnTimer) {
+        skipBtnTimer = setTimeout(showSkipButtons, 500);
+      }
+      return;
+    }
+    // If animation already done → buttons may already be showing, or dismiss
+    if (isComplete) {
+      if (skipBtnWrap) return; // user will click skip
+      // No buttons (not logged in or not full anim): wait 1s then enter
       dismissTimer = setTimeout(fadeOutAndCleanup, 1000);
     }
   }
