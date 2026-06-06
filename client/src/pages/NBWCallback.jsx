@@ -213,13 +213,13 @@ export default function NBWCallback() {
         }}
       >
         <div className="card max-w-md mx-auto" style={{ position: 'relative', overflow: 'hidden' }}>
-          {/* NBW 背景图标 */}
+          {/* NBW 背景图标（位于卡片底部，不与用户信息行冲突） */}
           <img
             src={NBW_LOGO}
             alt=""
             style={{
-              position: 'absolute', top: -20, right: -20,
-              width: 150, height: 150, opacity: 0.12,
+              position: 'absolute', bottom: -10, right: -10,
+              width: 80, height: 80, opacity: 0.15,
               pointerEvents: 'none', userSelect: 'none',
               objectFit: 'contain',
             }}

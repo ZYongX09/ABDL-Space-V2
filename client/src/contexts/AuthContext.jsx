@@ -286,6 +286,18 @@ export function AuthProvider({ children }) {
         const data = await res.json();
         const u = data.user || data;
         setUser(u);
+        // 同步更新已保存账户列表（修复 NBW 登录后未出现在账户列表的问题）
+        setActiveAccountId(u.id);
+        const saved = getSavedAccounts();
+        const exists = saved.findIndex(a => a.id === u.id);
+        let updated;
+        if (exists >= 0) {
+          updated = saved.map(a => a.id === u.id ? { ...a, username: u.username, avatar: u.avatar, role: u.role } : a);
+        } else {
+          updated = [...saved, { id: u.id, username: u.username, avatar: u.avatar, role: u.role }];
+        }
+        saveAccounts(updated);
+        setAccounts(updated);
       }
     } catch {}
   }, []);
