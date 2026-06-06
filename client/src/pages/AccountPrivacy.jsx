@@ -71,7 +71,7 @@ export default function AccountPrivacy() {
         <EmailSection user={user} toast={toast} />
 
         {/* 第三方账户绑定 */}
-        <NBWBindSection user={user} toast={toast} />
+        <NBWBindSection user={user} toast={toast} onUserChange={refreshUser} />
 
         {/* OAuth 授权管理 */}
         <OAuthTokensSection toast={toast} />
@@ -320,8 +320,9 @@ function EmailSection({ user, toast }) {
 }
 
 // NewBabyWorld 账户绑定组件
-function NBWBindSection({ user, toast }) {
+function NBWBindSection({ user, toast, onUserChange }) {
   const [binding, setBinding] = useState(false);
+  const [unbinding, setUnbinding] = useState(false);
   const [nbwReady, setNbwReady] = useState(isNBWConfigured());
   const isBound = !!user?.nbw_uid;
   const nbwUsername = user?.nbw_username;
@@ -329,6 +330,27 @@ function NBWBindSection({ user, toast }) {
   useEffect(() => {
     whenNBWReady().then(() => setNbwReady(isNBWConfigured())).catch(() => {});
   }, []);
+
+  const handleUnbind = async () => {
+    if (!confirm(`确定解绑「宝宝新天地」账户${nbwUsername ? `（@${nbwUsername}）` : ''}？\n\n解绑后将无法使用该账户登录。`)) return;
+    setUnbinding(true);
+    try {
+      const API_BASE = import.meta.env.VITE_API_BASE || '';
+      const res = await fetch(`${API_BASE}/api/auth/nbw/unbind`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '解绑失败');
+      toast.success('已解绑宝宝新天地账户');
+      if (typeof onUserChange === 'function') onUserChange();
+      else window.location.reload();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setUnbinding(false);
+    }
+  };
 
   return (
     <div className="card mb-5">
@@ -350,9 +372,20 @@ function NBWBindSection({ user, toast }) {
           </div>
         </div>
         {isBound ? (
-            <span className="text-xs px-3 py-1.5 rounded-lg" style={{ background: 'rgba(6,214,160,0.1)', color: 'var(--success)' }}>
-              <i className="fa-solid fa-check mr-1" />已绑定{nbwUsername ? ` · @${nbwUsername}` : ''}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs px-3 py-1.5 rounded-lg hidden sm:inline-block" style={{ background: 'rgba(6,214,160,0.1)', color: 'var(--success)' }}>
+                <i className="fa-solid fa-check mr-1" />已绑定
+              </span>
+              <button
+                className="btn btn-outline btn-sm"
+                style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                onClick={handleUnbind}
+                disabled={unbinding}
+                title="解绑宝宝新天地账户"
+              >
+                {unbinding ? <i className="fa-solid fa-spinner fa-spin" /> : <><i className="fa-solid fa-unlink mr-1" />解绑</>}
+              </button>
+            </div>
           ) : nbwReady ? (
             <button
               className="btn btn-outline btn-sm"

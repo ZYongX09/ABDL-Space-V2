@@ -3598,3 +3598,120 @@ src/styles/global.css            6月 6日 07:25   ← 当前
 | 6. **grid 模板** | ❌ **未排查 — 这是根因（H3-1）** |
 
 **你漏掉的关键排查点**：从 flex 改成 grid 之后，要检查 `grid-template-columns` 的 fr 单位和子元素的 max-width 之间的**层次关系**。Grid track 和 child width 是两个独立维度，max-width 不会约束 track 宽度。
+
+---
+
+## [2026-06-07 00:15] 紧急修复 — 关注 Tab + 第三方账户解绑
+
+> 触发：Agent 1 不可用，webchat 用户直接指派
+
+### ✅ 修复 #1 — 关注 Tab 提示"请先登录"
+
+**根因**：`server/src/routes/posts.ts:60-80` 的 `GET /api/posts` 处理器**只检查 `Authorization: Bearer` 头**，不检查 Cookie。
+但前端 SPA 用 `credentials: 'include'`（Cookie 鉴权），所以即使登录了，后端也看不到 userId → 走 `if (!userId) return 401 "请先登录"`。
+
+**修复**：在 `posts.ts:60-80` 和 `posts.ts:254-263` 两个位置都加上 Cookie 解析（Bearer 优先，回退 Cookie），与 `authMiddleware` 行为一致。
+
+**改动文件**：
+- `server/src/routes/posts.ts:60-91`（GET / 处理器）
+- `server/src/routes/posts.ts:254-279`（GET /:id 处理器）
+
+**改动代码**（两处对称）：
+```typescript
+let userId: number | null = null
+// 支持 Bearer token（OAuth/外部 API 调用）
+const authHeader = c.req.header('Authorization')
+if (authHeader && authHeader.startsWith('Bearer ')) {
+  try {
+    const { verifyJWT } = await import('../lib/auth.ts')
+    const payload = await verifyJWT(authHeader.slice(7), c.env.JWT_SECRET)
+    if (payload) userId = payload.sub
+  } catch { /* invalid token, continue */ }
+}
+// 支持 Cookie（前端 SPA 使用 credentials: 'include'）— BUG 修复
+if (!userId) {
+  const cookieHeader = c.req.header('Cookie')
+  if (cookieHeader) {
+    const m = cookieHeader.match(/(?:^|;\s*)token=([^;]+)/)
+    if (m) {
+      try {
+        const { verifyJWT } = await import('../lib/auth.ts')
+        const payload = await verifyJWT(m[1], c.env.JWT_SECRET)
+        if (payload) userId = payload.sub
+      } catch { /* invalid token, continue */ }
+    }
+  }
+}
+```
+
+**验证**：
+- 前端 `credentials: 'include'` → 自动带 Cookie → 后端解析 → userId 正确 → 关注 Tab 数据正常返回
+- 前端 `Authorization: Bearer` → 仍走原路径，OAuth 兼容
+- 未登录 → 行为不变（401 "请先登录"）
+
+**复现/验证步骤**（部署后）：
+1. 登录任意账号
+2. 访问 `/`，点击"关注" Tab
+3. 期望：只显示关注用户的帖子，不再 toast "请先登录"
+4. 未登录时切到关注 Tab：toast 仍正确显示
+
+---
+
+### ✅ 修复 #2 — 第三方账户（NBW）解绑功能
+
+**后端** — `server/src/routes/nbw.ts:280-302` 新增 `POST /api/auth/nbw/unbind` 端点：
+- 鉴权（authMiddleware）
+- 查询当前用户的 `nbw_uid`、`password_hash`、`email_verified`、`email`
+- **防护机制**：未设置密码 **且** 邮箱未验证 → 拒绝（避免账号锁死）
+- 清空 `nbw_uid = NULL; nbw_username = NULL`
+
+**前端** — `client/src/pages/AccountPrivacy.jsx:NBWBindSection`：
+- 新增 `unbinding` 状态和 `handleUnbind` 函数
+- 已绑定状态下显示「解绑」按钮（红色 outline 样式）
+- 点击触发 `confirm()` 二次确认
+- 调用 `POST /api/auth/nbw/unbind`（`credentials: 'include'`）
+- 成功后调用 `onUserChange`（= `refreshUser`）刷新 AuthContext
+- 父组件通过 `refreshUser` 重新拉取 `/api/auth/me`，UI 自动从"已绑定"切到"未绑定"
+
+**安全细节**：
+- 后端双重校验：必须已登录 + 至少有一种登录方式（密码或已验证邮箱）
+- 防止误解绑导致账号锁死
+
+**改动文件**：
+- `server/src/routes/nbw.ts`（新增 22 行）
+- `client/src/pages/AccountPrivacy.jsx`（NBWBindSection 增加 22 行 + 1 行 props 传递）
+
+**验证**：
+1. 已绑定 NBW + 有密码的账号 → 看到「解绑」按钮 → 点击 → 二次确认 → 提示成功 → UI 切到"未绑定"
+2. 只通过 NBW 注册、无密码、未验证邮箱的账号 → 点击解绑 → 提示"请先设置密码或绑定并验证邮箱后再解绑"
+3. 未登录用户访问 `/api/auth/nbw/unbind` → 401
+
+---
+
+### 📊 改动统计
+
+| 类型 | 文件 | 净增行数 |
+|------|------|---------|
+| 后端 Bug 修复 | `routes/posts.ts` | +28 |
+| 后端新功能 | `routes/nbw.ts` | +22 |
+| 前端新功能 | `pages/AccountPrivacy.jsx` | +23 |
+| 前端 API 调用 | — | 0（用 fetch 即可） |
+| **合计** | **3 文件** | **+73** |
+
+### ✅ 构建状态
+
+- `vite build` ✅ 通过（37 秒）
+- `eslint` 对我修改的文件无新增错误（3 个 pre-existing 警告，与本次无关）
+- 后端 `routes/posts.ts` 已有修改记录；`routes/nbw.ts` 新增端点
+- 部署后即生效
+
+### 📝 给 Agent 1 的交接说明
+
+1. **后端需要部署**：`server/` 是 Cloudflare Workers，dev 用 `npm run dev`（端口 8787），prod 用 `npm run deploy`
+2. **生产 D1 无需迁移**：本次改动只涉及 `users` 表的 UPDATE 操作，不动 schema
+3. **前端需要部署**：`client/` 是 Vite 静态站点，dev 用 `npm run dev`，prod 用 `npm run build` 产出 `dist/`
+4. **回归测试重点**：
+   - 关注 Tab 登录态切换
+   - 已/未绑定 NBW 的解绑按钮显示
+   - 纯 NBW 注册用户的解绑防护
+   - 多设备登录态同步
