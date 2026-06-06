@@ -32,6 +32,13 @@ function weightedScore(rating, isBaby) {
 // ====== 通用 fetch ======
 async function apiFetch(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
+  // 自动附加 Authorization header（从 localStorage 读取 token）
+  try {
+    const accounts = JSON.parse(localStorage.getItem('abdl_accounts') || '[]');
+    const activeId = localStorage.getItem('abdl_active_account');
+    const active = accounts.find(a => String(a.id) === String(activeId));
+    if (active?.token) headers['Authorization'] = `Bearer ${active.token}`;
+  } catch {}
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: 'include' });
   if (res.status === 204) return null;
   const text = await res.text();
