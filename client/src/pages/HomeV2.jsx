@@ -32,9 +32,12 @@ export default function HomeV2() {
   const toast = useToast();
   const navigate = useNavigate();
 
+  const [needLogin, setNeedLogin] = useState(false);
+
   const loadPosts = useCallback(async (pageNum = 1, append = false) => {
     try {
       if (append) setLoadingMore(true); else setLoading(true);
+      setNeedLogin(false);
       const filter = activeTab === 'following' ? 'following' : undefined;
       const data = await forumAPI.feed({
         page: pageNum,
@@ -47,12 +50,17 @@ export default function HomeV2() {
       setHasMore(newPosts.length >= 20);
       setPage(pageNum);
     } catch (e) {
-      toast.error(e.message);
+      if (activeTab === 'following' && !user) {
+        setNeedLogin(true);
+        setPosts([]);
+      } else {
+        toast.error(e.message);
+      }
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [activeTab]);
+  }, [activeTab, user]);
 
   // 初始加载 + tab切换重新加载
   useEffect(() => {
@@ -130,12 +138,8 @@ export default function HomeV2() {
   }, [loadPosts]);
 
   const handleTabChange = useCallback((tab) => {
-    if (tab === 'following' && !user) {
-      toast.error('请先登录');
-      return;
-    }
     setActiveTab(tab);
-  }, [user]);
+  }, []);
 
   return (
     <>
@@ -153,13 +157,21 @@ export default function HomeV2() {
           <PullToRefresh onRefresh={() => loadPosts(1)}>
             {loading ? (
               <LoadingSkeleton count={4} height={100} />
+            ) : needLogin ? (
+              <div className="card text-center py-8">
+                <i className="fa-solid fa-user-group text-3xl mb-3" style={{ color: 'var(--text-muted)' }} />
+                <p className="text-sm mb-3" style={{ color: 'var(--text-light)' }}>登录后查看关注用户的帖子</p>
+                <button className="btn btn-primary btn-sm" onClick={() => navigate('/login')}>
+                  <i className="fa-solid fa-right-to-bracket mr-1" /> 去登录
+                </button>
+              </div>
             ) : posts.length === 0 ? (
               <EmptyState
                 icon={activeTab === 'following' ? 'fa-user-group' : 'fa-comments'}
                 title={activeTab === 'following' ? '暂无关注内容' : '暂无帖子'}
                 description={activeTab === 'following' ? '关注一些用户后这里会显示他们的帖子' : '快来发第一帖吧！'}
               />
-            ) : (
+            ) : (  
               <div className="space-y-4 miui-list-enter">
                 {posts.map(post => (
                   <PostCard

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import EditProfile from '../components/EditProfile';
 import VerificationInput from '../components/VerificationInput';
@@ -326,6 +326,7 @@ function NBWBindSection({ user, toast, onUserChange }) {
   const [nbwReady, setNbwReady] = useState(isNBWConfigured());
   const isBound = !!user?.nbw_uid;
   const nbwUsername = user?.nbw_username;
+  const navigate = useNavigate();
 
   useEffect(() => {
     whenNBWReady().then(() => setNbwReady(isNBWConfigured())).catch(() => {});
@@ -346,7 +347,13 @@ function NBWBindSection({ user, toast, onUserChange }) {
       if (typeof onUserChange === 'function') onUserChange();
       else window.location.reload();
     } catch (e) {
-      toast.error(e.message);
+      if (e.message && e.message.includes('设置密码或绑定并验证邮箱')) {
+        if (confirm('当前账户未设置密码，解绑后无法登录。\n\n是否前往设置密码？')) {
+          navigate('/forgot-password');
+        }
+      } else {
+        toast.error(e.message);
+      }
     } finally {
       setUnbinding(false);
     }
