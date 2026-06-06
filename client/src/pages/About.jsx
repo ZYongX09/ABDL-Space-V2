@@ -306,9 +306,28 @@ export default function About() {
           <i className="fa-solid fa-heart mr-2" style={{ color: 'var(--accent)' }} />
           支持我们
         </h3>
-        <p className="text-sm mb-4" style={{ color: 'var(--text-light)' }}>
+        <p className="text-sm mb-3" style={{ color: 'var(--text-light)' }}>
           如果你觉得 ABDL Space 对你有帮助，欢迎捐赠我们哦~ 🍼
         </p>
+        {/* 爱发电官方认证提示 */}
+        <div
+          className="flex items-start gap-2 p-3 rounded-xl mb-4"
+          style={{ background: 'rgba(147, 51, 234, 0.08)', border: '1px solid rgba(147, 51, 234, 0.25)', position: 'relative' }}
+        >
+          <i className="fa-solid fa-shield-halved mt-0.5 text-sm flex-shrink-0" style={{ color: '#9333ea' }} />
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-light)' }}>
+            ABDL Space 已通过爱发电平台官方创作者认证，请认准创作者
+            <a
+              href={externalLinkUrl('https://www.ifdian.net/a/ZYongX')}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#9333ea', textDecoration: 'underline', fontWeight: 700, marginLeft: 4 }}
+            >
+              @ZYongX
+            </a>
+            ，谨防仿冒
+          </p>
+        </div>
         <div className="space-y-3">
           {/* 捐赠选择1 */}
           <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--input-bg)' }}>
