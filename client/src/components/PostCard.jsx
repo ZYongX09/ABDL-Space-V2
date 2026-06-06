@@ -76,34 +76,51 @@ function PostCardInner({ post, onLike, onFollow, followMap, compact = false }) {
           </div>
         )}
 
-        {/* 转发提示行 */}
+        {/* 转发帖子：转发者头像+用户名+时间 */}
         {isRepost && (
-          <div className="post-repost-indicator" style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <i className="fa-solid fa-retweet" />
-            <Link to={`/user/${repostUser.id}`} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
-              {repostUser.username}
-            </Link>
-            <span>转发了</span>
-          </div>
-        )}
+          <>
+            {/* 转发者信息行（和普通帖子一样） */}
+            <div className="flex items-center gap-3" style={{ marginBottom: '8px' }}>
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 overflow-hidden"
+                style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}
+              >
+                {repostUser.avatar
+                  ? <img src={repostUser.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                  : repostUser.username?.[0]?.toUpperCase() || '?'
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Link to={`/user/${repostUser.id}`} className="font-semibold hover:underline whitespace-nowrap" style={{ color: 'var(--text)', fontSize: '14px' }}>
+                    {repostUser.username}
+                  </Link>
+                  {repostUser.role === 'admin' && <OfficialBadge className="flex-shrink-0" />}
+                  <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>·</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{relativeTime(post.created_at)}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '12px', marginLeft: '4px' }}>
+                    <i className="fa-solid fa-retweet" /> 转发
+                  </span>
+                </div>
+              </div>
+            </div>
 
-        {/* 原帖内容（如果是转发，显示嵌套卡片） */}
-        {isRepost ? (
-          <div className="post-repost-embed" style={{
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius)',
-            padding: '12px',
-            marginBottom: post.content ? '8px' : '0',
-          }}>
-            <PostContent post={displayPost} compact followMap={followMap} onFollow={onFollow} mini />
-          </div>
-        ) : null}
+            {/* 转发者的评论（在原帖卡片上面） */}
+            {post.content && (
+              <p className="whitespace-pre-wrap break-words" style={{ fontSize: '15px', marginBottom: '12px' }}>
+                <RichContent text={post.content} />
+              </p>
+            )}
 
-        {/* 当前帖子的评论内容（转发附带的评论在上方） */}
-        {isRepost && post.content && (
-          <p className="whitespace-pre-wrap break-words mb-2" style={{ fontSize: '15px' }}>
-            <RichContent text={post.content} />
-          </p>
+            {/* 原帖嵌套卡片 */}
+            <div className="post-repost-embed" style={{
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)',
+              padding: '12px',
+            }}>
+              <PostContent post={displayPost} compact followMap={followMap} onFollow={onFollow} mini />
+            </div>
+          </>
         )}
 
         {/* 非转发帖子的完整内容 */}
