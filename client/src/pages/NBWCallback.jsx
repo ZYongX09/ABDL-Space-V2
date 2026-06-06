@@ -14,7 +14,7 @@ const NBW_LOGO = 'https://img.abdl-space.top/file/nbwlogo.png';
 export default function NBWCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login: authLogin } = useAuth();
+  const { login: authLogin, refreshUser } = useAuth();
   const toast = useToast();
   const handledRef = useRef(false);
 
@@ -87,6 +87,8 @@ export default function NBWCallback() {
         const result = await exchangeNBWCode(code);
         if (result.action === 'login') {
           toast.success('登录成功');
+          // 同步前端用户状态（后端已 set cookie）
+          await refreshUser();
           if (fromMobile) {
             mobileRedirect('/');
           } else {
@@ -198,9 +200,31 @@ export default function NBWCallback() {
 
     // 选择模式
     return (
-      <PageLayout hero={{ icon: 'fa-right-to-bracket', title: '关联账户', subtitle: '宝宝新天地账号授权' }}>
-        <div className="card max-w-md mx-auto">
-          <div className="flex items-center gap-3 mb-5 p-3 rounded-lg" style={{ background: 'var(--input-bg)' }}>
+      <PageLayout
+        hero={{
+          icon: 'fa-right-to-bracket',
+          title: '关联账户',
+          subtitle: (
+            <span className="inline-flex items-center gap-2">
+              <img src={NBW_LOGO} alt="" style={{ width: 22, height: 22, borderRadius: 6, objectFit: 'contain' }} />
+              宝宝新天地账号授权
+            </span>
+          ),
+        }}
+      >
+        <div className="card max-w-md mx-auto" style={{ position: 'relative', overflow: 'hidden' }}>
+          {/* NBW 背景图标 */}
+          <img
+            src={NBW_LOGO}
+            alt=""
+            style={{
+              position: 'absolute', top: -20, right: -20,
+              width: 150, height: 150, opacity: 0.12,
+              pointerEvents: 'none', userSelect: 'none',
+              objectFit: 'contain',
+            }}
+          />
+          <div className="flex items-center gap-3 mb-5 p-3 rounded-lg" style={{ background: 'var(--input-bg)', position: 'relative' }}>
             <img src={nbwUser.avatar || NBW_LOGO} alt="" className="w-10 h-10 rounded-full object-cover" />
             <div>
               <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>@{nbwUser.username}</div>
