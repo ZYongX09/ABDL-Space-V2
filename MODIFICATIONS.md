@@ -5,6 +5,23 @@
 
 ## 2026-06-07
 
+### 23:15 — v2.22.0 电脑端全站布局重构
+- **类型**：UI 优化
+- **内容**：
+  - 新增通用 `page-container` CSS 类（max-width 1024px），所有 PageLayout 页面自动居中
+  - 新增 `SettingsLayout` 组件，电脑端采用「左菜单 + 右内容」双栏布局（移动端自动单列）
+  - Settings、AccountPrivacy 重构为 sections（带 id）+ 滚动定位
+  - NotificationsPage 重构为「类型过滤菜单 + 通知列表」双栏（前端过滤）
+  - MessagesPage 私信容器加 max-width 1200px 居中
+  - 登录页、注册页等表单页保持原样未动
+- **涉及文件**：
+  - 新增 `client/src/components/SettingsLayout.jsx`
+  - 重写 `client/src/pages/Settings.jsx`
+  - 重写 `client/src/pages/AccountPrivacy.jsx`
+  - 重写 `client/src/pages/NotificationsPage.jsx`
+  - 修改 `client/src/components/PageLayout.jsx`（加 page-container 包裹）
+  - 修改 `client/src/styles/global.css`（page-container + settings-layout CSS）
+
 ### 22:18 — v2.21.1 支持我们模块新增爱发电创作者认证提示
 - **类型**：功能增强
 - **内容**：About 页"支持我们"模块新增紫色提示框，引导用户认准爱发电创作者 @ZYongX，谨防仿冒

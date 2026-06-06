@@ -67,7 +67,9 @@ export default function PageLayout({ hero, children }) {
           </div>
         </div>
       )}
-      {children}
+      <div className="page-container">
+        {children}
+      </div>
     </div>
   );
 }

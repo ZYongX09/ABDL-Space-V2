@@ -4,7 +4,7 @@ import { externalLinkUrl } from '../utils/externalLink';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
-const VERSION = '2.21.1';
+const VERSION = '2.22.0';
 const LAST_UPDATE = '2026-06-07';
 
 const CHANGELOG = [

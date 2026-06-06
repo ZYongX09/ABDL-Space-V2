@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
+import SettingsLayout from '../components/SettingsLayout';
 import EditProfile from '../components/EditProfile';
 import VerificationInput from '../components/VerificationInput';
 
@@ -10,6 +11,16 @@ import { authAPI } from '../api';
 import { isNBWConfigured, whenNBWReady, startNBWBind } from '../utils/nbwOAuth';
 
 const NBW_LOGO = 'https://img.abdl-space.top/file/nbwlogo.png';
+
+const MENU = [
+  { id: 'section-profile', label: '个人资料', icon: 'fa-user-pen' },
+  { id: 'section-email', label: '邮箱', icon: 'fa-envelope' },
+  { id: 'section-nbw', label: '第三方账户', icon: 'fa-link' },
+  { id: 'section-oauth', label: '授权管理', icon: 'fa-puzzle-piece' },
+  { id: 'section-password', label: '密码', icon: 'fa-lock' },
+  { id: 'section-privacy', label: '隐私条款', icon: 'fa-shield-halved' },
+  { id: 'section-other', label: '其他', icon: 'fa-gear' },
+];
 
 export default function AccountPrivacy() {
   const { user, refreshUser, logout, accounts, switchAccount } = useAuth();
@@ -40,131 +51,132 @@ export default function AccountPrivacy() {
   return (
     <>
       <PageLayout hero={{ icon: 'fa-user-shield', title: '账户与隐私', subtitle: '管理你的账户信息和隐私设置' }}>
-
-        {/* 编辑资料 */}
-        <div className="card mb-5">
-          <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
-            <i className="fa-solid fa-user-pen mr-2" style={{ color: 'var(--primary-dark)' }} />
-            个人资料
-          </h3>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold overflow-hidden"
-                style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
-                {user.avatar
-                  ? <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
-                  : user.username?.[0]?.toUpperCase()
-                }
+        <SettingsLayout menu={MENU}>
+          {/* 个人资料 */}
+          <div id="section-profile" className="card mb-5">
+            <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
+              <i className="fa-solid fa-user-pen mr-2" style={{ color: 'var(--primary-dark)' }} />
+              个人资料
+            </h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold overflow-hidden"
+                  style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
+                  {user.avatar
+                    ? <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                    : user.username?.[0]?.toUpperCase()
+                  }
+                </div>
+                <div>
+                  <div className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{user.username}</div>
+                  <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{user.email || '未设置邮箱'}</div>
+                </div>
               </div>
-              <div>
-                <div className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{user.username}</div>
-                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{user.email || '未设置邮箱'}</div>
-              </div>
+              <button className="btn btn-outline btn-sm" onClick={() => setShowEdit(true)}>
+                <i className="fa-solid fa-pen-to-square mr-1" /> 编辑
+              </button>
             </div>
-            <button className="btn btn-outline btn-sm" onClick={() => setShowEdit(true)}>
-              <i className="fa-solid fa-pen-to-square mr-1" /> 编辑
+          </div>
+
+          {/* 邮箱管理 */}
+          <EmailSection user={user} toast={toast} />
+
+          {/* 第三方账户绑定 */}
+          <NBWBindSection user={user} toast={toast} onUserChange={refreshUser} />
+
+          {/* OAuth 授权管理 */}
+          <OAuthTokensSection toast={toast} />
+
+          {/* 密码与安全 */}
+          <div id="section-password" className="card mb-5">
+            <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
+              <i className="fa-solid fa-lock mr-2" style={{ color: 'var(--primary-dark)' }} />
+              密码与安全
+            </h3>
+            <Link to="/forgot-password" className="flex items-center justify-between py-2 group">
+              <div>
+                <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>修改密码</div>
+                <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>通过邮箱验证码重置密码</div>
+              </div>
+              <i className="fa-solid fa-chevron-right text-xs" style={{ color: 'var(--text-muted)' }} />
+            </Link>
+          </div>
+
+          {/* 隐私与条款 */}
+          <div id="section-privacy" className="card mb-5">
+            <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
+              <i className="fa-solid fa-shield-halved mr-2" style={{ color: 'var(--primary-dark)' }} />
+              隐私与条款
+            </h3>
+            <div className="space-y-1">
+              {[
+                { to: '/privacy', icon: 'fa-file-shield', label: '隐私政策' },
+                { to: '/terms', icon: 'fa-file-contract', label: '用户协议' },
+                { to: '/cookies', icon: 'fa-cookie-bite', label: 'Cookie 政策' },
+              ].map(item => (
+                <Link key={item.to} to={item.to} className="flex items-center justify-between py-2.5 group">
+                  <div className="flex items-center gap-3">
+                    <i className={`fa-solid ${item.icon}`} style={{ color: 'var(--text-muted)', width: '16px', textAlign: 'center' }} />
+                    <span className="text-sm" style={{ color: 'var(--text)' }}>{item.label}</span>
+                  </div>
+                  <i className="fa-solid fa-chevron-right text-xs" style={{ color: 'var(--text-muted)' }} />
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* 其他设置 */}
+          <div id="section-other" className="card mb-5">
+            <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
+              <i className="fa-solid fa-gear mr-2" style={{ color: 'var(--primary-dark)' }} />
+              其他设置
+            </h3>
+            <Link to="/settings" className="flex items-center justify-between py-2 group">
+              <div>
+                <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>应用设置</div>
+                <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>主题、内容安全、快捷键</div>
+              </div>
+              <i className="fa-solid fa-chevron-right text-xs" style={{ color: 'var(--text-muted)' }} />
+            </Link>
+          </div>
+
+          {/* 移动端：账号操作 */}
+          <div className="account-mobile-actions">
+            {accounts.length > 1 && (
+              <div className="card mb-3">
+                <h3 className="font-bold mb-3" style={{ color: 'var(--text)' }}>
+                  <i className="fa-solid fa-users mr-2" style={{ color: 'var(--primary-dark)' }} />
+                  切换账号
+                </h3>
+                <div className="space-y-2">
+                  {accounts.filter(a => String(a.id) !== String(user.id)).map(a => (
+                    <button
+                      key={a.id}
+                      className="w-full flex items-center gap-3 py-2 px-3 rounded-lg transition-all hover:opacity-80"
+                      style={{ background: 'var(--input-bg)', border: 'none', cursor: 'pointer' }}
+                      onClick={async () => {
+                        try { await switchAccount(a.id); } catch { toast.info('切换账户需要重新登录'); }
+                      }}
+                    >
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
+                        {a.avatar ? <img src={a.avatar} alt="" className="w-full h-full rounded-full object-cover" /> : a.username?.[0]?.toUpperCase()}
+                      </div>
+                      <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{a.username}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <button
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg transition-all hover:opacity-80"
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--danger)', cursor: 'pointer' }}
+              onClick={logout}
+            >
+              <i className="fa-solid fa-right-from-bracket" />
+              <span className="text-sm font-medium">退出登录</span>
             </button>
           </div>
-        </div>
-
-        {/* 邮箱管理 */}
-        <EmailSection user={user} toast={toast} />
-
-        {/* 第三方账户绑定 */}
-        <NBWBindSection user={user} toast={toast} onUserChange={refreshUser} />
-
-        {/* OAuth 授权管理 */}
-        <OAuthTokensSection toast={toast} />
-
-        {/* 密码与安全 */}
-        <div className="card mb-5">
-          <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
-            <i className="fa-solid fa-lock mr-2" style={{ color: 'var(--primary-dark)' }} />
-            密码与安全
-          </h3>
-          <Link to="/forgot-password" className="flex items-center justify-between py-2 group">
-            <div>
-              <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>修改密码</div>
-              <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>通过邮箱验证码重置密码</div>
-            </div>
-            <i className="fa-solid fa-chevron-right text-xs" style={{ color: 'var(--text-muted)' }} />
-          </Link>
-        </div>
-
-        {/* 隐私与条款 */}
-        <div className="card mb-5">
-          <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
-            <i className="fa-solid fa-shield-halved mr-2" style={{ color: 'var(--primary-dark)' }} />
-            隐私与条款
-          </h3>
-          <div className="space-y-1">
-            {[
-              { to: '/privacy', icon: 'fa-file-shield', label: '隐私政策' },
-              { to: '/terms', icon: 'fa-file-contract', label: '用户协议' },
-              { to: '/cookies', icon: 'fa-cookie-bite', label: 'Cookie 政策' },
-            ].map(item => (
-              <Link key={item.to} to={item.to} className="flex items-center justify-between py-2.5 group">
-                <div className="flex items-center gap-3">
-                  <i className={`fa-solid ${item.icon}`} style={{ color: 'var(--text-muted)', width: '16px', textAlign: 'center' }} />
-                  <span className="text-sm" style={{ color: 'var(--text)' }}>{item.label}</span>
-                </div>
-                <i className="fa-solid fa-chevron-right text-xs" style={{ color: 'var(--text-muted)' }} />
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* 账户操作 */}
-        <div className="card mb-5">
-          <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
-            <i className="fa-solid fa-gear mr-2" style={{ color: 'var(--primary-dark)' }} />
-            其他设置
-          </h3>
-          <Link to="/settings" className="flex items-center justify-between py-2 group">
-            <div>
-              <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>应用设置</div>
-              <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>主题、内容安全、快捷键</div>
-            </div>
-            <i className="fa-solid fa-chevron-right text-xs" style={{ color: 'var(--text-muted)' }} />
-          </Link>
-        </div>
-
-        {/* 移动端：账号操作 */}
-        <div className="account-mobile-actions">
-          {accounts.length > 1 && (
-            <div className="card mb-3">
-              <h3 className="font-bold mb-3" style={{ color: 'var(--text)' }}>
-                <i className="fa-solid fa-users mr-2" style={{ color: 'var(--primary-dark)' }} />
-                切换账号
-              </h3>
-              <div className="space-y-2">
-                {accounts.filter(a => String(a.id) !== String(user.id)).map(a => (
-                  <button
-                    key={a.id}
-                    className="w-full flex items-center gap-3 py-2 px-3 rounded-lg transition-all hover:opacity-80"
-                    style={{ background: 'var(--input-bg)', border: 'none', cursor: 'pointer' }}
-                    onClick={async () => {
-                      try { await switchAccount(a.id); } catch { toast.info('切换账户需要重新登录'); }
-                    }}
-                  >
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
-                      {a.avatar ? <img src={a.avatar} alt="" className="w-full h-full rounded-full object-cover" /> : a.username?.[0]?.toUpperCase()}
-                    </div>
-                    <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{a.username}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          <button
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg transition-all hover:opacity-80"
-            style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--danger)', cursor: 'pointer' }}
-            onClick={logout}
-          >
-            <i className="fa-solid fa-right-from-bracket" />
-            <span className="text-sm font-medium">退出登录</span>
-          </button>
-        </div>
+        </SettingsLayout>
 
         {/* 编辑资料弹窗 */}
         {showEdit && <EditProfile onClose={() => setShowEdit(false)} />}
@@ -173,7 +185,7 @@ export default function AccountPrivacy() {
   );
 }
 
-// 邮箱管理组件（从 Settings.jsx 复用）
+// 邮箱管理组件
 function EmailSection({ user, toast }) {
   const [showBind, setShowBind] = useState(false);
   const [email, setEmail] = useState('');
@@ -193,7 +205,6 @@ function EmailSection({ user, toast }) {
     return () => clearTimeout(t);
   }, [cooldown]);
 
-  // SDK 渲染
   useEffect(() => {
     if (!sendCodeCaptchaStarted || !sendCodeContainerRef.current) return;
     const wait = setInterval(() => {
@@ -251,7 +262,7 @@ function EmailSection({ user, toast }) {
     : '未绑定';
 
   return (
-    <div className="card mb-5">
+    <div id="section-email" className="card mb-5">
       <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
         <i className="fa-solid fa-envelope mr-2" style={{ color: 'var(--primary-dark)' }} />
         邮箱管理
@@ -285,7 +296,6 @@ function EmailSection({ user, toast }) {
             </div>
           </div>
 
-          {/* 发送验证码安全验证（第 2 次起） */}
           {sendCodeCount >= 2 && !sendCodeCaptchaOk && (
             <div className="mb-3 p-3 rounded-xl" style={{ border: '1.5px solid var(--border)', background: 'var(--input-bg)' }}>
               {!sendCodeCaptchaStarted ? (
@@ -360,7 +370,7 @@ function NBWBindSection({ user, toast, onUserChange }) {
   };
 
   return (
-    <div className="card mb-5">
+    <div id="section-nbw" className="card mb-5">
       <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
         <i className="fa-solid fa-link mr-2" style={{ color: 'var(--primary-dark)' }} />
         第三方账户绑定
@@ -456,10 +466,10 @@ function OAuthTokensSection({ toast }) {
     finally { setRevoking(null); }
   };
 
-  if (loading || tokens.length === 0) return null;
+  if (loading || tokens.length === 0) return <div id="section-oauth" />;
 
   return (
-    <div className="card mb-5">
+    <div id="section-oauth" className="card mb-5">
       <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
         <i className="fa-solid fa-puzzle-piece mr-2" style={{ color: 'var(--primary-dark)' }} />
         授权管理
