@@ -3,46 +3,73 @@ import { useState, useEffect, useRef } from 'react';
 /**
  * SettingsLayout — 电脑端左菜单 + 右内容布局（参考 X.com settings、weibo set/index）
  *
- * @param {Array} menu - 菜单项 [{ id, label, icon }]，id 对应 section id
- * @param {React.ReactNode} children - 内容区，每个顶级子节点需要一个 id 属性（或 sectionKeys 指定）
- * @param {string} sectionKeys - 可选，section id 顺序（默认按 DOM 中带 id 的元素自动识别）
+ * 注意：App.jsx 用 .app-main-content (overflow-y: auto) 作为滚动容器，
+ *       不是 window。必须用 scroller.scrollTo 而非 window.scrollTo。
  */
 export default function SettingsLayout({ menu, children }) {
   const [activeId, setActiveId] = useState(menu[0]?.id);
   const observerRef = useRef(null);
+  const activeIdRef = useRef(activeId);
+  activeIdRef.current = activeId;
+
+  // 找最近的可滚动祖先（优先 .app-main-content）
+  const getScroller = () => {
+    return document.querySelector('.app-main-content')
+      || document.scrollingElement
+      || document.documentElement;
+  };
 
   useEffect(() => {
-    // scroll-spy：用 IntersectionObserver 监测当前可见 section
-    const elements = menu
-      .map(m => document.getElementById(m.id))
-      .filter(Boolean);
+    // 等 children commit 到 DOM 后再找 id 元素
+    const init = () => {
+      const elements = menu
+        .map(m => document.getElementById(m.id))
+        .filter(Boolean);
+      if (elements.length === 0) return;
 
-    if (elements.length === 0) return;
+      const scroller = getScroller();
+      const opts = scroller === document.scrollingElement || scroller === document.documentElement
+        ? { rootMargin: '-30% 0px -60% 0px', threshold: 0 }
+        : { root: scroller, rootMargin: '-30% 0px -60% 0px', threshold: 0 };
 
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        // 找出当前最靠上的可见 section
+      observerRef.current?.disconnect();
+      observerRef.current = new IntersectionObserver((entries) => {
         const visible = entries
           .filter(e => e.isIntersecting)
           .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible[0]) {
+        if (visible[0] && visible[0].target.id !== activeIdRef.current) {
           setActiveId(visible[0].target.id);
         }
-      },
-      { rootMargin: '-30% 0px -60% 0px', threshold: 0 }
-    );
+      }, opts);
 
-    elements.forEach(el => observerRef.current.observe(el));
-    return () => observerRef.current?.disconnect();
+      elements.forEach(el => observerRef.current.observe(el));
+    };
+
+    // 双保险：rAF 确保 DOM 完成
+    const raf = requestAnimationFrame(init);
+    return () => {
+      cancelAnimationFrame(raf);
+      observerRef.current?.disconnect();
+    };
   }, [menu]);
 
   const handleClick = (e, id) => {
     e.preventDefault();
+    e.stopPropagation();
     const el = document.getElementById(id);
     if (!el) return;
+
+    const scroller = getScroller();
     const yOffset = -24;
-    const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
-    window.scrollTo({ top: y, behavior: 'smooth' });
+
+    if (scroller === window || scroller === document.scrollingElement || scroller === document.documentElement) {
+      const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    } else {
+      // .app-main-content 是滚动容器
+      const y = el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop + yOffset;
+      scroller.scrollTo({ top: y, behavior: 'smooth' });
+    }
     setActiveId(id);
   };
 
