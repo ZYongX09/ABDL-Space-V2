@@ -717,7 +717,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 /* ====== HomeV2 三栏布局 ====== */
 .home-layout {
   display: grid;
-  grid-template-columns: 600px 1fr;
+  grid-template-columns: 1fr clamp(280px, 25vw, 400px);
   min-height: 100vh;
   width: 100%;
   overflow: hidden;
@@ -728,7 +728,6 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   overflow-x: hidden;
 }
 .home-right {
-  min-width: 280px;
   position: sticky;
   top: 0;
   height: 100vh;
@@ -736,13 +735,6 @@ textarea.form-control { min-height: 80px; resize: vertical; }
   overflow-x: hidden;
   scrollbar-width: none;
   padding: 0 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-}
-.home-right > * {
-  max-width: 400px;
-  width: 100%;
 }
 .home-right::-webkit-scrollbar { display: none; }
 
