@@ -274,8 +274,10 @@ function PostContent({ post, compact, followMap, onFollow, mini = false, onInner
       )}
 
       {/* 图片 */}
-      {post.images && post.images.length > 0 && !mini && (
-        <ImageGrid images={post.images} />
+      {post.images && post.images.length > 0 && (
+        <div style={{ maxWidth: mini ? 200 : undefined, marginTop: 8 }}>
+          <ImageGrid images={post.images} />
+        </div>
       )}
 
       {/* NSFW */}

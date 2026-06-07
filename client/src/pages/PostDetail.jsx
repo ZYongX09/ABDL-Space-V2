@@ -317,6 +317,75 @@ export default function PostDetail() {
           </>
         )}
 
+        {/* 转发帖：内嵌原帖卡片 */}
+        {post.repost_id && post.repost && (
+          <Link
+            to={`/forum/${post.repost_id}`}
+            className="post-repost-embed block mt-4"
+            style={{
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)',
+              padding: '14px',
+              textDecoration: 'none',
+              color: 'var(--text)',
+              transition: 'background 0.2s, border-color 0.2s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-bg)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            {/* 原帖用户行 */}
+            <div className="flex items-center gap-2.5 mb-2.5">
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 overflow-hidden"
+                style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}
+              >
+                {post.repost.user?.avatar
+                  ? <img src={post.repost.user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                  : post.repost.user?.username?.[0]?.toUpperCase() || '?'
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-semibold text-sm" style={{ color: 'var(--text)' }}>
+                    {post.repost.user?.username || '匿名'}
+                  </span>
+                  {post.repost.user?.role === 'admin' && <OfficialBadge className="flex-shrink-0" />}
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>·</span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {new Date(post.repost.created_at + 'Z').toLocaleString('zh-CN')}
+                  </span>
+                </div>
+              </div>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <i className="fa-solid fa-retweet" /> 原帖
+              </span>
+            </div>
+
+            {/* 原帖正文 — 限 5 行 */}
+            {post.repost.content && (
+              <p
+                className="whitespace-pre-wrap break-words text-sm mb-2"
+                style={{
+                  color: 'var(--text)',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 5,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}
+              >
+                <RichContent text={post.repost.content} />
+              </p>
+            )}
+
+            {/* 原帖图片 — 限宽 220px */}
+            {post.repost.images && post.repost.images.length > 0 && (
+              <div style={{ maxWidth: 220 }}>
+                <ImageGrid images={post.repost.images} />
+              </div>
+            )}
+          </Link>
+        )}
+
         <div className="flex items-center gap-4 pt-3 border-t post-actions" style={{ borderColor: 'var(--border)' }}>
           <button
             className={`btn-icon miui-like ${post.has_liked ? 'liked' : ''}`}
