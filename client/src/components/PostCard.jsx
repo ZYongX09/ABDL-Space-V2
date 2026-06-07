@@ -220,6 +220,13 @@ function PostContent({ post, compact, followMap, onFollow, mini = false, onInner
   const avatarSize = mini ? 24 : 40;
   // mini=true 时本组件是内嵌原帖的展示，不包自己的 Link（外层已包）
   const stop = onInnerClick;
+  // 文字折叠 — 仅非 mini 模式生效；mini 已有 5 行截断
+  const [expanded, setExpanded] = useState(false);
+  const COLLAPSE_CHARS = 280;
+  const shouldCollapse = !mini && !!post.content && post.content.length > COLLAPSE_CHARS;
+  const displayContent = shouldCollapse && !expanded
+    ? post.content.slice(0, COLLAPSE_CHARS)
+    : (post.content || '');
 
   return (
     <>
@@ -268,9 +275,28 @@ function PostContent({ post, compact, followMap, onFollow, mini = false, onInner
           <RichContent text={post.content} />
         </p>
       ) : (
-        <p className="whitespace-pre-wrap break-words" style={{ fontSize: '15px', color: 'var(--text)' }}>
-          <RichContent text={post.content} />
-        </p>
+        <>
+          <p className="whitespace-pre-wrap break-words" style={{ fontSize: '15px', color: 'var(--text)' }}>
+            <RichContent text={displayContent} />
+            {shouldCollapse && !expanded && (
+              <span style={{ color: 'var(--text-muted)' }}>…</span>
+            )}
+          </p>
+          {shouldCollapse && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
+              style={{
+                marginTop: 4, padding: 0, background: 'none', border: 'none',
+                color: 'var(--primary-dark)', fontSize: '13px', fontWeight: 600,
+                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                fontFamily: 'inherit',
+              }}
+            >
+              {expanded ? '收起' : '展开全部'}
+              <i className={`fa-solid fa-chevron-${expanded ? 'up' : 'down'}`} style={{ fontSize: '10px' }} />
+            </button>
+          )}
+        </>
       )}
 
       {/* 图片 */}
