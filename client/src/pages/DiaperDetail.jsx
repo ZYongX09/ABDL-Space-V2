@@ -9,6 +9,25 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../contexts/ThemeContext';
 
+const SPEC_LABEL_CN = {
+  'Tapes': '魔术贴数', 'Tall Leakguards': '高立围防漏', 'Fast Absorb Core': '快速吸收芯',
+  'Backing': '背板材质', 'Front Elastic Band': '前弹性腰围', 'Back Elastic Band': '后弹性腰围',
+  'Print Coverage': '印花区域', 'Print Style': '印花风格', 'Ink Layer': '油墨层',
+  'Fade When Wet': '遇湿褪色', 'Scented': '加香', 'Capacity': '容量',
+  'Sample Quantity': '样品数量', 'Product Type': '产品类型',
+};
+const SPEC_VALUE_CN = {
+  '4-Tape': '4 贴式', '2-Tape': '2 贴式', 'Plastic-Backed': '塑料背板', 'Cloth-Backed': '布感背板',
+  'Landing Zone': '定位印花区', 'Full Print': '全身印花', 'All Over': '全身印花', 'No Print': '无印花',
+  'Positional': '定位印花', 'Repeating': '重复图案', 'Solid': '纯色',
+  'Outside': '外层', 'Inside': '内层', 'None': '无', 'Transparent': '透明',
+  'Scented': '加香', 'Unscented': '无香',
+};
+function specVal(v) {
+  if (v === true) return '✓'; if (v === false) return '—';
+  return SPEC_VALUE_CN[v] || v;
+}
+
 const DIMENSIONS = [
   { key: 'absorption_score', label: '吸收性', icon: 'fa-droplet' },
   { key: 'comfort_score', label: '舒适度', icon: 'fa-couch' },
@@ -219,6 +238,50 @@ export default function DiaperDetail() {
           )}
         </div>
       </div>
+
+      {/* Wiki 官方介绍 */}
+      {wikiProduct && (
+        <div className="card mb-5">
+          <div className="flex items-center gap-2 mb-3">
+            <i className="fa-solid fa-book-open" style={{ color: 'var(--primary)' }} />
+            <h3 className="text-lg font-bold" style={{ color: 'var(--text)' }}>官方介绍</h3>
+            <Link to={`/diaper-wiki/${wikiProduct.id}`} className="ml-auto text-xs" style={{ color: 'var(--primary)' }}>
+              查看完整百科 <i className="fa-solid fa-arrow-right ml-1" />
+            </Link>
+          </div>
+          {wikiProduct.description_en && (
+            <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-light)', lineHeight: 1.8, whiteSpace: 'pre-line' }}>
+              {wikiProduct.description_en}
+            </p>
+          )}
+          {wikiProduct.specs?.length > 0 && (
+            <>
+              <h4 className="text-sm font-bold mb-2" style={{ color: 'var(--text)' }}>详细规格</h4>
+              <dl className="space-y-1.5 text-sm">
+                {wikiProduct.specs.map((s, i) => (
+                  <div key={i} className="flex justify-between items-center py-1" style={{ borderBottom: '1px solid var(--border)' }}>
+                    <dt style={{ color: 'var(--text-light)' }}>{SPEC_LABEL_CN[s.key] || s.key}</dt>
+                    <dd className="font-semibold">{specVal(s.value)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </>
+          )}
+          {wikiProduct.size_chart_image && (
+            <>
+              <h4 className="text-sm font-bold mt-4 mb-2" style={{ color: 'var(--text)' }}>尺码图</h4>
+              <img src={wikiProduct.size_chart_image} alt="尺码图" className="w-full rounded-lg" loading="lazy"
+                style={{ maxHeight: 400, objectFit: 'contain', background: 'var(--bg-card-soft)' }} />
+            </>
+          )}
+          {wikiProduct.rating && (
+            <div className="flex items-center gap-3 mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+              <span><i className="fa-solid fa-star mr-1" style={{ color: 'var(--warning)' }} />品牌评分 {wikiProduct.rating.value}/5</span>
+              {wikiProduct.rating.count && <span>{wikiProduct.rating.count} 条官网评价</span>}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 评分按钮 */}
       <div className="flex gap-3 mb-5">
