@@ -182,12 +182,24 @@ export default function DiaperWiki() {
               <h3 className="text-base font-bold mb-3" style={{ color: 'var(--text)' }}>
                 <i className="fa-solid fa-quote-left mr-2" style={{ color: 'var(--primary)' }} />官方介绍
               </h3>
-              <p className="text-sm leading-relaxed" style={{ color: 'var(--text-light)', lineHeight: 1.8 }}>
-                {product.description_en}
-              </p>
-              <p className="text-xs mt-3 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
-                <i className="fa-solid fa-language" />
-                <span>英文官方介绍 · 由 ABDL Space 编辑整理（保留原版）</span>
+              {product.description_cn && (
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-light)', lineHeight: 1.8, whiteSpace: 'pre-line' }}>
+                  {product.description_cn}
+                </p>
+              )}
+              {product.description_en && (
+                <details className="mt-3">
+                  <summary className="text-xs flex items-center gap-1" style={{ color: 'var(--text-muted)', cursor: 'pointer' }}>
+                    <i className="fa-solid fa-language" />查看英文原文
+                  </summary>
+                  <p className="mt-2 text-xs leading-relaxed" style={{ color: 'var(--text-muted)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                    {product.description_en}
+                  </p>
+                </details>
+              )}
+              <p className="text-xs mt-2 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                <i className="fa-solid fa-robot" />
+                <span>AI 翻译 · 原文来自品牌官网</span>
               </p>
             </div>
           )}

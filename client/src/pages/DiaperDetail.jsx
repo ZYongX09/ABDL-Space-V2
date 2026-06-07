@@ -249,11 +249,23 @@ export default function DiaperDetail() {
               查看完整百科 <i className="fa-solid fa-arrow-right ml-1" />
             </Link>
           </div>
-          {wikiProduct.description_en && (
+          {wikiProduct.description_cn && (
             <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-light)', lineHeight: 1.8, whiteSpace: 'pre-line' }}>
-              {wikiProduct.description_en}
+              {wikiProduct.description_cn}
             </p>
           )}
+          {wikiProduct.description_en && (
+            <details className="text-xs mb-4">
+              <summary style={{ color: 'var(--text-muted)', cursor: 'pointer' }}><i className="fa-solid fa-language mr-1" />查看英文原文</summary>
+              <p className="mt-2 leading-relaxed" style={{ color: 'var(--text-muted)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                {wikiProduct.description_en}
+              </p>
+            </details>
+          )}
+          <p className="text-xs flex items-center gap-1 mb-4" style={{ color: 'var(--text-muted)' }}>
+            <i className="fa-solid fa-robot" />
+            <span>AI 翻译 · 原文来自品牌官网</span>
+          </p>
           {wikiProduct.specs?.length > 0 && (
             <>
               <h4 className="text-sm font-bold mb-2" style={{ color: 'var(--text)' }}>详细规格</h4>
