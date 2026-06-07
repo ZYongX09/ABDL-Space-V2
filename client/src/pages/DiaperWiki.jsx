@@ -102,7 +102,7 @@ export default function DiaperWiki() {
   const hasImages = allImages.length > 0;
   const hasSpecs = product.specs && product.specs.length > 0;
   const hasSizes = product.sizes && product.sizes.length > 0;
-  const hasDescription = !!product.description_en;
+  const hasDescription = !!(product.description_en || product.description_cn);
   const hasReviews = product.reviews && product.reviews.length > 0;
   const hasSizingTable = product.sizing_table && product.sizing_table.length > 0;
 
