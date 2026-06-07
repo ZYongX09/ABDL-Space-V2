@@ -841,6 +841,13 @@ export const reportsAPI = {
 // 用户等级 & 历史（后端 /api/users/:id/level 等）
 // =====================================================================
 export const usersAPI = {
+  search: async (q) => {
+    if (USE_API) return apiFetch(`/api/users/search?q=${encodeURIComponent(q || '')}`);
+    const users = LS.get('users') || {};
+    const s = (q || '').toLowerCase();
+    const matched = Object.values(users).filter(u => u.username?.toLowerCase().includes(s)).slice(0, 10);
+    return { users: matched.map(u => ({ id: u.id, username: u.username, avatar: u.avatar ?? null, role: u.role })) };
+  },
   getLevel: async (id) => {
     if (USE_API) return apiFetch(`/api/users/${id}/level`);
     return { level: { level: 1, exp: 0, total_exp: 0, badge_name: '婴儿奶瓶', badge_icon: 'fa-baby', next_level: 2, next_exp_required: 100, progress: 0 } };
