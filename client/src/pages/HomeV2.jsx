@@ -18,7 +18,7 @@ const TABS = [
 
 export default function HomeV2() {
   const [searchParams] = useSearchParams();
-  const initialSearch = searchParams.get('search') || '';
+  const search = searchParams.get('search') || '';
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +27,6 @@ export default function HomeV2() {
   const [hasMore, setHasMore] = useState(true);
   const [activeTab, setActiveTab] = useState('latest');
   const [followMap, setFollowMap] = useState({});
-  const searchRef = useRef(initialSearch);
   const { user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
@@ -42,7 +41,7 @@ export default function HomeV2() {
       const data = await forumAPI.feed({
         page: pageNum,
         limit: 20,
-        search: searchRef.current || undefined,
+        search: search || undefined,
         filter,
       });
       const newPosts = data.posts || [];
@@ -60,7 +59,7 @@ export default function HomeV2() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [activeTab, user]);
+  }, [activeTab, user, search]);
 
   // 初始加载 + tab切换重新加载
   useEffect(() => {
