@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { LoadingSkeleton, EmptyState } from '../components/Feedback';
-import { diapersAPI, diaperWikiAPI } from '../api';
+import { diapersAPI } from '../api';
 import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -30,28 +30,8 @@ export default function Home() {
     const timer = setTimeout(async () => {
       try {
         setLoading(true);
-        const [data, wikiRes] = await Promise.all([
-          diapersAPI.list({ search: search || undefined, brand: brand || undefined, sort }),
-          diaperWikiAPI.list({ search: search || undefined, brand: brand || undefined }).catch(() => ({ products: [] })),
-        ]);
-        const backendDiapers = data.diapers || [];
-        // 合并 wiki 数据 — 排除后端已有的（按 brand+model 去重）
-        const existingKeys = new Set(backendDiapers.map(d => `${d.brand}|${d.model}`.toLowerCase()));
-        const wikiDiapers = (wikiRes.products || [])
-          .filter(p => !existingKeys.has(`${p.brand}|${p.name}`.toLowerCase()))
-          .map(p => ({
-            id: p.id,
-            wiki_id: p.id,
-            brand: p.brand,
-            model: p.name,
-            images: p.raw_images || [],
-            product_type: p.type === 'diaper' ? '纸尿裤' : p.type === 'underwear' ? '失禁裤' : p.type === 'booster' ? '增强垫' : p.type === 'sample-case' ? '组合装' : '配件',
-            is_baby_diaper: 0,
-            avg_score: p.rating?.value ? Number(p.rating.value) : 0,
-            rating_count: p.rating?.count ? Number(p.rating.count) : 0,
-            brand_logo: null,
-          }));
-        setDiapers([...backendDiapers, ...wikiDiapers]);
+        const data = await diapersAPI.list({ search: search || undefined, brand: brand || undefined, sort });
+        setDiapers(data.diapers || []);
         setBaseScores(data.base_scores || { adult: 0, baby: 0 });
       } catch (e) {
         toast.error(e.message);
@@ -118,7 +98,7 @@ export default function Home() {
           {diapers.map((d, i) => (
             <Link
               key={d.id}
-              to={d.wiki_id ? `/diaper-wiki/${d.wiki_id}` : `/diaper/${d.id}`}
+              to={`/diaper/${d.id}`}
               className="card card-interactive miui-hover-lift block hover:shadow-hover transition-all overflow-hidden"
               style={{ textDecoration: 'none', color: 'var(--text)', breakInside: 'avoid', marginBottom: '16px', display: 'block' }}
             >
