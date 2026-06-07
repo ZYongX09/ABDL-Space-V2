@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
-const TOKEN = proces…KEN;
+const TOKEN = process.env.TOKEN;
 if (!TOKEN) {
   console.error('❌ 缺少 TOKEN 环境变量');
   console.error('   浏览器 devtools → Network → 找 imgbed 上传请求 → Authorization 头');
@@ -97,7 +97,7 @@ async function processTask(t, idx, total) {
       return { ok: true, key: t.key, url: uploadedUrl };
     } catch (e) {
       lastErr = e;
-      const isRateLimit = e.message.includes('429') || e.message.includes('rate limit');
+      const isRateLimit = e.message.includes('429') || e.message.includes('rate limit') || e.message.includes('TelegramNew') || e.message.includes('500');
       if (isRateLimit) {
         // HF rate limit — 立即放弃本张 + 后续队列，避免重复打满
         process.stdout.write(`⏳ rate-limit\n`);
@@ -160,12 +160,12 @@ async function main() {
   const queue = [...tasks];
   let done = 0;
   let rateLimited = false;
+  let consecutiveFailures = 0;
   const startTime = Date.now();
   
   async function worker() {
     while (queue.length > 0) {
-      if (rateLimited) {
-        // 命中限速后，把剩下任务从队列弹出但不入图床
+      if (rateLimited || consecutiveFailures >= 10) {
         queue.length = 0;
         break;
       }
@@ -174,11 +174,12 @@ async function main() {
       const r = await processTask(t, done, tasks.length + urlMap.size);
       if (r.ok) {
         urlMap.set(r.key, r.url);
-        if (r.error === 'rate-limit') {
+        consecutiveFailures = 0;
+      } else {
+        consecutiveFailures++;
+        if (r.error === 'rate-limit' || consecutiveFailures >= 10) {
           rateLimited = true;
         }
-      } else if (r.error === 'rate-limit') {
-        rateLimited = true;
       }
       // 每 5 张写一次
       if (urlMap.size % 5 === 0 && urlMap.size > 0) {
