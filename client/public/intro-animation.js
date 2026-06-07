@@ -19,7 +19,7 @@
   var DEPTH = 2400;
   var STAR_COUNT = 1500;
   var LOGO_STAR_COUNT = 500;
-  var LOGO_URL = 'https://img.abdl-space.top/file/1779879250278_ABDL_icon.svg';
+  var LOGO_URL = '/intro/logo.svg';
 
   function createBezier(x1, y1, x2, y2) {
     function sampleCurveX(t) { return ((1 - 3*x2 + 3*x1)*t + (3*x2 - 6*x1))*t + 3*x1*t; }
