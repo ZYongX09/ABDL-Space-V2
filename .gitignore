@@ -4,3 +4,7 @@ dist/
 .env.local
 *.log
 .DS_Store
+
+# Wiki 图片上传临时文件
+.tmp-wiki-url-map.json
+.tmp-wiki-images/

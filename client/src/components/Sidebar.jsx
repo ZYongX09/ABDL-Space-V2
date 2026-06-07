@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: '/diapers', icon: 'fa-solid fa-baby', label: '纸尿裤' },
   { to: '/rankings', icon: 'fa-solid fa-trophy', label: '排行榜' },
   { to: '/recommend', icon: 'fa-solid fa-wand-magic-sparkles', label: 'AI 推荐' },
+  { to: '/diaper-wiki', icon: 'fa-solid fa-book-open', label: '裤裤百科' },
 ];
 
 const HOVER_DELAY = 80;

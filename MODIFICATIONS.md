@@ -1,3 +1,26 @@
+**裤裤百科频道 (v2.23.0) — 2026-06-07 23:50**
+- 爬取 ABU (ABUniverse Australia) + REARZ (Rearz Inc.) 两大 ABDL 品牌商品数据
+  - ABU: 11 款 (PeekABU, LittlePawz, Little Kings, DinoRawrZ 等)
+  - REARZ: 30 款 (Daydreamer, Princess Pink, Safari, Critter Caboose 等)
+- 数据字段: 商品图集、官方介绍、详细规格、尺码表、用户评价、价格、规格 variants
+- 新增页面: `/diaper-wiki` (主页) + `/diaper-wiki/:id` (详情)
+- 集成到 DiaperDetail: 自动按 brand+model 匹配，显示"裤裤百科"入口按钮
+- Sidebar 导航: 添加"裤裤百科"链接
+- 移动端同步: abdl-space-mobile 也添加了相同页面和路由
+- 移动端 _headers CSP: img-src 增加 cdn11.bigcommerce.com / cdn.shopify.com / au.abuniverse.com / us.rearz.com
+- 数据文件: `client/public/data/diaper-wiki.json` (225KB)
+
+**关键文件:**
+- `client/src/pages/DiaperWiki.jsx` (415 行) — 单商品百科页
+- `client/src/pages/DiaperWikiList.jsx` (230 行) — 百科主页
+- `client/src/api.js` — 新增 `diaperWikiAPI` 模块
+- `client/src/App.jsx` — 新增路由
+- `client/src/components/Sidebar.jsx` — 新增导航
+- `client/src/pages/DiaperDetail.jsx` — 集成百科入口
+
+**待用户确认事项:**
+- 商品图目前用 CDN URL (au.abuniverse.com, cdn11.bigcommerce.com)，后续需要用户授权 token 后批量上传到 img.abdl-space.top/file/diapers/ 目录
+
 # ABDL Space V2 — 修改记录
 
 > 每次对项目进行修改后，由 AI 助手自动更新此文件

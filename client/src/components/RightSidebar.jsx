@@ -53,6 +53,7 @@ export default function RightSidebar() {
           <a href="/privacy" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>隐私</a>
           <a href="/terms" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>条款</a>
           <a href="/termwiki" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>术语 Wiki</a>
+          <a href="/diaper-wiki" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>裤裤百科</a>
         </div>
         <div style={{ marginTop: '8px' }}>ABDL Space v2 · © {new Date().getFullYear()}</div>
       </footer>

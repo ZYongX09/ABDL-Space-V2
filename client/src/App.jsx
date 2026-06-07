@@ -28,6 +28,8 @@ const Rankings = lazy(() => import('./pages/Rankings'));
 const ComparePage = lazy(() => import('./pages/ComparePage'));
 const Recommendations = lazy(() => import('./pages/Recommendations'));
 const TermWiki = lazy(() => import('./pages/TermWiki'));
+const DiaperWiki = lazy(() => import('./pages/DiaperWiki'));
+const DiaperWikiList = lazy(() => import('./pages/DiaperWikiList'));
 const About = lazy(() => import('./pages/About'));
 const CookiePolicy = lazy(() => import('./pages/CookiePolicy'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
@@ -68,6 +70,7 @@ const ROUTE_TITLES = {
   '/compare': '对比工具 — ABDL Space',
   '/recommend': 'AI 推荐 — ABDL Space',
   '/termwiki': '术语 Wiki — ABDL Space',
+  '/diaper-wiki': '裤裤百科 — ABDL Space',
   '/profile': '个人中心 — ABDL Space',
   '/login': '登录 — ABDL Space',
   '/register': '注册 — ABDL Space',
@@ -90,6 +93,7 @@ const ROUTE_TITLES = {
 function getTitle(pathname) {
   if (ROUTE_TITLES[pathname]) return ROUTE_TITLES[pathname];
   if (pathname.startsWith('/diaper/')) return '纸尿裤详情 — ABDL Space';
+  if (pathname.startsWith('/diaper-wiki/')) return '裤裤百科 — ABDL Space';
   if (pathname.startsWith('/forum/')) return '帖子详情 — ABDL Space';
   if (pathname.startsWith('/user/')) return '用户主页 — ABDL Space';
   if (pathname.startsWith('/profile/')) return '用户主页 — ABDL Space';
@@ -173,6 +177,8 @@ export default function App() {
                 <Route path="/compare" element={<ComparePage />} />
                 <Route path="/recommend" element={<Recommendations />} />
                 <Route path="/termwiki" element={<TermWiki />} />
+                <Route path="/diaper-wiki" element={<DiaperWikiList />} />
+                <Route path="/diaper-wiki/:id" element={<DiaperWiki />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/cookies" element={<CookiePolicy />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />

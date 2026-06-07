@@ -612,6 +612,55 @@ export const forumAPI = {
 };
 
 // =====================================================================
+// 裤裤百科 Diaper Wiki（本地 JSON /data/diaper-wiki.json）
+// 数据源：ABUniverse Australia + Rearz Inc.（爬取整理 2026-06）
+// =====================================================================
+let _diaperWiki = null;
+let _diaperWikiAt = 0;
+const WIKI_TTL_MS = 60 * 1000; // 1 分钟过期，避免 merge 后老用户看到陈旧 CDN URL
+async function loadDiaperWiki() {
+  if (_diaperWiki && Date.now() - _diaperWikiAt < WIKI_TTL_MS) return _diaperWiki;
+  const res = await fetch('/data/diaper-wiki.json', { cache: 'no-store' });
+  _diaperWiki = await res.json();
+  _diaperWikiAt = Date.now();
+  return _diaperWiki;
+}
+
+export const diaperWikiAPI = {
+  meta: async () => {
+    const w = await loadDiaperWiki();
+    return w.meta;
+  },
+  brands: async () => {
+    const w = await loadDiaperWiki();
+    return w.brands;
+  },
+  cn: async () => {
+    const w = await loadDiaperWiki();
+    return w.cn;
+  },
+  list: async (params = {}) => {
+    const w = await loadDiaperWiki();
+    let list = Object.values(w.products);
+    if (params.brand) list = list.filter(p => p.brand === params.brand);
+    if (params.search) {
+      const s = params.search.toLowerCase();
+      list = list.filter(p => (p.name || '').toLowerCase().includes(s) || (p.model || '').toLowerCase().includes(s));
+    }
+    return { products: list, total: list.length };
+  },
+  get: async (id) => {
+    const w = await loadDiaperWiki();
+    return { product: w.products[id] || null };
+  },
+  getByBrandSlug: async (brand, slug) => {
+    const w = await loadDiaperWiki();
+    const id = `${brand.toLowerCase()}-${slug}`;
+    return { product: w.products[id] || null };
+  },
+};
+
+// =====================================================================
 // 术语 Terms（后端路径 /api/terms）
 // =====================================================================
 export const termWikiAPI = {

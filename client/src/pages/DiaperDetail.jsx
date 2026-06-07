@@ -4,7 +4,7 @@ import PageLayout from '../components/PageLayout';
 import { Spinner } from '../components/Feedback';
 import ImageGrid from '../components/ImageGrid';
 import { useVerifyModal } from '../components/VerifyModal';
-import { diapersAPI, ratingsAPI } from '../api';
+import { diapersAPI, ratingsAPI, diaperWikiAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -39,6 +39,7 @@ export default function DiaperDetail() {
   const { id } = useParams();
   const [diaper, setDiaper] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [wikiProduct, setWikiProduct] = useState(null);
   const [brandLogoError, setBrandLogoError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showRating, setShowRating] = useState(false);
@@ -62,6 +63,56 @@ export default function DiaperDetail() {
         ]);
         setDiaper(dData.diaper);
         setReviews(rData.reviews || []);
+
+        // 查找匹配的 wiki 词条
+        try {
+          const diaper = dData.diaper;
+          if (diaper) {
+            const slugMap = {
+              'Little Kings': 'little-kings',
+              'PeekABU': 'peekabu',
+              'Simple Ultra': 'simple-ultra',
+              'Simple Daytime': 'simple-daytime',
+              'LittlePawz': 'littlepawz',
+              'DinoRawrZ': 'dinorawrz',
+              'Bunny Hopps 梦幻小粉兔': 'bunnyhopps-4-tape',
+              'AlphaGatorZ': 'alphagatorz',
+              'Oops All Huskies': 'oops-all-huskies',
+              'TinyTails': 'tinytails',
+              'Super Dry Kids': 'super-dry-kids',
+              'Daydreamer Adult Diapers': 'daydreamer-diapers',
+              'Princess Pink Overnight Briefs': 'princess-pink-adult-diapers',
+              'Safari': 'mega-safari-adult-diapers',
+              'Lunar Cub': 'lunar-cub-adult-diapers',
+              'Critter Caboose': 'mega-critter-caboose-adult-diapers',
+              'Dinosaur': 'mega-dinosaur-adult-diapers',
+              'Bunny Boo': 'bunnyboo-adult-diapers',
+              'Alpaca': 'rearz-alpaca-overnight-diapers',
+              'Lil Squirts Splash': 'lil-squirts-adult-diapers-splash',
+              'Inspire+': 'mega-inspire-adult-diapers',
+            };
+            // 尝试多种匹配
+            const matchedSlug = slugMap[diaper.model]
+              || Object.entries(slugMap).find(([k]) => diaper.model?.includes(k))?.[1]
+              || diaper.model?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+            if (matchedSlug) {
+              // 尝试两种品牌
+              for (const brand of ['ABU', 'REARZ']) {
+                const wRes = await diaperWikiAPI.getByBrandSlug(brand, matchedSlug);
+                if (wRes.product) {
+                  setWikiProduct(wRes.product);
+                  break;
+                }
+              }
+              // 埋点：匹配失败时方便后续追踪
+              if (!wikiProduct) {
+                console.info('[wiki-match] no match', { model: diaper.model, matchedSlug });
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('[wiki-match] error', e);
+        }
       } catch (e) {
         toast.error(e.message);
       } finally {
@@ -184,6 +235,12 @@ export default function DiaperDetail() {
         <Link to={`/compare?add=${id}`} className="btn btn-outline miui-press">
           <i className="fa-solid fa-scale-balanced" /> 加入对比
         </Link>
+        {wikiProduct && (
+          <Link to={`/diaper-wiki/${wikiProduct.id}`} className="btn btn-outline miui-press"
+            style={{ background: 'var(--primary-light)', borderColor: 'var(--primary)', color: 'var(--primary)' }}>
+            <i className="fa-solid fa-book-open" /> 裤裤百科
+          </Link>
+        )}
       </div>
 
       {/* 评分表单 */}
