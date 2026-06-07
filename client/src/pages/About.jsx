@@ -7,6 +7,24 @@ import { useToast } from '../contexts/ToastContext';
 const VERSION = '2.22.0';
 const LAST_UPDATE = '2026-06-07';
 
+// 开发进度时间轴
+const ROADMAP = [
+  { id: 1, label: '需求分析', icon: 'fa-magnifying-glass-chart' },
+  { id: 2, label: '方案设计', icon: 'fa-pen-ruler' },
+  { id: 3, label: '开发编码', icon: 'fa-code' },
+  { id: 4, label: '测试验证', icon: 'fa-vial-circle-check' },
+  { id: 5, label: '问题修复', icon: 'fa-screwdriver-wrench' },
+  { id: 6, label: '功能扩展', icon: 'fa-rocket' },
+  { id: 7, label: '部署上线', icon: 'fa-cloud-arrow-up' },
+  { id: 8, label: '持续优化', icon: 'fa-arrows-rotate' },
+];
+// 当前在「问题修复」与「功能扩展」之间 — 节点 6 进行中，进度 5.5/8
+const CURRENT_NODE = 6;
+const CURRENT_LABEL = '功能扩展';
+const PROGRESS_DONE = 5.5;
+const PROGRESS_PERCENT = ((PROGRESS_DONE / ROADMAP.length) * 100).toFixed(1);
+
+
 const CHANGELOG = [
   {
     version: '2.21.1',
@@ -242,6 +260,47 @@ export default function About() {
               <span>{tech}</span>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* 开发进度时间轴 */}
+      <div className="card mb-5 roadmap-card">
+        <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
+          <i className="fa-solid fa-diagram-project mr-2" style={{ color: 'var(--primary-dark)' }} />
+          开发进度
+        </h3>
+        <div className="roadmap-track">
+          <div className="roadmap-line">
+            <div className="roadmap-line-fill" style={{ width: `${PROGRESS_PERCENT}%` }} />
+          </div>
+          <div className="roadmap-nodes">
+            {ROADMAP.map((node) => {
+              const status =
+                node.id < CURRENT_NODE ? 'done'
+                : node.id === CURRENT_NODE ? 'current'
+                : 'pending';
+              return (
+                <div key={node.id} className={`roadmap-node ${status}`}>
+                  <div className="roadmap-dot">
+                    {status === 'done' ? <i className="fa-solid fa-check" />
+                      : status === 'current' ? <i className={`fa-solid ${node.icon}`} />
+                      : node.id}
+                  </div>
+                  <div className="roadmap-label">{node.label}</div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="roadmap-status">
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <div className="roadmap-status-badge">
+                <div className="roadmap-status-dot" />
+                <span>当前阶段：{CURRENT_LABEL}</span>
+              </div>
+              <div className="roadmap-percent">{PROGRESS_PERCENT}%</div>
+            </div>
+            <div className="roadmap-meta">已完成 {Math.floor(PROGRESS_DONE)} / {ROADMAP.length} 个节点 · v{VERSION}</div>
+          </div>
         </div>
       </div>
 
