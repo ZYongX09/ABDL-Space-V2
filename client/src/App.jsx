@@ -20,7 +20,6 @@ import { useExternalLinkInterceptor } from './hooks/useExternalLinkInterceptor';
 // 路由级懒加载 — 首屏只加载 HomeV2
 const HomeV2 = lazy(() => import('./pages/HomeV2'));
 const Search = lazy(() => import('./pages/Search'));
-const Search = lazy(() => import('./pages/Search'));
 const ForumFeed = lazy(() => import('./pages/ForumFeed'));
 const PostDetail = lazy(() => import('./pages/PostDetail'));
 const Home = lazy(() => import('./pages/Home'));

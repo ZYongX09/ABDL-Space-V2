@@ -1,5 +1,9 @@
 /*
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://hm.baidu.com https://static.cloudflareinsights.com https://api.abdl-space.top https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.bootcdn.net https://fonts.googleapis.com; img-src 'self' data: blob: https://img.abdl-space.top https://raw.githubusercontent.com https://pic1.afdiancdn.com https://static.afdiancdn.com https://www.newbabyworld.top https://*.tile.openstreetmap.org https://hm.baidu.com; connect-src 'self' https://api.abdl-space.top https://img.abdl-space.top https://hm.baidu.com https://abdl-space-api.zhx589.workers.dev https://cloudflareinsights.com; font-src 'self' https://cdnjs.cloudflare.com https://cdn.bootcdn.net https://fonts.gstatic.com; frame-src https://challenges.cloudflare.com;
+
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
