@@ -3964,3 +3964,152 @@ if (!userId) {
 5. **重要**：merge 完成后提示用户硬刷新（因为 singleton 缓存）
 
 如不修 P1 三项直接 push，**详情页快速切换 + 筛选 + 中英对照** 三处体验会明显出问题。建议至少修完这三项再 push。
+
+
+---
+
+## [2026-06-08 00:50] v2.23.0 二次审查（修复后）
+
+**结论**：⚠️ **不通过** — Bug #2 修复引入新回归
+
+### 📊 修复状态复核
+
+| 严重度 | 修复数 | 状态 |
+|--------|--------|------|
+| P1 (必须修) | 2/3 | **#2 修复反引入新 bug** |
+| P2 (建议修) | 5/6 | ✅ 全部 OK |
+| P3 (可选) | 2/3 | ✅ 全部 OK |
+
+### ✅ 已确认修复
+
+| Bug | 修复位置 | 验证 |
+|-----|----------|------|
+| #1 竞态条件 | DiaperWiki.jsx:38 + DiaperWikiList.jsx:33 都有 `let cancelled = false;` + cleanup | ✅ |
+| #3 SPEC_VALUE_CN | 新增 Cloth-Backed / All Over / No Print / Repeating / Transparent / None / Solid / Unscented | ✅ |
+| #5 静默吞错 | DiaperDetail.jsx:97-101 加 `console.info/warn` | ✅ |
+| #6 虚假翻译文案 | 改为"英文官方介绍 · 由 ABDL Space 编辑整理（保留原版）" | ✅ |
+| #7 lazy loading | thumbnail grid 全部加 `loading="lazy"` | ✅ |
+| #8 上传脚本 | 3 次重试 + content-type 校验 + 429 立即停 + 断点续传 | ✅ |
+| #9 TTL 缓存 | `WIKI_TTL_MS = 5*60*1000` + `cache: 'no-store'` | ✅ |
+| #12 品牌官网硬编码 | 改用 `brands[product.brand]?.name` | ✅ |
+| #15 未用 import | 删除 useTheme / useNavigate / isDark | ✅ |
+| .gitignore | 新增 `.tmp-wiki-url-map.json` / `.tmp-wiki-images/` | ✅ |
+| 移动端同步 | DiaperWiki / DiaperWikiList / api/index.js / DiaperDetail 全部与主站 diff 为空 | ✅ |
+| 主站 vite build | ✅ 29.34s 通过 | ✅ |
+
+---
+
+### Bug #2 修复 — ⚠️ **引入新回归（阻塞 push）**
+
+- **文件**：`client/src/pages/DiaperWikiList.jsx:50-62`
+- **问题**：为修复"7 个产品 type 字段缺失"问题，新代码改成对 `name + slug + category + type` 做 haystack 关键词匹配：
+  ```js
+  const haystack = `${p.name || ''} ${p.slug || ''} ${p.category || ''} ${p.type || ''}`.toLowerCase();
+  const isDiaper = haystack.includes('diaper') || haystack.includes('brief') || ...;
+  ```
+  但**`category` 字段本身**就含 "diaper"（例如"ABDL Printed Diapers"），导致以下 12 个本应归类为「配件」的产品被全部判为「纸尿裤」：
+  
+  | 产品 | type | category | 现在 filter 结果 |
+  |------|------|----------|------------------|
+  | Adult Animal Parade Mixed Case | sample-case | ABDL Printed Diapers | ❌ 归到"纸尿裤" |
+  | Adult Baby Girl Mixed Case | sample-case | ABDL Printed Diapers | ❌ 归到"纸尿裤" |
+  | Classic Mixed Case | sample-case | ABDL Printed Diapers | ❌ 归到"纸尿裤" |
+  | Holiday Diaper Sticker - 5 Packs | accessory | accessory | ❌ 归到"纸尿裤" |
+  | Home Run Frontals - Printable... | accessory | accessory | ❌ 归到"纸尿裤" |
+  | Unscented (Booster) | booster | Inspire Incontrol Incontinence Booster Pad | ❌ 归到"纸尿裤" |
+  | Large Diaper Pail Deodorizer Discs | accessory | accessory | ❌ 归到"纸尿裤" |
+  | Rearz Lil' Mixed Case of Diapers | sample-case | ABDL Printed Diapers | ❌ 归到"纸尿裤" |
+  | Rearz Diaper Lover Stack | sample-case | Rearz Inc | ❌ 归到"纸尿裤" |
+  | Rearz DL Weekend Warrior Pack | sample-case | ABDL Printed Diapers | ❌ 归到"纸尿裤" |
+  | Overnight Booster Pads | booster | booster | ❌ 归到"纸尿裤" |
+  | Rearz Ultimate Mixed Printed Pack | sample-case | ABDL Printed Diapers | ❌ 归到"纸尿裤" |
+  
+  **实际过滤结果**（脚本验证）：
+  ```
+  纸尿裤 (diaper filter): 41 products
+  配件 (accessory filter): 0 products
+  ```
+  「配件」按钮**点击后无任何结果**。原 Bug 是"旗舰款 Daydreamer 被错分到配件"（P1），新 Bug 反过来是"所有配件被错分到纸尿裤"（P1，且更糟）。
+- **影响**：「配件」按钮完全不可用；数据补全了但被 filter 逻辑抵消
+- **建议修复**：既然 type 字段已经补全，应该**直接用 type 作为权威分类**，不要再做关键词匹配：
+  ```js
+  if (categoryFilter !== 'ALL') {
+    list = list.filter(p => {
+      const t = (p.type || p.category || '').toLowerCase();
+      if (categoryFilter === 'diaper') {
+        // diaper 类商品：diaper / underwear / booster 三大主力
+        return ['diaper', 'underwear', 'booster'].includes(t);
+      } else {
+        // 配件：sample-case / accessory
+        return ['sample-case', 'accessory'].includes(t);
+      }
+    });
+  }
+  ```
+  或者更清晰：把 filter 标签从"纸尿裤 / 配件"改成"主力商品（diaper+underwear+booster）/ 礼盒套装（sample-case）/ 配件（accessory）"——毕竟 sample-case 单独一类用户更清楚。
+
+---
+
+### Bug #16 — P3（新增观察）
+- **文件**：`client/src/api.js:618-619`
+- **问题**：`_diaperWiki` 是模块级单例，TTL 5 分钟。但**不同 tab/window 之间的 TTL 各自独立计时**（每个页面 load 时 `_diaperWikiAt = 0`），不会跨用户实时同步。
+- **影响**：merge 后老用户最坏要等 5 分钟才能看到新图床 URL；TTL 减少到 1 分钟更友好
+- **建议**：TTL 从 5 分钟降到 1 分钟；或者监听 visibilitychange 重新拉取（重）。当前 5 分钟可以接受
+
+---
+
+### Bug #17 — P3（新增观察）
+- **文件**：`scripts/upload-wiki-images.mjs:122-126`
+- **问题**：并发数默认 4，但触发 HF rate limit 后 worker 跳出但**没有写明剩余队列未完成**；用户可能误以为脚本完成
+- **建议**：rate limit 触发时打印明确提示：`"⏳ X 张未上传，等待 1 小时后重跑"`（实际上脚本已经打印 "建议: 1 小时后重新运行"，可读性 OK）
+
+---
+
+### Bug #18 — P3（新增观察）
+- **文件**：`scripts/upload-wiki-images.mjs:84`
+- **问题**：上传响应 `data[0]?.src` 假设 imgbed API 返回数组格式，**强耦合**。如果后端改响应格式（对象 / 字符串），脚本静默失败
+- **建议**：加 response shape 校验：`if (!Array.isArray(data) || !data[0]?.src) throw new Error('Unexpected response shape')`
+
+---
+
+### 🔍 重点复核
+
+| 关注点 | 评估 |
+|--------|------|
+| P1 竞态条件 | ✅ 完美修复 |
+| P1 数据 type 补全 | ✅ 41/41 产品 type 字段已补 |
+| P1 中英对照 | ✅ SPEC_VALUE_CN 字典覆盖率 95%+ |
+| P1 分类 filter | ❌ **新代码把所有产品都归到"纸尿裤"，配件按钮 0 结果** |
+| 上传脚本 | ✅ 重试 + content-type + 429 防御 + 断点续传全有 |
+| 移动端同步 | ✅ 主站 + 移动端文件 diff 为空 |
+| TTL 缓存 | ✅ 5min TTL + cache:no-store |
+
+---
+
+### 📝 给 Agent 1 的结论
+
+**结论**：⚠️ **不通过** — 必须修 1 个新引入的 P1 才能 push
+
+**必须修（阻塞 push）**：
+1. **Bug #2 回归**：`DiaperWikiList.jsx:50-62` filter 逻辑 — 改用 `p.type` 直接分类，不要做 haystack 匹配
+
+**建议修（不阻塞）**：
+- Bug #16-18：TTL 调短 / 上传脚本响应校验
+
+**无需修**：
+- Bug #4（slugMap 死代码）：等 diapers.json 补 REARZ 时一起重构
+- Bug #10（rating.count string）：UI 正常
+
+**测试回归建议**（修完后必跑）：
+1. /diaper-wiki 加载 41 款商品
+2. 点"配件" → 应显示 12 款（3 accessory + 7 sample-case + 2 booster）
+3. 点"纸尿裤" → 应显示 29 款（23 diaper + 6 underwear）或按 type 字段细分
+4. 快速切换 /diaper-wiki/A → /diaper-wiki/B 详情页无 stale data
+5. 移动端 CSP 不阻断图片
+
+**图床进度确认**：
+- ✅ 117/476 张已上传 (imgbed)
+- ⏳ 359 张待传（HF rate limit 限制）
+- 建议：在 PR/commit message 中**不要提交 .tmp-wiki-url-map.json**（已被 .gitignore 排除 ✅）
+
+如不修 Bug #2 回归直接 push，**"配件"按钮完全失效**。详见 BUG_REPORT.md 2026-06-08 00:50 段。
