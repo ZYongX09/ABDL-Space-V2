@@ -9,18 +9,20 @@
  *   4. 可选 brand: "ABU" / "REARZ" / 不传(全部)
  *   5. 可选 concurrency: 并发数 (默认 4)
  */
-import fs from 'node:fs/promises';
+import fs from 'node:fs';
+import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
-const TOKEN = process.env.TOKEN;
+const TOKEN = process.env.TOKEN || (() => {
+  try { return fs.readFileSync('/tmp/.imgbed-token', 'utf8').trim(); } catch { return null; }
+})();
 if (!TOKEN) {
   console.error('❌ 缺少 TOKEN 环境变量');
-  console.error('   浏览器 devtools → Network → 找 imgbed 上传请求 → Authorization 头');
-  console.error('   TOKEN=*** node scripts/upload-wiki-images.mjs');
+  console.error('   设置 TOKEN 环境变量或写入 /tmp/.imgbed-token');
   process.exit(1);
 }
 
@@ -46,7 +48,7 @@ async function downloadImage(url, outPath) {
       if (!ct.startsWith('image/')) throw new Error(`Not an image: ${url} (ct=${ct})`);
       const buf = Buffer.from(await res.arrayBuffer());
       if (buf.length < 100) throw new Error(`Too small (${buf.length} bytes): ${url}`);
-      await fs.writeFile(outPath, buf);
+      await fsp.writeFile(outPath, buf);
       return buf.length;
     } catch (e) {
       lastErr = e;
@@ -57,7 +59,7 @@ async function downloadImage(url, outPath) {
 }
 
 async function uploadImage(filePath, targetName) {
-  const fileBuf = await fs.readFile(filePath);
+  const fileBuf = await fsp.readFile(filePath);
   const blob = new Blob([fileBuf]);
   const formData = new FormData();
   formData.append('file', blob, path.basename(filePath));
@@ -112,13 +114,13 @@ async function processTask(t, idx, total) {
 
 async function main() {
   console.log('📦 读取 wiki 数据...');
-  const wiki = JSON.parse(await fs.readFile(WIKI_FILE, 'utf8'));
-  await fs.mkdir(TMP_DIR, { recursive: true });
+  const wiki = JSON.parse(await fsp.readFile(WIKI_FILE, 'utf8'));
+  await fsp.mkdir(TMP_DIR, { recursive: true });
   
   // 加载已有 URL 映射（断点续传）
   let urlMap = new Map();
   try {
-    const existing = JSON.parse(await fs.readFile(URL_MAP_FILE, 'utf8'));
+    const existing = JSON.parse(await fsp.readFile(URL_MAP_FILE, 'utf8'));
     urlMap = new Map(existing);
     console.log(`🔄 断点续传: 已完成 ${urlMap.size} 张`);
   } catch {}
@@ -183,7 +185,7 @@ async function main() {
       }
       // 每 5 张写一次
       if (urlMap.size % 5 === 0 && urlMap.size > 0) {
-        await fs.writeFile(URL_MAP_FILE, JSON.stringify([...urlMap.entries()], null, 2));
+        await fsp.writeFile(URL_MAP_FILE, JSON.stringify([...urlMap.entries()], null, 2));
       }
     }
   }
@@ -191,8 +193,8 @@ async function main() {
   await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
   
   // 最终保存
-  await fs.writeFile(URL_MAP_FILE, JSON.stringify([...urlMap.entries()], null, 2));
-  await fs.rm(TMP_DIR, { recursive: true, force: true });
+  await fsp.writeFile(URL_MAP_FILE, JSON.stringify([...urlMap.entries()], null, 2));
+  await fsp.rm(TMP_DIR, { recursive: true, force: true });
   
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
   console.log('');

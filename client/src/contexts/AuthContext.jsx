@@ -102,7 +102,7 @@ export function AuthProvider({ children }) {
       // 添加/更新已保存账户
       const saved = getSavedAccounts();
       const exists = saved.findIndex(a => a.id === u.id);
-      const entry = { id: u.id, username: u.username, avatar: u.avatar, role: u.role };
+      const entry = { id: u.id, username: u.username, avatar: u.avatar, role: u.role, token: data.token };
       if (exists >= 0) {
         saved[exists] = entry;
       } else {
@@ -141,7 +141,7 @@ export function AuthProvider({ children }) {
     const u = data.user;
 
     const saved = getSavedAccounts();
-    saved.push({ id: u.id, username: u.username, avatar: u.avatar, role: u.role });
+    saved.push({ id: u.id, username: u.username, avatar: u.avatar, role: u.role, token: data.token });
     saveAccounts(saved);
     setAccounts(saved);
     setActiveAccountId(u.id);
@@ -149,15 +149,34 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
-  // 切换账户
-  // 切换账户（cookie 模式下需要重新登录）
+  // 切换账户（用保存的 token 恢复会话）
   const switchAccount = useCallback(async (accountId) => {
     const saved = getSavedAccounts();
     const target = saved.find(a => a.id === accountId);
     if (!target) throw new Error('账户不存在');
-    // httpOnly cookie 只能存一个活跃账户，切换需要重新登录
-    throw new Error('切换账户需要重新登录');
-  }, []);
+    if (!target.token) throw new Error('该账户需要重新登录（无保存的 token）');
+
+    // 用保存的 token 调 /me 端点，后端会同时设置 cookie
+    const res = await fetch(`${API_BASE}/api/auth/me`, {
+      headers: { 'Authorization': `Bearer ${target.token}` },
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      // token 失效，移除该账户
+      removeAccount(accountId);
+      throw new Error('该账户登录已过期，请重新登录');
+    }
+    const u = await res.json();
+    setActiveAccountId(u.id);
+    setUser(u);
+    // 更新保存的信息（token 保留）
+    const idx = saved.findIndex(a => a.id === u.id);
+    if (idx >= 0) {
+      saved[idx] = { ...saved[idx], id: u.id, username: u.username, avatar: u.avatar, role: u.role };
+      saveAccounts(saved);
+      setAccounts(saved);
+    }
+  }, [removeAccount]);
 
   // 移除保存的账户
   const removeAccount = useCallback((accountId) => {
