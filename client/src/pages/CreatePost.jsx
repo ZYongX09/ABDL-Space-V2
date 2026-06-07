@@ -11,12 +11,14 @@ const MAX_CHARS = 5000;
 
 export default function CreatePost() {
   const [content, setContent] = useState('');
+  const [isAnnouncement, setIsAnnouncement] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const imgRef = useRef(null);
   const navigate = useNavigate();
   const { user } = useAuth();
   const toast = useToast();
   const { trigger, VerifyModal, captchaToken } = useVerifyModal();
+  const isAdmin = user?.role === 'admin';
 
   const doPost = async () => {
     if (!content.trim() && !imgRef.current?.hasPending()) return;
@@ -35,8 +37,9 @@ export default function CreatePost() {
         content: content.trim(),
         images: imageData.length > 0 ? imageData : undefined,
         captchaToken: captchaToken.current,
+        is_announcement: isAdmin && isAnnouncement ? true : undefined,
       });
-      toast.success(imageData.length > 0 ? '图片上传完成，发布成功！' : '发布成功');
+      toast.success(isAnnouncement ? '公告发布成功！' : (imageData.length > 0 ? '图片上传完成，发布成功！' : '发布成功'));
       navigate(`/forum/${result.id}`, { replace: true });
     } catch (e) {
       toast.error(e.message);
@@ -74,6 +77,51 @@ export default function CreatePost() {
         </div>
 
         <ImageUploader ref={imgRef} max={4} onError={msg => toast.error(msg)} />
+
+        {/* 公告开关 — 仅管理员可见 */}
+        {isAdmin && (
+          <div
+            className="mt-4 p-3 rounded-xl flex items-center justify-between gap-3"
+            style={{
+              background: isAnnouncement ? 'rgba(var(--primary-rgb, 168, 216, 240), 0.1)' : 'var(--input-bg)',
+              border: `1px solid ${isAnnouncement ? 'var(--primary)' : 'var(--border)'}`,
+              transition: 'all 0.2s',
+            }}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <i
+                className="fa-solid fa-bullhorn flex-shrink-0"
+                style={{ color: isAnnouncement ? 'var(--primary-dark)' : 'var(--text-muted)', fontSize: '16px' }}
+              />
+              <div className="min-w-0">
+                <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                  标记为公告
+                </div>
+                <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  公告会置顶、首页右侧公告卡片与公告筛选页都可见
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsAnnouncement(v => !v)}
+              style={{
+                width: '44px', height: '24px', borderRadius: '12px',
+                border: 'none', cursor: 'pointer', flexShrink: 0,
+                background: isAnnouncement ? 'var(--primary)' : 'var(--border)',
+                position: 'relative', transition: 'background 0.2s',
+              }}
+              aria-label="公告开关"
+            >
+              <div style={{
+                width: '20px', height: '20px', borderRadius: '50%',
+                background: 'white', position: 'absolute', top: '2px',
+                left: isAnnouncement ? '22px' : '2px',
+                transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              }} />
+            </button>
+          </div>
+        )}
 
         <div className="flex gap-3 justify-end mt-4">
           <button

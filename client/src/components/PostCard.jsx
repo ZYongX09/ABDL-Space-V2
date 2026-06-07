@@ -1,5 +1,5 @@
-import { memo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { memo, useState, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import ImageGrid from './ImageGrid';
 import RichContent from './RichContent';
 import OfficialBadge from './OfficialBadge';
@@ -35,10 +35,30 @@ function relativeTime(dateStr) {
 function PostCardInner({ post, onLike, onFollow, followMap, compact = false }) {
   const { user } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
   const [reportTarget, setReportTarget] = useState(null);
   const [repostTarget, setRepostTarget] = useState(null);
 
-  const handleLike = () => {
+  const isRepost = !!post.repost_id && post.repost;
+  const repostUser = isRepost ? post.user : null;
+  const displayPost = isRepost ? post.repost : post;
+
+  // 整张卡片点击 → 跳详情。但操作栏/原帖/用户名 Link 不被劫持。
+  const handleCardClick = useCallback((e) => {
+    if (e.defaultPrevented) return;
+    if (e.target.closest('a, button, [data-no-card-nav]')) return;
+    navigate(`/forum/${post.id}`);
+  }, [navigate, post.id]);
+
+  // 点击内嵌原帖区域 → 跳原帖详情，阻止冒泡到外层卡片
+  const handleRepostEmbedClick = useCallback((e) => {
+    e.stopPropagation();
+    if (e.target.closest('a, button, [data-no-card-nav]')) return;
+    if (post.repost_id) navigate(`/forum/${post.repost_id}`);
+  }, [navigate, post.repost_id]);
+
+  const handleLike = (e) => {
+    e.stopPropagation();
     if (!user) { toast.error('请先登录'); return; }
     onLike(post.id);
   };
@@ -53,15 +73,12 @@ function PostCardInner({ post, onLike, onFollow, followMap, compact = false }) {
     }
   };
 
-  const isRepost = !!post.repost_id && post.repost;
-  const repostUser = isRepost ? post.user : null;
-  const displayPost = isRepost ? post.repost : post;
-
   return (
     <>
       <div
         className={`card miui-hover-lift ${post.pinned ? 'post-pinned' : ''} ${post.is_announcement ? 'post-announcement' : ''}`}
-        style={{ padding: '1.25rem' }}
+        style={{ padding: '1.25rem', cursor: 'pointer' }}
+        onClick={handleCardClick}
       >
         {/* 公告标签 */}
         {post.is_announcement && (
@@ -92,7 +109,7 @@ function PostCardInner({ post, onLike, onFollow, followMap, compact = false }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <Link to={`/user/${repostUser.id}`} className="font-semibold hover:underline whitespace-nowrap" style={{ color: 'var(--text)', fontSize: '14px' }}>
+                  <Link to={`/user/${repostUser.id}`} onClick={e => e.stopPropagation()} className="font-semibold hover:underline whitespace-nowrap" style={{ color: 'var(--text)', fontSize: '14px' }}>
                     {repostUser.username}
                   </Link>
                   {repostUser.role === 'admin' && <OfficialBadge className="flex-shrink-0" />}
@@ -112,22 +129,39 @@ function PostCardInner({ post, onLike, onFollow, followMap, compact = false }) {
               </p>
             )}
 
-            {/* 原帖嵌套卡片 */}
-            <div className="post-repost-embed" style={{
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius)',
-              padding: '12px',
-            }}>
-              <PostContent post={displayPost} compact followMap={followMap} onFollow={onFollow} mini />
+            {/* 原帖嵌套卡片 — 点击独立跳原帖详情 */}
+            <div
+              className="post-repost-embed"
+              role="link"
+              tabIndex={0}
+              onClick={handleRepostEmbedClick}
+              onKeyDown={e => { if (e.key === 'Enter') handleRepostEmbedClick(e); }}
+              style={{
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius)',
+                padding: '12px',
+                cursor: 'pointer',
+                transition: 'background 0.2s, border-color 0.2s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-bg)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+              title="点击查看原帖"
+            >
+              <PostContent post={displayPost} compact followMap={followMap} onFollow={onFollow} mini onInnerClick={e => e.stopPropagation()} />
             </div>
           </>
         )}
 
         {/* 非转发帖子的完整内容 */}
-        {!isRepost && <PostContent post={post} compact={compact} followMap={followMap} onFollow={onFollow} />}
+        {!isRepost && <PostContent post={post} compact={compact} followMap={followMap} onFollow={onFollow} onInnerClick={e => e.stopPropagation()} />}
 
-        {/* 操作栏 */}
-        <div className="post-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '12px' }}>
+        {/* 操作栏 — stopPropagation 避免触发卡片点击 */}
+        <div
+          className="post-actions"
+          data-no-card-nav
+          onClick={e => e.stopPropagation()}
+          style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '12px' }}
+        >
           <button
             className={`miui-like ${post.has_liked ? 'liked' : ''}`}
             style={{ color: post.has_liked ? 'var(--danger)' : 'var(--text-light)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
@@ -137,7 +171,7 @@ function PostCardInner({ post, onLike, onFollow, followMap, compact = false }) {
             {post.like_count > 0 && <span>{formatCount(post.like_count)}</span>}
           </button>
 
-          <Link to={`/forum/${post.id}`} className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-light)', textDecoration: 'none', fontSize: '13px' }}>
+          <Link to={`/forum/${post.id}`} onClick={e => e.stopPropagation()} className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-light)', textDecoration: 'none', fontSize: '13px' }}>
             <i className="fa-regular fa-comment" />
             {post.comment_count > 0 && <span>{formatCount(post.comment_count)}</span>}
           </Link>
@@ -145,7 +179,8 @@ function PostCardInner({ post, onLike, onFollow, followMap, compact = false }) {
           {/* 转发按钮 */}
           <button
             style={{ color: 'var(--text-light)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
-            onClick={() => {
+            onClick={e => {
+              e.stopPropagation();
               if (!user) { toast.error('请先登录'); return; }
               setRepostTarget(post);
             }}
@@ -157,9 +192,9 @@ function PostCardInner({ post, onLike, onFollow, followMap, compact = false }) {
           {/* 举报 */}
           <button
             style={{ color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', marginLeft: 'auto', fontSize: '13px' }}
-            onClick={() => {
-              if (!user) { toast.error('请先登录'); return;
-              }
+            onClick={e => {
+              e.stopPropagation();
+              if (!user) { toast.error('请先登录'); return; }
               setReportTarget({ type: 'post', id: post.id });
             }}
             title="举报"
@@ -180,9 +215,11 @@ function PostCardInner({ post, onLike, onFollow, followMap, compact = false }) {
 }
 
 /** 帖子内容区域（头像 + 用户名 + 正文 + 图片） */
-function PostContent({ post, compact, followMap, onFollow, mini = false }) {
+function PostContent({ post, compact, followMap, onFollow, mini = false, onInnerClick }) {
   const { user } = useAuth();
   const avatarSize = mini ? 24 : 40;
+  // mini=true 时本组件是内嵌原帖的展示，不包自己的 Link（外层已包）
+  const stop = onInnerClick;
 
   return (
     <>
@@ -199,7 +236,7 @@ function PostContent({ post, compact, followMap, onFollow, mini = false }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <Link to={`/user/${post.user?.id}`} className="font-semibold hover:underline whitespace-nowrap" style={{ color: 'var(--text)', fontSize: mini ? '13px' : '14px' }}>
+            <Link to={`/user/${post.user?.id}`} onClick={stop} className="font-semibold hover:underline whitespace-nowrap" style={{ color: 'var(--text)', fontSize: mini ? '13px' : '14px' }}>
               {post.user?.username || '匿名'}
             </Link>
             {post.user?.role === 'admin' && <OfficialBadge className="flex-shrink-0" />}
@@ -212,7 +249,7 @@ function PostContent({ post, compact, followMap, onFollow, mini = false }) {
             {user && post.user?.id && String(user.id) !== String(post.user.id) && !mini && (
               <button
                 className={`btn btn-xs ${followMap?.[post.user.id] ? 'btn-outline' : 'btn-primary'}`}
-                onClick={(e) => onFollow?.(post.user.id, e)}
+                onClick={(e) => { e.stopPropagation(); onFollow?.(post.user.id, e); }}
                 style={{
                   fontSize: '11px', padding: '1px 8px', lineHeight: '18px',
                   ...(followMap?.[post.user.id] ? { borderColor: 'var(--border)', color: 'var(--text-light)' } : {}),
@@ -226,14 +263,12 @@ function PostContent({ post, compact, followMap, onFollow, mini = false }) {
       </div>
 
       {/* 正文 */}
-      {!mini ? (
-        <Link to={`/forum/${post.id}`} className="block" style={{ color: 'var(--text)', textDecoration: 'none' }}>
-          <p className="whitespace-pre-wrap break-words" style={{ fontSize: '15px' }}>
-            <RichContent text={post.content} />
-          </p>
-        </Link>
-      ) : (
+      {mini ? (
         <p className="whitespace-pre-wrap break-words" style={{ fontSize: '14px', color: 'var(--text)', display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <RichContent text={post.content} />
+        </p>
+      ) : (
+        <p className="whitespace-pre-wrap break-words" style={{ fontSize: '15px', color: 'var(--text)' }}>
           <RichContent text={post.content} />
         </p>
       )}
