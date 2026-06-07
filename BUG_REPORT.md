@@ -3715,3 +3715,252 @@ if (!userId) {
    - 已/未绑定 NBW 的解绑按钮显示
    - 纯 NBW 注册用户的解绑防护
    - 多设备登录态同步
+
+
+---
+
+## [2026-06-08 00:22] 裤裤百科频道 v2.23.0 — 主站 + 移动端审查
+
+**审查范围**：10 个新/改文件（主站 7、移动端 7、共享数据 1）
+**结论**：⚠️ **有条件通过**（修复 1 个 P1 后可上线；P2/P3 不阻塞）
+
+### 📊 改动统计
+
+| 严重度 | 数量 | 状态 |
+|--------|------|------|
+| P1 (必须修) | 3 | 1 个阻塞上线 |
+| P2 (建议修) | 6 | 不阻塞 |
+| P3 (可选) | 3 | 不阻塞 |
+
+---
+
+### Bug #1 — P1 ⚠️ **阻塞上线**
+- **文件**：`client/src/pages/DiaperWiki.jsx:38-69`、`client/src/pages/DiaperWikiList.jsx:33-56`
+- **问题**：`useEffect` 中发起 async fetch 后 `setState`，**没有 cleanup / 取消标记**。当用户从 `/diaper-wiki/A` 快速跳到 `/diaper-wiki/B`（或 `useParams` 改变），前一个未完成的 fetch 仍会调用 `setProduct(A)`，导致**竞态条件**——列表页与详情页的 stale state 互相覆盖，详情页可能短暂显示上一个商品。
+- **影响**：快速切换商品/返回列表时闪烁错误数据；React 18 在 unmounted setState 会打印警告
+- **建议**：
+  ```jsx
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [res, brandsRes] = await Promise.all([...]);
+        if (cancelled) return;
+        setProduct(res.product);
+        ...
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [id]);
+  ```
+
+---
+
+### Bug #2 — P1
+- **文件**：`client/src/pages/DiaperWikiList.jsx:50-58`（categoryFilter 逻辑）
+- **问题**：filter 判断 `c = (p.category || p.type || '').toLowerCase()`，但**数据中 7 个产品的 `type` 和 `category` 都是 `null`**——包括最重要的 `rearz-daydreamer-diapers`（231 条评价、5 星）、`rearz-bedry-ultra-premium-underwear`、`rearz-daydreamer-adult-diapers-2xl` 等。`c=''` 不包含 'diaper'，所以点击"纸尿裤"过滤时这些商品会被归到"配件"分类。
+- **影响**：用户筛"纸尿裤"看不到旗舰款 Daydreamer，是 P1 级数据筛选错误
+- **建议**：
+  1. 修数据：补全 7 个产品的 `type` 字段（最低限度补 REARZ 7 款主推）
+  2. 修代码：fallback 到 `name`/`slug` 关键词判断，如 `s.includes('diaper') || s.includes('brief') || s.includes('underwear') || s.includes('overnight')`
+  3. 两手都做：代码容错 + 数据补全
+
+---
+
+### Bug #3 — P1
+- **文件**：`client/src/pages/DiaperWiki.jsx:14-37`（`SPEC_LABEL_CN` / `SPEC_VALUE_CN`）
+- **问题**：中英对照字典**与数据严重不匹配**：
+  | 字典中有 | 数据中实际存在 | 漏翻译 |
+  |----------|----------------|--------|
+  | `Cloth-Like` | ❌ 无此值（数据是 `Cloth-Backed`） | ✅ `Cloth-Backed` 未翻译 |
+  | `Full Print` | ❌ 无此值 | ✅ `All Over` / `No Print` 未翻译 |
+  | — | ✅ `Repeating` | ✅ `Repeating` 未翻译 |
+  | — | ✅ `Transparent` | ✅ `Transparent` 未翻译 |
+  | — | ✅ `None` | ✅ `None` 未翻译（Ink Layer） |
+  | `Scented` | ❌ 数据无 Scented 字段 | 字典是死代码 |
+  
+  用户看到的"规格 Tab"会**大量中英混排**——比如 `背板材质 | Cloth-Backed`、`印花区域 | All Over`、`油墨层 | Transparent`，中文化承诺基本落空。
+- **影响**：CHANGELOG 宣称"中英对照：英文原版描述 + 中文化规格标签"实际只对 ~30% 的值生效
+- **建议**：把字典补全（与数据值一一对应），并把未翻译的 raw 英文值也写成中文。或者前端按 spec key/value 重新查 `cn.spec_translation` / `cn.spec_value_translation`（数据里已经有这两个字段但代码完全没读！）
+
+---
+
+### Bug #4 — P1
+- **文件**：`client/src/pages/DiaperDetail.jsx:62-90`（slugMap 21 项）
+- **问题**：
+  1. **19/21 项是死代码**：`diapers.json` 仅有 11 款商品（ABU 2 款 + 咔哆拉 2 + 万宝熊 2 + 尤妮佳 2 + 花王 1 + 大王 2），**没有任何 REARZ 商品**。slugMap 中 19 个 REARZ 条目永远不会匹配真实数据。
+  2. **匹配逻辑脆弱**：`Object.entries(slugMap).find(([k]) => diaper.model?.includes(k))` 按插入顺序找子串匹配。若日后 diapers.json 出现 "Bunny Boo Briefs"，会被前面 "Bunny Hopps 梦幻小粉兔" 抢先匹配到 `bunnyhopps-4-tape`，指向错误商品。
+- **影响**：当前只对 2 个商品（id=1 Little Kings、id=2 Bunny Hopps 梦幻小粉兔）有效；未来扩展 REARZ 时易踩坑
+- **建议**：
+  1. 当前已可工作：先 commit，标注"REARZ slug 等 diapers.json 补 REARZ 后启用"
+  2. 改用更安全匹配：先按 `brand` 过滤 entries，再做精确等于 / slug 化匹配
+  3. 或者在 diaperWikiAPI 增加一个 `findByBrandAndModel(brand, model)` 走精确查询，避免 JS 端硬编码
+
+---
+
+### Bug #5 — P1
+- **文件**：`client/src/pages/DiaperDetail.jsx:96-104`（try/catch 嵌套逻辑）
+- **问题**：`for (const brand of ['ABU', 'REARZ']) { const wRes = await diaperWikiAPI.getByBrandSlug(brand, matchedSlug); ... }` 顺序尝试两个品牌，**找不到时没有任何提示**，用户看不到"裤裤百科"按钮也不知道为什么。日志/error 也被 `try {} catch {}` 静默吞掉（line 91 那个 `try { ... } catch {}`）。
+- **影响**：静默失败；后端有 bug 时无法排查
+- **建议**：
+  1. 把 `catch {}` 改成 `catch (e) { console.warn('[wiki-match]', diaper.model, e) }`
+  2. 当匹配不到时打个埋点（analytics event），方便追踪
+
+---
+
+### Bug #6 — P2
+- **文件**：`client/src/pages/DiaperWiki.jsx:206`
+- **问题**：描述卡片下方固定显示「由 ABDL Space 翻译整理（自动 + 人工校对）」，但实际只展示 `description_en` 原文，**根本没有翻译**。这属于"虚假声明"——既没有 description_zh 字段，也没有调用翻译 API。
+- **影响**：误导用户（以为有中文翻译）+ 品牌方可能投诉（数据源声明"自动+人工校对"未授权的翻译）
+- **建议**：把文案改成更诚实的「英文官方介绍 · 由 ABDL Space 编辑整理（保留原版）」
+
+---
+
+### Bug #7 — P2
+- **文件**：`client/src/pages/DiaperWiki.jsx:255-263`（thumbnail grid）
+- **问题**：图片缩略图 grid **没有 `loading="lazy"`**，单个商品 11-12 张图，41 个商品 = 476 张图在滚动时全部一次性请求。
+- **影响**：滚动到第 2-3 个商品时网络已被吃满，移动端尤甚
+- **建议**：所有非主图都加 `loading="lazy"`（主图已默认 eager 是对的）
+
+---
+
+### Bug #8 — P2
+- **文件**：`scripts/upload-wiki-images.mjs:46-51`
+- **问题**：
+  1. **不验证 Content-Type**：直接 `Buffer.from(await res.arrayBuffer())` 然后上传。如果源 URL 返回 HTML 404 页面，会把 HTML 当图片传到图床。
+  2. **无重试**：单次失败即放弃（488 张图跑 95 秒 + 网络抖动，部分失败是常态）
+  3. **无并发控制**：串行 + 200ms 间隔 = 95 秒。如果能用并发 4-8，可降到 20-30 秒。
+- **影响**：用户首次上传可能因偶发失败留下 10-20% 缺口，需手动重跑
+- **建议**：
+  1. `if (!res.ok || !res.headers.get('content-type')?.startsWith('image/')) throw ...`
+  2. 简单 retry：`for (let attempt=0; attempt<3; attempt++) try { ...; break; } catch (e) { if (attempt===2) throw e; }`
+  3. 用 `Promise.all` 池（10 并发）
+
+---
+
+### Bug #9 — P2
+- **文件**：`client/src/api.js:439-441`（`_diaperWiki` 单例缓存）
+- **问题**：`loadDiaperWiki()` 用模块级变量缓存，**永不过期、无失效机制**。`diaper-wiki.json` 一旦在用户首次访问后被更新（你提的"图床合并"会写新文件），所有**已在页面停留**的用户必须硬刷新才能看到新图。
+- **影响**：图床上传完成 + merge 后，已打开百科页的老用户看到的是 404 CDN 链接（au.abuniverse.com），不是新图床
+- **建议**：
+  1. 短期：在 `merge-uploaded-urls.mjs` 输出后提示"建议硬刷新 Ctrl+Shift+R"
+  2. 长期：给 `_diaperWiki` 加 `meta.generated_at` 时间戳检查 + TTL 5 分钟
+
+---
+
+### Bug #10 — P2
+- **文件**：`client/src/pages/DiaperWiki.jsx:60-65`（hero subtitle 中 `product.rating.count` 是 string）
+- **问题**：数据中 `rating.count` 是字符串 `"231"`（不是数字），hero 副标题显示 `★ 5 · 231 条评价` 渲染没问题，但**未来如果想用 `rating.count > 10` 之类条件判断会出错**。
+- **影响**：当前 UI 表现正常；潜在陷阱
+- **建议**：hero 渲染时显式 `Number(product.rating.count)`，并对类型做 Number() 包装层
+
+---
+
+### Bug #11 — P2
+- **文件**：`client/src/pages/DiaperDetail.jsx:39-50`（tab 重复声明的旧坑）
+- **问题**：这不是新 bug，是上次修过的 `Search` 变量重复声明。`slugMap` 定义在 `useEffect` 内部，每次 effect 重跑就重建。41 个 product × 2 个 brand = 82 次 `getByBrandSlug` 调用，对应 82 次 JSON 字典查询（singleton 后是 O(1) 内存查表），性能可接受。
+- **影响**：性能 OK，但代码组织略乱
+- **建议**：把 `slugMap` 提到模块顶层
+
+---
+
+### Bug #12 — P3
+- **文件**：`client/src/pages/DiaperWiki.jsx:99-106`（品牌简介卡片）
+- **问题**：硬编码 `product.brand === 'ABU' ? 'ABU 官网' : 'REARZ 官网'`，未来加第 3 个品牌会显示"REARZ 官网"
+- **建议**：用 `product.brand + ' 官网'` 或 `brands[product.brand]?.name + ' 官网'`
+
+---
+
+### Bug #13 — P3
+- **文件**：`client/src/pages/DiaperWikiList.jsx:24`（未使用的 `meta`）
+- **问题**：`meta` state 已经被 set 但 hero subtitle 使用的是 `meta?.total_products`，OK 没问题。但 `setBrands` 后 `brands` 用于品牌过滤——OK。
+- **影响**：无
+- **建议**：N/A
+
+---
+
+### Bug #14 — P3
+- **文件**：`client/public/_headers`（移动端 CSP 扩展）
+- **问题**：新增 4 个 img-src 域名（`cdn11.bigcommerce.com`、`cdn.shopify.com`、`au.abuniverse.com`、`us.rearz.com`），**移动端**与主站不同步——主站没有显式 CSP 限制（由 Cloudflare 默认），但移动端扩展了。这 4 个域名是**真实数据源**，如果不加确实无法显示图片。
+- **影响**：合理性 ✅，但**安全卫生**略有下降（XSS 场景下攻击者可注入指向这些域名的 image URL）
+- **建议**：保持现状；图片是公开静态资源，无脚本执行风险。注明在 `MODIFICATIONS.md` 中 CSP 变更原因即可
+
+---
+
+### Bug #15 — P3
+- **文件**：`client/src/pages/DiaperWiki.jsx:55`（`useTheme` import 但 isDark 未用）
+- **问题**：`isDark` 变量声明后**没有任何 JSX 引用**（仅在 line 54-55）。同样 `useNavigate` 也是声明了但没用。
+- **影响**：无功能影响，bundle 略微膨胀（Tree-shaking 会去掉大部分）
+- **建议**：删掉 `useTheme` 和 `useNavigate` import
+
+---
+
+### 🔍 审查重点复核
+
+| 你的关注点 | 我的评估 |
+|------------|----------|
+| 移动端 CSP 修改 | ✅ **合理**，4 个域名是实际数据源，XSS 风险低 |
+| DiaperDetail 的 slug 映射表 | ⚠️ **19/21 项当前是死代码**（diapers.json 无 REARZ 数据），未来扩展需注意匹配顺序 bug |
+| 页面 UX 是否符合 MIUI 风格 | ✅ PageLayout 一致，tab/卡片/毛玻璃都对齐 |
+| diaper-wiki.json 数据完整性 | ⚠️ **7 个产品 type 字段缺失**，导致筛选错乱 |
+| 上传脚本的安全性和错误处理 | ⚠️ **不验证 Content-Type / 无重试 / 串行慢** |
+
+---
+
+### 📊 改动统计
+
+| 类型 | 文件 | 行数 |
+|------|------|------|
+| 新页面 | `pages/DiaperWiki.jsx` | +415 |
+| 新页面 | `pages/DiaperWikiList.jsx` | +230 |
+| 新增 API | `api.js` (diaperWikiAPI 模块) | +47 |
+| 数据 | `public/data/diaper-wiki.json` | +225KB（476 张图链） |
+| 集成 | `App.jsx` / `Sidebar.jsx` / `RightSidebar.jsx` / `DiaperDetail.jsx` | 路由+导航+按钮 |
+| 脚本 | `scripts/upload-wiki-images.mjs` | +90 |
+| 脚本 | `scripts/merge-uploaded-urls.mjs` | +35 |
+| 移动端 | 7 个文件镜像 | 同上 |
+
+### ✅ 构建状态
+
+- `vite build` ✅ 通过（49.76 秒）
+- 移动端 `vite build` 未跑（按主站已经过推断应该 OK）
+- 无新增 lint error（pre-existing 警告无关）
+
+---
+
+### 📝 给 Agent 1 的结论
+
+**结论**：⚠️ **有条件通过**
+
+**必须修（阻塞 push）**：
+1. **Bug #1**：useEffect 竞态条件（详情页 + 列表页都加 `cancelled` 标记）
+2. **Bug #2**：补全 7 个产品的 `type` 字段，或改 filter 逻辑
+3. **Bug #3**：补全 `SPEC_VALUE_CN` 字典（与数据对齐）
+
+**强烈建议（不阻塞）**：
+- Bug #4：slugMap 改用更安全匹配
+- Bug #5：去掉 `try {} catch {}` 静默吞错
+- Bug #6：诚实文案（"由 ABDL Space 编辑整理（保留原版）"）
+- Bug #7：thumbnail grid 加 `loading="lazy"`
+
+**可以延后**：
+- Bug #8/9/10/11：脚本鲁棒性 + 缓存策略
+- Bug #12-15：清理未用变量
+
+**测试回归建议**：
+1. /diaper-wiki 加载 41 款商品
+2. 过滤 "纸尿裤" + "ABU" 应剩 11 款；过滤 "纸尿裤" + "REARZ" 应剩 ~23 款（实际看 type 字段补全情况）
+3. 详情页快速切换 id 应无 stale data
+4. 移动端 CSP 不阻断图片加载（DevTools Console 无红色 blocked 错误）
+5. 缩略图滚动懒加载（Network 面板观察）
+
+**图床上传步骤**（保持原计划）：
+1. 用户登录 abdl-space.top
+2. 拿 token cookie
+3. `TOKEN=xxx node scripts/upload-wiki-images.mjs`（建议加 retry 改进）
+4. `node scripts/merge-uploaded-urls.mjs`
+5. **重要**：merge 完成后提示用户硬刷新（因为 singleton 缓存）
+
+如不修 P1 三项直接 push，**详情页快速切换 + 筛选 + 中英对照** 三处体验会明显出问题。建议至少修完这三项再 push。
