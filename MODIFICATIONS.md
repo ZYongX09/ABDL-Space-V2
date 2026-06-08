@@ -1,3 +1,19 @@
+**账号体系升级 (v2.24.0) — 2026-06-08 07:30**
+- 实现完整账号体系：等级系统、经验值、积分、签到、邀请码、徽章
+- 后端新增 7 张表：points, point_logs, exp_logs, invite_codes, daily_checkins, badges, user_badges
+- 后端新增 6 个路由模块：checkin.ts, points.ts, invite.ts, badges.ts, sync.ts, auth.ts(更新)
+- 前端新增 6 个组件/页面：LevelBadge, CheckInButton, PointsCard, BadgeGallery, PointsPage, InvitePage
+- 前端 api.js 新增 5 个 API 模块：checkinAPI, pointsAPI, inviteAPI, badgesAPI, syncAPI
+- 共享工具：shared/time.ts (时区), lib/level.ts (等级计算), client/src/shared/level.js (前端等级)
+- 数据库迁移：schemas/account-system.sql (完整建表), migrations/0025_account_system_upgrade.sql (增量升级)
+- 功能特性：
+  - 等级 Lv.1~Lv.7，经验值驱动，支持降级
+  - 签到系统：每日签到 + 连续奖励 + 补签卡
+  - 积分系统：等级倍率加成，多种用途（头像框、称号、补签卡）
+  - 邀请码：ABDL-XXXX-XXXX 格式，90 天有效，邀请奖励
+  - 徽章系统：仅建表预留，后期用户自行添加
+  - 移动端同步：/api/sync/bootstrap 增量同步接口
+
 **裤裤百科频道 (v2.23.0) — 2026-06-07 23:50**
 - 爬取 ABU (ABUniverse Australia) + REARZ (Rearz Inc.) 两大 ABDL 品牌商品数据
   - ABU: 11 款 (PeekABU, LittlePawz, Little Kings, DinoRawrZ 等)

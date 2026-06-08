@@ -29,6 +29,7 @@ export default function Register() {
   const [codeSent, setCodeSent] = useState(false);
   const [sendCodeCount, setSendCodeCount] = useState(0);
   const [sendCodeCaptchaOk, setSendCodeCaptchaOk] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
   const [cooldown, setCooldown] = useState(0);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
@@ -87,6 +88,7 @@ export default function Register() {
       const result = await register({
         username: username.trim(), email: email.trim(), password, code,
         captchaToken: regTokenRef.current || undefined,
+        inviteCode: inviteCode.trim() || undefined,
         ...(nbwState ? { nbw_token: nbwState.nbw_token } : {}),
       });
       saveConsent({ privacy: true, terms: true, userId: result?.user?.id });
@@ -170,6 +172,12 @@ export default function Register() {
                   <i className={`fa-solid ${showConfirm ? 'fa-eye-slash' : 'fa-eye'}`} />
                 </button>
               </div>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>邀请码（可选）</label>
+              <input className="form-control" value={inviteCode} onChange={e => setInviteCode(e.target.value)} placeholder="ABDL-XXXX-XXXX" />
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>如果有邀请码，注册即可获得额外奖励</p>
             </div>
 
             <div className="mb-5 p-4 rounded-xl flex flex-col" style={{ border: `1.5px solid ${regVerified ? 'var(--success)' : 'var(--border)'}`, background: 'var(--input-bg)' }}>

@@ -19,6 +19,10 @@ import { forumAPI, followsAPI, authAPI, usersAPI } from '../api';
 import OfficialBadge from '../components/OfficialBadge';
 import NsfwGuard from '../components/NsfwGuard';
 import { LoadingSkeleton } from '../components/Feedback';
+import LevelBadge from '../components/LevelBadge';
+import CheckInButton from '../components/CheckInButton';
+import PointsCard from '../components/PointsCard';
+import BadgeGallery from '../components/BadgeGallery';
 
 // ============================================================
 // MIUI 风格动画
@@ -992,7 +996,39 @@ export default function ProfilePageV2() {
                 </button>
               )}
             </div>
-            <div style={S.desktopCard} className="miui-enter miui-enter-delay-1">
+            {/* 等级和签到卡片 */}
+            <div style={{ ...S.desktopCard, padding: '16px' }} className="miui-enter miui-enter-delay-1">
+              <LevelBadge userId={targetId} />
+              {isSelf && <div style={{ marginTop: '12px' }}><CheckInButton /></div>}
+            </div>
+            {/* 积分卡片 */}
+            {isSelf && (
+              <div style={{ ...S.desktopCard, padding: '16px' }} className="miui-enter miui-enter-delay-2">
+                <PointsCard userId={targetId} />
+                <div style={{ marginTop: '8px', textAlign: 'center' }}>
+                  <button
+                    onClick={() => navigate('/points')}
+                    style={{
+                      padding: '6px 16px',
+                      background: 'transparent',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    查看明细
+                  </button>
+                </div>
+              </div>
+            )}
+            {/* 徽章画廊 */}
+            <div style={{ ...S.desktopCard, padding: '16px' }} className="miui-enter miui-enter-delay-3">
+              <BadgeGallery userId={targetId} editable={isSelf} />
+            </div>
+            {/* 个人资料卡片 */}
+            <div style={S.desktopCard} className="miui-enter miui-enter-delay-4">
               <div style={{ padding: '16px 20px' }}>
                 <InfoCard user={displayUser} />
               </div>
@@ -1149,6 +1185,36 @@ export default function ProfilePageV2() {
           />
         </div>
 
+      </div>
+
+      {/* 2.5 等级和签到 */}
+      <div style={{ padding: '0 16px' }}>
+        <LevelBadge userId={targetId} />
+        {isSelf && <div style={{ marginTop: '12px' }}><CheckInButton /></div>}
+        {isSelf && (
+          <div style={{ marginTop: '12px' }}>
+            <PointsCard userId={targetId} />
+            <div style={{ marginTop: '8px', textAlign: 'center' }}>
+              <button
+                onClick={() => navigate('/points')}
+                style={{
+                  padding: '6px 16px',
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                }}
+              >
+                查看积分明细
+              </button>
+            </div>
+          </div>
+        )}
+        <div style={{ marginTop: '12px' }}>
+          <BadgeGallery userId={targetId} editable={isSelf} />
+        </div>
       </div>
 
       {/* 3. 简介卡片 */}

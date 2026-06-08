@@ -48,6 +48,8 @@ const AccountPrivacy = lazy(() => import('./pages/AccountPrivacy'));
 const ProfilePageV2 = lazy(() => import('./pages/ProfilePageV2'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const CaptchaApiPage = lazy(() => import('./pages/CaptchaApiPage'));
+const PointsPage = lazy(() => import('./pages/PointsPage'));
+const InvitePage = lazy(() => import('./pages/InvitePage'));
 const OAuthAuthorize = lazy(() => import('./pages/OAuthAuthorize'));
 const OAuthClientsPage = lazy(() => import('./pages/OAuthClientsPage'));
 const ExternalLink = lazy(() => import('./pages/ExternalLink'));
@@ -88,6 +90,8 @@ const ROUTE_TITLES = {
   '/oauth/authorize': 'OAuth 授权 — ABDL Space',
   '/oauth-clients': '应用管理 — ABDL Space',
   '/auth/nbw/choose': '关联账户 — ABDL Space',
+  '/points': '积分 — ABDL Space',
+  '/invite': '邀请码 — ABDL Space',
 };
 
 function getTitle(pathname) {
@@ -206,6 +210,8 @@ export default function App() {
                 <Route path="/external" element={<ExternalLink />} />
                 <Route path="/create-post" element={<CreatePost />} />
                 <Route path="/bugs" element={<BugDashboard />} />
+                <Route path="/points" element={<PointsPage />} />
+                <Route path="/invite" element={<InvitePage />} />
               </Routes>
             </Suspense>
           </ErrorBoundary>

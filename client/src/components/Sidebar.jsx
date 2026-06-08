@@ -143,6 +143,30 @@ export default function Sidebar() {
               <span className="sidebar-link-label">登录</span>
             </NavLink>
           )}
+          {user && (
+            <>
+              <NavLink
+                to="/points"
+                ref={el => { if (el) itemRefs.current['_points'] = el; }}
+                className={({ isActive }) => `sidebar-link sidebar-ripple-item ${isActive ? 'active' : ''} ${expanded ? 'ripple-expanded' : ''}`}
+                title="积分"
+                style={{ '--ripple-delay': `${getRippleDelay('_points')}ms` }}
+              >
+                <i className="fa-solid fa-coins sidebar-link-icon" />
+                <span className="sidebar-link-label">积分</span>
+              </NavLink>
+              <NavLink
+                to="/invite"
+                ref={el => { if (el) itemRefs.current['_invite'] = el; }}
+                className={({ isActive }) => `sidebar-link sidebar-ripple-item ${isActive ? 'active' : ''} ${expanded ? 'ripple-expanded' : ''}`}
+                title="邀请码"
+                style={{ '--ripple-delay': `${getRippleDelay('_invite')}ms` }}
+              >
+                <i className="fa-solid fa-ticket sidebar-link-icon" />
+                <span className="sidebar-link-label">邀请码</span>
+              </NavLink>
+            </>
+          )}
           <NavLink
             to="/settings"
             ref={el => { if (el) itemRefs.current['_settings'] = el; }}

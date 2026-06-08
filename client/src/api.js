@@ -127,12 +127,12 @@ export async function loadData() {
 // 认证 Auth
 // =====================================================================
 export const authAPI = {
-  register: async ({ username, password, email, code, captchaToken }) => {
+  register: async ({ username, password, email, code, captchaToken, inviteCode }) => {
     const headers = {};
     if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
     return apiFetch('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, password, username, code }),
+      body: JSON.stringify({ email, password, username, code, invite_code: inviteCode }),
       headers,
     });
   },
@@ -1133,5 +1133,92 @@ export const captchaAPI = {
   /** 健康检查 */
   status: async () => {
     return apiFetch('/api/captcha/status');
+  },
+};
+
+// ====== 签到系统 ======
+export const checkinAPI = {
+  /** 每日签到 */
+  checkin: async () => {
+    return apiFetch('/api/checkin', { method: 'POST' });
+  },
+
+  /** 获取签到状态 */
+  getStatus: async () => {
+    return apiFetch('/api/checkin/status');
+  },
+
+  /** 补签 */
+  makeup: async (targetDate) => {
+    return apiFetch('/api/checkin/makeup', {
+      method: 'POST',
+      body: JSON.stringify({ target_date: targetDate }),
+    });
+  },
+};
+
+// ====== 积分系统 ======
+export const pointsAPI = {
+  /** 获取积分余额 */
+  getBalance: async (userId) => {
+    return apiFetch(`/api/users/${userId}/points`);
+  },
+
+  /** 获取积分流水 */
+  getLogs: async (userId, page = 1, limit = 20) => {
+    return apiFetch(`/api/users/${userId}/points/logs?page=${page}&limit=${limit}`);
+  },
+
+  /** 获取经验流水 */
+  getExpLogs: async (userId, page = 1, limit = 20) => {
+    return apiFetch(`/api/users/${userId}/exp/logs?page=${page}&limit=${limit}`);
+  },
+
+  /** 获取等级详情 */
+  getLevel: async (userId) => {
+    return apiFetch(`/api/users/${userId}/level`);
+  },
+};
+
+// ====== 邀请系统 ======
+export const inviteAPI = {
+  /** 生成邀请码 */
+  generate: async () => {
+    return apiFetch('/api/invite/generate', { method: 'POST' });
+  },
+
+  /** 获取我的邀请码 */
+  getMyCodes: async () => {
+    return apiFetch('/api/invite/my-codes');
+  },
+};
+
+// ====== 徽章系统 ======
+export const badgesAPI = {
+  /** 获取用户徽章 */
+  getUserBadges: async (userId) => {
+    return apiFetch(`/api/users/${userId}/badges`);
+  },
+
+  /** 设置展示徽章 */
+  setDisplay: async (userId, badgeKeys) => {
+    return apiFetch(`/api/users/${userId}/badges/display`, {
+      method: 'POST',
+      body: JSON.stringify({ badge_keys: badgeKeys }),
+    });
+  },
+
+  /** 获取所有徽章定义 */
+  getAll: async () => {
+    return apiFetch('/api/badges');
+  },
+};
+
+// ====== 移动端同步 ======
+export const syncAPI = {
+  /** 增量同步 */
+  bootstrap: async (since) => {
+    const query = since ? `?since=${encodeURIComponent(since)}` : '';
+    return apiFetch(`/api/sync/bootstrap${query}`);
   },
 };

@@ -126,13 +126,13 @@ export function AuthProvider({ children }) {
   }, []);
 
   // 注册
-  const register = useCallback(async ({ username, email, password, code, captchaToken }) => {
+  const register = useCallback(async ({ username, email, password, code, captchaToken, inviteCode }) => {
     const headers = { 'Content-Type': 'application/json' };
     if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
     const res = await fetch(`${API_BASE}/api/auth/register`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ email, password, username, code }),
+      body: JSON.stringify({ email, password, username, code, invite_code: inviteCode }),
       credentials: 'include',
     });
     const data = await res.json();
