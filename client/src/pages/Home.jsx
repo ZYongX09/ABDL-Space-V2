@@ -5,6 +5,7 @@ import { LoadingSkeleton, EmptyState } from '../components/Feedback';
 import { diapersAPI } from '../api';
 import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { getChineseName } from '../shared/diaperNames';
 
 import BaseScoreRef from '../components/BaseScoreRef';
 
@@ -128,7 +129,7 @@ export default function Home() {
                   <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--primary-dark)' }}>{d.brand}</span>
                 )}
               </div>
-              <div className="text-lg font-bold mb-2">{d.model}</div>
+              <div className="text-lg font-bold mb-2">{getChineseName(d.slug || d.id, d.model, d.brand, d.model)}</div>
               <div className="flex flex-wrap gap-2 text-sm" style={{ color: 'var(--text-light)' }}>
                 {d.product_type && <span className="tag">{d.product_type}</span>}
                 {d.is_baby_diaper === 1 && <span className="tag" style={{ background: 'rgba(255,143,171,0.12)', color: '#d87a95', borderColor: 'rgba(255,143,171,0.3)' }}>儿童款</span>}
