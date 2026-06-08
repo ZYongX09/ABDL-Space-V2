@@ -109,9 +109,9 @@ export default function CheckInButton({ compact = false }) {
           gap: '6px',
           padding: '14px 8px',
           background: checkedIn
-            ? '#10B98112'
+            ? 'var(--checkin-soft)'
             : 'linear-gradient(135deg, var(--primary), var(--primary-dark, #6366F1))',
-          border: checkedIn ? '1px solid #10B98125' : 'none',
+          border: checkedIn ? '1px solid var(--checkin-border)' : 'none',
           borderRadius: '14px',
           cursor: checkedIn ? 'default' : 'pointer',
           opacity: checkingIn || loading ? 0.7 : 1,
@@ -124,13 +124,13 @@ export default function CheckInButton({ compact = false }) {
         ) : (
           <i className={`fa-solid ${checkedIn ? 'fa-calendar-check' : 'fa-calendar'}`} style={{
             fontSize: '18px',
-            color: checkedIn ? '#10B981' : '#fff',
+            color: checkedIn ? 'var(--checkin)' : '#fff',
           }} />
         )}
         <span style={{
           fontSize: '11px',
           fontWeight: '600',
-          color: checkedIn ? '#10B981' : '#fff',
+          color: checkedIn ? 'var(--checkin)' : '#fff',
         }}>
           {loading ? '...' : checkedIn ? '已签到' : checkingIn ? '签到中' : '签到'}
         </span>
@@ -140,7 +140,7 @@ export default function CheckInButton({ compact = false }) {
             alignItems: 'center',
             gap: '3px',
             fontSize: '10px',
-            color: checkedIn ? '#10B981' : 'rgba(255,255,255,0.8)',
+            color: checkedIn ? 'var(--checkin)' : 'rgba(255,255,255,0.85)',
           }}>
             <i className="fa-solid fa-fire" style={{ fontSize: '8px' }} />
             {streak}天
@@ -155,10 +155,10 @@ export default function CheckInButton({ compact = false }) {
     <div style={{
       padding: '20px',
       background: checkedIn
-        ? 'linear-gradient(135deg, #10B98115, #10B98108)'
-        : 'var(--card-bg, #fff)',
+        ? 'linear-gradient(135deg, var(--checkin-soft), var(--checkin-softer))'
+        : 'var(--bg-card)',
       borderRadius: '16px',
-      border: `1px solid ${checkedIn ? '#10B98130' : 'var(--border)'}`,
+      border: `1px solid ${checkedIn ? 'var(--checkin-border)' : 'var(--border)'}`,
       transition: 'all 0.3s ease',
     }}>
       {/* 连续签到天数 */}
@@ -173,14 +173,14 @@ export default function CheckInButton({ compact = false }) {
             width: '40px',
             height: '40px',
             borderRadius: '10px',
-            background: checkedIn ? '#10B98120' : 'var(--primary)15',
+            background: checkedIn ? 'var(--checkin-soft)' : 'var(--primary)15',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}>
             <i className={`fa-solid ${checkedIn ? 'fa-calendar-check' : 'fa-calendar'}`} style={{
               fontSize: '18px',
-              color: checkedIn ? '#10B981' : 'var(--primary)',
+              color: checkedIn ? 'var(--checkin)' : 'var(--primary)',
             }} />
           </div>
           <div>
@@ -200,7 +200,7 @@ export default function CheckInButton({ compact = false }) {
                 color: 'var(--text-secondary)',
                 marginTop: '2px',
               }}>
-                <i className="fa-solid fa-fire" style={{ fontSize: '10px', color: '#F59E0B' }} />
+                <i className="fa-solid fa-fire" style={{ fontSize: '10px', color: 'var(--streak)' }} />
                 连续签到 {streak} 天
               </div>
             )}
@@ -213,8 +213,8 @@ export default function CheckInButton({ compact = false }) {
             alignItems: 'center',
             gap: '6px',
             padding: '6px 12px',
-            background: streak >= 30 ? '#F59E0B15' : '#3B82F615',
-            color: streak >= 30 ? '#F59E0B' : '#3B82F6',
+            background: streak >= 30 ? 'var(--streak-soft)' : 'var(--post-soft)',
+            color: streak >= 30 ? 'var(--streak-strong)' : 'var(--post)',
             borderRadius: '20px',
             fontSize: '12px',
             fontWeight: '600',
@@ -233,9 +233,9 @@ export default function CheckInButton({ compact = false }) {
           width: '100%',
           padding: '14px',
           background: checkedIn
-            ? '#10B98120'
+            ? 'var(--checkin-soft)'
             : 'linear-gradient(135deg, var(--primary), var(--primary-dark, #6366F1))',
-          color: checkedIn ? '#10B981' : '#fff',
+          color: checkedIn ? 'var(--checkin)' : '#fff',
           border: 'none',
           borderRadius: '12px',
           fontSize: '15px',
@@ -325,7 +325,7 @@ export default function CheckInButton({ compact = false }) {
               style={{
                 flex: 1,
                 padding: '10px',
-                background: 'var(--card-bg, #fff)',
+                background: 'var(--bg-card)',
                 color: 'var(--text)',
                 border: '1px solid var(--border)',
                 borderRadius: '8px',

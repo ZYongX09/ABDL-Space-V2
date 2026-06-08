@@ -166,13 +166,15 @@ export default function DiaperWiki() {
           {/* 主图 */}
           {hasImages && (
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <img
-                src={allImages[0]}
-                alt={product.name}
-                className="w-full"
-                style={{ maxHeight: 480, objectFit: 'contain', background: 'var(--bg-card-soft)' }}
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
+              <div style={{ aspectRatio: '1/1', background: 'var(--bg-card-soft)', overflow: 'hidden' }}>
+                <img
+                  src={allImages[0]}
+                  alt={product.name}
+                  className="w-full h-full"
+                  style={{ objectFit: 'cover' }}
+                  onError={(e) => { e.currentTarget.style.opacity = '0.3'; }}
+                />
+              </div>
             </div>
           )}
 
@@ -326,7 +328,7 @@ export default function DiaperWiki() {
                 src={product.size_chart_image}
                 alt="Size Chart"
                 className="w-full rounded-lg"
-                style={{ maxHeight: 600, objectFit: 'contain' }}
+                style={{ aspectRatio: '4/3', objectFit: 'contain', background: 'var(--bg-card-soft)' }}
               />
             </div>
           )}
@@ -358,19 +360,22 @@ export default function DiaperWiki() {
         <div className="space-y-4">
           {hasImages && (
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <img
-                src={allImages[activeImage]}
-                alt={`${product.name} ${activeImage + 1}`}
-                className="w-full"
-                style={{ maxHeight: 600, objectFit: 'contain', background: 'var(--bg-card-soft)' }}
-              />
+              <div style={{ aspectRatio: '1/1', background: 'var(--bg-card-soft)', overflow: 'hidden' }}>
+                <img
+                  src={allImages[activeImage]}
+                  alt={`${product.name} ${activeImage + 1}`}
+                  className="w-full h-full"
+                  style={{ objectFit: 'cover' }}
+                  onError={(e) => { e.currentTarget.style.opacity = '0.3'; }}
+                />
+              </div>
               <div className="p-3 text-center text-xs" style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border)' }}>
                 {activeImage + 1} / {allImages.length}
               </div>
             </div>
           )}
           {allImages.length > 1 && (
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
               {allImages.map((img, i) => (
                 <button key={i} onClick={() => setActiveImage(i)}
                   className="rounded-lg overflow-hidden miui-press"
@@ -390,7 +395,7 @@ export default function DiaperWiki() {
                 <i className="fa-solid fa-chart-simple mr-2" style={{ color: 'var(--primary)' }} />尺码图解
               </h3>
               <img src={product.size_chart_image} alt="Size Chart" className="w-full rounded-lg"
-                style={{ maxHeight: 600, objectFit: 'contain' }} />
+                style={{ aspectRatio: '4/3', objectFit: 'contain', background: 'var(--bg-card-soft)' }} />
             </div>
           )}
         </div>

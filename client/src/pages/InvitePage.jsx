@@ -89,7 +89,7 @@ export default function InvitePage() {
     }}>
       {/* Hero 区域 */}
       <div style={{
-        background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark, #6366F1) 100%)',
+        background: 'linear-gradient(135deg, var(--invite) 0%, var(--invite-soft) 100%)',
         borderRadius: '20px',
         padding: '40px 32px',
         marginBottom: '24px',
@@ -104,7 +104,7 @@ export default function InvitePage() {
           width: '120px',
           height: '120px',
           borderRadius: '50%',
-          background: 'rgba(255,255,255,0.1)',
+          background: 'var(--invite-softer)',
         }} />
         <div style={{
           position: 'absolute',
@@ -113,7 +113,7 @@ export default function InvitePage() {
           width: '80px',
           height: '80px',
           borderRadius: '50%',
-          background: 'rgba(255,255,255,0.05)',
+          background: 'var(--checkin-softer)',
         }} />
 
         <div style={{ position: 'relative', zIndex: 1 }}>
@@ -127,19 +127,20 @@ export default function InvitePage() {
               width: '48px',
               height: '48px',
               borderRadius: '14px',
-              background: 'rgba(255,255,255,0.2)',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--invite-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               backdropFilter: 'blur(10px)',
             }}>
-              <i className="fa-solid fa-user-plus" style={{ fontSize: '20px', color: '#fff' }} />
+              <i className="fa-solid fa-user-plus" style={{ fontSize: '20px', color: 'var(--invite)' }} />
             </div>
             <div>
               <h1 style={{
                 fontSize: '28px',
                 fontWeight: '700',
-                color: '#fff',
+                color: 'var(--text)',
                 margin: 0,
                 lineHeight: 1.2,
               }}>
@@ -147,7 +148,7 @@ export default function InvitePage() {
               </h1>
               <p style={{
                 fontSize: '14px',
-                color: 'rgba(255,255,255,0.8)',
+                color: 'var(--text-secondary)',
                 margin: '4px 0 0',
               }}>
                 分享邀请码，一起获得奖励
@@ -163,12 +164,13 @@ export default function InvitePage() {
             marginTop: '24px',
           }}>
             {[
-              { label: '邀请成功', value: usedCodes.length, icon: 'fa-check-circle' },
-              { label: '待使用', value: activeCodes.length, icon: 'fa-clock' },
-              { label: '已过期', value: expiredCodes.length, icon: 'fa-hourglass-end' },
+              { label: '邀请成功', value: usedCodes.length, icon: 'fa-check-circle', color: 'var(--invite)' },
+              { label: '待使用', value: activeCodes.length, icon: 'fa-clock', color: 'var(--streak)' },
+              { label: '已过期', value: expiredCodes.length, icon: 'fa-hourglass-end', color: 'var(--muted-strong)' },
             ].map((stat, i) => (
               <div key={i} style={{
-                background: 'rgba(255,255,255,0.15)',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
                 borderRadius: '12px',
                 padding: '16px',
                 textAlign: 'center',
@@ -176,20 +178,20 @@ export default function InvitePage() {
               }}>
                 <i className={`fa-solid ${stat.icon}`} style={{
                   fontSize: '18px',
-                  color: 'rgba(255,255,255,0.9)',
+                  color: stat.color,
                   marginBottom: '8px',
                   display: 'block',
                 }} />
                 <div style={{
                   fontSize: '24px',
                   fontWeight: '700',
-                  color: '#fff',
+                  color: 'var(--text)',
                 }}>
                   {stat.value}
                 </div>
                 <div style={{
                   fontSize: '12px',
-                  color: 'rgba(255,255,255,0.7)',
+                  color: 'var(--text-secondary)',
                   marginTop: '4px',
                 }}>
                   {stat.label}
@@ -202,7 +204,7 @@ export default function InvitePage() {
 
       {/* 奖励规则卡片 */}
       <div style={{
-        background: 'var(--card-bg, #fff)',
+        background: 'var(--bg-card)',
         borderRadius: '16px',
         padding: '24px',
         marginBottom: '24px',
@@ -242,8 +244,8 @@ export default function InvitePage() {
         }}>
           {/* 邀请人奖励 */}
           <div style={{
-            background: 'linear-gradient(135deg, #10B98115, #10B98108)',
-            border: '1px solid #10B98125',
+            background: 'linear-gradient(135deg, var(--invite-soft), var(--invite-softer))',
+            border: '1px solid var(--invite-border)',
             borderRadius: '12px',
             padding: '20px',
           }}>
@@ -253,18 +255,18 @@ export default function InvitePage() {
               gap: '8px',
               marginBottom: '12px',
             }}>
-              <i className="fa-solid fa-trophy" style={{ color: '#10B981', fontSize: '16px' }} />
-              <span style={{ fontSize: '14px', fontWeight: '600', color: '#10B981' }}>
+              <i className="fa-solid fa-trophy" style={{ color: 'var(--invite)', fontSize: '16px' }} />
+              <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--invite)' }}>
                 邀请你
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <i className="fa-solid fa-star" style={{ fontSize: '12px', color: '#10B981' }} />
+                <i className="fa-solid fa-star" style={{ fontSize: '12px', color: 'var(--invite)' }} />
                 <span style={{ fontSize: '13px', color: 'var(--text)' }}>+50 经验值</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <i className="fa-solid fa-coins" style={{ fontSize: '12px', color: '#10B981' }} />
+                <i className="fa-solid fa-coins" style={{ fontSize: '12px', color: 'var(--points)' }} />
                 <span style={{ fontSize: '13px', color: 'var(--text)' }}>+20 积分</span>
               </div>
             </div>
@@ -272,8 +274,8 @@ export default function InvitePage() {
 
           {/* 被邀请人奖励 */}
           <div style={{
-            background: 'linear-gradient(135deg, #3B82F615, #3B82F608)',
-            border: '1px solid #3B82F625',
+            background: 'linear-gradient(135deg, var(--post-soft), var(--post-softer))',
+            border: '1px solid var(--post-border)',
             borderRadius: '12px',
             padding: '20px',
           }}>
@@ -283,18 +285,18 @@ export default function InvitePage() {
               gap: '8px',
               marginBottom: '12px',
             }}>
-              <i className="fa-solid fa-user-check" style={{ color: '#3B82F6', fontSize: '16px' }} />
-              <span style={{ fontSize: '14px', fontWeight: '600', color: '#3B82F6' }}>
+              <i className="fa-solid fa-user-check" style={{ color: 'var(--post)', fontSize: '16px' }} />
+              <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--post)' }}>
                 被邀请人
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <i className="fa-solid fa-star" style={{ fontSize: '12px', color: '#3B82F6' }} />
+                <i className="fa-solid fa-star" style={{ fontSize: '12px', color: 'var(--post)' }} />
                 <span style={{ fontSize: '13px', color: 'var(--text)' }}>注册 +10 经验</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <i className="fa-solid fa-coins" style={{ fontSize: '12px', color: '#3B82F6' }} />
+                <i className="fa-solid fa-coins" style={{ fontSize: '12px', color: 'var(--points)' }} />
                 <span style={{ fontSize: '13px', color: 'var(--text)' }}>首次评价 +50 积分</span>
               </div>
             </div>
@@ -304,7 +306,7 @@ export default function InvitePage() {
 
       {/* 生成邀请码 */}
       <div style={{
-        background: 'var(--card-bg, #fff)',
+        background: 'var(--bg-card)',
         borderRadius: '16px',
         padding: '24px',
         marginBottom: '24px',
@@ -361,8 +363,8 @@ export default function InvitePage() {
               padding: '10px 20px',
               background: generating || activeCodes.length >= 10
                 ? 'var(--border)'
-                : 'linear-gradient(135deg, var(--primary), var(--primary-dark, #6366F1))',
-              color: '#fff',
+                : 'linear-gradient(135deg, var(--invite), var(--checkin))',
+              color: 'var(--checkin-on)',
               border: 'none',
               borderRadius: '10px',
               fontSize: '14px',
@@ -371,7 +373,7 @@ export default function InvitePage() {
               transition: 'all 0.2s ease',
               boxShadow: generating || activeCodes.length >= 10
                 ? 'none'
-                : '0 2px 8px var(--primary)40',
+                : '0 2px 8px var(--invite-border)',
             }}
           >
             <i className={`fa-solid ${generating ? 'fa-spinner fa-spin' : 'fa-plus'}`} />
@@ -428,7 +430,7 @@ export default function InvitePage() {
                   display: 'flex',
                   alignItems: 'center',
                   padding: '16px',
-                  background: code.used || code.expired ? 'var(--bg)' : 'var(--card-bg, #fff)',
+                  background: code.used || code.expired ? 'var(--bg)' : 'var(--bg-card)',
                   border: `1px solid ${code.used || code.expired ? 'var(--border)' : 'var(--primary)30'}`,
                   borderRadius: '12px',
                   transition: 'all 0.2s ease',
@@ -440,10 +442,10 @@ export default function InvitePage() {
                   height: '40px',
                   borderRadius: '10px',
                   background: code.used
-                    ? '#9CA3AF20'
+                    ? 'var(--muted-bg)'
                     : code.expired
-                      ? '#EF444420'
-                      : '#10B98120',
+                      ? 'var(--streak-soft)'
+                      : 'var(--invite-soft)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -456,7 +458,7 @@ export default function InvitePage() {
                     'fa-ticket'
                   }`} style={{
                     fontSize: '18px',
-                    color: code.used ? '#9CA3AF' : code.expired ? '#EF4444' : '#10B981',
+                    color: code.used ? 'var(--muted-strong)' : code.expired ? 'var(--streak-strong)' : 'var(--invite)',
                   }} />
                 </div>
 
@@ -507,9 +509,9 @@ export default function InvitePage() {
                       alignItems: 'center',
                       gap: '6px',
                       padding: '8px 16px',
-                      background: copiedId === code.id ? '#10B981' : 'var(--primary)15',
-                      color: copiedId === code.id ? '#fff' : 'var(--primary)',
-                      border: `1px solid ${copiedId === code.id ? '#10B981' : 'var(--primary)30'}`,
+                      background: copiedId === code.id ? 'var(--invite)' : 'var(--invite-soft)',
+                      color: copiedId === code.id ? 'var(--checkin-on)' : 'var(--invite)',
+                      border: `1px solid ${copiedId === code.id ? 'var(--invite)' : 'var(--invite-border)'}`,
                       borderRadius: '8px',
                       fontSize: '13px',
                       fontWeight: '600',
@@ -529,7 +531,7 @@ export default function InvitePage() {
 
       {/* 使用说明 */}
       <div style={{
-        background: 'var(--card-bg, #fff)',
+        background: 'var(--bg-card)',
         borderRadius: '16px',
         padding: '24px',
         border: '1px solid var(--border)',
@@ -544,12 +546,12 @@ export default function InvitePage() {
             width: '36px',
             height: '36px',
             borderRadius: '10px',
-            background: '#F59E0B15',
+            background: 'var(--points-soft)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <i className="fa-solid fa-lightbulb" style={{ color: '#F59E0B', fontSize: '16px' }} />
+            <i className="fa-solid fa-lightbulb" style={{ color: 'var(--points)', fontSize: '16px' }} />
           </div>
           <h2 style={{
             fontSize: '18px',
@@ -571,19 +573,19 @@ export default function InvitePage() {
               icon: 'fa-share-nodes',
               title: '分享邀请码',
               desc: '将邀请码发送给好友，邀请他们注册',
-              color: '#3B82F6',
+              color: 'var(--post)',
             },
             {
               icon: 'fa-user-plus',
               title: '好友注册',
               desc: '好友在注册时输入你的邀请码',
-              color: '#10B981',
+              color: 'var(--invite)',
             },
             {
               icon: 'fa-gift',
               title: '获得奖励',
               desc: '双方都能获得丰厚的经验和积分奖励',
-              color: '#F59E0B',
+              color: 'var(--points)',
             },
           ].map((step, i) => (
             <div key={i} style={{
@@ -597,7 +599,8 @@ export default function InvitePage() {
                 width: '40px',
                 height: '40px',
                 borderRadius: '10px',
-                background: `${step.color}15`,
+                background: 'var(--hover-bg)',
+                border: `1px solid ${step.color}30`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

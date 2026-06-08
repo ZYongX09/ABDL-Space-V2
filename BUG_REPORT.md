@@ -5165,3 +5165,95 @@ grep "realStreak" src/routes/checkin.ts                     # 找到
 
 **v4.6 账号体系升级：通过。批准部署。**
 
+
+---
+
+## [2026-06-08 12:00] 多主题适配审查 — A- 通过
+
+**审查范围**：
+- 主站 (abdl-space-v2) 38 个新变量 × 3 主题
+- 移动端 (abdl-space-mobile) 同步
+- 6 个新组件 / 页面硬编码色清理
+
+### 通过
+
+| 项 | 状态 |
+|---|------|
+| CSS 变量扩展 | ✅ 主站 114 / 移动端 108 |
+| 硬编码色清理 | ✅ 5/6 文件 0 处（CheckInButton 2 处是 var() fallback） |
+| 双端同步 | ✅ |
+| 主题色阶 | ✅ 浅/深/多彩 3 主题独立配色 |
+| 半透明 alpha | ✅ 浅 0.12-0.15 / 深 0.14-0.15 / 多彩 0.16-0.18 |
+| vite build | ✅ 双端通过 |
+
+### P1 a11y 风险
+
+WCAG AA 对比度在浅色/多彩主题不达标：
+
+1. **"生成邀请码"按钮**（白字 on 绿渐变）：浅色 2.54-3.77 / 多彩 2.48-2.97 ❌
+2. **"复制成功"按钮**：同上
+3. **PointsCard 累计数字**（earn/spend 文字 on 白底）：浅色 2.54 / 多彩 2.48 ❌
+
+### 修复（6 行 CSS）
+
+```css
+/* 浅色 */
+--checkin-on: #064E3B;  /* 深绿 */
+--points-on: #78350F;   /* 深金 */
+/* 多彩 */
+--checkin-on: #1A4A2E;
+--points-on: #6B3D0A;
+```
+
+### 总评分 A-
+
+可部署（a11y 不阻塞功能），但下个 PR 应修 a11y 警告。
+
+
+---
+
+## [2026-06-08 13:00] diaper-wiki 图片显示修复审查
+
+**用户报告**：REARZ bunnyboo (12 张图) 全部被 CSP 拦截。
+
+### 改动核查
+
+| 项 | 主站 | 移动端 | 状态 |
+|---|---|---|---|
+| _headers 加 CSP | `https://*.bigcommerce.com` | 已有具体 4 域名 | ⚠️ 不一致 |
+| 主图布局 1:1+cover | 2 处 (行 169, 363) | 2 处 | ✅ |
+| size_chart 4:3+contain | 2 处 (行 331, 398) | 2 处 | ✅ |
+| 缩略图 3-4-5 列 | ✅ | ✅ | ✅ |
+| onError opacity 0.3 | ✅ | ✅ | ✅ |
+| vite build | 55s | 55s | ✅ |
+
+### 实际图片数据 (41 商品, 476 图)
+
+| 域名 | 数量 | 主站 CSP | 移动端 CSP |
+|---|---|---|---|
+| cdn11.bigcommerce.com | 346 (72.7%) | ✅ 通配符覆盖 | ✅ |
+| img.abdl-space.top | 117 (24.6%) | ✅ | ✅ |
+| **au.abuniverse.com** | **13 (2.7%)** | **❌ 缺失！** | ✅ |
+| cdn.shopify.com | 0 | — | over-prepare |
+| us.rearz.com | 0 | — | over-prepare |
+
+### P1 风险
+
+**ABU tinytails 商品 13/16 张图来自 au.abuniverse.com** — 主站 CSP 没加此域名 → **13 张图仍被拦截**。
+
+Agent1 只测了 bunnyboo (rearz 商品)，**没测 abu-tinytails (ABU 商品)**。
+
+### P2 风险
+
+1. **1:1 + cover 对异形图会裁剪** — 实际数据 REARZ 都是 1280x1280 方形 ✅，但 abu-tinytails 尺寸未知
+2. **CSP 策略不一致** — 主站用通配符 + 漏，移动端用具体 + 全
+
+### 修复
+
+主站 _headers 应加 `https://au.abuniverse.com`（与移动端一致）：
+
+```diff
+-img-src ... https://hm.baidu.com https://*.bigcommerce.com
++img-src ... https://hm.baidu.com https://*.bigcommerce.com https://au.abuniverse.com
+```
+

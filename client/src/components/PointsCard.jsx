@@ -38,7 +38,7 @@ export default function PointsCard({ userId }) {
     return (
       <div style={{
         padding: '20px',
-        background: 'var(--card-bg, #fff)',
+        background: 'var(--bg-card)',
         borderRadius: '16px',
         border: '1px solid var(--border)',
         textAlign: 'center',
@@ -55,8 +55,8 @@ export default function PointsCard({ userId }) {
   return (
     <div style={{
       padding: '24px',
-      background: 'linear-gradient(135deg, #F59E0B15, #F59E0B08)',
-      border: '1px solid #F59E0B25',
+      background: 'linear-gradient(135deg, var(--points-soft), var(--points-softer))',
+      border: '1px solid var(--points-border)',
       borderRadius: '16px',
     }}>
       <div style={{
@@ -72,7 +72,7 @@ export default function PointsCard({ userId }) {
             gap: '8px',
             marginBottom: '8px',
           }}>
-            <i className="fa-solid fa-coins" style={{ color: '#F59E0B', fontSize: '14px' }} />
+            <i className="fa-solid fa-coins" style={{ color: 'var(--points)', fontSize: '14px' }} />
             <span style={{
               fontSize: '13px',
               color: 'var(--text-secondary)',
@@ -84,7 +84,7 @@ export default function PointsCard({ userId }) {
           <div style={{
             fontSize: '32px',
             fontWeight: '700',
-            color: '#F59E0B',
+            color: 'var(--points)',
             lineHeight: 1,
             fontFeatureSettings: 'tnum',
           }}>
@@ -95,12 +95,12 @@ export default function PointsCard({ userId }) {
           width: '48px',
           height: '48px',
           borderRadius: '14px',
-          background: '#F59E0B20',
+          background: 'var(--points-soft)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-          <i className="fa-solid fa-wallet" style={{ fontSize: '20px', color: '#F59E0B' }} />
+          <i className="fa-solid fa-wallet" style={{ fontSize: '20px', color: 'var(--points)' }} />
         </div>
       </div>
 
@@ -110,16 +110,16 @@ export default function PointsCard({ userId }) {
         fontSize: '12px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <i className="fa-solid fa-arrow-trend-up" style={{ fontSize: '10px', color: '#10B981' }} />
+          <i className="fa-solid fa-arrow-trend-up" style={{ fontSize: '10px', color: 'var(--earn)' }} />
           <span style={{ color: 'var(--text-secondary)' }}>累计获得</span>
-          <span style={{ color: '#10B981', fontWeight: '600' }}>
+          <span style={{ color: 'var(--earn)', fontWeight: '600' }}>
             +{data.total_earned.toLocaleString()}
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <i className="fa-solid fa-arrow-trend-down" style={{ fontSize: '10px', color: '#EF4444' }} />
+          <i className="fa-solid fa-arrow-trend-down" style={{ fontSize: '10px', color: 'var(--spend)' }} />
           <span style={{ color: 'var(--text-secondary)' }}>累计消耗</span>
-          <span style={{ color: '#EF4444', fontWeight: '600' }}>
+          <span style={{ color: 'var(--spend)', fontWeight: '600' }}>
             -{data.total_spent.toLocaleString()}
           </span>
         </div>

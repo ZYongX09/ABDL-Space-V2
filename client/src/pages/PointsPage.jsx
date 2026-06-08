@@ -100,25 +100,26 @@ export default function PointsPage() {
   }
 
   function getTypeIcon(type) {
+    // 颜色使用 CSS 变量（多主题适配），背景使用 -soft 半透明版本
     const icons = {
-      checkin: { icon: 'fa-calendar-check', color: '#10B981' },
-      checkin_streak_7: { icon: 'fa-fire', color: '#F59E0B' },
-      checkin_streak_30: { icon: 'fa-fire-flame-curved', color: '#EF4444' },
-      rating: { icon: 'fa-star', color: '#8B5CF6' },
-      newbie_rating: { icon: 'fa-star-half-stroke', color: '#8B5CF6' },
-      post: { icon: 'fa-file-lines', color: '#3B82F6' },
-      comment: { icon: 'fa-comment', color: '#06B6D4' },
-      like_received: { icon: 'fa-heart', color: '#EC4899' },
-      invite: { icon: 'fa-user-plus', color: '#10B981' },
-      invite_first_rating: { icon: 'fa-gift', color: '#F59E0B' },
-      makeup_checkin: { icon: 'fa-clock-rotate-left', color: '#6366F1' },
-      purchase: { icon: 'fa-cart-shopping', color: '#F59E0B' },
-      unlike: { icon: 'fa-heart-crack', color: '#9CA3AF' },
-      rating_delete: { icon: 'fa-trash', color: '#EF4444' },
-      post_delete: { icon: 'fa-trash', color: '#EF4444' },
-      comment_delete: { icon: 'fa-trash', color: '#EF4444' },
+      checkin: { icon: 'fa-calendar-check', color: 'var(--checkin)', bg: 'var(--checkin-soft)' },
+      checkin_streak_7: { icon: 'fa-fire', color: 'var(--streak)', bg: 'var(--streak-soft)' },
+      checkin_streak_30: { icon: 'fa-fire-flame-curved', color: 'var(--streak-strong)', bg: 'var(--streak-soft)' },
+      rating: { icon: 'fa-star', color: 'var(--rating)', bg: 'var(--rating-soft)' },
+      newbie_rating: { icon: 'fa-star-half-stroke', color: 'var(--rating)', bg: 'var(--rating-soft)' },
+      post: { icon: 'fa-file-lines', color: 'var(--post)', bg: 'var(--post-soft)' },
+      comment: { icon: 'fa-comment', color: 'var(--comment)', bg: 'var(--comment-soft)' },
+      like_received: { icon: 'fa-heart', color: 'var(--like)', bg: 'var(--like-soft)' },
+      invite: { icon: 'fa-user-plus', color: 'var(--invite)', bg: 'var(--invite-soft)' },
+      invite_first_rating: { icon: 'fa-gift', color: 'var(--points)', bg: 'var(--points-soft)' },
+      makeup_checkin: { icon: 'fa-clock-rotate-left', color: 'var(--makeup)', bg: 'var(--makeup-soft)' },
+      purchase: { icon: 'fa-cart-shopping', color: 'var(--points)', bg: 'var(--points-soft)' },
+      unlike: { icon: 'fa-heart-crack', color: 'var(--muted-strong)', bg: 'var(--muted-bg)' },
+      rating_delete: { icon: 'fa-trash', color: 'var(--spend)', bg: 'var(--streak-soft)' },
+      post_delete: { icon: 'fa-trash', color: 'var(--spend)', bg: 'var(--streak-soft)' },
+      comment_delete: { icon: 'fa-trash', color: 'var(--spend)', bg: 'var(--streak-soft)' },
     };
-    return icons[type] || { icon: 'fa-circle', color: '#9CA3AF' };
+    return icons[type] || { icon: 'fa-circle', color: 'var(--muted-strong)', bg: 'var(--muted-bg)' };
   }
 
   function filterLogs(logData) {
@@ -158,8 +159,8 @@ export default function PointsPage() {
       }}>
         <PointsCard />
         <div style={{
-          background: 'linear-gradient(135deg, #10B98115, #10B98108)',
-          border: '1px solid #10B98125',
+          background: 'linear-gradient(135deg, var(--checkin-soft), var(--checkin-softer))',
+          border: '1px solid var(--checkin-border)',
           borderRadius: '16px',
           padding: '20px',
         }}>
@@ -169,21 +170,21 @@ export default function PointsPage() {
             gap: '8px',
             marginBottom: '12px',
           }}>
-            <i className="fa-solid fa-chart-line" style={{ color: '#10B981', fontSize: '14px' }} />
-            <span style={{ fontSize: '12px', color: '#10B981', fontWeight: '600' }}>收益统计</span>
+            <i className="fa-solid fa-chart-line" style={{ color: 'var(--checkin)', fontSize: '14px' }} />
+            <span style={{ fontSize: '12px', color: 'var(--checkin)', fontWeight: '600' }}>收益统计</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>今日</span>
-              <span style={{ fontSize: '14px', fontWeight: '600', color: '#10B981' }}>+{stats.todayEarned}</span>
+              <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--checkin)' }}>+{stats.todayEarned}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>本周</span>
-              <span style={{ fontSize: '14px', fontWeight: '600', color: '#10B981' }}>+{stats.weekEarned}</span>
+              <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--checkin)' }}>+{stats.weekEarned}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>本月</span>
-              <span style={{ fontSize: '14px', fontWeight: '600', color: '#10B981' }}>+{stats.monthEarned}</span>
+              <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--checkin)' }}>+{stats.monthEarned}</span>
             </div>
           </div>
         </div>
@@ -192,7 +193,7 @@ export default function PointsPage() {
       {/* 标签切换 */}
       <div style={{
         display: 'flex',
-        background: 'var(--card-bg, #fff)',
+        background: 'var(--bg-card)',
         borderRadius: '12px',
         padding: '4px',
         marginBottom: '16px',
@@ -249,7 +250,7 @@ export default function PointsPage() {
               onClick={() => setFilter(f.key)}
               style={{
                 padding: '8px 16px',
-                background: filter === f.key ? 'var(--primary)15' : 'var(--card-bg, #fff)',
+                background: filter === f.key ? 'var(--primary)15' : 'var(--bg-card)',
                 color: filter === f.key ? 'var(--primary)' : 'var(--text-secondary)',
                 border: `1px solid ${filter === f.key ? 'var(--primary)30' : 'var(--border)'}`,
                 borderRadius: '20px',
@@ -267,7 +268,7 @@ export default function PointsPage() {
 
       {/* 流水列表 */}
       <div style={{
-        background: 'var(--card-bg, #fff)',
+        background: 'var(--bg-card)',
         borderRadius: '16px',
         overflow: 'hidden',
         border: '1px solid var(--border)',
@@ -361,7 +362,7 @@ export default function PointsPage() {
                     width: '40px',
                     height: '40px',
                     borderRadius: '10px',
-                    background: `${typeInfo.color}15`,
+                    background: typeInfo.bg,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -400,7 +401,7 @@ export default function PointsPage() {
                   <div style={{
                     fontSize: '16px',
                     fontWeight: '700',
-                    color: log.amount > 0 ? '#10B981' : '#EF4444',
+                    color: log.amount > 0 ? 'var(--earn)' : 'var(--spend)',
                     fontFeatureSettings: 'tnum',
                   }}>
                     {log.amount > 0 ? '+' : ''}{log.amount}
@@ -519,10 +520,10 @@ export default function PointsPage() {
         marginTop: '24px',
       }}>
         {[
-          { icon: 'fa-calendar-check', label: '每日签到', path: '/', color: '#10B981' },
-          { icon: 'fa-star', label: '评价纸尿裤', path: '/diapers', color: '#8B5CF6' },
-          { icon: 'fa-pen-to-square', label: '发帖赚积分', path: '/create-post', color: '#3B82F6' },
-          { icon: 'fa-user-plus', label: '邀请好友', path: '/invite', color: '#F59E0B' },
+          { icon: 'fa-calendar-check', label: '每日签到', path: '/', color: 'var(--checkin)' },
+          { icon: 'fa-star', label: '评价纸尿裤', path: '/diapers', color: 'var(--rating)' },
+          { icon: 'fa-pen-to-square', label: '发帖赚积分', path: '/create-post', color: 'var(--post)' },
+          { icon: 'fa-user-plus', label: '邀请好友', path: '/invite', color: 'var(--points)' },
         ].map((item, i) => (
           <button
             key={i}
@@ -532,7 +533,7 @@ export default function PointsPage() {
               alignItems: 'center',
               gap: '12px',
               padding: '16px',
-              background: 'var(--card-bg, #fff)',
+              background: 'var(--bg-card)',
               border: '1px solid var(--border)',
               borderRadius: '12px',
               cursor: 'pointer',
@@ -551,7 +552,8 @@ export default function PointsPage() {
               width: '40px',
               height: '40px',
               borderRadius: '10px',
-              background: `${item.color}15`,
+              background: 'var(--hover-bg)',
+              border: `1px solid ${item.color}30`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

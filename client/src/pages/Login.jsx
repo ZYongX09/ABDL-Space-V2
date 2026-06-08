@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { isNBWConfigured, whenNBWReady, startNBWOAuth } from '../utils/nbwOAuth';
+import { isNBWConfigured, startNBWOAuth } from '../utils/nbwOAuth';
 import AnimatedCharacters from '../components/AnimatedCharacters/AnimatedCharacters';
 import { useInlineVerify } from '../components/useInlineVerify';
 import './Login.css';
@@ -22,7 +22,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [failCount, setFailCount] = useState(0);
   const [showNBWConsent, setShowNBWConsent] = useState(false);
-  const [nbwConfigured, setNbwConfigured] = useState(isNBWConfigured());
   const captchaTokenRef = useRef(null);
   const { login: authLogin, saveConsent, logout, user } = useAuth();
   const toast = useToast();
@@ -30,15 +29,11 @@ export default function Login() {
   const location = useLocation();
   const { trigger: triggerCaptcha, InlineVerify, verified, active: captchaActive } = useInlineVerify();
 
-  // 等待 NBW 配置加载完成
-  useEffect(() => {
-    whenNBWReady().then(() => setNbwConfigured(isNBWConfigured()));
-  }, []);
-
   const needCaptcha = failCount >= FAIL_THRESHOLD;
   const canSubmit = !loading && (!needCaptcha || verified) && consented && minorConsented;
   const isPasswordPlain = passwordRevealed && password.length > 0;
   const isTyping = emailFocused && login.length > 0;
+  const nbwConfigured = isNBWConfigured();
 
 
 

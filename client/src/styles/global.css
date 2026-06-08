@@ -37,6 +37,58 @@
   --overlay-bg: rgba(0, 0, 0, 0.4);
   --hover-bg: var(--primary-light);
   --link-color: var(--primary-dark);
+
+  /* ====== 功能色（积分/签到/评价/帖子/邀请/经验） ====== */
+  /* 积分 — 暖金 */
+  --points: #F59E0B;
+  --points-soft: rgba(245, 158, 11, 0.15);
+  --points-softer: rgba(245, 158, 11, 0.08);
+  --points-border: rgba(245, 158, 11, 0.25);
+  --points-on: #FFFFFF;            /* 积分深底上的反色 */
+  /* 签到 — 绿（与 --success 区分，更鲜亮） */
+  --checkin: #10B981;
+  --checkin-soft: rgba(16, 185, 129, 0.12);
+  --checkin-softer: rgba(16, 185, 129, 0.06);
+  --checkin-border: rgba(16, 185, 129, 0.25);
+  --checkin-on: #FFFFFF;
+  /* 评价 — 紫 */
+  --rating: #8B5CF6;
+  --rating-soft: rgba(139, 92, 246, 0.15);
+  --rating-softer: rgba(139, 92, 246, 0.08);
+  --rating-border: rgba(139, 92, 246, 0.25);
+  /* 帖子 — 蓝 */
+  --post: #3B82F6;
+  --post-soft: rgba(59, 130, 246, 0.15);
+  --post-softer: rgba(59, 130, 246, 0.06);
+  --post-border: rgba(59, 130, 246, 0.25);
+  /* 邀请 — 翠绿（与签到绿拉开） */
+  --invite: #059669;
+  --invite-soft: rgba(5, 150, 105, 0.15);
+  --invite-softer: rgba(5, 150, 105, 0.08);
+  --invite-border: rgba(5, 150, 105, 0.25);
+  /* 经验 — 金（与积分同色系但略深一档） */
+  --exp: #D97706;
+  --exp-soft: rgba(217, 119, 6, 0.15);
+  --exp-border: rgba(217, 119, 6, 0.25);
+  /* 点赞 — 粉 */
+  --like: #EC4899;
+  --like-soft: rgba(236, 72, 153, 0.15);
+  /* 评论 — 青 */
+  --comment: #06B6D4;
+  --comment-soft: rgba(6, 182, 212, 0.15);
+  /* 补签 — 靛 */
+  --makeup: #6366F1;
+  --makeup-soft: rgba(99, 102, 241, 0.15);
+  /* 连续签到 — 火焰橙 */
+  --streak: #F59E0B;
+  --streak-soft: rgba(245, 158, 11, 0.15);
+  --streak-strong: #EF4444;
+  /* 失效/灰 */
+  --muted-strong: #6B7280;
+  --muted-bg: rgba(156, 163, 175, 0.12);
+  /* 收入/支出语义 */
+  --earn: #10B981;
+  --spend: #EF4444;
 }
 
 /* 深色主题 */
@@ -67,6 +119,46 @@
   --overlay-bg: rgba(0, 0, 0, 0.6);
   --hover-bg: var(--primary-light);
   --link-color: #A8D8F0;
+
+  /* ====== 功能色（深色调） ====== */
+  --points: #FBBF24;
+  --points-soft: rgba(251, 191, 36, 0.15);
+  --points-softer: rgba(251, 191, 36, 0.08);
+  --points-border: rgba(251, 191, 36, 0.30);
+  --points-on: #1A1D23;
+  --checkin: #34D399;
+  --checkin-soft: rgba(52, 211, 153, 0.14);
+  --checkin-softer: rgba(52, 211, 153, 0.07);
+  --checkin-border: rgba(52, 211, 153, 0.30);
+  --checkin-on: #1A1D23;
+  --rating: #A78BFA;
+  --rating-soft: rgba(167, 139, 250, 0.15);
+  --rating-softer: rgba(167, 139, 250, 0.08);
+  --rating-border: rgba(167, 139, 250, 0.30);
+  --post: #60A5FA;
+  --post-soft: rgba(96, 165, 250, 0.15);
+  --post-softer: rgba(96, 165, 250, 0.08);
+  --post-border: rgba(96, 165, 250, 0.30);
+  --invite: #10B981;
+  --invite-soft: rgba(16, 185, 129, 0.15);
+  --invite-softer: rgba(16, 185, 129, 0.08);
+  --invite-border: rgba(16, 185, 129, 0.30);
+  --exp: #F59E0B;
+  --exp-soft: rgba(245, 158, 11, 0.15);
+  --exp-border: rgba(245, 158, 11, 0.30);
+  --like: #F472B6;
+  --like-soft: rgba(244, 114, 182, 0.15);
+  --comment: #22D3EE;
+  --comment-soft: rgba(34, 211, 238, 0.15);
+  --makeup: #818CF8;
+  --makeup-soft: rgba(129, 140, 248, 0.15);
+  --streak: #FBBF24;
+  --streak-soft: rgba(251, 191, 36, 0.15);
+  --streak-strong: #F87171;
+  --muted-strong: #9CA3AF;
+  --muted-bg: rgba(156, 163, 175, 0.18);
+  --earn: #34D399;
+  --spend: #F87171;
 }
 
 /* 多彩主题 */
@@ -97,6 +189,46 @@
   --overlay-bg: rgba(0, 0, 0, 0.25);
   --hover-bg: rgba(168, 216, 240, 0.2);
   --link-color: #6A9EC0;
+
+  /* ====== 功能色（多彩主题，保持柔和半透明） ====== */
+  --points: #E8A042;
+  --points-soft: rgba(232, 160, 66, 0.16);
+  --points-softer: rgba(232, 160, 66, 0.08);
+  --points-border: rgba(232, 160, 66, 0.30);
+  --points-on: #FFFFFF;
+  --checkin: #4FB87A;
+  --checkin-soft: rgba(79, 184, 122, 0.16);
+  --checkin-softer: rgba(79, 184, 122, 0.08);
+  --checkin-border: rgba(79, 184, 122, 0.30);
+  --checkin-on: #FFFFFF;
+  --rating: #9B7CE0;
+  --rating-soft: rgba(155, 124, 224, 0.16);
+  --rating-softer: rgba(155, 124, 224, 0.08);
+  --rating-border: rgba(155, 124, 224, 0.30);
+  --post: #5B8DD6;
+  --post-soft: rgba(91, 141, 214, 0.16);
+  --post-softer: rgba(91, 141, 214, 0.08);
+  --post-border: rgba(91, 141, 214, 0.30);
+  --invite: #3DA877;
+  --invite-soft: rgba(61, 168, 119, 0.16);
+  --invite-softer: rgba(61, 168, 119, 0.08);
+  --invite-border: rgba(61, 168, 119, 0.30);
+  --exp: #D89040;
+  --exp-soft: rgba(216, 144, 64, 0.16);
+  --exp-border: rgba(216, 144, 64, 0.30);
+  --like: #D77BA0;
+  --like-soft: rgba(215, 123, 160, 0.16);
+  --comment: #4AB8C7;
+  --comment-soft: rgba(74, 184, 199, 0.16);
+  --makeup: #7886D6;
+  --makeup-soft: rgba(120, 134, 214, 0.16);
+  --streak: #E8A042;
+  --streak-soft: rgba(232, 160, 66, 0.16);
+  --streak-strong: #D67A7A;
+  --muted-strong: #7A8595;
+  --muted-bg: rgba(122, 133, 149, 0.16);
+  --earn: #4FB87A;
+  --spend: #D67A7A;
 }
 
 /* 多彩主题 — 动态渐变背景 */

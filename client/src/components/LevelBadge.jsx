@@ -41,7 +41,7 @@ export default function LevelBadge({ userId, compact = false }) {
       <div style={{
         display: 'flex', alignItems: 'center', gap: '10px',
         padding: compact ? '6px 12px' : '12px 16px',
-        background: 'var(--card-bg, #fff)',
+        background: 'var(--bg-card)',
         borderRadius: '16px',
         border: '1px solid var(--border)',
         fontSize: compact ? '12px' : '14px',
@@ -124,7 +124,7 @@ export default function LevelBadge({ userId, compact = false }) {
               padding: '2px 8px',
               borderRadius: '10px',
             }}>
-              <i className="fa-solid fa-star" style={{ fontSize: '10px', color: '#F59E0B' }} />
+              <i className="fa-solid fa-star" style={{ fontSize: '10px', color: 'var(--exp)' }} />
               {data.total_exp} EXP
             </span>
           )}
@@ -161,11 +161,11 @@ export default function LevelBadge({ userId, compact = false }) {
           color: 'var(--text-secondary)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <i className="fa-solid fa-calendar-check" style={{ fontSize: '9px', color: '#10B981' }} />
+            <i className="fa-solid fa-calendar-check" style={{ fontSize: '9px', color: 'var(--checkin)' }} />
             <span>签到 ×{data.multipliers.checkin}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <i className="fa-solid fa-coins" style={{ fontSize: '9px', color: '#F59E0B' }} />
+            <i className="fa-solid fa-coins" style={{ fontSize: '9px', color: 'var(--points)' }} />
             <span>积分 ×{data.multipliers.points}</span>
           </div>
         </div>

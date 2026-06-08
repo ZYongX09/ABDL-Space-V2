@@ -70,7 +70,7 @@ export default function BadgeGallery({ userId, editable = false }) {
     return (
       <div style={{
         padding: '20px',
-        background: 'var(--card-bg, #fff)',
+        background: 'var(--bg-card)',
         borderRadius: '16px',
         border: '1px solid var(--border)',
         textAlign: 'center',
@@ -86,7 +86,7 @@ export default function BadgeGallery({ userId, editable = false }) {
     return (
       <div style={{
         padding: '32px 24px',
-        background: 'var(--card-bg, #fff)',
+        background: 'var(--bg-card)',
         borderRadius: '16px',
         border: '1px solid var(--border)',
         textAlign: 'center',
@@ -108,7 +108,7 @@ export default function BadgeGallery({ userId, editable = false }) {
   return (
     <div style={{
       padding: '20px',
-      background: 'var(--card-bg, #fff)',
+      background: 'var(--bg-card)',
       borderRadius: '16px',
       border: '1px solid var(--border)',
     }}>

@@ -568,15 +568,15 @@ function InfoCard({ user }) {
   if (user.waist) tags.push({ text: `腰${user.waist}cm`, type: 'neutral' });
   if (user.hip) tags.push({ text: `臀${user.hip}cm`, type: 'neutral' });
 
-  // 偏好标签（彩色）
+  // 偏好标签（彩色 — 走主题变量）
   if (user.style_preference) {
     user.style_preference.split(/[,，、]/).forEach((tag, i) => {
       const colors = [
-        { bg: '#FFE8EE', color: '#D4627A' },
-        { bg: '#E0F0FF', color: '#4A8DB7' },
-        { bg: '#E8F8E8', color: '#5AA85A' },
-        { bg: '#FFF3E0', color: '#C8883A' },
-        { bg: '#F0E8FF', color: '#8B6BB5' },
+        { bg: 'var(--like-soft)', color: 'var(--like)' },
+        { bg: 'var(--post-soft)', color: 'var(--post)' },
+        { bg: 'var(--checkin-soft)', color: 'var(--checkin)' },
+        { bg: 'var(--points-soft)', color: 'var(--points)' },
+        { bg: 'var(--rating-soft)', color: 'var(--rating)' },
       ];
       const c = colors[i % colors.length];
       tags.push({ text: tag.trim(), type: 'colored', bg: c.bg, color: c.color });
@@ -642,13 +642,13 @@ function PostCard({ post, onClick, index = 0 }) {
     return new Date(dateStr).toLocaleDateString('zh-CN');
   };
 
-  // 标签颜色映射
+  // 标签颜色映射（走主题变量）
   const tagColors = {
-    '开发': { bg: '#E0F0FF', color: '#4A8DB7' },
-    '分享': { bg: '#FFE8EE', color: '#D4627A' },
-    '评测': { bg: '#FFF3E0', color: '#C8883A' },
-    '求助': { bg: '#F0E8FF', color: '#8B6BB5' },
-    '日常': { bg: '#E8F8E8', color: '#5AA85A' },
+    '开发': { bg: 'var(--post-soft)', color: 'var(--post)' },
+    '分享': { bg: 'var(--like-soft)', color: 'var(--like)' },
+    '评测': { bg: 'var(--points-soft)', color: 'var(--points)' },
+    '求助': { bg: 'var(--rating-soft)', color: 'var(--rating)' },
+    '日常': { bg: 'var(--checkin-soft)', color: 'var(--checkin)' },
   };
 
   return (
@@ -749,9 +749,9 @@ function BottomNav({ currentTab, onNavigate }) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                boxShadow: '0 4px 16px rgba(168, 216, 240, 0.5)',
+                boxShadow: '0 4px 16px var(--shadow-hover)',
                 marginTop: '-20px',
-                color: 'white',
+                color: 'var(--bg-card)',
                 fontSize: '18px',
                 transition: 'transform 0.2s',
               }}
