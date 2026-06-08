@@ -7,7 +7,7 @@ const DIAPER_NAMES = {
   'abu-alphagatorz':               '鳄鱼宝宝',
   'abu-bunnyhopps-4-tape':         '兔兔跳跳（四贴）',
   'abu-dinorawrz':                 '恐龙宝贝',
-  'abu-little-kings':              '小国王',
+  'abu-little-kings':              '小狮子',
   'abu-littlepawz':                '小爪爪',
   'abu-oops-all-huskies':          '哈士奇乐园',
   'abu-peekabu':                   '躲猫猫',
@@ -49,7 +49,7 @@ const DIAPER_NAMES = {
   'rearz-rearz-ultimate-printed-mixed-pack': '终极印花混合装',
 
   // ===== 后端 API 商品（brand::model 方式） =====
-  'ABU::Little Kings':             '小国王',
+  'ABU::Little Kings':             '小狮子',
   'ABU::Bunny Hopps 梦幻小粉兔':   '兔兔跳跳（梦幻小粉兔）',
 };
 
