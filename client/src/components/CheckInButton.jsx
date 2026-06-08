@@ -49,7 +49,7 @@ export default function CheckInButton() {
       if (res.ok) {
         showToast(`签到成功！+${json.rewards.total_points} 积分 +${json.rewards.total_exp} 经验`, 'success');
         if (json.rewards.level_change) {
-          showToast(`🎉 升级到 Lv.${json.rewards.level_change.to}！`, 'success');
+          showToast(`升级到 Lv.${json.rewards.level_change.to}！`, 'success');
         }
         fetchStatus();
       } else {
@@ -78,7 +78,7 @@ export default function CheckInButton() {
       if (res.ok) {
         showToast(`补签成功！消耗 ${json.data.cost} 积分`, 'success');
         if (json.data.streak_bonus > 0) {
-          showToast(`🎉 连续签到 ${json.data.streak} 天奖励 +${json.data.streak_bonus}！`, 'success');
+          showToast(`连续签到 ${json.data.streak} 天奖励 +${json.data.streak_bonus}！`, 'success');
         }
         fetchStatus();
         setShowMakeup(false);
@@ -95,12 +95,14 @@ export default function CheckInButton() {
   if (loading) {
     return (
       <div style={{
-        padding: '16px',
-        background: 'var(--card-bg, #f5f5f5)',
+        padding: '20px',
+        background: 'var(--card-bg, #fff)',
         borderRadius: '16px',
+        border: '1px solid var(--border)',
         textAlign: 'center',
         color: 'var(--text-secondary)',
       }}>
+        <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '20px', marginBottom: '8px', display: 'block' }} />
         加载中...
       </div>
     );
@@ -111,48 +113,74 @@ export default function CheckInButton() {
 
   return (
     <div style={{
-      padding: '16px',
+      padding: '20px',
       background: checkedIn
-        ? 'linear-gradient(135deg, #10B98115, #05966908)'
-        : 'var(--card-bg, #f5f5f5)',
+        ? 'linear-gradient(135deg, #10B98115, #10B98108)'
+        : 'var(--card-bg, #fff)',
       borderRadius: '16px',
-      border: checkedIn ? '1px solid #10B98130' : '1px solid var(--border)',
+      border: `1px solid ${checkedIn ? '#10B98130' : 'var(--border)'}`,
+      transition: 'all 0.3s ease',
     }}>
       {/* 连续签到天数 */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '12px',
+        marginBottom: '16px',
       }}>
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
-            fontSize: '14px',
-            fontWeight: '600',
-            color: 'var(--text)',
+            width: '40px',
+            height: '40px',
+            borderRadius: '10px',
+            background: checkedIn ? '#10B98120' : 'var(--primary)15',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}>
-            {checkedIn ? '✅ 今日已签到' : '每日签到'}
+            <i className={`fa-solid ${checkedIn ? 'fa-calendar-check' : 'fa-calendar'}`} style={{
+              fontSize: '18px',
+              color: checkedIn ? '#10B981' : 'var(--primary)',
+            }} />
           </div>
-          {streak > 0 && (
+          <div>
             <div style={{
-              fontSize: '12px',
-              color: 'var(--text-secondary)',
-              marginTop: '4px',
+              fontSize: '15px',
+              fontWeight: '600',
+              color: 'var(--text)',
             }}>
-              连续签到 {streak} 天
+              {checkedIn ? '今日已签到' : '每日签到'}
             </div>
-          )}
+            {streak > 0 && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                marginTop: '2px',
+              }}>
+                <i className="fa-solid fa-fire" style={{ fontSize: '10px', color: '#F59E0B' }} />
+                连续签到 {streak} 天
+              </div>
+            )}
+          </div>
         </div>
+
         {streak >= 7 && (
           <div style={{
-            padding: '4px 8px',
-            background: streak >= 30 ? '#F59E0B20' : '#3B82F620',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 12px',
+            background: streak >= 30 ? '#F59E0B15' : '#3B82F615',
             color: streak >= 30 ? '#F59E0B' : '#3B82F6',
-            borderRadius: '12px',
-            fontSize: '11px',
+            borderRadius: '20px',
+            fontSize: '12px',
             fontWeight: '600',
           }}>
-            {streak >= 30 ? '🔥 月签达人' : '⚡ 周签达人'}
+            <i className={`fa-solid ${streak >= 30 ? 'fa-fire-flame-curved' : 'fa-bolt'}`} style={{ fontSize: '10px' }} />
+            {streak >= 30 ? '月签达人' : '周签达人'}
           </div>
         )}
       </div>
@@ -163,21 +191,27 @@ export default function CheckInButton() {
         disabled={checkedIn || checkingIn}
         style={{
           width: '100%',
-          padding: '12px',
+          padding: '14px',
           background: checkedIn
             ? '#10B98120'
             : 'linear-gradient(135deg, var(--primary), var(--primary-dark, #6366F1))',
           color: checkedIn ? '#10B981' : '#fff',
           border: 'none',
           borderRadius: '12px',
-          fontSize: '14px',
+          fontSize: '15px',
           fontWeight: '600',
           cursor: checkedIn ? 'default' : 'pointer',
           opacity: checkingIn ? 0.7 : 1,
           transition: 'all 0.2s ease',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          boxShadow: checkedIn ? 'none' : '0 2px 8px var(--primary)40',
         }}
       >
-        {checkedIn ? '已签到' : checkingIn ? '签到中...' : '签到'}
+        <i className={`fa-solid ${checkedIn ? 'fa-check' : checkingIn ? 'fa-spinner fa-spin' : 'fa-calendar-check'}`} />
+        {checkedIn ? '已签到' : checkingIn ? '签到中...' : '立即签到'}
       </button>
 
       {/* 补签入口 */}
@@ -186,16 +220,22 @@ export default function CheckInButton() {
           onClick={() => setShowMakeup(!showMakeup)}
           style={{
             width: '100%',
-            padding: '8px',
-            marginTop: '8px',
+            padding: '10px',
+            marginTop: '10px',
             background: 'transparent',
             border: '1px dashed var(--border)',
-            borderRadius: '8px',
-            fontSize: '12px',
+            borderRadius: '10px',
+            fontSize: '13px',
             color: 'var(--text-secondary)',
             cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            transition: 'all 0.2s ease',
           }}
         >
+          <i className="fa-solid fa-clock-rotate-left" style={{ fontSize: '12px' }} />
           补签（消耗 50 积分）
         </button>
       )}
@@ -203,37 +243,49 @@ export default function CheckInButton() {
       {/* 补签确认 */}
       {showMakeup && (
         <div style={{
-          marginTop: '8px',
-          padding: '12px',
+          marginTop: '12px',
+          padding: '16px',
           background: 'var(--bg)',
-          borderRadius: '8px',
+          borderRadius: '12px',
           fontSize: '13px',
         }}>
-          <p style={{ margin: '0 0 8px 0', color: 'var(--text)' }}>
-            补签昨天的签到，消耗 50 积分
-          </p>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '12px',
+          }}>
+            <i className="fa-solid fa-info-circle" style={{ color: 'var(--primary)' }} />
+            <span style={{ color: 'var(--text)' }}>补签昨天的签到，消耗 50 积分</span>
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
             <button
               onClick={handleMakeup}
               style={{
                 flex: 1,
-                padding: '8px',
+                padding: '10px',
                 background: 'var(--primary)',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '8px',
                 fontSize: '13px',
+                fontWeight: '600',
                 cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
               }}
             >
+              <i className="fa-solid fa-check" />
               确认补签
             </button>
             <button
               onClick={() => setShowMakeup(false)}
               style={{
                 flex: 1,
-                padding: '8px',
-                background: 'var(--card-bg, #f5f5f5)',
+                padding: '10px',
+                background: 'var(--card-bg, #fff)',
                 color: 'var(--text)',
                 border: '1px solid var(--border)',
                 borderRadius: '8px',

@@ -69,12 +69,14 @@ export default function BadgeGallery({ userId, editable = false }) {
   if (loading) {
     return (
       <div style={{
-        padding: '16px',
-        background: 'var(--card-bg, #f5f5f5)',
+        padding: '20px',
+        background: 'var(--card-bg, #fff)',
         borderRadius: '16px',
+        border: '1px solid var(--border)',
         textAlign: 'center',
         color: 'var(--text-secondary)',
       }}>
+        <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '20px', marginBottom: '8px', display: 'block' }} />
         加载中...
       </div>
     );
@@ -83,51 +85,72 @@ export default function BadgeGallery({ userId, editable = false }) {
   if (badges.length === 0) {
     return (
       <div style={{
-        padding: '20px',
-        background: 'var(--card-bg, #f5f5f5)',
+        padding: '32px 24px',
+        background: 'var(--card-bg, #fff)',
         borderRadius: '16px',
+        border: '1px solid var(--border)',
         textAlign: 'center',
         color: 'var(--text-secondary)',
         fontSize: '14px',
       }}>
-        <div style={{ fontSize: '32px', marginBottom: '8px' }}>🏅</div>
-        暂无徽章
+        <i className="fa-solid fa-award" style={{
+          fontSize: '48px',
+          color: 'var(--border)',
+          marginBottom: '16px',
+          display: 'block',
+        }} />
+        <p style={{ margin: '0 0 4px', fontWeight: '600', color: 'var(--text)' }}>暂无徽章</p>
+        <p style={{ margin: 0, fontSize: '13px' }}>完成特定成就即可解锁徽章</p>
       </div>
     );
   }
 
   return (
     <div style={{
-      padding: '16px',
-      background: 'var(--card-bg, #f5f5f5)',
+      padding: '20px',
+      background: 'var(--card-bg, #fff)',
       borderRadius: '16px',
+      border: '1px solid var(--border)',
     }}>
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '12px',
+        marginBottom: '16px',
       }}>
         <div style={{
-          fontSize: '14px',
-          fontWeight: '600',
-          color: 'var(--text)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
         }}>
-          徽章 ({badges.length})
+          <i className="fa-solid fa-award" style={{ color: 'var(--primary)', fontSize: '14px' }} />
+          <span style={{
+            fontSize: '15px',
+            fontWeight: '600',
+            color: 'var(--text)',
+          }}>
+            徽章 ({badges.length})
+          </span>
         </div>
         {editable && (
           <button
             onClick={() => editing ? handleSave() : setEditing(true)}
             style={{
-              padding: '4px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 14px',
               background: editing ? 'var(--primary)' : 'transparent',
               color: editing ? '#fff' : 'var(--primary)',
-              border: '1px solid var(--primary)',
-              borderRadius: '12px',
+              border: `1px solid ${editing ? 'var(--primary)' : 'var(--primary)30'}`,
+              borderRadius: '20px',
               fontSize: '12px',
+              fontWeight: '600',
               cursor: 'pointer',
+              transition: 'all 0.2s ease',
             }}
           >
+            <i className={`fa-solid ${editing ? 'fa-check' : 'fa-pen'}`} style={{ fontSize: '10px' }} />
             {editing ? `保存 (${selected.length}/3)` : '编辑展示'}
           </button>
         )}
@@ -135,7 +158,7 @@ export default function BadgeGallery({ userId, editable = false }) {
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))',
         gap: '12px',
       }}>
         {badges.map(badge => (
@@ -146,7 +169,7 @@ export default function BadgeGallery({ userId, editable = false }) {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              padding: '12px 8px',
+              padding: '16px 8px',
               background: badge.displayed
                 ? 'linear-gradient(135deg, var(--primary)15, var(--primary)08)'
                 : 'var(--bg)',
@@ -161,15 +184,17 @@ export default function BadgeGallery({ userId, editable = false }) {
               opacity: editing && !selected.includes(badge.key) && selected.length >= 3 ? 0.5 : 1,
             }}
           >
-            <div style={{ fontSize: '28px', marginBottom: '4px' }}>
-              {badge.icon}
-            </div>
+            <i className={`fa-solid ${badge.icon || 'fa-award'}`} style={{
+              fontSize: '28px',
+              color: badge.displayed ? 'var(--primary)' : 'var(--text-secondary)',
+              marginBottom: '8px',
+            }} />
             <div style={{
               fontSize: '11px',
               fontWeight: '600',
               color: 'var(--text)',
               textAlign: 'center',
-              lineHeight: 1.2,
+              lineHeight: 1.3,
             }}>
               {badge.name}
             </div>

@@ -39,15 +39,26 @@ export default function LevelBadge({ userId, compact = false }) {
   if (loading) {
     return (
       <div style={{
-        display: 'flex', alignItems: 'center', gap: '8px',
-        padding: compact ? '4px 8px' : '8px 12px',
-        background: 'var(--card-bg, #f5f5f5)',
-        borderRadius: '20px',
+        display: 'flex', alignItems: 'center', gap: '10px',
+        padding: compact ? '6px 12px' : '12px 16px',
+        background: 'var(--card-bg, #fff)',
+        borderRadius: '16px',
+        border: '1px solid var(--border)',
         fontSize: compact ? '12px' : '14px',
         color: 'var(--text-secondary)',
       }}>
-        <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--border)' }} />
-        <span>Loading...</span>
+        <div style={{
+          width: compact ? '28px' : '36px',
+          height: compact ? '28px' : '36px',
+          borderRadius: '50%',
+          background: 'var(--border)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: compact ? '12px' : '14px' }} />
+        </div>
+        <span>加载中...</span>
       </div>
     );
   }
@@ -62,17 +73,17 @@ export default function LevelBadge({ userId, compact = false }) {
     <div style={{
       display: 'flex',
       alignItems: 'center',
-      gap: compact ? '6px' : '10px',
-      padding: compact ? '4px 10px' : '8px 14px',
-      background: `linear-gradient(135deg, ${color}15, ${color}08)`,
-      border: `1px solid ${color}30`,
-      borderRadius: '24px',
+      gap: compact ? '8px' : '12px',
+      padding: compact ? '6px 12px' : '12px 16px',
+      background: `linear-gradient(135deg, ${color}12, ${color}06)`,
+      border: `1px solid ${color}25`,
+      borderRadius: '16px',
       transition: 'all 0.3s ease',
     }}>
       {/* 等级图标 */}
       <div style={{
-        width: compact ? '28px' : '36px',
-        height: compact ? '28px' : '36px',
+        width: compact ? '32px' : '44px',
+        height: compact ? '32px' : '44px',
         borderRadius: '50%',
         background: `linear-gradient(135deg, ${color}, ${color}CC)`,
         display: 'flex',
@@ -80,8 +91,9 @@ export default function LevelBadge({ userId, compact = false }) {
         justifyContent: 'center',
         color: '#fff',
         fontWeight: '700',
-        fontSize: compact ? '12px' : '14px',
+        fontSize: compact ? '13px' : '16px',
         boxShadow: `0 2px 8px ${color}40`,
+        flexShrink: 0,
       }}>
         {level}
       </div>
@@ -91,21 +103,28 @@ export default function LevelBadge({ userId, compact = false }) {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
-          marginBottom: '2px',
+          gap: '8px',
+          marginBottom: compact ? '2px' : '6px',
         }}>
           <span style={{
-            fontWeight: '600',
-            fontSize: compact ? '13px' : '15px',
+            fontWeight: '700',
+            fontSize: compact ? '14px' : '16px',
             color: 'var(--text)',
           }}>
             Lv.{level}
           </span>
           {!compact && (
             <span style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
               fontSize: '12px',
               color: 'var(--text-secondary)',
+              background: 'var(--bg)',
+              padding: '2px 8px',
+              borderRadius: '10px',
             }}>
+              <i className="fa-solid fa-star" style={{ fontSize: '10px', color: '#F59E0B' }} />
               {data.total_exp} EXP
             </span>
           )}
@@ -115,16 +134,16 @@ export default function LevelBadge({ userId, compact = false }) {
         {!compact && (
           <div style={{
             width: '100%',
-            height: '4px',
+            height: '6px',
             background: 'var(--border)',
-            borderRadius: '2px',
+            borderRadius: '3px',
             overflow: 'hidden',
           }}>
             <div style={{
               width: `${Math.round(progress.progress * 100)}%`,
               height: '100%',
               background: `linear-gradient(90deg, ${color}, ${color}CC)`,
-              borderRadius: '2px',
+              borderRadius: '3px',
               transition: 'width 0.5s ease',
             }} />
           </div>
@@ -137,12 +156,18 @@ export default function LevelBadge({ userId, compact = false }) {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'flex-end',
-          gap: '2px',
+          gap: '4px',
           fontSize: '11px',
           color: 'var(--text-secondary)',
         }}>
-          <span>签到 ×{data.multipliers.checkin}</span>
-          <span>积分 ×{data.multipliers.points}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <i className="fa-solid fa-calendar-check" style={{ fontSize: '9px', color: '#10B981' }} />
+            <span>签到 ×{data.multipliers.checkin}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <i className="fa-solid fa-coins" style={{ fontSize: '9px', color: '#F59E0B' }} />
+            <span>积分 ×{data.multipliers.points}</span>
+          </div>
         </div>
       )}
     </div>
