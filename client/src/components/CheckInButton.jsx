@@ -4,9 +4,9 @@ import { useToast } from '../contexts/ToastContext';
 
 /**
  * CheckInButton — 签到按钮组件
- * 显示签到状态、连续签到天数、补签功能
+ * @param {boolean} compact - 紧凑模式（用于个人主页网格布局）
  */
-export default function CheckInButton() {
+export default function CheckInButton({ compact = false }) {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [status, setStatus] = useState(null);
@@ -92,25 +92,65 @@ export default function CheckInButton() {
 
   if (!user) return null;
 
-  if (loading) {
-    return (
-      <div style={{
-        padding: '20px',
-        background: 'var(--card-bg, #fff)',
-        borderRadius: '16px',
-        border: '1px solid var(--border)',
-        textAlign: 'center',
-        color: 'var(--text-secondary)',
-      }}>
-        <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '20px', marginBottom: '8px', display: 'block' }} />
-        加载中...
-      </div>
-    );
-  }
-
   const checkedIn = status?.checked_in_today;
   const streak = status?.streak || 0;
 
+  // 紧凑模式：单按钮样式
+  if (compact) {
+    return (
+      <button
+        onClick={checkedIn ? undefined : handleCheckin}
+        disabled={checkedIn || checkingIn || loading}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px',
+          padding: '14px 8px',
+          background: checkedIn
+            ? '#10B98112'
+            : 'linear-gradient(135deg, var(--primary), var(--primary-dark, #6366F1))',
+          border: checkedIn ? '1px solid #10B98125' : 'none',
+          borderRadius: '14px',
+          cursor: checkedIn ? 'default' : 'pointer',
+          opacity: checkingIn || loading ? 0.7 : 1,
+          transition: 'all 0.2s ease',
+          minWidth: '80px',
+        }}
+      >
+        {loading ? (
+          <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '18px', color: 'var(--text-muted)' }} />
+        ) : (
+          <i className={`fa-solid ${checkedIn ? 'fa-calendar-check' : 'fa-calendar'}`} style={{
+            fontSize: '18px',
+            color: checkedIn ? '#10B981' : '#fff',
+          }} />
+        )}
+        <span style={{
+          fontSize: '11px',
+          fontWeight: '600',
+          color: checkedIn ? '#10B981' : '#fff',
+        }}>
+          {loading ? '...' : checkedIn ? '已签到' : checkingIn ? '签到中' : '签到'}
+        </span>
+        {streak > 0 && (
+          <span style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '3px',
+            fontSize: '10px',
+            color: checkedIn ? '#10B981' : 'rgba(255,255,255,0.8)',
+          }}>
+            <i className="fa-solid fa-fire" style={{ fontSize: '8px' }} />
+            {streak}天
+          </span>
+        )}
+      </button>
+    );
+  }
+
+  // 完整模式
   return (
     <div style={{
       padding: '20px',
