@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { Spinner } from '../components/Feedback';
 import OfficialBadge from '../components/OfficialBadge';
+import BetaBadge from '../components/BetaBadge';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { authAPI, followsAPI } from '../api';
@@ -84,6 +85,7 @@ export default function UserPage() {
           <div>
             <h3 className="text-lg font-bold" style={{ color: 'var(--text)' }}>{user.username}</h3>
             {user.role === 'admin' && <OfficialBadge />}
+            {user.is_beta_user && <BetaBadge size="md" className="ml-1.5" />}
             {user.role !== 'admin' && <span className="tag">用户</span>}
             {followStatus.mutual && (
               <span className="tag" style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)', marginLeft: '6px' }}>

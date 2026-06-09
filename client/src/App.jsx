@@ -44,6 +44,7 @@ const Settings = lazy(() => import('./pages/Settings'));
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const BetaRegister = lazy(() => import('./pages/BetaRegister'));
 const AccountPrivacy = lazy(() => import('./pages/AccountPrivacy'));
 const ProfilePageV2 = lazy(() => import('./pages/ProfilePageV2'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
@@ -76,6 +77,7 @@ const ROUTE_TITLES = {
   '/profile': '个人中心 — ABDL Space',
   '/login': '登录 — ABDL Space',
   '/register': '注册 — ABDL Space',
+  '/beta-register': '创始成员计划 — ABDL Space',
   '/forgot-password': '找回密码 — ABDL Space',
   '/account': '账户与隐私 — ABDL Space',
   '/messages': '私信 — ABDL Space',
@@ -190,6 +192,7 @@ export default function App() {
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/beta-register" element={<BetaRegister />} />
                 <Route path="/auth/nbw/callback" element={<NBWCallback />} />
                 <Route path="/profile" element={<ProfilePageV2 />} />
                 <Route path="/profile/:id" element={<ProfilePageV2 />} />

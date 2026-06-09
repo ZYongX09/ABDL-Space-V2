@@ -89,6 +89,11 @@
   /* 收入/支出语义 */
   --earn: #10B981;
   --spend: #EF4444;
+
+  /* ====== 内测金（创始成员计划） ====== */
+  --beta-primary: #FFB347;
+  --beta-primary-dark: #FF8C42;
+  --beta-glow: rgba(255, 179, 71, 0.3);
 }
 
 /* 深色主题 */
@@ -109,6 +114,11 @@
   --danger: #D35F5A;
   --warning: #D4A830;
   --warning-bg: #2A2518;
+
+  /* 内测金（深色微调） */
+  --beta-primary: #D4A574;
+  --beta-primary-dark: #B8860B;
+  --beta-glow: rgba(212, 165, 116, 0.3);
   --shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.5);
   --skeleton-base: #2A2E35;
@@ -179,6 +189,11 @@
   --danger: #E07070;
   --warning: #E8B830;
   --warning-bg: rgba(232, 184, 48, 0.12);
+
+  /* 内测金（多彩） */
+  --beta-primary: #FFD580;
+  --beta-primary-dark: #FFA940;
+  --beta-glow: rgba(255, 213, 128, 0.4);
   --shadow: 0 4px 20px rgba(168, 180, 216, 0.2);
   --shadow-hover: 0 8px 36px rgba(168, 180, 216, 0.35);
   --skeleton-base: rgba(255, 255, 255, 0.3);
@@ -3857,4 +3872,29 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
     padding: 10px 12px;
     font-size: 13px;
   }
+}
+
+/* ============================================================
+   创始成员计划 / 内测预注册 — 专用样式
+   ============================================================ */
+
+/* 浮动动画（用于感谢卡片金色徽章） */
+.miui-float {
+  animation: miuiFloat 3s ease-in-out infinite;
+}
+@keyframes miuiFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* 内测页面底部 logo 主题适配 */
+.beta-footer-logo {
+  display: inline-block;
+  transition: opacity 0.3s ease;
+}
+[data-theme="dark"] .beta-footer-logo {
+  filter: brightness(0) invert(1);
+}
+[data-theme="colorful"] .beta-footer-logo {
+  opacity: 0.9;
 }

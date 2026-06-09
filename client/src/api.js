@@ -1222,3 +1222,28 @@ export const syncAPI = {
     return apiFetch(`/api/sync/bootstrap${query}`);
   },
 };
+
+// ====== 内测预注册 ======
+const BETA_ENV_INFO = {
+  name: import.meta.env.VITE_BETA_NAME || 'ABDL Space 创始成员计划',
+  version: import.meta.env.VITE_BETA_VERSION || 'v0.1',
+  endsAt: import.meta.env.VITE_BETA_ENDS_AT || '2026-07-31T23:59:59Z',
+  capacity: parseInt(import.meta.env.VITE_BETA_CAPACITY || '120', 10),
+  used: 0,
+  status: 'active',
+};
+
+export const betaInfoAPI = {
+  /**
+   * 获取内测活动信息（env 兑底）
+   * 后端接口未就绪时静默兑底，不影响前端流程
+   */
+  get: async () => {
+    try {
+      const data = await apiFetch('/api/beta/info');
+      return { ...BETA_ENV_INFO, ...(data || {}) };
+    } catch {
+      return { ...BETA_ENV_INFO };
+    }
+  },
+};

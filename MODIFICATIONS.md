@@ -1,3 +1,34 @@
+**创始成员计划 / 内测预注册 (v2.25.0) — 2026-06-09 23:30**
+- 新增独立页面 `/beta-register`（主站 + 移动端同域）
+- 与 /register 业务逻辑一致，唯一差异是移除所有跨页跳转入口
+- 严格遵循「无外链」原则：协议查看走 PolicyModal 内嵌弹窗
+- 5 个内测专属元素：活动信息卡、须知小贴士、协议弹窗、提交按钮强化（内测角标）、感谢卡片
+- 3 处 Logo 植入：横版（Hero）、网站icon（信息卡 + 感谢卡）、纯艺术文字（页脚）
+- 注册成功后展示感谢卡片作为流程终点，零按钮、零引导、零跳转
+- 数据库标记：`is_beta_user` / `beta_joined_at` 字段
+- 全站 BetaBadge 集成：PostCard（2处）、PostDetail（3处）、UserPage、ProfilePageV2（2处）
+- 三个主题适配：`--beta-primary*` 变量（金/银/金黄）
+- 移动端同步 5+3 个文件
+
+**新建文件**：
+- `client/src/pages/BetaRegister.jsx`（~400 行）
+- `client/src/components/BetaInfoCard.jsx`（~120 行）
+- `client/src/components/PolicyModal.jsx`（~110 行）
+- `client/src/components/BetaBadge.jsx`（~35 行）
+- `client/src/utils/emailMask.js`（~30 行）
+- `migrations/0026_beta_user_flag.sql`（交付物，交付朋友在后端仓库执行）
+
+**修改文件**：
+- `client/src/App.jsx`（路由 + ROUTE_TITLES）
+- `client/src/api.js`（betaInfoAPI，带 env 兑底）
+- `client/src/styles/global.css`（3 主题 beta 变量 + miui-float + .beta-footer-logo）
+- `client/src/components/PostCard.jsx`、`pages/PostDetail.jsx`、`pages/UserPage.jsx`、`pages/ProfilePageV2.jsx`（BetaBadge 集成）
+
+**后端交付**：
+- `migrations/0026_beta_user_flag.sql`包含数据库迁移 + 接口参考
+- 需朋友 zhx589 在后端仓库执行迁移 + 实现 `/api/auth/beta-register` 与 `/api/beta/info`
+- 前端不依赖后端接口即可运行（env 兑底）
+
 **账号体系升级 (v2.24.0) — 2026-06-08 07:30**
 - 实现完整账号体系：等级系统、经验值、积分、签到、邀请码、徽章
 - 后端新增 7 张表：points, point_logs, exp_logs, invite_codes, daily_checkins, badges, user_badges

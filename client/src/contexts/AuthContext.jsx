@@ -141,7 +141,45 @@ export function AuthProvider({ children }) {
     const u = data.user;
 
     const saved = getSavedAccounts();
-    saved.push({ id: u.id, username: u.username, avatar: u.avatar, role: u.role, token: data.token });
+    saved.push({
+      id: u.id,
+      username: u.username,
+      avatar: u.avatar,
+      role: u.role,
+      is_beta_user: u.is_beta_user,
+      token: data.token,
+    });
+    saveAccounts(saved);
+    setAccounts(saved);
+    setActiveAccountId(u.id);
+    setUser(u);
+    return data;
+  }, []);
+
+  // 内测预注册（调用 /api/auth/beta-register，后端会额外写入 is_beta_user / beta_joined_at）
+  const betaRegister = useCallback(async ({ username, email, password, code, captchaToken, inviteCode }) => {
+    const headers = { 'Content-Type': 'application/json' };
+    if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
+    const res = await fetch(`${API_BASE}/api/auth/beta-register`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ email, password, username, code, invite_code: inviteCode }),
+      credentials: 'include',
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '注册失败');
+
+    const u = data.user;
+
+    const saved = getSavedAccounts();
+    saved.push({
+      id: u.id,
+      username: u.username,
+      avatar: u.avatar,
+      role: u.role,
+      is_beta_user: u.is_beta_user,
+      token: data.token,
+    });
     saveAccounts(saved);
     setAccounts(saved);
     setActiveAccountId(u.id);
@@ -325,7 +363,7 @@ export function AuthProvider({ children }) {
 
     <AuthContext.Provider value={{
       user, loading, accounts,
-      login, register, logout, logoutAll,
+      login, register, betaRegister, logout, logoutAll,
       switchAccount, removeAccount, updateProfile,
       getConsentStatus, saveConsent, withdrawConsent,
       refreshUser,

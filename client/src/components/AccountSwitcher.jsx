@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
+import BetaBadge from './BetaBadge';
 
 export default function AccountSwitcher({ collapsed = false }) {
   const { user, accounts, switchAccount, removeAccount, logout, logoutAll } = useAuth();
@@ -65,9 +66,12 @@ export default function AccountSwitcher({ collapsed = false }) {
         {!collapsed && (
           <>
             <div className="flex-1 min-w-0 text-left">
-              <div className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{user.username}</div>
+              <div className="text-sm font-semibold truncate flex items-center gap-1" style={{ color: 'var(--text)' }}>
+                <span className="truncate">{user.username}</span>
+                {user.is_beta_user && <BetaBadge size="sm" />}
+              </div>
               <div className="text-xs" style={{ color: 'var(--text-light)' }}>
-                {user.role === 'admin' ? '管理员' : '用户'}
+                {user.role === 'admin' ? '管理员' : user.is_beta_user ? '创始成员候选' : '用户'}
                 {accounts.length > 1 && <span style={{ color: 'var(--text-muted)' }}> · {accounts.length} 个账户</span>}
               </div>
             </div>

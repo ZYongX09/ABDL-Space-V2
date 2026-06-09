@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import VerificationInput from '../components/VerificationInput';
@@ -35,13 +35,12 @@ export default function Register() {
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [agreeMinor, setAgreeMinor] = useState(false);
   const [loading, setLoading] = useState(false);
-  const regTokenRef = useRef(null);
-  const sendCodeTokenRef = useRef(null);
   const { register, saveConsent } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
-  const { trigger: triggerRegVerify, InlineVerify: RegInlineVerify, verified: regVerified, active: regActive } = useInlineVerify();
-  const { trigger: triggerSendCodeVerify, InlineVerify: SendCodeInlineVerify, verified: sendCodeVerified, active: sendCodeActive } = useInlineVerify();
+  // 从 useInlineVerify 解构出 tokenRef（之前用独立 useRef 永远是 null）
+  const { trigger: triggerRegVerify, InlineVerify: RegInlineVerify, verified: regVerified, active: regActive, tokenRef: regTokenRef } = useInlineVerify();
+  const { trigger: triggerSendCodeVerify, InlineVerify: SendCodeInlineVerify, verified: sendCodeVerified, active: sendCodeActive, tokenRef: sendCodeTokenRef } = useInlineVerify();
 
   useEffect(() => {
     if (cooldown <= 0) return;

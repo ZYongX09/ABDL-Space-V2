@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import ImageGrid from './ImageGrid';
 import RichContent from './RichContent';
 import OfficialBadge from './OfficialBadge';
+import BetaBadge from './BetaBadge';
 import ReportModal from './ReportModal';
 import RepostModal from './RepostModal';
 import { forumAPI } from '../api';
@@ -113,6 +114,7 @@ function PostCardInner({ post, onLike, onFollow, followMap, compact = false }) {
                     {repostUser.username}
                   </Link>
                   {repostUser.role === 'admin' && <OfficialBadge className="flex-shrink-0" />}
+                  {repostUser.is_beta_user && <BetaBadge size="sm" className="flex-shrink-0" />}
                   <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>·</span>
                   <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{relativeTime(post.created_at)}</span>
                   <span style={{ color: 'var(--text-muted)', fontSize: '12px', marginLeft: '4px' }}>
@@ -247,6 +249,7 @@ function PostContent({ post, compact, followMap, onFollow, mini = false, onInner
               {post.user?.username || '匿名'}
             </Link>
             {post.user?.role === 'admin' && <OfficialBadge className="flex-shrink-0" />}
+            {post.user?.is_beta_user && <BetaBadge size="sm" className="flex-shrink-0" />}
             {!mini && (
               <>
                 <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>·</span>
