@@ -1,5 +1,20 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { copyFileSync, mkdirSync, readdirSync, statSync } from 'fs';
+import { join, dirname } from 'path';
+
+function copyDirSync(src, dest) {
+  mkdirSync(dest, { recursive: true });
+  for (const entry of readdirSync(src)) {
+    const srcPath = join(src, entry);
+    const destPath = join(dest, entry);
+    if (statSync(srcPath).isDirectory()) {
+      copyDirSync(srcPath, destPath);
+    } else {
+      copyFileSync(srcPath, destPath);
+    }
+  }
+}
 
 export default defineConfig({
   plugins: [
@@ -12,6 +27,23 @@ export default defineConfig({
         let result = html.replace('<%= captchaKey %>', captchaKey.replace(/'/g, "\\'"));
         result = result.replace('<%= turnstileKey %>', turnstileKey.replace(/'/g, "\\'"));
         return result;
+      },
+    },
+    {
+      name: 'copy-functions',
+      closeBundle() {
+        // Copy functions/ to dist/functions/ so CF Pages picks them up
+        // (works regardless of whether Build output is 'dist' or 'client/dist')
+        try {
+          copyDirSync('functions', 'dist/functions');
+          console.log('[copy-functions] Copied functions/ to dist/functions/');
+        } catch (e) {
+          if (e.code === 'ENOENT') {
+            console.log('[copy-functions] No functions/ directory found, skipping');
+          } else {
+            console.error('[copy-functions] Error:', e.message);
+          }
+        }
       },
     },
   ],
