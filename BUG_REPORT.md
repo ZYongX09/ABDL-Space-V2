@@ -5649,3 +5649,53 @@ Bug #2 / #3 是 P3 代码洁询，可一并清理。**核心修复建议**：Bug
 - [x] API 错误处理：N/A（前端布局改动）
 - [x] 安全漏洞：无
 - [ ] **滚动行为（Bug #1）**——需修复
+
+---
+
+## [2026-06-11 01:19] aad6f71 复验报告 — 桌面滚动已修，但引入移动端底栏回归
+
+### 验收情况
+
+✅ **Bug #1（桌面滚动）已修复**
+- `client/src/App.jsx:171` 容器已加 `overflowY: 'auto'`（+`flex: 1, width: '100%'` 来自 49ec477）
+- 实测 preview build @ 1280×800：`wrapperHeight: 1527, clientHeight: 800, scrollIntoView` 后 `scrollTop: 727`，可滚到提交按钮 ✅
+
+✅ **Bug #2（重复 ScrollToTop）已修复** — 内层 ScrollToTop 已删
+
+✅ **Bug #3（Provider 跨分支重建）已修复** — `NotificationProvider`/`NsfwProvider` 已上提，toast 状态跨路由保留
+
+### Bug #4 — P1 🔴 移动端底栏回归（aad6f71 新引入）
+
+- **文件**：`client/src/App.jsx:253`
+- **问题**：在 2d42ece 原版，`<MobileBottomNav />` 只在 `else` 分支内挂载；aad6f71 把 Provider 提到 `.app-layout` 外面时，**顺手把 `<MobileBottomNav />` 也放到了条件分支外**（line 253，在 `</NsfwProvider>` 之前、`{pathname === ...}` 条件之后），结果它在 `/beta-register` 上**无条件渲染**。
+- **实测证据**（preview build，多端验证）：
+
+  | 端 | 路径 | 底栏 `display` | 可见 |
+  |---|---|---|---|
+  | mobile 375 | `/` | `flex` | ✓（预期） |
+  | mobile 375 | `/diapers` | `flex` | ✓（预期） |
+  | mobile 375 | `/rankings` | `flex` | ✓（预期） |
+  | mobile 375 | `/profile` | `flex` | ✓（预期） |
+  | mobile 375 | **`/beta-register`** | `flex` | **❌ 回归** |
+  | desktop 1280 | `/beta-register` | `none`（CSS 媒体查询 `@media (min-width: 769px)` 屏蔽） | OK |
+
+  截图确认：mobile 上 `/beta-register` 底部出现 5 个图标导航条（首页/私信/纸尿裤/AI/我的）。
+
+- **影响**：违背 2d42ece 的产品意图——"创始成员计划页面不应有任何其他功能入口"。移动端用户进入注册页，底部突然看到「首页/我的」等入口，体验上自相矛盾，也破坏了专注注册流程的初衷。
+- **建议修复**（最小改动，把 MobileBottomNav 包回条件里）：
+  ```jsx
+  <ToastPopup />
+  {pathname === '/beta-register' ? null : <MobileBottomNav />}
+  </NsfwProvider>
+  </NotificationProvider>
+  ```
+  或者更彻底：把 `MobileBottomNav` 也提到外层，但让它内部判断 `useLocation().pathname === '/beta-register'` 时 return null。
+- **状态**：待修复
+
+---
+
+### 总结
+
+aad6f71 解决了上一轮提的三个问题（桌面滚动、Provider 重复、ScrollToTop 重复），三个都修对了。但**把 `<MobileBottomNav />` 误移出条件分支**，导致 mobile 上 `/beta-register` 出现底栏（桌面 CSS 媒体查询挡住所以桌面正常），形成 P1 回归。
+
+**结论**：需修 Bug #4 之后才能视为 P1 全部清完。修法一行，建议 `pathname === '/beta-register' ? null : <MobileBottomNav />`。
