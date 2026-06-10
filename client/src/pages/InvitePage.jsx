@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
  */
 export default function InvitePage() {
   const { user } = useAuth();
-  const { showToast } = useToast();
+  const { success: showSuccess, error: showError } = useToast();
   const navigate = useNavigate();
   const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,13 +48,13 @@ export default function InvitePage() {
       });
       const json = await res.json();
       if (res.ok) {
-        showToast('邀请码生成成功', 'success');
+        showSuccess('邀请码生成成功');
         fetchCodes();
       } else {
-        showToast(json.error || '生成失败', 'error');
+        showError(json.error || '生成失败');
       }
     } catch (err) {
-      showToast('生成失败', 'error');
+      showError('生成失败');
     } finally {
       setGenerating(false);
     }
@@ -63,10 +63,10 @@ export default function InvitePage() {
   function copyCode(code, id) {
     navigator.clipboard.writeText(code).then(() => {
       setCopiedId(id);
-      showToast('已复制到剪贴板', 'success');
+      showSuccess('已复制到剪贴板');
       setTimeout(() => setCopiedId(null), 2000);
     }).catch(() => {
-      showToast('复制失败，请手动复制', 'error');
+      showError('复制失败，请手动复制');
     });
   }
 

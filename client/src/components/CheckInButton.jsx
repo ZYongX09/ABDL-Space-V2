@@ -8,7 +8,7 @@ import { useToast } from '../contexts/ToastContext';
  */
 export default function CheckInButton({ compact = false }) {
   const { user } = useAuth();
-  const { showToast } = useToast();
+  const { success: showSuccess, error: showError } = useToast();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
@@ -47,16 +47,16 @@ export default function CheckInButton({ compact = false }) {
       });
       const json = await res.json();
       if (res.ok) {
-        showToast(`签到成功！+${json.rewards.total_points} 积分 +${json.rewards.total_exp} 经验`, 'success');
+        showSuccess(`签到成功！+${json.rewards.total_points} 积分 +${json.rewards.total_exp} 经验`);
         if (json.rewards.level_change) {
-          showToast(`升级到 Lv.${json.rewards.level_change.to}！`, 'success');
+          showSuccess(`升级到 Lv.${json.rewards.level_change.to}！`);
         }
         fetchStatus();
       } else {
-        showToast(json.error || '签到失败', 'error');
+        showError(json.error || '签到失败');
       }
     } catch (err) {
-      showToast('签到失败', 'error');
+      showError('签到失败');
     } finally {
       setCheckingIn(false);
     }
@@ -76,17 +76,17 @@ export default function CheckInButton({ compact = false }) {
       });
       const json = await res.json();
       if (res.ok) {
-        showToast(`补签成功！消耗 ${json.data.cost} 积分`, 'success');
+        showSuccess(`补签成功！消耗 ${json.data.cost} 积分`);
         if (json.data.streak_bonus > 0) {
-          showToast(`连续签到 ${json.data.streak} 天奖励 +${json.data.streak_bonus}！`, 'success');
+          showSuccess(`连续签到 ${json.data.streak} 天奖励 +${json.data.streak_bonus}！`);
         }
         fetchStatus();
         setShowMakeup(false);
       } else {
-        showToast(json.error || '补签失败', 'error');
+        showError(json.error || '补签失败');
       }
     } catch (err) {
-      showToast('补签失败', 'error');
+      showError('补签失败');
     }
   }
 
