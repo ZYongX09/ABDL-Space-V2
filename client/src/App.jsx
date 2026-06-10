@@ -250,7 +250,7 @@ export default function App() {
       </>
       )}
       <ToastPopup />
-      <MobileBottomNav />
+      {pathname !== '/beta-register' && <MobileBottomNav />}
       </NsfwProvider>
       </NotificationProvider>
       <AdBlockNotice />
