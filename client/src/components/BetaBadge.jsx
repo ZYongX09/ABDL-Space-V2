@@ -15,7 +15,7 @@ export default function BetaBadge({ size = 'sm', className = '' }) {
     <span
       role="img"
       aria-label="创始成员候选"
-      title="创始成员候选 · v0.1"
+      title="创始成员候选"
       className={`inline-flex items-center rounded font-bold ${className}`}
       style={{
         gap: s.gap,

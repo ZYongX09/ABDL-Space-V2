@@ -5,7 +5,6 @@ const ICON_URL = 'https://img.abdl-space.top/file/1779879250278_ABDL_icon.svg';
 
 const DEFAULT_INFO = {
   name: 'ABDL Space 创始成员计划',
-  version: 'v0.1',
   endsAt: import.meta.env.VITE_BETA_ENDS_AT || '2026-07-31T23:59:59Z',
   capacity: parseInt(import.meta.env.VITE_BETA_CAPACITY || '120', 10),
   used: 0,
