@@ -164,12 +164,11 @@ export default function App() {
     <RedirectNotice />
     <div className="app-layout">
       <ScrollToTop />
+      <NotificationProvider>
+      <NsfwProvider>
       {/* 独立布局页面 — 无侧边栏/导航/footer */}
       {pathname === '/beta-register' ? (
-        <NotificationProvider>
-        <NsfwProvider>
-        <ScrollToTop />
-        <div className="page-transition-enter" style={{ minHeight: '100vh', padding: '20px 16px' }}>
+        <div style={{ minHeight: '100vh', padding: '20px 16px', overflowY: 'auto' }} className="page-transition-enter">
           <ErrorBoundary>
             <Suspense fallback={<PageFallback />}>
               <Routes>
@@ -178,12 +177,8 @@ export default function App() {
             </Suspense>
           </ErrorBoundary>
         </div>
-        <ToastPopup />
-        </NsfwProvider>
-        </NotificationProvider>
       ) : (
-      <NotificationProvider>
-      <NsfwProvider>
+      <>
       <Sidebar />
       <MobileHeaderLayout />
       <div className="app-main-content">
@@ -252,11 +247,12 @@ export default function App() {
           </div>
         </footer>
       </div>
-      </NsfwProvider>
+      </>
+      )}
       <ToastPopup />
       <MobileBottomNav />
+      </NsfwProvider>
       </NotificationProvider>
-      )}
       <AdBlockNotice />
       <CookieConsent />
       <ScrollProgress />
