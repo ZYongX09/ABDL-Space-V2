@@ -220,9 +220,9 @@ export default function BetaRegister() {
         {/* Hero 区 */}
         <div className="text-center mb-6 miui-card-in">
           <img
-            src={LOGO_HORIZONTAL}
+            src={LOGO_ICON}
             alt="ABDL Space"
-            style={{ height: 36, margin: '0 auto 16px', display: 'block' }}
+            style={{ width: 56, height: 56, margin: '0 auto 16px', display: 'block' }}
           />
           <p
             className="text-xs tracking-widest mb-2"
