@@ -84,7 +84,7 @@ export default function BetaInfoCard() {
         style={{ color: 'var(--text)' }}
       >
         <img src={ICON_URL} alt="" style={{ width: 16, height: 16 }} />
-        <span>{data.name} {data.version}</span>
+        <span>{data.name}</span>
       </h2>
 
       <div className="pt-3" style={{ borderTop: '1px solid var(--border)' }}>
