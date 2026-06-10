@@ -5257,3 +5257,311 @@ Agent1 只测了 bunnyboo (rearz 商品)，**没测 abu-tinytails (ABU 商品)**
 +img-src ... https://hm.baidu.com https://*.bigcommerce.com https://au.abuniverse.com
 ```
 
+---
+
+## [2026-06-10 00:12] 创始成员计划 v2.25.0 — 审查报告
+
+**审查范围**：主站 + 移动端共 12 个新文件 + 16 个修改文件
+
+**核心结论**：⚠️ **存在 1 个 P0 阻断 Bug — BetaRegister 调错端点，整个内测标记功能不生效**
+
+---
+
+### Bug #1 — P0（阻断）
+
+- **文件**：
+  - `client/src/contexts/AuthContext.jsx:147-150`（register 函数）
+  - `client/src/pages/BetaRegister.jsx:88`（调用处）
+  - `migrations/0026_beta_user_flag.sql:18-22`（接口契约）
+- **问题**：BetaRegister.jsx 通过 `useAuth().register()` 注册，但 AuthContext 的 `register` 函数**硬编码调用 `/api/auth/register`**（普通注册端点），而不是迁移文档约定的 **`/api/auth/beta-register`**（内测注册端点）。
+- **证据**：
+  ```js
+  // AuthContext.jsx:147-150
+  const res = await fetch(`${API_BASE}/api/auth/register`, {  // ❌ 写死为普通端点
+    method: 'POST',
+    body: JSON.stringify({ email, password, username, code, invite_code: inviteCode }),
+    ...
+  });
+  ```
+  ```sql
+  -- migrations/0026_beta_user_flag.sql:18-22
+  -- 1) POST /api/auth/beta-register
+  --    行为同 /api/auth/register
+  --    额外写入 is_beta_user = 1, beta_joined_at = datetime('now')
+  ```
+- **影响**：
+  1. 新用户**不会**被标记为内测用户（后端没有 `is_beta_user = 1` 的写入）
+  2. `user.is_beta_user` 始终为 `undefined`，**BetaBadge 永不显示**
+  3. 所有依赖 `is_beta_user` 的功能失效（AccountSwitcher 副标题、PostCard / PostDetail / ProfilePageV2 / UserPage 等共 9 处集成全部失效）
+  4. 即使后端妥协在 `/api/auth/register` 也写 `is_beta_user = 1`，**所有普通注册都会变成内测用户**，导致徽章失去稀缺性
+- **建议**（二选一）：
+  
+  **方案 A（推荐）**：在 AuthContext.jsx 新增 `betaRegister` 函数
+  ```js
+  const betaRegister = useCallback(async (payload) => {
+    const headers = { 'Content-Type': 'application/json' };
+    if (payload.captchaToken) headers['X-Captcha-Token'] = payload.captchaToken;
+    const res = await fetch(`${API_BASE}/api/auth/beta-register`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        email: payload.email,
+        password: payload.password,
+        username: payload.username,
+        code: payload.code,
+        invite_code: payload.inviteCode,
+      }),
+      credentials: 'include',
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '注册失败');
+    // ... 与 register 同款的账户保存逻辑 ...
+    return data;
+  }, []);
+  ```
+  BetaRegister.jsx 改为 `useAuth().betaRegister(...)`。
+  
+  **方案 B**：在 register 函数增加 `isBeta` 形参
+  ```js
+  const register = useCallback(async ({ ..., isBeta = false }) => {
+    const path = isBeta ? '/api/auth/beta-register' : '/api/auth/register';
+    // ...
+  });
+  ```
+
+---
+
+### Bug #2 — P0（阻断 — 与 Register.jsx 共有，BetaRegister 继承）
+
+- **文件**：
+  - `client/src/pages/BetaRegister.jsx:45, 90`
+  - `client/src/components/useInlineVerify.jsx:558`
+- **问题**：`useInlineVerify` 内部维护 `tokenRef.current` 存放验证通过后的 token，并 **return** 出 `{ trigger, InlineVerify, verified, active, tokenRef }`。但 BetaRegister.jsx 解构时**漏掉 `tokenRef`**：
+  ```js
+  // BetaRegister.jsx:45
+  const { trigger: triggerRegVerify, InlineVerify: RegInlineVerify, verified: regVerified } = useInlineVerify();
+  //                                                          ^^^^^^^^^^^^^^^ ❌ 漏了 tokenRef
+  ```
+  随后使用独立的 `regTokenRef = useRef(null)`，导致 `regTokenRef.current` 始终是 `null`。
+- **影响**：`captchaToken: regTokenRef.current || undefined` 永远是 `undefined`，后端**永远收不到 `X-Captcha-Token` 头**。如果后端强制要求 captcha 验证，注册会全部失败。
+- **建议**：
+  ```diff
+  - const { trigger: triggerRegVerify, InlineVerify: RegInlineVerify, verified: regVerified } = useInlineVerify();
+  - const regTokenRef = useRef(null);
+  + const { trigger: triggerRegVerify, InlineVerify: RegInlineVerify, verified: regVerified, tokenRef: regTokenRef } = useInlineVerify();
+  ```
+  （Register.jsx 也需要同样的修复 — 这是上版本的遗留 bug，BetaRegister 应当顺手修掉）
+
+---
+
+### Bug #3 — P1
+
+- **文件**：`client/src/pages/BetaRegister.jsx:51-66`
+- **问题**：
+  1. `authAPI.sendCode({ email, type: 'register' })` **不传 `captchaToken`**，即使有 token 也丢失
+  2. 没有 `sendCodeCount` / `sendCodeCaptchaOk` 状态，没有"超过 2 次需安全验证"的前端限流
+- **影响**：
+  - 邮件发送无前端限流（虽然后端应有 rate limit，但前端是首道防线）
+  - 与 Register.jsx 行为不一致（Register.jsx 走 `sendCodeCount >= 2 && !sendCodeCaptchaOk` 触发二次验证）
+  - BetaRegister 用户可无限点击"发送验证码"，增加后端压力
+- **建议**：从 Register.jsx 复制 sendCode 限流逻辑到 BetaRegister.jsx，或在 api 层统一处理
+
+---
+
+### Bug #4 — P1
+
+- **文件**：
+  - `client/src/api.js:1236`（定义 `betaInfoAPI.get`）
+  - `client/src/components/BetaInfoCard.jsx:1-80`（**从未调用 API**）
+  - `client/src/pages/BetaRegister.jsx:223`（`<BetaInfoCard />` 未传 props）
+- **问题**：`api.js` 中定义了 `betaInfoAPI.get()`，会调 `/api/beta/info` 并融合环境变量与后端返回（包含 `used: 87, status: "full" | "ended"` 等动态字段）。但 `BetaInfoCard` **没有调用此 API**，只使用 `DEFAULT_INFO`（环境变量）。
+- **影响**：
+  - 后端动态数据（真实 `used` 已用名额、动态 `endsAt`、`status: full/ended`）**永远不显示**
+  - 用户看不到"还剩 33 个名额"等实时信息
+  - 内测满员 / 已结束时无法在前端提示用户
+  - `BETA_ENV_INFO` 写得再完善也是死代码
+- **建议**：在 BetaInfoCard 挂载时调用 `betaInfoAPI.get()` 并用 `useState` 存储结果：
+  ```js
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await betaInfoAPI.get();
+        setInfo(data);
+      } catch {}
+    })();
+  }, []);
+  ```
+  并根据 `status` 显示"已满员/已截止"提示。
+
+---
+
+### Bug #5 — P2
+
+- **文件**：`client/src/pages/BetaRegister.jsx:92-100`
+- **问题**：BetaRegister.jsx 注册成功后**没有调用 `saveConsent`**（Register.jsx:94 调用了）。即 `localStorage` 的 `abdl_consent` 不会被写入。
+- **影响**：
+  - 用户在 About.jsx 查看协议同意状态时会显示"未同意"
+  - 与 Register.jsx 行为不一致
+  - 如果后续引入"未同意协议禁止发帖"等逻辑，beta 用户会被误判
+- **建议**：注册成功后调用 `saveConsent({ privacy: true, terms: true, userId: result?.user?.id })`
+
+---
+
+### Bug #6 — P2
+
+- **文件**：`client/src/utils/emailMask.js:1-50`
+- **问题**：文档注释示例 `z********3@g***l.com`（域名保留首末字母），但**实际实现只保留首字母**：`gmail` → `g****.com`。
+- **证据**：
+  ```js
+  // emailMask.js:33-37
+  const innerLen = Math.min(Math.max(main.length - 1, 1), 4);
+  maskedDomain = main[0] + '*'.repeat(innerLen) + '.' + tld;
+  ```
+  对 `gmail.com`：main = "gmail" → `g` + `****` + `.com` = `g****.com`
+- **影响**：
+  - 与代码注释不符，新人 review 时困惑
+  - 视觉一致性：感谢卡片显示的邮箱样式与设计稿不一致
+- **建议**：决定注释 vs 实现哪个正确，建议**保留首末**（更易识别邮箱来源）：
+  ```js
+  // 保留首末字符
+  const innerLen = Math.min(Math.max(main.length - 2, 1), 4);
+  maskedDomain = main[0] + '*'.repeat(innerLen) + main[main.length - 1] + '.' + tld;
+  ```
+
+---
+
+### Bug #7 — P2
+
+- **文件**：`client/src/components/BetaInfoCard.jsx:24-39`
+- **问题**：当 `endsAt` 已过期时，倒计时永远显示 `0天 00:00:00`，**没有"已截止"提示**。`Number.isNaN(end)` 兜底也是同样问题（静默显示全 0）。
+- **影响**：用户看到"还剩 0天 00:00:00"可能误以为还有时间
+- **建议**：在 `data.endsAt` < `Date.now()` 时显示文案"报名已截止"，并禁用 BetaRegister 提交按钮
+
+---
+
+### Bug #8 — P3
+
+- **文件**：`client/src/pages/BetaRegister.jsx:226` vs `:114`
+- **问题**：感谢卡片 `padding: '32px 28px'`，表单卡片 `padding: '24px'`，**两种 padding 不一致**
+- **影响**：表单 ↔ 感谢卡片切换时，视觉跳变
+- **建议**：统一为 `'24px'` 或都调整为相同的 padding
+
+---
+
+### Bug #9 — P3
+
+- **文件**：`client/src/components/BetaInfoCard.jsx:65-79`
+- **问题**：字号直接硬编码 `'1.5rem'`，没有走 `var(--font-size-*)` 体系
+- **影响**：与全局字号 token 体系（11/12/13/14/15/18/24）不一致，后续全局调字号时此处不会跟随
+- **建议**：抽取 CSS 变量或使用 tailwind class
+
+---
+
+### Bug #10 — P3
+
+- **文件**：`client/src/components/BetaBadge.jsx:7-11`
+- **问题**：尺寸映射对象 `sizes` 在每次 render 时**重新创建**，导致子组件依赖此对象做 props 比较时会失效（不过当前 BetaBadge 没有 memo，影响小）
+- **建议**：把 `sizes` 提到组件外或用 `useMemo`
+
+---
+
+## 一致性 & 跨端检查 ✅
+
+| 检查项 | 主站 | 移动端 | 结论 |
+|---|---|---|---|
+| `BetaRegister.jsx` 逻辑一致 | ✅ ~400 行 | ✅ 镜像 | 一致 |
+| `BetaInfoCard.jsx` | ✅ | ✅ | 一致 |
+| `PolicyModal.jsx` | ✅ | ✅ | 一致 |
+| `BetaBadge.jsx` | ✅ | ✅ | 一致 |
+| `emailMask.js` | ✅ | ✅（假设移动端镜像） | 一致 |
+| AuthContext `is_beta_user` 保存 | ✅ AuthContext.jsx:148 | ✅ 移动端同样 | 一致 |
+| AccountSwitcher BetaBadge | ✅ | ✅ | 一致 |
+| PostCard / PostDetail BetaBadge | ✅ | ✅ | 一致 |
+| ProfilePageV2 / Profile BetaBadge | ✅ 桌面+移动 2 处 | ✅ 桌面+移动 2 处 | 一致 |
+| UserPage BetaBadge | ✅ | n/a（移动端无 UserPage） | 一致 |
+| App.jsx 路由 + ROUTE_TITLES | ✅ | ✅ | 一致 |
+| `--beta-primary*` 三主题变量 | ✅ light/dark/colorful | ✅ light/dark/colorful | 一致 |
+| `.beta-footer-logo` 主题适配 | ✅ | ✅ | 一致 |
+| `.miui-float` 动画 | ✅ | ✅ | 一致 |
+| `npm run build` 通过 | ✅ | ✅ | 双端均通过 |
+
+---
+
+## 后端依赖清单（提醒 Agent1）
+
+按迁移文件 `migrations/0026_beta_user_flag.sql` 的接口契约：
+
+1. ⚠️ **`POST /api/auth/beta-register`** — P0 依赖，行为同 register 但额外写入 `is_beta_user = 1, beta_joined_at = datetime('now')`
+2. **`GET /api/beta/info`** — 可选，但建议实现（用于 BetaInfoCard 实时显示已用名额）
+3. **`/api/auth/me` 和 `/api/users/:id`** — 返回的 user 对象必须包含 `is_beta_user` 字段
+
+---
+
+## 建议处理顺序
+
+1. **立即修 Bug #1 + #2**（P0 阻断）
+2. 然后修 Bug #3 + #4（P1，行为一致性）
+3. 再处理 Bug #5 + #6 + #7（P2）
+4. Bug #8-#10 可延后
+
+---
+
+**审查结论**：⚠️ **[修改: 必须修复 P0 Bug #1 和 #2 后再 push]**
+
+---
+
+## [2026-06-10 00:30] 复验报告（v2.25.0 修复后）
+
+**复验结论**：✅ **[OK] 可 push**（带 1 个 P3 洁询，不阻塞）
+
+### 逐项复验
+
+| Bug | 修复位置 | 状态 | 证据 |
+|---|---|---|---|
+| #1 P0 端点错 | `AuthContext.jsx:154-181` 新增 `betaRegister` 调 `/api/auth/beta-register` | ✅ | v2 + mobile 同步 |
+| #2 P0 captchaToken | `BetaRegister.jsx:48-49` 解构 `tokenRef` 替代独立 `useRef` | ✅ | v2 + mobile + Register.jsx 均同步修复 |
+| #3 P1 邮件限流 | `BetaRegister.jsx:34-35, 50, 67-69` 抄入 sendCodeCount / sendCodeCaptchaOk | ✅ | UI + 状态机完整 |
+| #4 P1 动态信息 | `BetaInfoCard.jsx:21-27, 38-50, 67-83` 加 useEffect 调 API + isEnded/isFull/usedText | ✅ | "报名已截止"/"已满员"/"已报N人" 全部接入 |
+| #5 P2 saveConsent | `BetaRegister.jsx:107-108` 调用 `saveConsent` | ✅ | 与 Register.jsx 行为一致 |
+| #6 P2 emailMask | `emailMask.js:40` 域名 main 保留首末字符 | ✅ | `zyongx123@gmail.com` → `z*******3@g***l.com` 匹配注释示例 |
+| #7 P2 已截止提示 | `BetaInfoCard.jsx:67-72` isEnded 时显示"报名已截止" | ✅ | |
+
+### 跨端一致性（byte-for-byte）
+
+```
+diff -q v2/.../BetaRegister.jsx     mobile/.../BetaRegister.jsx     → 无差异
+diff -q v2/.../BetaInfoCard.jsx     mobile/.../BetaInfoCard.jsx     → 无差异
+diff -q v2/.../emailMask.js         mobile/.../emailMask.js         → 无差异
+diff -q v2/.../AuthContext.jsx      mobile/.../AuthContext.jsx      → 无差异
+```
+
+### 构建状态
+
+- ✅ 主站 `npm run build` 通过（5m 22s, exit 0）
+- ✅ 移动端 `npm run build` 通过（5m 34s, exit 0）
+
+### 边界 case 验证（emailMask 跑过）
+
+| 输入 | 输出 | 预期 |
+|---|---|---|
+| `zyongx123@gmail.com` | `z*******3@g***l.com` | ✅ 匹配文档示例 |
+| `z@gmail.com` | `*@g***l.com` | ✅ 短本地+长域名 |
+| `ab@c.com` | `**@c.com` | ✅ 短本地 |
+| `test_user@hot-mail.co.uk` | `t*******r@h****o.uk` | ✅ lastDot 正确取最后一点 |
+| `a@b.c.d.e` | `*@b***d.e` | ✅ 末点划分 |
+| `ab@` | `***` | ✅ 退化 |
+
+### 残留项复评（原 #8/#9/#10）
+
+- **#8 感谢卡片 padding 32px 28px vs 表单 24px** — 保留为 P3，不阻塞
+- **#9 BetaInfoCard 字号 1.5rem 硬编码** — 保留为 P3，不阻塞
+- **#10 BetaBadge sizes 重建** — 保留为 P3，不阻塞
+
+### 新发现（复验中掘出，不阻塞）
+
+- **L1 — 遗留 P3**：`Register.jsx` 顶部仍 `import { useState, useRef, ... }`，但 `useRef` 已不再被使用（主站 + 移动端都有）。eslint 报警告，但不影响功能。可顺手删掉 `useRef`。
+
+### 最终结论
+
+**✅ [OK] 可以 push**。所有 P0/P1/P2 已修复，跨端一致，build 通过。仅留 3 个原 P3 视觉洁询 + 1 个新发现的 lint 问题（useRef 未用），均不阻塞发版。
+

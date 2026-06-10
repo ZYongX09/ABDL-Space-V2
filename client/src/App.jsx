@@ -164,6 +164,24 @@ export default function App() {
     <RedirectNotice />
     <div className="app-layout">
       <ScrollToTop />
+      {/* 独立布局页面 — 无侧边栏/导航/footer */}
+      {pathname === '/beta-register' ? (
+        <NotificationProvider>
+        <NsfwProvider>
+        <ScrollToTop />
+        <div className="page-transition-enter" style={{ minHeight: '100vh', padding: '20px 16px' }}>
+          <ErrorBoundary>
+            <Suspense fallback={<PageFallback />}>
+              <Routes>
+                <Route path="/beta-register" element={<BetaRegister />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
+        </div>
+        <ToastPopup />
+        </NsfwProvider>
+        </NotificationProvider>
+      ) : (
       <NotificationProvider>
       <NsfwProvider>
       <Sidebar />
@@ -192,7 +210,6 @@ export default function App() {
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/beta-register" element={<BetaRegister />} />
                 <Route path="/auth/nbw/callback" element={<NBWCallback />} />
                 <Route path="/profile" element={<ProfilePageV2 />} />
                 <Route path="/profile/:id" element={<ProfilePageV2 />} />
@@ -239,6 +256,7 @@ export default function App() {
       <ToastPopup />
       <MobileBottomNav />
       </NotificationProvider>
+      )}
       <AdBlockNotice />
       <CookieConsent />
       <ScrollProgress />
