@@ -168,7 +168,7 @@ export default function App() {
       <NsfwProvider>
       {/* 独立布局页面 — 无侧边栏/导航/footer */}
       {pathname === '/beta-register' ? (
-        <div style={{ minHeight: '100vh', padding: '20px 16px', overflowY: 'auto' }} className="page-transition-enter">
+        <div style={{ flex: 1, width: '100%', minHeight: '100vh', padding: '20px 16px', overflowY: 'auto' }} className="page-transition-enter">
           <ErrorBoundary>
             <Suspense fallback={<PageFallback />}>
               <Routes>
