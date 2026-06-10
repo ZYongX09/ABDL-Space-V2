@@ -3,8 +3,9 @@
  * Base URL: 生产 https://api.abdl.space / 本地 http://localhost:8787
  * 双模式：VITE_API_BASE 为空时走 localStorage 离线模式
  */
-const API_BASE = import.meta.env.VITE_API_BASE || '';
-const USE_API = !!API_BASE;
+const API_BASE = import.meta.env.VITE_API_BASE ?? '';
+// 空字符串也是有效值（相对路径），只有显式设为 undefined/null 时才走离线
+const USE_API = API_BASE !== undefined && API_BASE !== null;
 
 // 评分维度权重
 const ADULT_WEIGHTS = {

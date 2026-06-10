@@ -160,7 +160,7 @@ export function AuthProvider({ children }) {
   const betaRegister = useCallback(async ({ username, email, password, code, captchaToken, inviteCode }) => {
     const headers = { 'Content-Type': 'application/json' };
     if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
-    const res = await fetch(`${API_BASE}/api/auth/beta-register`, {
+    const res = await fetch(`${API_BASE}/api/beta/beta-register`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ email, password, username, code, invite_code: inviteCode }),
