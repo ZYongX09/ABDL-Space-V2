@@ -4,9 +4,9 @@ import { adminAPI } from '../api';
 const BetaModeContext = createContext();
 
 const DEFAULT_CONFIG = {
-  enabled: false,
-  allowedRoutes: ['/', '/login', '/register', '/admin', '/beta-register'],
-  message: '产品正在内测中，请登录后访问',
+  enabled: true,
+  allowedRoutes: ['/', '/login', '/register', '/admin', '/beta-register', '/forgot-password'],
+  message': '产品正在内测中，请登录后访问',
 };
 
 export function BetaModeProvider({ children }) {
