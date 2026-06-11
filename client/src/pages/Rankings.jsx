@@ -24,17 +24,20 @@ export default function Rankings() {
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const offsetRef = useRef(0);
-  const sentinelRef = useRef(null);
   const toast = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
   const isLoggedIn = !!user;
 
+  // 用 ref 追踪状态，避免 scroll 闭包过时
+  const stateRef = useRef({ hasMore: true, loading: false, loadingMore: false, tab: 'hot', isLoggedIn: false });
+  stateRef.current = { hasMore, loading, loadingMore, tab, isLoggedIn };
+
   // 加载数据
   const loadData = useCallback(async (reset = false) => {
-    if (loadingMore && !reset) return;
-    
+    const { tab: currentTab, isLoggedIn: loggedIn } = stateRef.current;
     const offset = reset ? 0 : offsetRef.current;
+    
     if (reset) {
       offsetRef.current = 0;
       setRankings([]);
@@ -45,7 +48,7 @@ export default function Rankings() {
       if (reset) setLoading(true);
       else setLoadingMore(true);
 
-      const data = await rankingsAPI.get(tab, undefined, isLoggedIn ? undefined : 10, offset, PAGE_SIZE);
+      const data = await rankingsAPI.get(currentTab, undefined, loggedIn ? undefined : 10, offset, PAGE_SIZE);
       const newRankings = data.rankings || [];
       
       if (reset) {
@@ -64,7 +67,7 @@ export default function Rankings() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [tab, isLoggedIn, loadingMore]);
+  }, [toast]);
 
   // 切换 tab 时重置
   useEffect(() => {
@@ -78,14 +81,15 @@ export default function Rankings() {
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-      if (scrollHeight - scrollTop - clientHeight < 200 && hasMore && !loading && !loadingMore) {
+      const s = stateRef.current;
+      if (scrollHeight - scrollTop - clientHeight < 200 && s.hasMore && !s.loading && !s.loadingMore) {
         loadData(false);
       }
     };
 
     scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
     return () => scrollContainer.removeEventListener('scroll', handleScroll);
-  }, [hasMore, loading, loadingMore, loadData]);
+  }, [loadData]);
 
   // 基准分刷新
   useEffect(() => {
@@ -215,9 +219,6 @@ export default function Rankings() {
               已显示全部 {totalCount} 款
             </div>
           )}
-
-          {/* 滚动哨兵 */}
-          <div ref={sentinelRef} style={{ height: 1 }} />
 
           {/* 未登录遮罩提示 */}
           {!isLoggedIn && rankings.length > 1 && (
