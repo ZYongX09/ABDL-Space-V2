@@ -3,6 +3,7 @@ import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { NsfwProvider } from './contexts/NsfwContext';
+import { BetaModeProvider, useBetaMode } from './contexts/BetaModeContext';
 import { initNBWConfig } from './utils/nbwOAuth';
 import { MobileHeaderProvider, useMobileHeaderActions } from './contexts/MobileHeaderContext';
 import Sidebar from './components/Sidebar';
@@ -45,6 +46,7 @@ const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const BetaRegister = lazy(() => import('./pages/BetaRegister'));
+const BetaRestrictedPage = lazy(() => import('./pages/BetaRestrictedPage'));
 const AccountPrivacy = lazy(() => import('./pages/AccountPrivacy'));
 const ProfilePageV2 = lazy(() => import('./pages/ProfilePageV2'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
@@ -137,6 +139,24 @@ function AdminOnlyProfile() {
   return <Profile />;
 }
 
+function BetaModeGuard({ children }) {
+  const { user } = useAuth();
+  const { config, loading, isRouteAllowed } = useBetaMode();
+  const { pathname } = useLocation();
+
+  // 加载中或未启用内测模式时直接放行
+  if (loading || !config.enabled) return children;
+
+  // 管理员直接放行
+  if (user?.role === 'admin') return children;
+
+  // 检查当前路由是否在允许列表中
+  if (isRouteAllowed(pathname)) return children;
+
+  // 其他情况跳转到限制页面
+  return <BetaRestrictedPage />;
+}
+
 export default function App() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -160,6 +180,7 @@ export default function App() {
   }, [navigate]);
 
   return (
+    <BetaModeProvider>
     <MobileHeaderProvider>
     <RedirectNotice />
     <div className="app-layout">
@@ -167,12 +188,13 @@ export default function App() {
       <NotificationProvider>
       <NsfwProvider>
       {/* 独立布局页面 — 无侧边栏/导航/footer */}
-      {pathname === '/beta-register' ? (
+      {pathname === '/beta-register' || pathname === '/beta-restricted' ? (
         <div style={{ flex: 1, width: '100%', minHeight: '100vh', padding: '20px 16px', overflowY: 'auto' }} className="page-transition-enter">
           <ErrorBoundary>
             <Suspense fallback={<PageFallback />}>
               <Routes>
                 <Route path="/beta-register" element={<BetaRegister />} />
+                <Route path="/beta-restricted" element={<BetaModeGuard><BetaRestrictedPage /></BetaModeGuard>} />
               </Routes>
             </Suspense>
           </ErrorBoundary>
@@ -185,6 +207,7 @@ export default function App() {
         <div key={pathname} className={`${pathname === '/' ? '' : 'container mx-auto px-5 py-6'} page-transition-enter`} style={pathname === '/' ? {} : { maxWidth: 'min(1920px, calc(100vw - 80px))' }}>
           <ErrorBoundary>
             <Suspense fallback={<PageFallback />}>
+              <BetaModeGuard>
               <Routes>
                 <Route path="/" element={<HomeV2 />} />
                 <Route path="/search" element={<Search />} />
@@ -228,6 +251,7 @@ export default function App() {
                 <Route path="/points" element={<PointsPage />} />
                 <Route path="/invite" element={<InvitePage />} />
               </Routes>
+              </BetaModeGuard>
             </Suspense>
           </ErrorBoundary>
         </div>
@@ -250,7 +274,7 @@ export default function App() {
       </>
       )}
       <ToastPopup />
-      {pathname !== '/beta-register' && <MobileBottomNav />}
+      {(pathname !== '/beta-register' && pathname !== '/beta-restricted') && <MobileBottomNav />}
       </NsfwProvider>
       </NotificationProvider>
       <AdBlockNotice />
@@ -259,5 +283,6 @@ export default function App() {
       <BackToTop />
     </div>
     </MobileHeaderProvider>
+    </BetaModeProvider>
   );
 }

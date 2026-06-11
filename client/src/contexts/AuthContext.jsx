@@ -156,14 +156,14 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
-  // 内测预注册（调用 /api/auth/beta-register，后端会额外写入 is_beta_user / beta_joined_at）
+  // 内测预注册（调用 /api/beta/beta-register，后端会额外写入 is_beta_user / beta_joined_at）
   const betaRegister = useCallback(async ({ username, email, password, code, captchaToken, inviteCode }) => {
     const headers = { 'Content-Type': 'application/json' };
     if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
     const res = await fetch(`${API_BASE}/api/beta/beta-register`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ email, password, username, code, invite_code: inviteCode }),
+      body: JSON.stringify({ email, password, username, code, inviteCode }),
       credentials: 'include',
     });
     const data = await res.json();

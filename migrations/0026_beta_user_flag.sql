@@ -15,7 +15,7 @@ CREATE INDEX idx_users_beta ON users(is_beta_user) WHERE is_beta_user = 1;
 -- 后端接口参考（由 zhx589 在 abdl-space 后端仓库实现）
 -- ============================================================
 --
--- 1) POST /api/auth/beta-register
+-- 1) POST /api/beta/beta-register
 --    行为同 /api/auth/register
 --    额外写入 is_beta_user = 1, beta_joined_at = datetime('now')
 --    返回 user 对象带 is_beta_user: true
