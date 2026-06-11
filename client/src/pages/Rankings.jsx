@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { LoadingSkeleton } from '../components/Feedback';
@@ -13,50 +13,101 @@ const TABS = [
   { key: 'popular', label: '最受关注', icon: 'fa-eye' },
 ];
 
+const PAGE_SIZE = 20;
+
 export default function Rankings() {
   const [tab, setTab] = useState('hot');
   const [rankings, setRankings] = useState([]);
   const [baseScores, setBaseScores] = useState({ adult: 0, baby: 0 });
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const offsetRef = useRef(0);
+  const sentinelRef = useRef(null);
   const toast = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
   const isLoggedIn = !!user;
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const data = await rankingsAPI.get(tab, undefined, isLoggedIn ? undefined : 10);
-        setRankings(data.rankings || []);
-        setBaseScores(data.base_scores || { adult: 0, baby: 0 });
-      } catch (e) {
-        toast.error(e.message);
-      } finally {
-        setLoading(false);
+  // 加载数据
+  const loadData = useCallback(async (reset = false) => {
+    if (loadingMore && !reset) return;
+    
+    const offset = reset ? 0 : offsetRef.current;
+    if (reset) {
+      offsetRef.current = 0;
+      setRankings([]);
+      setHasMore(true);
+    }
+
+    try {
+      if (reset) setLoading(true);
+      else setLoadingMore(true);
+
+      const data = await rankingsAPI.get(tab, undefined, isLoggedIn ? undefined : 10, offset, PAGE_SIZE);
+      const newRankings = data.rankings || [];
+      
+      if (reset) {
+        setRankings(newRankings);
+      } else {
+        setRankings(prev => [...prev, ...newRankings]);
       }
-    })();
+      
+      setBaseScores(data.base_scores || { adult: 0, baby: 0 });
+      setTotalCount(data.total || 0);
+      setHasMore(data.hasMore ?? false);
+      offsetRef.current = offset + newRankings.length;
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [tab, isLoggedIn, loadingMore]);
+
+  // 切换 tab 时重置
+  useEffect(() => {
+    loadData(true);
   }, [tab, isLoggedIn]);
 
-  // 基准分每 10 秒刷新（页面不可见时暂停）
+  // IntersectionObserver 实现无限滚动
   useEffect(() => {
-    let timer = null
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+          loadData(false);
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadingMore, loadData]);
+
+  // 基准分刷新
+  useEffect(() => {
+    let timer = null;
     const startPolling = () => {
       timer = setInterval(async () => {
         try {
-          const data = await rankingsAPI.get(tab, undefined, isLoggedIn ? undefined : 10);
+          const data = await rankingsAPI.get(tab, undefined, isLoggedIn ? undefined : 10, 0, 1);
           setBaseScores(data.base_scores || { adult: 0, baby: 0 });
         } catch {}
       }, 10000);
-    }
-    const stopPolling = () => { if (timer) { clearInterval(timer); timer = null } }
+    };
+    const stopPolling = () => { if (timer) { clearInterval(timer); timer = null; } };
     const onVisibility = () => {
-      if (document.hidden) stopPolling()
-      else startPolling()
-    }
-    document.addEventListener('visibilitychange', onVisibility)
-    if (!document.hidden) startPolling()
-    return () => { stopPolling(); document.removeEventListener('visibilitychange', onVisibility) }
+      if (document.hidden) stopPolling();
+      else startPolling();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    if (!document.hidden) startPolling();
+    return () => { stopPolling(); document.removeEventListener('visibilitychange', onVisibility); };
   }, [tab, isLoggedIn]);
 
   return (
@@ -66,6 +117,12 @@ export default function Rankings() {
         <i className="fa-solid fa-chart-line" />
         评分经贝叶斯平均与置信区间修正，评分数越多越接近真实水平
       </div>
+      {totalCount > 0 && (
+        <div className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+          共 {totalCount} 款纸尿裤
+        </div>
+      )}
+
       {/* 标签 */}
       <div className="flex gap-2 mb-5 flex-wrap">
         {TABS.map(t => (
@@ -146,6 +203,23 @@ export default function Rankings() {
               </Link>
             );
           })}
+
+          {/* 加载更多指示器 */}
+          {loadingMore && (
+            <div className="flex justify-center py-4">
+              <div className="spinner" />
+            </div>
+          )}
+
+          {/* 无更多数据提示 */}
+          {!hasMore && rankings.length > 0 && (
+            <div className="text-center py-4 text-xs" style={{ color: 'var(--text-muted)' }}>
+              已显示全部 {totalCount} 款
+            </div>
+          )}
+
+          {/* 滚动哨兵 */}
+          <div ref={sentinelRef} style={{ height: 1 }} />
 
           {/* 未登录遮罩提示 */}
           {!isLoggedIn && rankings.length > 1 && (

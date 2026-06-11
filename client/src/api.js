@@ -418,12 +418,14 @@ export const feelingsAPI = {
 // 排行榜 Rankings
 // =====================================================================
 export const rankingsAPI = {
-  get: async (type = 'hot', dimension, limit) => {
+  get: async (type = 'hot', dimension, limit, offset = 0, pageSize = 20) => {
     if (USE_API) {
       const qs = new URLSearchParams({ type });
       if (dimension) qs.set('dimension', dimension);
-      if (limit) qs.set('limit', String(limit));
-      return cachedFetch(`rankings:${qs}`, () => apiFetch(`/api/rankings?${qs}`), CACHE_TTL.long);
+      qs.set('limit', String(limit || pageSize));
+      qs.set('offset', String(offset));
+      // 分页不缓存
+      return apiFetch(`/api/rankings?${qs}`);
     }
     if (!_diapers) await loadData();
     const ratings = LS.get('ratings') || {};
