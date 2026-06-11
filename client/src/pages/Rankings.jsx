@@ -76,13 +76,16 @@ export default function Rankings() {
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
 
+    // 找到实际的滚动容器（.app-main-content）
+    const scrollContainer = document.querySelector('.app-main-content');
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
           loadData(false);
         }
       },
-      { rootMargin: '200px' }
+      { root: scrollContainer, rootMargin: '200px' }
     );
 
     observer.observe(sentinel);
