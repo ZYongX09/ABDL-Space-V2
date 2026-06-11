@@ -74,22 +74,20 @@ export default function Rankings() {
     loadData(true);
   }, [tab, isLoggedIn]);
 
-  // 滚动加载
-  useEffect(() => {
-    const scrollContainer = document.querySelector('.app-main-content');
-    if (!scrollContainer) return;
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-      const s = stateRef.current;
-      if (scrollHeight - scrollTop - clientHeight < 200 && s.hasMore && !s.loading && !s.loadingMore) {
-        loadData(false);
-      }
-    };
-
-    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-    return () => scrollContainer.removeEventListener('scroll', handleScroll);
-  }, [loadData]);
+  // 滚动加载（暂时禁用，用按钮代替）
+  // useEffect(() => {
+  //   const scrollContainer = document.querySelector('.app-main-content');
+  //   if (!scrollContainer) return;
+  //   const handleScroll = () => {
+  //     const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+  //     const s = stateRef.current;
+  //     if (scrollHeight - scrollTop - clientHeight < 200 && s.hasMore && !s.loading && !s.loadingMore) {
+  //       loadData(false);
+  //     }
+  //   };
+  //   scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+  //   return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  // }, [loadData]);
 
   // 基准分刷新
   useEffect(() => {
@@ -206,10 +204,20 @@ export default function Rankings() {
             );
           })}
 
-          {/* 加载更多指示器 */}
-          {loadingMore && (
+          {/* 加载更多按钮 */}
+          {hasMore && rankings.length > 0 && (
             <div className="flex justify-center py-4">
-              <div className="spinner" />
+              <button
+                className="btn btn-outline miui-press"
+                onClick={() => loadData(false)}
+                disabled={loadingMore}
+              >
+                {loadingMore ? (
+                  <><i className="fa-solid fa-spinner fa-spin mr-2" />加载中...</>
+                ) : (
+                  <><i className="fa-solid fa-arrow-down mr-2" />加载更多</>
+                )}
+              </button>
             </div>
           )}
 
