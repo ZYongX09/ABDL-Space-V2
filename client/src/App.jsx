@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { NsfwProvider } from './contexts/NsfwContext';
@@ -143,6 +143,7 @@ function BetaModeGuard({ children }) {
   const { user } = useAuth();
   const { config, loading, isRouteAllowed } = useBetaMode();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
 
   // 加载中或未启用内测模式时直接放行
   if (loading || !config.enabled) return children;
@@ -154,7 +155,7 @@ function BetaModeGuard({ children }) {
   if (isRouteAllowed(pathname)) return children;
 
   // 其他情况跳转到限制页面
-  return <BetaRestrictedPage />;
+  return <Navigate to="/beta-restricted" replace />;
 }
 
 export default function App() {
