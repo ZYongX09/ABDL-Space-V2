@@ -71,25 +71,20 @@ export default function Rankings() {
     loadData(true);
   }, [tab, isLoggedIn]);
 
-  // IntersectionObserver 实现无限滚动
+  // 滚动加载
   useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-
-    // 找到实际的滚动容器（.app-main-content）
     const scrollContainer = document.querySelector('.app-main-content');
+    if (!scrollContainer) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
-          loadData(false);
-        }
-      },
-      { root: scrollContainer, rootMargin: '200px' }
-    );
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      if (scrollHeight - scrollTop - clientHeight < 200 && hasMore && !loading && !loadingMore) {
+        loadData(false);
+      }
+    };
 
-    observer.observe(sentinel);
-    return () => observer.disconnect();
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
   }, [hasMore, loading, loadingMore, loadData]);
 
   // 基准分刷新
