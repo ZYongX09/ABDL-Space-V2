@@ -8,7 +8,6 @@ import { useToast } from '../contexts/ToastContext';
 import { useVerifyModal } from '../components/VerifyModal';
 import { Link } from 'react-router-dom';
 import { uploadImage } from '../utils/imageUpload';
-import { useBetaMode } from '../contexts/BetaModeContext';
 
 const TABS = [
   { key: 'overview', label: '概览', icon: 'fa-chart-pie' },
@@ -18,14 +17,12 @@ const TABS = [
   { key: 'brands', label: '品牌', icon: 'fa-copyright' },
   { key: 'reports', label: '举报', icon: 'fa-flag' },
   { key: 'security', label: '安全', icon: 'fa-shield-halved' },
-  { key: 'beta', label: '内测模式', icon: 'fa-flask' },
 ];
 
 export default function AdminPage() {
   const { user } = useAuth();
   const toast = useToast();
   const { trigger, VerifyModal } = useVerifyModal();
-  const { refreshConfig } = useBetaMode();
   const [tab, setTab] = useState('overview');
   const [loading, setLoading] = useState(true);
 
@@ -55,11 +52,6 @@ export default function AdminPage() {
   const [editingBrand, setEditingBrand] = useState(null);
   const [brandSaving, setBrandSaving] = useState(false);
   const [brandUploading, setBrandUploading] = useState(false);
-  
-  // 内测模式状态
-  const [betaMode, setBetaMode] = useState({ enabled: false, allowedRoutes: [], message: '' });
-  const [betaSaving, setBetaSaving] = useState(false);
-  const [newRoute, setNewRoute] = useState('');
 
   useEffect(() => {
     if (user?.role !== 'admin') { setLoading(false); return; }
@@ -95,9 +87,6 @@ export default function AdminPage() {
         setSecLogs(logsData.logs || []);
         setSecTotal(logsData.total || 0);
         setSecStats(statsData);
-      } else if (t === 'beta') {
-        const data = await adminAPI.getBetaMode();
-        setBetaMode(data);
       }
     } catch (e) {
       toast.error(e.message);
@@ -824,165 +813,6 @@ export default function AdminPage() {
                     onClick={() => { setSecPage(p => p + 1); loadTab('security'); }}>下一页</button>
                 </div>
               )}
-            </>
-          )}
-
-          {/* 内测模式 */}
-          {tab === 'beta' && (
-            <>
-              <h2 className="text-lg font-bold mb-4" style={{ color: 'var(--text)' }}>
-                <i className="fa-solid fa-flask mr-2" style={{ color: 'var(--primary-dark)' }} />
-                内测模式
-              </h2>
-
-              {/* 开关 */}
-              <div className="card" style={{ padding: '20px', marginBottom: '16px' }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>启用内测模式</h3>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                      开启后，非管理员用户只能访问指定页面
-                    </p>
-                  </div>
-                  <button
-                    className="relative w-12 h-6 rounded-full transition-colors miui-press"
-                    style={{
-                      background: betaMode.enabled ? 'var(--success)' : 'var(--input-bg)',
-                      border: `1px solid ${betaMode.enabled ? 'var(--success)' : 'var(--border)'}`,
-                    }}
-                    onClick={() => setBetaMode(prev => ({ ...prev, enabled: !prev.enabled }))}
-                  >
-                    <div
-                      className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform"
-                      style={{ left: betaMode.enabled ? '24px' : '2px' }}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              {/* 允许的路由 */}
-              <div className="card" style={{ padding: '20px', marginBottom: '16px' }}>
-                <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>
-                  <i className="fa-solid fa-route mr-2" style={{ color: 'var(--primary-dark)' }} />
-                  允许访问的路由
-                </h3>
-                <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
-                  这些路由在内测模式下对所有用户开放（格式：/xxx）
-                </p>
-                
-                {/* 路由列表 */}
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {betaMode.allowedRoutes.map((route, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
-                      style={{ background: 'var(--primary-light)', color: 'var(--text)' }}
-                    >
-                      <span className="font-mono">{route}</span>
-                      <button
-                        className="ml-1 hover:opacity-70"
-                        onClick={() => {
-                          setBetaMode(prev => ({
-                            ...prev,
-                            allowedRoutes: prev.allowedRoutes.filter((_, i) => i !== idx),
-                          }));
-                        }}
-                      >
-                        <i className="fa-solid fa-xmark" style={{ color: 'var(--danger)' }} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {/* 添加路由 */}
-                <div className="flex gap-2">
-                  <input
-                    className="form-control flex-1"
-                    value={newRoute}
-                    onChange={(e) => setNewRoute(e.target.value)}
-                    placeholder="输入路由，如 /diapers"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && newRoute.trim()) {
-                        const route = newRoute.trim();
-                        if (!route.startsWith('/')) {
-                          toast.error('路由必须以 / 开头');
-                          return;
-                        }
-                        if (betaMode.allowedRoutes.includes(route)) {
-                          toast.error('路由已存在');
-                          return;
-                        }
-                        setBetaMode(prev => ({
-                          ...prev,
-                          allowedRoutes: [...prev.allowedRoutes, route],
-                        }));
-                        setNewRoute('');
-                      }
-                    }}
-                  />
-                  <button
-                    className="btn btn-outline btn-sm"
-                    onClick={() => {
-                      if (!newRoute.trim()) return;
-                      const route = newRoute.trim();
-                      if (!route.startsWith('/')) {
-                        toast.error('路由必须以 / 开头');
-                        return;
-                      }
-                      if (betaMode.allowedRoutes.includes(route)) {
-                        toast.error('路由已存在');
-                        return;
-                      }
-                      setBetaMode(prev => ({
-                        ...prev,
-                        allowedRoutes: [...prev.allowedRoutes, route],
-                      }));
-                      setNewRoute('');
-                    }}
-                  >
-                    <i className="fa-solid fa-plus" />
-                  </button>
-                </div>
-              </div>
-
-              {/* 提示消息 */}
-              <div className="card" style={{ padding: '20px', marginBottom: '16px' }}>
-                <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>
-                  <i className="fa-solid fa-message mr-2" style={{ color: 'var(--primary-dark)' }} />
-                  限制页面提示消息
-                </h3>
-                <textarea
-                  className="form-control"
-                  rows={3}
-                  value={betaMode.message}
-                  onChange={(e) => setBetaMode(prev => ({ ...prev, message: e.target.value }))}
-                  placeholder="产品正在内测中，请登录后访问"
-                />
-              </div>
-
-              {/* 保存按钮 */}
-              <button
-                className="btn btn-primary miui-press"
-                disabled={betaSaving}
-                onClick={async () => {
-                  setBetaSaving(true);
-                  try {
-                    await adminAPI.updateBetaMode(betaMode);
-                    await refreshConfig();
-                    toast.success('内测模式配置已保存');
-                  } catch (e) {
-                    toast.error(e.message);
-                  } finally {
-                    setBetaSaving(false);
-                  }
-                }}
-              >
-                {betaSaving ? (
-                  <><i className="fa-solid fa-spinner fa-spin mr-2" />保存中...</>
-                ) : (
-                  <><i className="fa-solid fa-check mr-2" />保存配置</>
-                )}
-              </button>
             </>
           )}
         </>

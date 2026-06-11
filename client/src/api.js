@@ -1052,17 +1052,6 @@ export const adminAPI = {
     if (USE_API) return apiFetch('/api/admin/security/stats');
     return { dayCount: 0, weekCount: 0, typeStats: [], scoreDistribution: [], trend: [] };
   },
-
-  // 内测模式配置
-  getBetaMode: async () => {
-    if (USE_API) return apiFetch('/api/admin/beta-mode');
-    return { enabled: false, allowedRoutes: ['/', '/login', '/register', '/admin', '/beta-register'], message: '产品正在内测中，请登录后访问' };
-  },
-
-  updateBetaMode: async (config) => {
-    if (USE_API) return apiFetch('/api/admin/beta-mode', { method: 'PUT', body: JSON.stringify(config) });
-    return { success: true, config };
-  },
 };
 
 // =====================================================================
