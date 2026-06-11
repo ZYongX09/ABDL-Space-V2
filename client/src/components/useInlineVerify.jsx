@@ -204,8 +204,14 @@ export function useInlineVerify() {
       setError('创建验证失败'); return;
     }
 
-    const container = document.getElementById(containerId);
-    if (!container) return;
+    // 等待容器元素渲染到 DOM（最多重试 5 次）
+    let container = null;
+    for (let i = 0; i < 5; i++) {
+      container = document.getElementById(containerId);
+      if (container) break;
+      await new Promise(r => setTimeout(r, 100));
+    }
+    if (!container) { setError('Turnstile 容器未找到'); return; }
 
     const siteKey = window.__TURNSTILE_SITE_KEY || '';
     if (!siteKey) { setError('Turnstile 未配置'); return; }
