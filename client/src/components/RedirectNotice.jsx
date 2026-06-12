@@ -21,7 +21,7 @@ export default function RedirectNotice() {
     const isMainSite = !isMobileSite;
     const path = window.location.pathname;
 
-    const skipPaths = ['/oauth/', '/auth/nbw/callback'];
+    const skipPaths = ['/oauth/', '/auth/nbw/callback', '/beta-register'];
     if (skipPaths.some(p => path.startsWith(p))) return;
 
     if (isMainSite && isPhone()) {
