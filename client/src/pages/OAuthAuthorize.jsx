@@ -92,7 +92,9 @@ export default function OAuthAuthorize() {
         // BUG-780: Validate redirect URL (defense-in-depth)
         try {
           const url = new URL(res.redirect)
-          if (['http:', 'https:'].includes(url.protocol)) {
+          // Allow http, https, and custom app schemes (e.g. Mastodon clients like abdl-space-auth://)
+          const ALLOWED_PROTOCOLS = ['http:', 'https:', 'abdl-space-auth:']
+          if (ALLOWED_PROTOCOLS.includes(url.protocol)) {
             window.location.href = res.redirect
           } else {
             toast.error('无效的重定向地址')
