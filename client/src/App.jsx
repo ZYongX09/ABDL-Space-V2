@@ -52,6 +52,7 @@ const CaptchaApiPage = lazy(() => import('./pages/CaptchaApiPage'));
 const PointsPage = lazy(() => import('./pages/PointsPage'));
 const InvitePage = lazy(() => import('./pages/InvitePage'));
 const OAuthAuthorize = lazy(() => import('./pages/OAuthAuthorize'));
+const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
 const OAuthClientsPage = lazy(() => import('./pages/OAuthClientsPage'));
 const ExternalLink = lazy(() => import('./pages/ExternalLink'));
 const CreatePost = lazy(() => import('./pages/CreatePost'));
@@ -90,6 +91,7 @@ const ROUTE_TITLES = {
   '/bugs': 'Bug 追踪面板 — ABDL Space',
   '/captcha-api': 'Captcha API — ABDL Space',
   '/oauth/authorize': 'OAuth 授权 — ABDL Space',
+  '/oauth/callback': '授权回调 — ABDL Space',
   '/oauth-clients': '应用管理 — ABDL Space',
   '/auth/nbw/choose': '关联账户 — ABDL Space',
   '/points': '积分 — ABDL Space',
@@ -217,6 +219,7 @@ export default function App() {
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/captcha-api" element={<CaptchaApiPage />} />
                 <Route path="/oauth/authorize" element={<OAuthAuthorize />} />
+                <Route path="/oauth/callback" element={<OAuthCallback />} />
                 <Route path="/oauth-clients" element={<OAuthClientsPage />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/account" element={<AccountPrivacy />} />
