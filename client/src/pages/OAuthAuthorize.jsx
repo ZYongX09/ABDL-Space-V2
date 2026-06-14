@@ -93,7 +93,7 @@ export default function OAuthAuthorize() {
         try {
           const url = new URL(res.redirect)
           // Allow http, https, and custom app schemes (e.g. Mastodon clients like abdl-space-auth://)
-          const ALLOWED_PROTOCOLS = ['http:', 'https:', 'abdl-space-auth:']
+          const ALLOWED_PROTOCOLS = ['http:', 'https:', 'abdl-space-auth:', 'moshidon-android-debug-auth:', 'moshidon-android-nightly-auth:']
           if (ALLOWED_PROTOCOLS.includes(url.protocol)) {
             window.location.href = res.redirect
           } else {
