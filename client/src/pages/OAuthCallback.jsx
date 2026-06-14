@@ -11,8 +11,17 @@ export default function OAuthCallback() {
   const state = searchParams.get('state') || '';
   const error = searchParams.get('error');
 
-  // Build the custom scheme URL
-  const customSchemeUrl = `abdl-space-auth://callback?${searchParams.toString()}`;
+  // Build the custom scheme URL from the original redirect_uri or detect from params
+  // The authorize page passes the original redirect URL's scheme
+  const [customSchemeUrl, setCustomSchemeUrl] = useState('');
+
+  useEffect(() => {
+    // Try to detect the scheme from the state or build it
+    // The authorize page may have stored the original scheme
+    const storedScheme = sessionStorage.getItem('oauth_redirect_scheme') || 'abdl-space-auth';
+    sessionStorage.removeItem('oauth_redirect_scheme');
+    setCustomSchemeUrl(`${storedScheme}://callback?${searchParams.toString()}`);
+  }, [searchParams]);
 
   // Try to open app immediately
   useEffect(() => {

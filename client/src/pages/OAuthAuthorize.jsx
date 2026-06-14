@@ -103,6 +103,8 @@ export default function OAuthAuthorize() {
             // Custom schemes (e.g. abdl-space-auth://) can't be opened by mobile browsers.
             // Redirect through web callback page which tries to open the app.
             if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+              // Store the original scheme so the callback page can use it
+              sessionStorage.setItem('oauth_redirect_scheme', url.protocol.replace(':', ''))
               const webCallbackUrl = `/oauth/callback?${url.searchParams.toString()}`
               window.location.href = webCallbackUrl
               return
