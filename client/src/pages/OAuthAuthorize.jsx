@@ -11,8 +11,12 @@ const API_BASE = import.meta.env.VITE_API_BASE || '';
 async function apiFetch(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   
+  // Add timeout to prevent hanging requests
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
   
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: 'include' });
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: 'include', signal: controller.signal });
+  clearTimeout(timeoutId);
   const text = await res.text();
   let data;
   try { data = JSON.parse(text); } catch { throw new Error(`服务器响应异常 (${res.status})`); }
@@ -75,6 +79,7 @@ export default function OAuthAuthorize() {
   /* 用户操作 */
   const handleDecision = useCallback(async (approved) => {
     setSubmitting(true);
+    toast.info('正在发送授权请求...')
     try {
       const res = await apiFetch('/api/oauth/authorize', {
         method: 'POST',
@@ -95,17 +100,37 @@ export default function OAuthAuthorize() {
           // Allow http, https, and custom app schemes (e.g. Mastodon clients like abdl-space-auth://)
           const ALLOWED_PROTOCOLS = ['http:', 'https:', 'abdl-space-auth:', 'moshidon-android-debug-auth:', 'moshidon-android-nightly-auth:']
           if (ALLOWED_PROTOCOLS.includes(url.protocol)) {
+            console.log('[OAuth] Redirecting to:', res.redirect)
+            toast.info(`跳转中: ${res.redirect}`)
+            // Fallback: if navigation fails (e.g. target unreachable), reset button after 5s
+            const fallbackTimer = setTimeout(() => {
+              console.warn('[OAuth] Redirect may have failed, restoring button state')
+              toast.error('跳转超时，请检查目标应用是否可用')
+              setSubmitting(false)
+            }, 5000)
             window.location.href = res.redirect
+            // If navigation succeeds, the page unloads and the timer is irrelevant
+            return
           } else {
             toast.error('无效的重定向地址')
+            setSubmitting(false)
           }
         } catch {
           // Relative URL is OK
+          toast.info(`跳转中: ${res.redirect}`)
           window.location.href = res.redirect
         }
+      } else {
+        console.error('[OAuth] No redirect in response:', res)
+        toast.error('服务器未返回重定向地址')
+        setSubmitting(false)
       }
     } catch (err) {
-      toast.error(err.message);
+      if (err.name === 'AbortError') {
+        toast.error('请求超时，请检查网络或服务器状态')
+      } else {
+        toast.error(err.message);
+      }
       setSubmitting(false);
     }
   }, [clientId, redirectUri, scope, state, codeChallenge, codeChallengeMethod, toast]);
