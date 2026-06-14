@@ -100,6 +100,13 @@ export default function OAuthAuthorize() {
           // Allow http, https, and custom app schemes (e.g. Mastodon clients like abdl-space-auth://)
           const ALLOWED_PROTOCOLS = ['http:', 'https:', 'abdl-space-auth:', 'moshidon-android-debug-auth:', 'moshidon-android-nightly-auth:']
           if (ALLOWED_PROTOCOLS.includes(url.protocol)) {
+            // Custom schemes (e.g. abdl-space-auth://) can't be opened by mobile browsers.
+            // Redirect through web callback page which tries to open the app.
+            if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+              const webCallbackUrl = `/oauth/callback?${url.searchParams.toString()}`
+              window.location.href = webCallbackUrl
+              return
+            }
             console.log('[OAuth] Redirecting to:', res.redirect)
             toast.info(`跳转中: ${res.redirect}`)
             // Fallback: if navigation fails (e.g. target unreachable), reset button after 5s
