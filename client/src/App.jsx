@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
+import { authAPI } from './api';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { NsfwProvider } from './contexts/NsfwContext';
 import { initNBWConfig } from './utils/nbwOAuth';
@@ -55,7 +56,6 @@ const OAuthAuthorize = lazy(() => import('./pages/OAuthAuthorize'));
 const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
 const OAuthClientsPage = lazy(() => import('./pages/OAuthClientsPage'));
 const ExternalLink = lazy(() => import('./pages/ExternalLink'));
-const MastodonProfile = lazy(() => import('./pages/MastodonProfile'));
 const CreatePost = lazy(() => import('./pages/CreatePost'));
 const BugDashboard = lazy(() => import('./pages/BugDashboard'));
 const FollowersPage = lazy(() => import('./pages/FollowersPage'));
@@ -126,6 +126,49 @@ function MobileHeaderLayout() {
   const { actions, leftActions } = useMobileHeaderActions();
   const title = getTitle(pathname).split(' — ')[0] || 'ABDL Space';
   return <MobileHeader title={title} actions={actions} leftActions={leftActions} />;
+}
+
+function MastodonProfile() {
+  const { username } = useParams();
+  const navigate = useNavigate();
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!username) { setLoading(false); return; }
+    (async () => {
+      try {
+        const data = await authAPI.getUser(encodeURIComponent(username));
+        const user = data.user || data;
+        if (user?.id) {
+          navigate(`/user/${user.id}`, { replace: true });
+        } else {
+          setError('用户不存在');
+          setLoading(false);
+        }
+      } catch (e) {
+        setError(e.message || '用户不存在');
+        setLoading(false);
+      }
+    })();
+  }, [username, navigate]);
+
+  if (error) {
+    return (
+      <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
+        <i className="fa-solid fa-user-slash" style={{ fontSize: 48, color: 'var(--text-muted)', marginBottom: 16, display: 'block' }} />
+        <h2 style={{ marginBottom: 8 }}>用户不存在</h2>
+        <p style={{ color: 'var(--text-muted)' }}>@{username} 不是一个有效用户</p>
+        <a href="/" style={{ color: 'var(--primary)', marginTop: 16, display: 'inline-block' }}>返回首页</a>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh' }}>
+      <div className="spinner" />
+    </div>
+  );
 }
 
 function AdminOnlyProfile() {

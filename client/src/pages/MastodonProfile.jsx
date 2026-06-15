@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { apiFetch } from '../api';
+import { authAPI } from '../api';
 
 /**
  * Mastodon-compatible /@:username route handler
@@ -15,7 +15,7 @@ export default function MastodonProfile() {
     if (!username) return;
     (async () => {
       try {
-        const data = await apiFetch(`/api/users/${encodeURIComponent(username)}`);
+        const data = await authAPI.getUser(encodeURIComponent(username));
         const user = data.user || data;
         if (user?.id) {
           navigate(`/user/${user.id}`, { replace: true });
