@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { apiFetch } from './api';
+import { apiFetch } from '../api';
 
 /**
  * Mastodon-compatible /@:username route handler
