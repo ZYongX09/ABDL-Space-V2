@@ -231,7 +231,7 @@ export default function App() {
       <Sidebar />
       <MobileHeaderLayout />
       <div className="app-main-content">
-        <div key={pathname} className={`${pathname === '/' ? '' : 'container mx-auto px-5 py-6'} page-transition-enter`} style={pathname === '/' ? {} : { maxWidth: 'min(1920px, calc(100vw - 80px))' }}>
+        <div key={pathname} className={`${pathname === '/' || pathname.startsWith('/oauth/') ? '' : 'container mx-auto px-5 py-6'} page-transition-enter`} style={pathname === '/' || pathname.startsWith('/oauth/') ? {} : { maxWidth: 'min(1920px, calc(100vw - 80px))' }}>
           <ErrorBoundary>
             <Suspense fallback={<PageFallback />}>
               <Routes>
