@@ -51,6 +51,17 @@ export default function OAuthAuthorize() {
     }
   }, [user, authLoading, navigate]);
 
+  /* 从 redirectUri 解析 scheme 存入 sessionStorage（供回调页使用） */
+  useEffect(() => {
+    if (!redirectUri) return;
+    try {
+      const parsed = new URL(redirectUri);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        sessionStorage.setItem('oauth_redirect_scheme', parsed.protocol.replace(':', ''));
+      }
+    } catch {}
+  }, [redirectUri]);
+
   /* 加载授权信息 */
   useEffect(() => {
     if (!user || !clientId || !redirectUri) return;

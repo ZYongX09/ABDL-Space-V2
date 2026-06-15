@@ -18,7 +18,7 @@ export default function OAuthCallback() {
   useEffect(() => {
     // Try to detect the scheme from the state or build it
     // The authorize page may have stored the original scheme
-    const storedScheme = sessionStorage.getItem('oauth_redirect_scheme') || 'abdl-space-auth';
+    const storedScheme = sessionStorage.getItem('oauth_redirect_scheme') || 'abdl-space';
     sessionStorage.removeItem('oauth_redirect_scheme');
     setCustomSchemeUrl(`${storedScheme}://callback?${searchParams.toString()}`);
   }, [searchParams]);
