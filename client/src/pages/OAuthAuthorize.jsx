@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import PageLayout from '../components/PageLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
@@ -167,46 +166,44 @@ export default function OAuthAuthorize() {
   /* 参数校验 */
   if (!clientId || !redirectUri) {
     return (
-      <PageLayout hero={{ icon: 'fa-shield-halved', title: '授权', subtitle: '' }}>
-        <div className="card max-w-md mx-auto text-center py-8">
-          <i className="fa-solid fa-triangle-exclamation text-3xl mb-3" style={{ color: 'var(--danger)' }} />
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.25rem' }}>
+        <div className="card" style={{ width: '100%', maxWidth: 480, textAlign: 'center', padding: '2rem 1.25rem' }}>
+          <i className="fa-solid fa-triangle-exclamation text-3xl mb-3" style={{ color: 'var(--danger)', display: 'block' }} />
           <p className="font-semibold">无效的授权请求</p>
           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>缺少必要参数 (client_id / redirect_uri)</p>
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
   if (authLoading || loading) {
     return (
-      <PageLayout hero={{ icon: 'fa-shield-halved', title: '授权', subtitle: '' }}>
-        <div className="card max-w-md mx-auto text-center py-12">
-          <i className="fa-solid fa-spinner fa-spin text-2xl" style={{ color: 'var(--text-muted)' }} />
-        </div>
-      </PageLayout>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <i className="fa-solid fa-spinner fa-spin text-2xl" style={{ color: 'var(--text-muted)' }} />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <PageLayout hero={{ icon: 'fa-shield-halved', title: '授权', subtitle: '' }}>
-        <div className="card max-w-md mx-auto text-center py-8">
-          <i className="fa-solid fa-circle-xmark text-3xl mb-3" style={{ color: 'var(--danger)' }} />
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.25rem' }}>
+        <div className="card" style={{ width: '100%', maxWidth: 480, textAlign: 'center', padding: '2rem 1.25rem' }}>
+          <i className="fa-solid fa-circle-xmark text-3xl mb-3" style={{ color: 'var(--danger)', display: 'block' }} />
           <p className="font-semibold">授权请求失败</p>
           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{error}</p>
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
   const { client, scopes } = authData;
 
   return (
-    <PageLayout hero={{ icon: 'fa-shield-halved', title: '应用授权', subtitle: '授权第三方应用访问你的账号' }}>
-      <div className="max-w-md mx-auto">
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.25rem' }}>
+      <div style={{ width: '100%', maxWidth: 480, margin: '0 auto' }}>
 
         {/* 应用信息卡 */}
-        <div className="card mb-4">
+        <div className="card" style={{ marginBottom: '1rem' }}>
           <div className="flex items-center gap-4 mb-4">
             <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{ background: 'var(--input-bg)', border: '1.5px solid var(--border)' }}>
@@ -288,13 +285,13 @@ export default function OAuthAuthorize() {
         </div>
 
         {/* 安全提示 */}
-        <div className="text-center">
+        <div className="text-center" style={{ marginTop: '0.75rem' }}>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
             <i className="fa-solid fa-lock mr-1" />
             授权后你可以随时在设置中撤销权限
           </p>
         </div>
       </div>
-    </PageLayout>
+    </div>
   );
 }
