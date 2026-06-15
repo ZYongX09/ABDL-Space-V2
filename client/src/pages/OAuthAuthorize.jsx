@@ -34,6 +34,7 @@ export default function OAuthAuthorize() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showMobileOverlay, setShowMobileOverlay] = useState(false);
 
   const clientId = searchParams.get('client_id');
   const redirectUri = searchParams.get('redirect_uri');
@@ -42,6 +43,29 @@ export default function OAuthAuthorize() {
   const responseType = searchParams.get('response_type') || 'code';
   const codeChallenge = searchParams.get('code_challenge');
   const codeChallengeMethod = searchParams.get('code_challenge_method');
+
+  /* 跳过开场动画 */
+  useEffect(() => {
+    try { sessionStorage.setItem('intro_played', '1'); } catch {}
+    const ph = document.getElementById('intro-placeholder');
+    if (ph) ph.remove();
+    const overlay = document.getElementById('intro-overlay');
+    if (overlay) overlay.remove();
+  }, []);
+
+  /* 检测移动端 → 重定向到 m.abdl-space.top */
+  useEffect(() => {
+    const isMobile = /Android|iPhone|iPod/i.test(navigator.userAgent) && !/iPad|Tablet/i.test(navigator.userAgent);
+    if (!isMobile) return;
+    // 已在移动端域名上，不重定向
+    if (window.location.hostname === 'm.abdl-space.top') return;
+    const mobileUrl = `https://m.abdl-space.top/oauth/authorize?${searchParams.toString()}`;
+    // 立即重定向
+    window.location.href = mobileUrl;
+    // 兜底：2秒后如果还在当前页面，显示手动跳转弹窗
+    const timer = setTimeout(() => setShowMobileOverlay(true), 2000);
+    return () => clearTimeout(timer);
+  }, [searchParams]);
 
   /* 未登录 → 跳转登录 */
   useEffect(() => {
@@ -165,6 +189,23 @@ export default function OAuthAuthorize() {
           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>缺少必要参数 (client_id / redirect_uri)</p>
         </div>
       </PageLayout>
+    );
+  }
+
+  /* 移动端跳转覆盖层 */
+  if (showMobileOverlay) {
+    const mobileUrl = `https://m.abdl-space.top/oauth/authorize?${searchParams.toString()}`;
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--bg, #000)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+        <i className="fa-solid fa-mobile-screen-button" style={{ fontSize: 48, color: 'var(--primary)', marginBottom: 24 }} />
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text, #fff)', marginBottom: 8, textAlign: 'center' }}>请在移动端打开</h2>
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted, #aaa)', marginBottom: 32, textAlign: 'center', lineHeight: 1.6 }}>
+          授权页面需要在移动端完成<br />请点击下方按钮跳转
+        </p>
+        <a href={mobileUrl} className="btn btn-primary" style={{ fontSize: '1rem', padding: '12px 32px', borderRadius: 12 }}>
+          <i className="fa-solid fa-arrow-up-right-from-square mr-2" />前往移动端授权
+        </a>
+      </div>
     );
   }
 

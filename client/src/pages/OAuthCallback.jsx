@@ -6,10 +6,31 @@ export default function OAuthCallback() {
   const [searchParams] = useSearchParams();
   const [tried, setTried] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [showMobileOverlay, setShowMobileOverlay] = useState(false);
 
   const code = searchParams.get('code');
   const state = searchParams.get('state') || '';
   const error = searchParams.get('error');
+
+  /* 跳过开场动画 */
+  useEffect(() => {
+    try { sessionStorage.setItem('intro_played', '1'); } catch {}
+    const ph = document.getElementById('intro-placeholder');
+    if (ph) ph.remove();
+    const overlay = document.getElementById('intro-overlay');
+    if (overlay) overlay.remove();
+  }, []);
+
+  /* 检测移动端 → 重定向到 m.abdl-space.top */
+  useEffect(() => {
+    const isMobile = /Android|iPhone|iPod/i.test(navigator.userAgent) && !/iPad|Tablet/i.test(navigator.userAgent);
+    if (!isMobile) return;
+    if (window.location.hostname === 'm.abdl-space.top') return;
+    const mobileUrl = `https://m.abdl-space.top/oauth/callback?${searchParams.toString()}`;
+    window.location.href = mobileUrl;
+    const timer = setTimeout(() => setShowMobileOverlay(true), 2000);
+    return () => clearTimeout(timer);
+  }, [searchParams]);
 
   // Build the custom scheme URL from the original redirect_uri or detect from params
   // The authorize page passes the original redirect URL's scheme
@@ -48,6 +69,23 @@ export default function OAuthCallback() {
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [code, error, customSchemeUrl]);
+
+  /* 移动端跳转覆盖层 */
+  if (showMobileOverlay) {
+    const mobileUrl = `https://m.abdl-space.top/oauth/callback?${searchParams.toString()}`;
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--bg, #000)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+        <i className="fa-solid fa-mobile-screen-button" style={{ fontSize: 48, color: 'var(--primary)', marginBottom: 24 }} />
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text, #fff)', marginBottom: 8, textAlign: 'center' }}>请在移动端打开</h2>
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted, #aaa)', marginBottom: 32, textAlign: 'center', lineHeight: 1.6 }}>
+          授权回调需要在移动端完成<br />请点击下方按钮跳转
+        </p>
+        <a href={mobileUrl} className="btn btn-primary" style={{ fontSize: '1rem', padding: '12px 32px', borderRadius: 12 }}>
+          <i className="fa-solid fa-arrow-up-right-from-square mr-2" />前往移动端
+        </a>
+      </div>
+    );
+  }
 
   // Error from OAuth server
   if (error) {
