@@ -800,13 +800,13 @@ function BottomNav({ currentTab, onNavigate }) {
 // 主组件
 // ============================================================
 export default function ProfilePageV2() {
-  const { id: paramId, username: paramUsername } = useParams();
+  const { id: paramId } = useParams();
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const toast = useToast();
 
-  const targetId = paramUsername || paramId || currentUser?.id;
-  const isSelf = !paramUsername && !paramId || String(targetId) === String(currentUser?.id);
+  const targetId = paramId || currentUser?.id;
+  const isSelf = !paramId || String(paramId) === String(currentUser?.id);
 
   const [profileUser, setProfileUser] = useState(null);
   const [loading, setLoading] = useState(true);

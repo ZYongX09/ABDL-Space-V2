@@ -55,6 +55,7 @@ const OAuthAuthorize = lazy(() => import('./pages/OAuthAuthorize'));
 const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
 const OAuthClientsPage = lazy(() => import('./pages/OAuthClientsPage'));
 const ExternalLink = lazy(() => import('./pages/ExternalLink'));
+const MastodonProfile = lazy(() => import('./pages/MastodonProfile'));
 const CreatePost = lazy(() => import('./pages/CreatePost'));
 const BugDashboard = lazy(() => import('./pages/BugDashboard'));
 const FollowersPage = lazy(() => import('./pages/FollowersPage'));
@@ -234,7 +235,7 @@ export default function App() {
                 <Route path="/points" element={<PointsPage />} />
                 <Route path="/invite" element={<InvitePage />} />
                 {/* Mastodon-compatible routes */}
-                <Route path="/@:username" element={<ProfilePageV2 />} />
+                <Route path="/@:username" element={<MastodonProfile />} />
                 <Route path="/@:username/:postId" element={<PostDetail />} />
                 <Route path="/tags/:name" element={<HomeV2 />} />
                 <Route path="/explore" element={<HomeV2 />} />
