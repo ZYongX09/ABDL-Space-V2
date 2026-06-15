@@ -96,6 +96,7 @@ const ROUTE_TITLES = {
   '/auth/nbw/choose': '关联账户 — ABDL Space',
   '/points': '积分 — ABDL Space',
   '/invite': '邀请码 — ABDL Space',
+  '/explore': '探索 — ABDL Space',
 };
 
 function getTitle(pathname) {
@@ -104,6 +105,8 @@ function getTitle(pathname) {
   if (pathname.startsWith('/diaper-wiki/')) return '裤裤百科 — ABDL Space';
   if (pathname.startsWith('/forum/')) return '帖子详情 — ABDL Space';
   if (pathname.startsWith('/user/')) return '用户主页 — ABDL Space';
+  if (pathname.startsWith('/@')) return '用户主页 — ABDL Space';
+  if (pathname.startsWith('/tags/')) return '标签 — ABDL Space';
   if (pathname.startsWith('/profile/')) return '用户主页 — ABDL Space';
   return 'ABDL Space';
 }
@@ -230,6 +233,13 @@ export default function App() {
                 <Route path="/bugs" element={<BugDashboard />} />
                 <Route path="/points" element={<PointsPage />} />
                 <Route path="/invite" element={<InvitePage />} />
+                {/* Mastodon-compatible routes */}
+                <Route path="/@:username" element={<ProfilePageV2 />} />
+                <Route path="/@:username/:postId" element={<PostDetail />} />
+                <Route path="/tags/:name" element={<HomeV2 />} />
+                <Route path="/explore" element={<HomeV2 />} />
+                <Route path="/auth/sign_in" element={<Login />} />
+                <Route path="/auth/sign_up" element={<Register />} />
               </Routes>
             </Suspense>
           </ErrorBoundary>
