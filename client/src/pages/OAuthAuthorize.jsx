@@ -98,7 +98,7 @@ export default function OAuthAuthorize() {
         try {
           const url = new URL(res.redirect)
           // Allow http, https, and custom app schemes (e.g. Mastodon clients like abdl-space-auth://)
-          const ALLOWED_PROTOCOLS = ['http:', 'https:', 'abdl-space-auth:', 'moshidon-android-debug-auth:', 'moshidon-android-nightly-auth:']
+          const ALLOWED_PROTOCOLS = ['http:', 'https:', 'abdl-space:', 'abdl-space-auth:', 'moshidon-android-debug-auth:', 'moshidon-android-nightly-auth:']
           if (ALLOWED_PROTOCOLS.includes(url.protocol)) {
             // Custom schemes (e.g. abdl-space-auth://) can't be opened by mobile browsers.
             // Redirect through web callback page which tries to open the app.
