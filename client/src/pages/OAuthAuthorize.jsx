@@ -101,7 +101,7 @@ export default function OAuthAuthorize() {
       if (res.redirect) {
         try {
           const url = new URL(res.redirect);
-          const ALLOWED_PROTOCOLS = ['http:', 'https:', 'abdl-space:', 'abdl-space-auth:', 'moshidon:', 'moshidon-android-debug-auth:', 'moshidon-android-nightly-auth:'];
+          const ALLOWED_PROTOCOLS = ['http:', 'https:', 'abdl-space:', 'abdl-space-auth:', 'moshidon-android-auth:', 'moshidon-android-debug-auth:', 'moshidon-android-nightly-auth:'];
           if (ALLOWED_PROTOCOLS.includes(url.protocol)) {
             if (url.protocol !== 'http:' && url.protocol !== 'https:') {
               sessionStorage.setItem('oauth_redirect_scheme', url.protocol.replace(':', ''));
