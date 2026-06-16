@@ -23,11 +23,15 @@ export default function OAuthCallback() {
   }, []);
 
   const [customSchemeUrl, setCustomSchemeUrl] = useState('');
+  const [appName, setAppName] = useState('应用');
 
   useEffect(() => {
     const storedScheme = sessionStorage.getItem('oauth_redirect_scheme') || 'abdl-space';
     sessionStorage.removeItem('oauth_redirect_scheme');
     setCustomSchemeUrl(`${storedScheme}://callback?${searchParams.toString()}`);
+    if (storedScheme.startsWith('moshidon')) setAppName('Moshidon');
+    else if (storedScheme.startsWith('abdl-space')) setAppName('ABDL Space');
+    else setAppName(storedScheme);
   }, [searchParams]);
 
   // Try to open app immediately
@@ -72,7 +76,7 @@ export default function OAuthCallback() {
         {!tried && (
           <div className="card" style={{ marginBottom: '0.75rem', padding: '2rem 1rem' }}>
             <i className="fa-solid fa-spinner fa-spin text-2xl mb-3" style={{ color: 'var(--text-muted)' }} />
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>正在尝试打开应用...</p>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>正在尝试打开 {appName}...</p>
           </div>
         )}
 
@@ -87,7 +91,7 @@ export default function OAuthCallback() {
               <a href={customSchemeUrl} className="btn btn-primary w-full"
                 onClick={() => { setTimeout(() => setFailed(true), 2000); }}>
                 <i className="fa-solid fa-arrow-up-right-from-square mr-2" />
-                打开 ABDL Space 应用
+                打开 {appName}
               </a>
             </div>
 
