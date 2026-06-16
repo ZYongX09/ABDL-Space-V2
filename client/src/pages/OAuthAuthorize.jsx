@@ -13,8 +13,12 @@ async function apiFetch(path, options = {}) {
   clearTimeout(timeoutId);
   const text = await res.text();
   let data;
-  try { data = JSON.parse(text); } catch { throw new Error(`服务器响应异常 (${res.status})`); }
-  if (!res.ok) throw new Error(data.error || `请求失败 (${res.status})`);
+  try { data = JSON.parse(text); } catch {
+    // 后端可能返回纯文本错误（如 OAuth 端点的 c.text()）
+    if (!res.ok) throw new Error(text || `请求失败 (${res.status})`);
+    throw new Error(`服务器响应异常 (${res.status})`);
+  }
+  if (!res.ok) throw new Error(data.error || text || `请求失败 (${res.status})`);
   return data;
 }
 
