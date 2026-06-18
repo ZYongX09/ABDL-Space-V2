@@ -126,8 +126,8 @@ export default function QRLoginMode({ onSwitchBack }) {
             <QRCodeSVG
               value={qrUrl}
               size={180}
-              bgColor="transparent"
-              fgColor="var(--text)"
+              bgColor="#ffffff"
+              fgColor="#000000"
               level="M"
             />
 
@@ -136,8 +136,7 @@ export default function QRLoginMode({ onSwitchBack }) {
               <div className="qr-overlay">
                 <div className="qr-overlay-content">
                   <i className="fa-solid fa-check-circle" />
-                  <p>扫码成功</p>
-                  <p className="qr-overlay-hint">请在手机端操作</p>
+                  <p>扫码成功，请在 APP 端授权</p>
                 </div>
               </div>
             )}
