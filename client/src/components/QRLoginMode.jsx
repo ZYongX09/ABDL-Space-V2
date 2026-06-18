@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'https://api.abdl-space.top';
-const POLL_INTERVAL = 2000; // 2秒轮询
+const POLL_INTERVAL = 1500; // 1.5秒轮询
 
 export default function QRLoginMode({ onSwitchBack }) {
   const [sessionId, setSessionId] = useState(null);
@@ -15,6 +16,7 @@ export default function QRLoginMode({ onSwitchBack }) {
   const pollRef = useRef(null);
   const { loginWithToken } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
 
   // 创建 QR 会话
   const createSession = useCallback(async () => {
@@ -55,6 +57,8 @@ export default function QRLoginMode({ onSwitchBack }) {
         setStatus('done');
         await loginWithToken({ token: data.token, user: data.user });
         toast.success('扫码登录成功');
+        // 跳转到首页
+        setTimeout(() => navigate('/'), 500);
       } else if (data.status === 'expired') {
         setStatus('expired');
         stopPolling();
