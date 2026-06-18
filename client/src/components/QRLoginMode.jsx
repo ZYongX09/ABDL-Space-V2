@@ -148,7 +148,7 @@ export default function QRLoginMode({ onSwitchBack }) {
       {/* 提示文字 */}
       <div className="qr-hint">
         {status === 'pending' && (
-          <p>使用手机扫描二维码登录</p>
+          <p>使用 ABDL Space APP 扫描二维码登录</p>
         )}
         {status === 'scanned' && (
           <p className="qr-hint-scanned">
