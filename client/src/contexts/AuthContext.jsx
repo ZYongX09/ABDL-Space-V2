@@ -125,6 +125,24 @@ export function AuthProvider({ children }) {
     return { token: 'local-' + u.id, user: { ...u, passwordHash: undefined } };
   }, []);
 
+  // Token 登录（用于扫码登录等场景）
+  const loginWithToken = useCallback(async ({ token, user: userData }) => {
+    // 添加/更新已保存账户
+    const saved = getSavedAccounts();
+    const exists = saved.findIndex(a => a.id === userData.id);
+    const entry = { id: userData.id, username: userData.username, avatar: userData.avatar, role: userData.role, token };
+    if (exists >= 0) {
+      saved[exists] = entry;
+    } else {
+      saved.push(entry);
+    }
+    saveAccounts(saved);
+    setAccounts(saved);
+    setActiveAccountId(userData.id);
+    setUser(userData);
+    return { token, user: userData };
+  }, []);
+
   // 注册
   const register = useCallback(async ({ username, email, password, code, captchaToken, inviteCode }) => {
     const headers = { 'Content-Type': 'application/json' };
@@ -363,7 +381,7 @@ export function AuthProvider({ children }) {
 
     <AuthContext.Provider value={{
       user, loading, accounts,
-      login, register, betaRegister, logout, logoutAll,
+      login, loginWithToken, register, betaRegister, logout, logoutAll,
       switchAccount, removeAccount, updateProfile,
       getConsentStatus, saveConsent, withdrawConsent,
       refreshUser,

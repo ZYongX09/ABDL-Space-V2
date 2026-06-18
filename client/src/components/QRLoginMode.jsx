@@ -13,7 +13,7 @@ export default function QRLoginMode({ onSwitchBack }) {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(true);
   const pollRef = useRef(null);
-  const { login: authLogin } = useAuth();
+  const { loginWithToken } = useAuth();
   const toast = useToast();
 
   // 创建 QR 会话
@@ -53,7 +53,7 @@ export default function QRLoginMode({ onSwitchBack }) {
       } else if (data.status === 'done' && data.token) {
         // 登录成功
         setStatus('done');
-        await authLogin({ token: data.token, user: data.user });
+        await loginWithToken({ token: data.token, user: data.user });
         toast.success('扫码登录成功');
       } else if (data.status === 'expired') {
         setStatus('expired');
@@ -62,7 +62,7 @@ export default function QRLoginMode({ onSwitchBack }) {
     } catch (e) {
       // 网络错误，继续轮询
     }
-  }, [sessionId, authLogin, toast]);
+  }, [sessionId, loginWithToken, toast]);
 
   // 启动轮询
   const startPolling = useCallback(() => {
