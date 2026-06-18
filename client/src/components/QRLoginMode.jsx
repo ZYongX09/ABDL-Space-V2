@@ -86,7 +86,7 @@ export default function QRLoginMode({ onSwitchBack }) {
 
   // sessionId 变化时开始轮询
   useEffect(() => {
-    if (sessionId && status === 'pending') {
+    if (sessionId && (status === 'pending' || status === 'scanned')) {
       startPolling();
     }
     return () => stopPolling();
@@ -136,7 +136,8 @@ export default function QRLoginMode({ onSwitchBack }) {
               <div className="qr-overlay">
                 <div className="qr-overlay-content">
                   <i className="fa-solid fa-check-circle" />
-                  <p>扫码成功，请在 APP 端授权</p>
+                  <p>扫码成功</p>
+                  <p className="qr-overlay-hint">请在 APP 端授权</p>
                 </div>
               </div>
             )}
