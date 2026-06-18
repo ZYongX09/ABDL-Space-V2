@@ -5,6 +5,7 @@ import { useToast } from '../contexts/ToastContext';
 import { isNBWConfigured, startNBWOAuth } from '../utils/nbwOAuth';
 import AnimatedCharacters from '../components/AnimatedCharacters/AnimatedCharacters';
 import { useInlineVerify } from '../components/useInlineVerify';
+import QRLoginMode from '../components/QRLoginMode';
 import './Login.css';
 
 const FAIL_THRESHOLD = 2;
@@ -22,6 +23,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [failCount, setFailCount] = useState(0);
   const [showNBWConsent, setShowNBWConsent] = useState(false);
+  const [qrMode, setQrMode] = useState(false); // 二维码登录模式
   const captchaTokenRef = useRef(null);
   const { login: authLogin, saveConsent, logout, user } = useAuth();
   const toast = useToast();
@@ -77,8 +79,21 @@ export default function Login() {
           </div>
           <h1 className="login-title">欢迎回来</h1>
           <p className="login-subtitle">登录 ABDL Space</p>
+          {/* 二维码切换按钮 */}
+          <button
+            className="qr-toggle-btn"
+            onClick={() => setQrMode(!qrMode)}
+            title={qrMode ? '切换到账号密码登录' : '切换到二维码登录'}
+          >
+            <i className={`fa-solid ${qrMode ? 'fa-keyboard' : 'fa-qrcode'}`} />
+          </button>
         </div>
 
+        {/* QR 二维码登录模式 */}
+        {qrMode ? (
+          <QRLoginMode onSwitchBack={() => setQrMode(false)} />
+        ) : (
+          <>
         {/* NBW 登录 */}
         {nbwConfigured ? (
           <>
@@ -193,6 +208,8 @@ export default function Login() {
           <span className="login-footer-sep">|</span>
           <Link to="/forgot-password">忘记密码？</Link>
         </p>
+          </>
+        )}
       </div>
     </div>
   );

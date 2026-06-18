@@ -339,3 +339,162 @@
     width: 100%;
   }
 }
+
+/* ===== QR 二维码切换按钮 ===== */
+.qr-toggle-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-light);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.qr-toggle-btn:hover {
+  background: var(--bg-hover);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+.login-header {
+  position: relative;
+}
+
+/* ===== QR 登录模式 ===== */
+.qr-login-mode {
+  text-align: center;
+}
+.qr-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 24px;
+}
+.qr-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+.qr-switch-btn {
+  position: absolute;
+  right: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-light);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.qr-switch-btn:hover {
+  background: var(--bg-hover);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* 二维码容器 */
+.qr-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  margin-bottom: 16px;
+}
+.qr-code-wrapper {
+  position: relative;
+  display: inline-block;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+}
+
+/* 毛玻璃遮罩 */
+.qr-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+[data-theme="dark"] .qr-overlay {
+  background: rgba(0, 0, 0, 0.6);
+}
+.qr-overlay-content {
+  text-align: center;
+  color: var(--text);
+}
+.qr-overlay-content i {
+  font-size: 32px;
+  color: #22c55e;
+  margin-bottom: 8px;
+}
+.qr-overlay-content p {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+.qr-overlay-hint {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  color: var(--text-light) !important;
+  margin-top: 4px !important;
+}
+
+/* 加载和过期状态 */
+.qr-loading, .qr-expired {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-light);
+  padding: 40px;
+}
+.qr-loading i, .qr-expired i {
+  font-size: 28px;
+  color: var(--text-muted);
+}
+.qr-loading p, .qr-expired p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* 底部提示 */
+.qr-hint {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.qr-hint p {
+  margin: 0;
+}
+.qr-hint-scanned {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--primary);
+  font-weight: 500;
+}
+.qr-hint-scanned i {
+  font-size: 14px;
+}
