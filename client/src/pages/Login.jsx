@@ -98,18 +98,17 @@ export default function Login() {
           <LanLoginMode onSwitchBack={() => setLanMode(false)} />
         ) : (
           <>
-        {/* 内网设备一键登录 */}
-        <button className="login-lan-btn" onClick={() => setLanMode(true)}>
-          <i className="fa-solid fa-network-wired" />
-          <span>内网设备一键登录</span>
-        </button>
-
         {/* NBW 登录 */}
         {nbwConfigured ? (
           <>
             <button className="login-nbw-btn" onClick={() => setShowNBWConsent(true)}>
               <img src={NBW_LOGO} alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />
               <span>使用 宝宝新天地 授权登录</span>
+            </button>
+            {/* 内网设备一键登录 */}
+            <button className="login-lan-btn" onClick={() => setLanMode(true)}>
+              <i className="fa-solid fa-network-wired" />
+              <span>内网设备一键登录</span>
             </button>
             <div className="login-divider">
               <div className="login-divider-line" />
