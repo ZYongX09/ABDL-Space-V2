@@ -87,7 +87,11 @@ export default function LanLoginMode({ onSwitchBack }) {
       });
       const data = await res.json();
 
-      if (data.status === 'done' && data.token) {
+      if (data.status === 'scanned') {
+        // 手机已扫码，显示等待授权状态
+        setStep(2);
+      } else if (data.status === 'done' && data.token) {
+        // 登录成功
         await fetch(`${API_BASE}/api/auth/qr/set-cookie`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
