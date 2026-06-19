@@ -561,11 +561,6 @@
 .lan-scanning-icon {
   font-size: 32px;
   color: var(--primary);
-  animation: lan-rotate 3s linear infinite;
-}
-@keyframes lan-rotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }
 .lan-scanning-text {
   font-size: 16px;

@@ -98,6 +98,12 @@ export default function Login() {
           <LanLoginMode onSwitchBack={() => setLanMode(false)} />
         ) : (
           <>
+        {/* 内网设备一键登录 */}
+        <button className="login-lan-btn" onClick={() => setLanMode(true)}>
+          <i className="fa-solid fa-network-wired" />
+          <span>内网设备一键登录</span>
+        </button>
+
         {/* NBW 登录 */}
         {nbwConfigured ? (
           <>
@@ -124,12 +130,6 @@ export default function Login() {
             </div>
           </>
         )}
-
-        {/* 内网设备一键登录 */}
-        <button className="login-lan-btn" onClick={() => setLanMode(true)}>
-          <i className="fa-solid fa-network-wired" />
-          <span>内网设备一键登录</span>
-        </button>
 
         {/* NBW 同意弹窗 */}
         {showNBWConsent && (

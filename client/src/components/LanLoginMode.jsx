@@ -4,9 +4,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'https://api.abdl-space.top';
-const UDP_PORT = 9527;
 const POLL_INTERVAL = 500;
 
+/**
+ * 内网设备一键登录
+ * 原理：手机 APP 后台运行 UDP 监听，定期向后端上报在线状态
+ * 电脑通过后端 API 发现同网段设备
+ */
 export default function LanLoginMode({ onSwitchBack }) {
   const [step, setStep] = useState(1); // 1=扫描中, 2=等待授权
   const [foundDevice, setFoundDevice] = useState(null);
@@ -14,22 +18,14 @@ export default function LanLoginMode({ onSwitchBack }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const pollRef = useRef(null);
-  const socketRef = useRef(null);
+  const discoverTimerRef = useRef(null);
   const { loginWithToken } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
-  // UDP 广播发现设备
-  const startDiscovery = useCallback(async () => {
+  // 发现设备（通过后端 API）
+  const discoverDevices = useCallback(async () => {
     try {
-      // 创建 UDP socket 并发送广播
-      const message = JSON.stringify({
-        action: 'who_is_online',
-        timestamp: Date.now()
-      });
-
-      // 使用 fetch 调用后端 API 模拟 UDP 发现
-      // 实际 UDP 需要 native 支持，这里用 HTTP 轮询作为 fallback
       const res = await fetch(`${API_BASE}/api/auth/lan/discover`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -39,14 +35,15 @@ export default function LanLoginMode({ onSwitchBack }) {
       if (res.ok) {
         const data = await res.json();
         if (data.devices && data.devices.length > 0) {
-          setFoundDevice(data.devices[0]);
-          // 验证身份
+          // 找到设备，验证身份
           await verifyDevice(data.devices[0]);
+          return true;
         }
       }
     } catch (e) {
-      setError('未发现同网段设备，请确保手机 APP 已打开');
+      // 忽略网络错误，继续轮询
     }
+    return false;
   }, []);
 
   // 验证设备身份
@@ -68,7 +65,8 @@ export default function LanLoginMode({ onSwitchBack }) {
       const data = await res.json();
       if (data.sessionId) {
         setSessionId(data.sessionId);
-        setStep(2); // 进入授权步骤
+        setFoundDevice(device);
+        setStep(2);
         startPolling(data.sessionId);
       } else {
         setError(data.error || '验证失败');
@@ -80,7 +78,7 @@ export default function LanLoginMode({ onSwitchBack }) {
     }
   };
 
-  // 轮询登录状态
+  // 轮询登录状态（复用 QR 登录的 poll 接口）
   const pollStatus = useCallback(async () => {
     if (!sessionId) return;
     try {
@@ -90,7 +88,6 @@ export default function LanLoginMode({ onSwitchBack }) {
       const data = await res.json();
 
       if (data.status === 'done' && data.token) {
-        setStatus('done');
         await fetch(`${API_BASE}/api/auth/qr/set-cookie`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -104,6 +101,7 @@ export default function LanLoginMode({ onSwitchBack }) {
     } catch (e) {}
   }, [sessionId, loginWithToken, toast, navigate]);
 
+  // 启动轮询
   const startPolling = (sid) => {
     stopPolling();
     pollRef.current = setInterval(pollStatus, POLL_INTERVAL);
@@ -116,9 +114,19 @@ export default function LanLoginMode({ onSwitchBack }) {
     }
   };
 
+  // 启动设备发现（每 2 秒轮询一次）
   useEffect(() => {
-    startDiscovery();
-    return () => stopPolling();
+    const discover = async () => {
+      const found = await discoverDevices();
+      if (!found) {
+        discoverTimerRef.current = setTimeout(discover, 2000);
+      }
+    };
+    discover();
+    return () => {
+      stopPolling();
+      if (discoverTimerRef.current) clearTimeout(discoverTimerRef.current);
+    };
   }, []);
 
   return (
