@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'https://api.abdl-space.top';
-const POLL_INTERVAL = 1500; // 1.5秒轮询
+const POLL_INTERVAL = 500; // 0.5秒轮询
 
 export default function QRLoginMode({ onSwitchBack }) {
   const [sessionId, setSessionId] = useState(null);
