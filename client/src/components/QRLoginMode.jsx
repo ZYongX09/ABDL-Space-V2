@@ -55,6 +55,13 @@ export default function QRLoginMode({ onSwitchBack }) {
       } else if (data.status === 'done' && data.token) {
         // 登录成功
         setStatus('done');
+        // 先设置 cookie，使刷新页面后仍保持登录
+        await fetch(`${API_BASE}/api/auth/qr/set-cookie`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ token: data.token })
+        });
         await loginWithToken({ token: data.token, user: data.user });
         toast.success('扫码登录成功');
         // 跳转到首页
