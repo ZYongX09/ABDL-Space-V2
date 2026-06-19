@@ -6,6 +6,7 @@ import { isNBWConfigured, startNBWOAuth } from '../utils/nbwOAuth';
 import AnimatedCharacters from '../components/AnimatedCharacters/AnimatedCharacters';
 import { useInlineVerify } from '../components/useInlineVerify';
 import QRLoginMode from '../components/QRLoginMode';
+import LanLoginMode from '../components/LanLoginMode';
 import './Login.css';
 
 const FAIL_THRESHOLD = 2;
@@ -24,6 +25,7 @@ export default function Login() {
   const [failCount, setFailCount] = useState(0);
   const [showNBWConsent, setShowNBWConsent] = useState(false);
   const [qrMode, setQrMode] = useState(false); // 二维码登录模式
+  const [lanMode, setLanMode] = useState(false); // 内网一键登录模式
   const captchaTokenRef = useRef(null);
   const { login: authLogin, saveConsent, logout, user } = useAuth();
   const toast = useToast();
@@ -92,6 +94,8 @@ export default function Login() {
         {/* QR 二维码登录模式 */}
         {qrMode ? (
           <QRLoginMode onSwitchBack={() => setQrMode(false)} />
+        ) : lanMode ? (
+          <LanLoginMode onSwitchBack={() => setLanMode(false)} />
         ) : (
           <>
         {/* NBW 登录 */}
@@ -120,6 +124,12 @@ export default function Login() {
             </div>
           </>
         )}
+
+        {/* 内网设备一键登录 */}
+        <button className="login-lan-btn" onClick={() => setLanMode(true)}>
+          <i className="fa-solid fa-network-wired" />
+          <span>内网设备一键登录</span>
+        </button>
 
         {/* NBW 同意弹窗 */}
         {showNBWConsent && (

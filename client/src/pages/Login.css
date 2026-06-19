@@ -498,3 +498,128 @@
 .qr-hint-scanned i {
   font-size: 14px;
 }
+
+/* ===== 内网一键登录按钮 ===== */
+.login-lan-btn {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  margin-top: 10px;
+}
+.login-lan-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.login-lan-btn i {
+  font-size: 14px;
+  color: var(--primary);
+}
+
+/* ===== 内网登录模式 ===== */
+.lan-login-mode {
+  text-align: center;
+}
+.lan-step1 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.lan-scanning-animation {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lan-scanning-circle {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid var(--primary);
+  opacity: 0.3;
+  animation: lan-pulse 2s ease-in-out infinite;
+}
+@keyframes lan-pulse {
+  0% { transform: scale(0.8); opacity: 0.3; }
+  50% { transform: scale(1.2); opacity: 0.1; }
+  100% { transform: scale(0.8); opacity: 0.3; }
+}
+.lan-scanning-icon {
+  font-size: 32px;
+  color: var(--primary);
+  animation: lan-rotate 3s linear infinite;
+}
+@keyframes lan-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.lan-scanning-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+.lan-guide {
+  text-align: left;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-light);
+}
+.lan-guide ol {
+  margin: 8px 0 0;
+  padding-left: 16px;
+}
+.lan-guide li {
+  margin-bottom: 4px;
+}
+.lan-error {
+  color: #ef4444;
+  font-size: 13px;
+  margin: 0;
+}
+.lan-step2 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.lan-device-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+}
+.lan-device-info i {
+  font-size: 24px;
+  color: var(--primary);
+}
+.lan-device-info p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text);
+}
+.lan-authorization-hint {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0;
+}
