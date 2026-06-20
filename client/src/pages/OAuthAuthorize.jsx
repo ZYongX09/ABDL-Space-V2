@@ -70,7 +70,13 @@ export default function OAuthAuthorize() {
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
         sessionStorage.setItem('oauth_redirect_scheme', parsed.protocol.replace(':', ''));
       }
-    } catch {}
+    } catch {
+      // 自定义 scheme (moshidon-android-auth://) 可能解析失败，手动提取
+      const match = redirectUri.match(/^([a-zA-Z][a-zA-Z0-9+\-.]*):/);
+      if (match) {
+        sessionStorage.setItem('oauth_redirect_scheme', match[1]);
+      }
+    }
   }, [redirectUri]);
 
   /* 加载授权信息 */

@@ -26,17 +26,22 @@ export default function OAuthCallback() {
   const [appName, setAppName] = useState('应用');
 
   useEffect(() => {
-    const storedScheme = sessionStorage.getItem('oauth_redirect_scheme') || 'abdl-space';
-    sessionStorage.removeItem('oauth_redirect_scheme');
-    setCustomSchemeUrl(`${storedScheme}://callback?${searchParams.toString()}`);
+    const storedScheme = sessionStorage.getItem('oauth_redirect_scheme');
+    if (!storedScheme) {
+      setFailed(true);
+      return;
+    }
+    const redirectUrl = `${storedScheme}://callback?${searchParams.toString()}`;
+    setCustomSchemeUrl(redirectUrl);
     if (storedScheme.startsWith('moshidon')) setAppName('Moshidon');
     else if (storedScheme.startsWith('abdl-space')) setAppName('ABDL Space');
     else setAppName(storedScheme);
   }, [searchParams]);
 
-  // Try to open app immediately
+  // Try to open app immediately (only when customSchemeUrl is ready)
   useEffect(() => {
-    if (error || !code) return;
+    if (error || !code || !customSchemeUrl) return;
+    sessionStorage.removeItem('oauth_redirect_scheme');
     const timer = setTimeout(() => { setFailed(true); }, 2500);
     window.location.href = customSchemeUrl;
     const handleVisibility = () => {
