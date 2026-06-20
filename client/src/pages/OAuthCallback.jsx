@@ -26,12 +26,17 @@ export default function OAuthCallback() {
   const [appName, setAppName] = useState('应用');
 
   useEffect(() => {
-    const storedScheme = sessionStorage.getItem('oauth_redirect_scheme');
+    // 优先从 URL 参数读取 scheme，fallback 到 sessionStorage
+    const schemeFromUrl = searchParams.get('oauth_scheme');
+    const storedScheme = schemeFromUrl || sessionStorage.getItem('oauth_redirect_scheme');
+    if (schemeFromUrl) sessionStorage.removeItem('oauth_redirect_scheme');
     if (!storedScheme) {
       setFailed(true);
       return;
     }
-    const redirectUrl = `${storedScheme}://callback?${searchParams.toString()}`;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('oauth_scheme');
+    const redirectUrl = `${storedScheme}://callback?${params.toString()}`;
     setCustomSchemeUrl(redirectUrl);
     if (storedScheme.startsWith('moshidon')) setAppName('Moshidon');
     else if (storedScheme.startsWith('abdl-space')) setAppName('ABDL Space');

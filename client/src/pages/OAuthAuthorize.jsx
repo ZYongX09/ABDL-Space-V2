@@ -108,8 +108,9 @@ export default function OAuthAuthorize() {
         try {
           const url = new URL(res.redirect);
           if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-            sessionStorage.setItem('oauth_redirect_scheme', url.protocol.replace(':', ''));
-            window.location.href = `/oauth/callback?${url.searchParams.toString()}`;
+            const scheme = url.protocol.replace(':', '');
+            sessionStorage.setItem('oauth_redirect_scheme', scheme);
+            window.location.href = `/oauth/callback?${url.searchParams.toString()}&oauth_scheme=${encodeURIComponent(scheme)}`;
             return;
           }
           toast.info(`跳转中: ${res.redirect}`);
