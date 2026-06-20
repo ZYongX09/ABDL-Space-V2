@@ -101,21 +101,15 @@ export default function OAuthAuthorize() {
       if (res.redirect) {
         try {
           const url = new URL(res.redirect);
-          const ALLOWED_PROTOCOLS = ['http:', 'https:', 'abdl-space:', 'abdl-space-auth:', 'moshidon-android-auth:', 'moshidon-android-debug-auth:', 'moshidon-android-nightly-auth:'];
-          if (ALLOWED_PROTOCOLS.includes(url.protocol)) {
-            if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-              sessionStorage.setItem('oauth_redirect_scheme', url.protocol.replace(':', ''));
-              window.location.href = `/oauth/callback?${url.searchParams.toString()}`;
-              return;
-            }
-            toast.info(`跳转中: ${res.redirect}`);
-            const fallbackTimer = setTimeout(() => { toast.error('跳转超时'); setSubmitting(false); }, 5000);
-            window.location.href = res.redirect;
+          if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+            sessionStorage.setItem('oauth_redirect_scheme', url.protocol.replace(':', ''));
+            window.location.href = `/oauth/callback?${url.searchParams.toString()}`;
             return;
-          } else {
-            toast.error('无效的重定向地址');
-            setSubmitting(false);
           }
+          toast.info(`跳转中: ${res.redirect}`);
+          const fallbackTimer = setTimeout(() => { toast.error('跳转超时'); setSubmitting(false); }, 5000);
+          window.location.href = res.redirect;
+          return;
         } catch {
           toast.info(`跳转中: ${res.redirect}`);
           window.location.href = res.redirect;
