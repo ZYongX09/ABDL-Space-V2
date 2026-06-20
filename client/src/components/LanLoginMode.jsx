@@ -6,24 +6,18 @@ import { useToast } from '../contexts/ToastContext';
 const API_BASE = import.meta.env.VITE_API_BASE || 'https://api.abdl-space.top';
 const POLL_INTERVAL = 500;
 
-/**
- * 内网设备一键登录
- * 原理：手机 APP 后台运行 UDP 监听，定期向后端上报在线状态
- * 电脑通过后端 API 发现同网段设备
- */
 export default function LanLoginMode({ onSwitchBack }) {
-  const [step, setStep] = useState(1); // 1=扫描中, 2=等待授权
+  const [step, setStep] = useState(1);
   const [foundDevice, setFoundDevice] = useState(null);
-  const [sessionId, setSessionId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const sessionIdRef = useRef(null);
   const pollRef = useRef(null);
   const discoverTimerRef = useRef(null);
   const { loginWithToken } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
-  // 发现设备（通过后端 API）
   const discoverDevices = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/api/auth/lan/discover`, {
@@ -31,22 +25,17 @@ export default function LanLoginMode({ onSwitchBack }) {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
       });
-
       if (res.ok) {
         const data = await res.json();
         if (data.devices && data.devices.length > 0) {
-          // 找到设备，验证身份
           await verifyDevice(data.devices[0]);
           return true;
         }
       }
-    } catch (e) {
-      // 忽略网络错误，继续轮询
-    }
+    } catch (e) {}
     return false;
   }, []);
 
-  // 验证设备身份
   const verifyDevice = async (device) => {
     try {
       setLoading(true);
@@ -61,13 +50,12 @@ export default function LanLoginMode({ onSwitchBack }) {
           timestamp: device.timestamp
         })
       });
-
       const data = await res.json();
       if (data.sessionId) {
-        setSessionId(data.sessionId);
+        sessionIdRef.current = data.sessionId;
         setFoundDevice(device);
         setStep(2);
-        startPolling(data.sessionId);
+        startPolling();
       } else {
         setError(data.error || '验证失败');
       }
@@ -78,20 +66,16 @@ export default function LanLoginMode({ onSwitchBack }) {
     }
   };
 
-  // 轮询登录状态（复用 QR 登录的 poll 接口）
   const pollStatus = useCallback(async () => {
-    if (!sessionId) return;
+    const sid = sessionIdRef.current;
+    if (!sid) return;
     try {
-      const res = await fetch(`${API_BASE}/api/auth/qr/poll/${sessionId}`, {
+      const res = await fetch(`${API_BASE}/api/auth/qr/poll/${sid}`, {
         credentials: 'include'
       });
       const data = await res.json();
-
-      if (data.status === 'scanned') {
-        // 手机已扫码，显示等待授权状态
-        setStep(2);
-      } else if (data.status === 'done' && data.token) {
-        // 登录成功
+      if (data.status === 'done' && data.token) {
+        stopPolling();
         await fetch(`${API_BASE}/api/auth/qr/set-cookie`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -103,10 +87,9 @@ export default function LanLoginMode({ onSwitchBack }) {
         setTimeout(() => navigate('/'), 500);
       }
     } catch (e) {}
-  }, [sessionId, loginWithToken, toast, navigate]);
+  }, [loginWithToken, toast, navigate]);
 
-  // 启动轮询
-  const startPolling = (sid) => {
+  const startPolling = () => {
     stopPolling();
     pollRef.current = setInterval(pollStatus, POLL_INTERVAL);
   };
@@ -118,13 +101,10 @@ export default function LanLoginMode({ onSwitchBack }) {
     }
   };
 
-  // 启动设备发现（每 2 秒轮询一次）
   useEffect(() => {
     const discover = async () => {
       const found = await discoverDevices();
-      if (!found) {
-        discoverTimerRef.current = setTimeout(discover, 2000);
-      }
+      if (!found) discoverTimerRef.current = setTimeout(discover, 2000);
     };
     discover();
     return () => {
@@ -141,7 +121,6 @@ export default function LanLoginMode({ onSwitchBack }) {
           <i className="fa-solid fa-keyboard" />
         </button>
       </div>
-
       {step === 1 && (
         <div className="lan-step1">
           <div className="lan-scanning-animation">
@@ -159,7 +138,6 @@ export default function LanLoginMode({ onSwitchBack }) {
           {error && <p className="lan-error">{error}</p>}
         </div>
       )}
-
       {step === 2 && (
         <div className="lan-step2">
           <div className="lan-device-info">
