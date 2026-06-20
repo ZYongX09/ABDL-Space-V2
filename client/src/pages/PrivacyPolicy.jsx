@@ -7,7 +7,7 @@ const EN = () => {
 
   return (
     <div className="space-y-4 text-sm leading-relaxed" style={s}>
-      <p><strong>Last Updated:</strong> May 26, 2026</p>
+      <p><strong>Last Updated:</strong> June 20, 2026</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>1. Introduction</h2>
       <p>Welcome to ABDL Space ("we," "us," or "our"). We operate the website abdl-space.top (the "Website"), a diaper review and community platform. This Privacy Policy explains how we collect, use, store, and protect your personal information when you use our Website.</p>
@@ -58,6 +58,8 @@ const EN = () => {
         <p><strong>NewBabyWorld (宝宝新天地)</strong> — NewBabyWorld user ID and username (only when you choose OAuth login) — Account linking and authentication.</p>
         <p className="mt-2"><strong>DeepSeek AI</strong> — Body measurement data (only with your explicit consent) — AI-powered diaper recommendations.</p>
         <p className="mt-2"><strong>Baidu Analytics</strong> — Standard web browsing data (page views, device information, browsing behavior) — Website analytics and improvement.</p>
+        <p className="mt-2"><strong>Third-Party Mastodon Clients</strong> — When you log in via a third-party Mastodon-compatible client, we share an OAuth access token with that client to enable it to access your ABDL Space account on your behalf.</p>
+        <p className="mt-2"><strong>JPush (极光推送)</strong> — Device identifiers for push notification delivery. You may disable push notifications at any time in app settings.</p>
       </div>
       <h3 className="text-base font-bold pt-1" style={h}>5.2 What We Do NOT Do</h3>
       <ul className="list-disc pl-6 space-y-1">
@@ -78,10 +80,9 @@ const EN = () => {
       <p><strong>California residents (CCPA/CPRA):</strong> Right to know, delete, and opt out of sale/sharing. We do not sell or share personal information as defined by CCPA/CPRA.</p>
       <p>To exercise any rights, contact us at <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a>.</p>
 
-      <h2 className="text-lg font-bold pt-2" style={h}>8. Protection of Minors' Personal Information</h2>
-      <p>We are committed to protecting the personal information of minors. For comprehensive details on how we protect minors' personal information, including our identification measures, data collection practices, parental rights, and response procedures, please refer to our <a href="/minor-protection" style={link}>Minor Personal Information Protection Policy</a>.</p>
-      <p>In principle, our products and services are primarily intended for adult users. Minor users should only use our products and services or provide information to us after obtaining verifiable consent from their parent or legal guardian. We can only reasonably infer whether a user is a minor based on the information they submit.</p>
-      <p>If we discover that a user is a minor without verifiable parental or guardian consent, we will take steps to delete the relevant personal information in a timely manner.</p>
+      <h2 className="text-lg font-bold pt-2" style={h}>8. User Age Requirement</h2>
+      <p>This Website is exclusively intended for users who are 18 years of age or older. Minors under the age of 18 are prohibited from registering or using any services of this Website. Users must confirm that they are at least 18 years old during registration.</p>
+      <p>If we discover that a user is under 18 years of age, we reserve the right to immediately terminate services and delete their account and associated data.</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>9. International Data Transfers</h2>
       <p>If you access the Website from outside the jurisdiction where our servers are located, your data may be transferred across international borders. We rely on appropriate safeguards for such transfers.</p>
@@ -90,7 +91,7 @@ const EN = () => {
       <p>The Website may contain links to third-party websites. We are not responsible for the privacy practices or content of those websites.</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>11. Changes to This Policy</h2>
-      <p>We may update this Privacy Policy from time to time. When we make material changes, we will notify you by posting the updated policy on this page with a revised "Last Updated" date.</p>
+      <p>We may update this Privacy Policy from time to time. When we make material changes, we will notify you by posting the updated policy on this page with a revised "Last Updated" date. <strong>We will also notify users through website announcements and in-app notifications when significant changes are made.</strong></p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>12. Contact Us</h2>
       <p>If you have any questions about this Privacy Policy, please contact us at <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a></p>
@@ -105,7 +106,7 @@ const ZH = () => {
 
   return (
     <div className="space-y-4 text-sm leading-relaxed" style={s}>
-      <p><strong>最后更新日期：</strong>2026年5月26日</p>
+      <p><strong>最后更新日期：</strong>2026年6月20日</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>1. 引言</h2>
       <p>欢迎访问ABDL Space（"我们"）。我们运营网站 abdl-space.top（"本网站"），这是一个纸尿裤评价与社区平台。本隐私政策说明了您在使用本网站时，我们如何收集、使用、存储和保护您的个人信息。</p>
@@ -156,6 +157,8 @@ const ZH = () => {
         <p><strong>宝宝新天地（NewBabyWorld）</strong> — 宝宝新天地用户ID和用户名（仅在您选择OAuth登录时）— 账户关联和身份验证。</p>
         <p className="mt-2"><strong>DeepSeek AI</strong> — 身体测量数据（仅在您明确同意后）— AI纸尿裤推荐。</p>
         <p className="mt-2"><strong>百度统计</strong> — 标准网络浏览数据（页面浏览量、设备信息、浏览行为）— 网站分析与改进。</p>
+        <p className="mt-2"><strong>第三方Mastodon客户端</strong> — 当您通过第三方Mastodon兼容客户端登录时，我们会向该客户端授予OAuth访问令牌，使其能够代表您访问ABDL Space账户。</p>
+        <p className="mt-2"><strong>极光推送（JPush）</strong> — 设备标识符用于推送通知的发送。您可在应用设置中随时关闭推送通知。</p>
       </div>
       <h3 className="text-base font-bold pt-1" style={h}>5.2 我们不做的事情</h3>
       <ul className="list-disc pl-6 space-y-1">
@@ -176,10 +179,9 @@ const ZH = () => {
       <p><strong>加利福尼亚州居民（CCPA/CPRA）：</strong>知情权、删除权、退出出售/共享权。我们不会按照CCPA/CPRA的定义出售或共享个人信息。</p>
       <p>如需行使任何权利，请通过 <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a> 联系我们。</p>
 
-      <h2 className="text-lg font-bold pt-2" style={h}>8. 未成年人个人信息保护</h2>
-      <p>我们致力于保护未成年人的个人信息。有关我们如何保护未成年人个人信息的完整详情，包括识别措施、数据收集实践、父母权利和响应程序，请参阅我们的<a href="/minor-protection" style={link}>《未成年人个人信息保护政策》</a>。</p>
-      <p>原则上，我们的产品和服务主要面向成年用户。未成年人用户应当在获取其父母或监护人的同意后，使用我们的产品和服务或向我们提供信息。我们仅能通过用户提交的信息合理地推测其是否为未成年人。</p>
-      <p>如果我们发现用户为未成年人且未获得其父母或监护人的可验证同意，我们将及时采取措施删除相关个人信息。</p>
+      <h2 className="text-lg font-bold pt-2" style={h}>8. 用户年龄要求与账户安全</h2>
+      <p>本平台仅面向年满18周岁及以上的成年人用户开放。未满18周岁的自然人禁止注册或使用本平台的任何服务。用户在注册时须确认其已年满18周岁。</p>
+      <p>如本平台发现用户为未满18周岁的未成年人,有权立即终止对该用户的服务并删除其账户及相关数据。</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>9. 国际数据传输</h2>
       <p>如果您从我们服务器所在地以外的司法管辖区访问本网站，您的数据可能会被跨境传输。我们依赖适当的保障措施进行此类传输。</p>
@@ -188,7 +190,7 @@ const ZH = () => {
       <p>本网站可能包含指向第三方网站的链接。我们不对这些网站的隐私做法或内容负责。</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>11. 本政策的变更</h2>
-      <p>我们可能会不时更新本隐私政策。当我们做出重大变更时，将在本页面发布更新后的政策并修订"最后更新日期"。</p>
+      <p>我们可能会不时更新本隐私政策。当我们做出重大变更时，将在本页面发布更新后的政策并修订"最后更新日期"。<strong>重大变更时，我们还将通过网站公告和应用内通知的方式告知用户。</strong></p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>12. 联系我们</h2>
       <p>如果您对本隐私政策有任何疑问，请通过 <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a> 联系我们。</p>
@@ -199,7 +201,7 @@ const ZH = () => {
 export default function PrivacyPolicy() {
   return (
     <>
-    <PageLayout hero={{ icon: 'fa-shield-halved', title: 'Privacy Policy / 隐私政策', subtitle: '最后更新：2026年5月26日' }}>
+    <PageLayout hero={{ icon: 'fa-shield-halved', title: 'Privacy Policy / 隐私政策', subtitle: '最后更新：2026年6月20日' }}>
       {/* 中文翻译声明 */}
       <div className="p-4 rounded-xl mb-5 flex items-start gap-3" style={{ background: 'var(--warning-bg, #FFF8E1)', border: '2px solid var(--warning)' }}>
         <i className="fa-solid fa-circle-exclamation mt-0.5 text-lg" style={{ color: 'var(--warning)' }} />

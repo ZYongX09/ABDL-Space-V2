@@ -10,7 +10,7 @@ const EN = () => {
 
   return (
     <div className="space-y-5 text-sm leading-relaxed" style={s}>
-      <p><strong>Last Updated:</strong> May 18, 2026</p>
+      <p><strong>Last Updated:</strong> June 20, 2026</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>1. Introduction</h2>
       <p>This Cookie Policy explains how ABDL Space ("we," "us," or "our") uses cookies and similar technologies when you visit our website at abdl-space.top (the "Website"). This policy should be read in conjunction with our Privacy Policy.</p>
@@ -150,7 +150,7 @@ const EN = () => {
       <p className="mt-2">You can change your preference at any time by clearing the <code>cookie_consent</code> entry in localStorage via your browser's Developer Tools (F12 → Application → Local Storage).</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>5. Changes to This Policy</h2>
-      <p>We may update this Cookie Policy from time to time. We will notify you of any material changes by posting the updated policy on this page.</p>
+      <p>We may update this Cookie Policy from time to time. We will notify you of any material changes by posting the updated policy on this page. <strong>We will also notify users through website announcements and in-app notifications when significant changes are made.</strong></p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>6. Contact Us</h2>
       <p>If you have any questions, please contact us at <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a></p>
@@ -168,7 +168,7 @@ const ZH = () => {
 
   return (
     <div className="space-y-5 text-sm leading-relaxed" style={s}>
-      <p><strong>最后更新日期：</strong>2026年5月18日</p>
+      <p><strong>最后更新日期：</strong>2026年6月20日</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>1. 引言</h2>
       <p>本Cookie政策说明了ABDL Space（"我们"）在您访问我们的网站 abdl-space.top（"本网站"）时如何使用Cookie及类似技术。本政策应与我们的隐私政策一并阅读。</p>
@@ -308,7 +308,7 @@ const ZH = () => {
       <p className="mt-2">您可以随时通过浏览器开发者工具（F12 → Application → Local Storage）清除 <code>cookie_consent</code> 条目来更改您的偏好。</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>5. 本政策的变更</h2>
-      <p>我们可能会不时更新本Cookie政策。我们将在本页面发布更新后的政策，以通知您任何重大变更。</p>
+      <p>我们可能会不时更新本Cookie政策。我们将在本页面发布更新后的政策，以通知您任何重大变更。<strong>重大变更时，我们还将通过网站公告和应用内通知的方式告知用户。</strong></p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>6. 联系我们</h2>
       <p>如有任何疑问，请通过 <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a> 联系我们。</p>
@@ -319,7 +319,7 @@ const ZH = () => {
 export default function CookiePolicy() {
   return (
     <>
-    <PageLayout hero={{ icon: 'fa-cookie-bite', title: 'Cookie Policy / Cookie 政策', subtitle: 'Last updated: May 18, 2026' }}>
+    <PageLayout hero={{ icon: 'fa-cookie-bite', title: 'Cookie Policy / Cookie 政策', subtitle: 'Last updated: June 20, 2026' }}>
       {/* 声明 */}
       <div className="p-4 rounded-xl mb-5 flex items-start gap-3" style={{ background: 'var(--warning-bg, #FFF8E1)', border: '2px solid var(--warning)' }}>
         <i className="fa-solid fa-circle-exclamation mt-0.5 text-lg" style={{ color: 'var(--warning)' }} />

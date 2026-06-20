@@ -77,7 +77,7 @@ export default function Register() {
     if (!email.includes('@')) { toast.error('请输入合法邮箱'); return; }
     if (password.length < 8) { toast.error('密码至少 8 位'); return; }
     if (password !== confirm) { toast.error('两次密码不一致'); return; }
-    if (!agreeTerms || !agreePrivacy || !agreeMinor) { toast.error('请阅读并同意用户协议、隐私政策和未成年人个人信息保护政策'); return; }
+    if (!agreeTerms || !agreePrivacy || !agreeMinor) { toast.error('请阅读并同意用户协议、隐私政策，并确认年满18周岁'); return; }
 
     // 普通注册（NBW 也需要邮箱验证和安全验证）
     if (!codeSent || code.length < 6) { toast.error('请先获取并输入验证码'); return; }
@@ -223,7 +223,7 @@ export default function Register() {
               <label className="flex items-start gap-2.5 cursor-pointer">
                 <input type="checkbox" checked={agreeMinor} onChange={e => setAgreeMinor(e.target.checked)} className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[var(--primary-dark)]" />
                 <span className="text-xs leading-relaxed" style={{ color: 'var(--text-light)' }}>
-                  我已阅读并同意 <Link to="/privacy" target="_blank" style={{ color: 'var(--link-color)' }}>未成年人个人信息保护政策</Link>
+                  我确认已年满18周岁，并已阅读并同意 <Link to="/terms" target="_blank" style={{ color: 'var(--link-color)' }}>用户协议</Link>和<Link to="/privacy" target="_blank" style={{ color: 'var(--link-color)' }}>隐私政策</Link>
                 </span>
               </label>
             </div>

@@ -142,9 +142,7 @@ export default function Login() {
                 即将跳转到「宝宝新天地」进行授权登录。授权后，我们将获取您的基本信息用于账户识别。
               </p>
               <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-                请确认您同意 <Link to="/privacy" target="_blank" style={{ color: 'var(--link-color)' }}>隐私政策</Link>
-                {' '}和{' '}
-                <Link to="/privacy" target="_blank" style={{ color: 'var(--link-color)' }}>未成年人个人信息保护政策</Link>。
+                请确认您同意 <Link to="/privacy" target="_blank" style={{ color: 'var(--link-color)' }}>隐私政策</Link>和<Link to="/terms" target="_blank" style={{ color: 'var(--link-color)' }}>用户协议</Link>。
               </p>
               <div className="flex gap-2 justify-end">
                 <button className="btn btn-outline btn-sm" onClick={() => setShowNBWConsent(false)}>取消</button>
@@ -204,7 +202,7 @@ export default function Login() {
           </label>
           <label className="login-consent">
             <input type="checkbox" checked={minorConsented} onChange={e => setMinorConsented(e.target.checked)} />
-            <span>我已阅读并同意 <Link to="/minor-protection" target="_blank">未成年人个人信息保护政策</Link></span>
+            <span>我已年满18周岁，并已阅读并同意 <Link to="/terms" target="_blank">用户协议</Link>和<Link to="/privacy" target="_blank">隐私政策</Link></span>
           </label>
 
           <button type="submit" className="login-submit" disabled={!canSubmit}>

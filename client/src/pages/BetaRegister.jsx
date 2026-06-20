@@ -89,7 +89,7 @@ export default function BetaRegister() {
     if (!email.includes('@')) { toast.error('请输入合法邮箱'); return; }
     if (password.length < 8) { toast.error('密码至少 8 位'); return; }
     if (password !== confirm) { toast.error('两次密码不一致'); return; }
-    if (!agreeTerms || !agreePrivacy || !agreeMinor) { toast.error('请阅读并同意相关政策'); return; }
+    if (!agreeTerms || !agreePrivacy) { toast.error('请阅读并同意相关政策'); return; }
     if (!codeSent || code.length < 6) { toast.error('请先获取并输入验证码'); return; }
     if (!regVerified) { toast.error('请完成安全验证'); return; }
 
@@ -114,7 +114,7 @@ export default function BetaRegister() {
     finally { setLoading(false); }
   };
 
-  const allReady = agreeTerms && agreePrivacy && agreeMinor && regVerified && codeSent && code.length >= 6;
+  const allReady = agreeTerms && agreePrivacy && regVerified && codeSent && code.length >= 6;
 
   // 底部 logo + 版权
   const FooterLogo = (
@@ -453,26 +453,6 @@ export default function BetaRegister() {
                     style={{ color: 'var(--link-color)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit' }}
                   >
                     隐私政策
-                  </button>
-                </span>
-              </label>
-              <label className="flex items-start gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={agreeMinor}
-                  onChange={e => setAgreeMinor(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded cursor-pointer"
-                  style={{ accentColor: 'var(--primary-dark)' }}
-                />
-                <span className="text-xs leading-relaxed" style={{ color: 'var(--text-light)' }}>
-                  我已阅读并同意{' '}
-                  <button
-                    type="button"
-                    onClick={() => setPolicyModal('minor')}
-                    className="underline"
-                    style={{ color: 'var(--link-color)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit' }}
-                  >
-                    未成年人个人信息保护政策
                   </button>
                 </span>
               </label>
