@@ -55,6 +55,7 @@ export default function QRLoginMode({ onSwitchBack }) {
       } else if (data.status === 'done' && data.token) {
         // 登录成功
         setStatus('done');
+        stopPolling(); // 立即停止轮询
         // 先设置 cookie，使刷新页面后仍保持登录
         await fetch(`${API_BASE}/api/auth/qr/set-cookie`, {
           method: 'POST',

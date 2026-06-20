@@ -14,6 +14,7 @@ export default function LanLoginMode({ onSwitchBack }) {
   const sessionIdRef = useRef(null);
   const pollRef = useRef(null);
   const discoverTimerRef = useRef(null);
+  const loggedInRef = useRef(false); // 防止重复登录
   const { loginWithToken } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
@@ -67,6 +68,7 @@ export default function LanLoginMode({ onSwitchBack }) {
   };
 
   const pollStatus = useCallback(async () => {
+    if (loggedInRef.current) return; // 已登录，不再轮询
     const sid = sessionIdRef.current;
     if (!sid) return;
     try {
@@ -75,6 +77,7 @@ export default function LanLoginMode({ onSwitchBack }) {
       });
       const data = await res.json();
       if (data.status === 'done' && data.token) {
+        loggedInRef.current = true; // 标记已登录
         stopPolling();
         await fetch(`${API_BASE}/api/auth/qr/set-cookie`, {
           method: 'POST',
