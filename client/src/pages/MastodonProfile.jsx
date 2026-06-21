@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { authAPI } from '../api';
+
+const API_BASE = import.meta.env.VITE_API_BASE || 'https://api.abdl-space.top';
 
 /**
  * Mastodon-compatible /@:username route handler
@@ -13,20 +14,22 @@ export default function MastodonProfile() {
 
   useEffect(() => {
     if (!username) return;
-    (async () => {
-      try {
-        const data = await authAPI.getUser(encodeURIComponent(username));
-        const user = data.user || data;
-        if (user?.id) {
-          navigate(`/user/${user.id}`, { replace: true });
+
+    fetch(`${API_BASE}/api/users/search?q=${encodeURIComponent(username)}&limit=1`, {
+      credentials: 'include'
+    })
+      .then(r => r.json())
+      .then(data => {
+        const users = data.users || data;
+        if (Array.isArray(users) && users.length > 0 && users[0].id) {
+          // Use window.location for reliable redirect
+          window.location.replace(`/user/${users[0].id}`);
         } else {
           setError('用户不存在');
         }
-      } catch (e) {
-        setError(e.message || '用户不存在');
-      }
-    })();
-  }, [username, navigate]);
+      })
+      .catch(() => setError('查找用户失败'));
+  }, [username]);
 
   if (error) {
     return (

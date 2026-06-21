@@ -253,7 +253,6 @@ export default function App() {
                 <Route path="/privacy" element={<PrivacyPolicy />} />
 
                 <Route path="/terms" element={<TermsOfService />} />
-                <Route path="/@:username" element={<AtUsernameRedirect />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/auth/nbw/callback" element={<NBWCallback />} />
