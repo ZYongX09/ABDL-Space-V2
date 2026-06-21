@@ -10,20 +10,16 @@ export default function AtUsernameRedirect() {
 
   useEffect(() => {
     if (!username) { setError('用户名无效'); return; }
-    // Look up user by username via the search API
-    fetch(`${API_BASE}/api/posts?search=${encodeURIComponent(username)}&limit=1`, { credentials: 'include' })
-      .then(r => r.json())
-      .then(data => {
-        // We don't have a direct username→id lookup, so use the Mastodon-compatible API
-        return fetch(`${API_BASE}/api/v1/accounts/search?q=${encodeURIComponent(username)}&limit=1`, {
-          headers: { 'Authorization': 'Bearer dummy' },
-          credentials: 'include'
-        });
-      })
+
+    fetch(`${API_BASE}/api/users/search?q=${encodeURIComponent(username)}&limit=1`, {
+      credentials: 'include'
+    })
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0 && data[0].id) {
           navigate(`/profile/${data[0].id}`, { replace: true });
+        } else if (data && data.id) {
+          navigate(`/profile/${data.id}`, { replace: true });
         } else {
           setError(`用户 "${username}" 不存在`);
         }
