@@ -16,10 +16,9 @@ export default function AtUsernameRedirect() {
     })
       .then(r => r.json())
       .then(data => {
-        if (Array.isArray(data) && data.length > 0 && data[0].id) {
-          navigate(`/profile/${data[0].id}`, { replace: true });
-        } else if (data && data.id) {
-          navigate(`/profile/${data.id}`, { replace: true });
+        const users = data.users || data;
+        if (Array.isArray(users) && users.length > 0 && users[0].id) {
+          navigate(`/profile/${users[0].id}`, { replace: true });
         } else {
           setError(`用户 "${username}" 不存在`);
         }
