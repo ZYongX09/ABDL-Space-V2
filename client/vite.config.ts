@@ -20,6 +20,14 @@ export default defineConfig({
   plugins: [
     react(),
     {
+      // 每次构建注入时间戳，强制 index.html hash 变化，
+      // 防止 CF Pages 认为"文件已存在"跳过上传。
+      name: 'build-timestamp',
+      transformIndexHtml(html) {
+        return html.replace('</head>', `<!-- build:${Date.now()} --></head>`);
+      },
+    },
+    {
       name: 'inject-captcha-key',
       transformIndexHtml(html) {
         const captchaKey = process.env.VITE_CAPTCHA_KEY || '';
