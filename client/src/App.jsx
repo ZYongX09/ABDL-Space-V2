@@ -61,6 +61,7 @@ const ExternalLink = lazy(() => import('./pages/ExternalLink'));
 const CreatePost = lazy(() => import('./pages/CreatePost'));
 const BugDashboard = lazy(() => import('./pages/BugDashboard'));
 const FollowersPage = lazy(() => import('./pages/FollowersPage'));
+const AppDownload = lazy(() => import('./pages/AppDownload'));
 
 function PageFallback() {
   return (
@@ -89,6 +90,7 @@ const ROUTE_TITLES = {
   '/admin': '管理后台 — ABDL Space',
   '/external': '外部链接 — ABDL Space',
   '/about': '关于 — ABDL Space',
+  '/app': '下载客户端 — ABDL Space',
   '/settings': '设置 — ABDL Space',
   '/create-post': '发帖 — ABDL Space',
   '/bugs': 'Bug 追踪面板 — ABDL Space',
@@ -256,6 +258,7 @@ export default function App() {
                 <Route path="/diaper-wiki" element={<DiaperWikiList />} />
                 <Route path="/diaper-wiki/:id" element={<DiaperWiki />} />
                 <Route path="/about" element={<About />} />
+                <Route path="/app" element={<AppDownload />} />
                 <Route path="/cookies" element={<CookiePolicy />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
 

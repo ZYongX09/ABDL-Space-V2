@@ -1249,3 +1249,15 @@ export const betaInfoAPI = {
     }
   },
 };
+
+/**
+ * App 版本管理
+ * 对接后端 GET /api/v1/version，返回最新安装包信息。
+ * hasUpdate=false 时表示尚未发布任何版本（即“即将上线”）。
+ */
+export const appVersionAPI = {
+  getLatest: async () => {
+    // 接口为公开，无需鉴权；失败时返回空对象，由前端兜底
+    return apiFetch('/api/v1/version');
+  },
+};

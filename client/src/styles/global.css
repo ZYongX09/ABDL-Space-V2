@@ -3898,3 +3898,346 @@ body, .card, .hero-card, .btn, .form-control, .sidebar-link,
 [data-theme="colorful"] .beta-footer-logo {
   opacity: 0.9;
 }
+
+/* ====== App 下载页（/app） ====== */
+
+/* Hero 主下载卡 */
+.app-download-hero {
+  padding: 2rem;
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(168, 216, 240, 0.18) 0%, transparent 55%),
+    radial-gradient(120% 120% at 100% 100%, rgba(255, 183, 197, 0.16) 0%, transparent 55%),
+    var(--bg-card);
+  overflow: hidden;
+}
+
+.app-download-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2rem;
+  align-items: center;
+}
+
+.app-download-hero-text {
+  min-width: 0;
+}
+
+.app-download-title {
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.01em;
+}
+
+.app-download-desc {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--text-light);
+  margin-bottom: 1.25rem;
+  max-width: 32em;
+}
+
+.app-download-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.app-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.app-badge i { font-size: 0.7rem; }
+.app-badge-success {
+  background: rgba(123, 198, 126, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(123, 198, 126, 0.3);
+}
+.app-badge-accent {
+  background: rgba(255, 183, 197, 0.18);
+  color: var(--accent-dark);
+  border: 1px solid rgba(255, 183, 197, 0.35);
+}
+.app-badge-neutral {
+  background: var(--input-bg);
+  color: var(--text-light);
+  border: 1px solid var(--border);
+}
+
+.app-download-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.app-download-btn {
+  padding: 12px 26px;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+}
+.app-download-btn span { margin-left: 2px; }
+
+.app-download-btn-secondary {
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.app-download-btn-secondary:hover:not(:disabled) {
+  border-color: rgba(168, 216, 240, 0.5);
+  color: var(--primary-dark);
+}
+
+/* 二维码区 */
+.app-download-qr-wrap {
+  flex-shrink: 0;
+}
+
+.app-download-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.25rem 1.25rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.app-download-qr-frame {
+  padding: 10px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(168, 216, 240, 0.18);
+}
+
+.app-qr-placeholder {
+  width: 168px;
+  height: 168px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 1.6rem;
+}
+
+.app-download-qr-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.app-download-qr-label i { color: var(--primary-dark); }
+
+.app-download-qr-hint {
+  margin-top: 2px;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+/* 更新日志摘要条 */
+.app-download-changelog {
+  margin-top: 1.5rem;
+  padding: 0.85rem 1rem;
+  background: var(--input-bg);
+  border-left: 3px solid var(--primary-dark);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.app-download-changelog-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin-bottom: 4px;
+}
+.app-download-changelog-text {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-light);
+  white-space: pre-line;
+}
+
+/* 功能亮点 */
+.app-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  transition: transform 0.3s var(--miui-spring), box-shadow 0.3s ease;
+}
+.app-feature-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.app-feature-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  box-shadow: 0 2px 8px rgba(168, 216, 240, 0.4);
+}
+.app-feature-item:nth-child(even) .app-feature-icon {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  box-shadow: 0 2px 8px rgba(255, 183, 197, 0.4);
+}
+
+.app-feature-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.app-feature-desc {
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--text-light);
+}
+
+/* 安装步骤 */
+.app-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+.app-step {
+  display: flex;
+  gap: 0.85rem;
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+}
+.app-step-num {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: #fff;
+  background: var(--primary-dark);
+}
+.app-step-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.app-step-desc {
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--text-light);
+}
+
+/* 常见问题 */
+.app-faq {
+  background: var(--input-bg);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: background 0.2s ease;
+}
+.app-faq[open] {
+  background: rgba(168, 216, 240, 0.08);
+}
+.app-faq-q {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  list-style: none;
+  user-select: none;
+}
+.app-faq-q::-webkit-details-marker { display: none; }
+.app-faq-icon {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  transition: transform 0.25s var(--miui-spring);
+}
+.app-faq[open] .app-faq-icon {
+  transform: rotate(180deg);
+  color: var(--primary-dark);
+}
+.app-faq-a {
+  padding: 0 1rem 0.9rem;
+  font-size: 0.84rem;
+  line-height: 1.7;
+  color: var(--text-light);
+}
+
+.app-download-footer {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+.app-download-footer i {
+  margin-right: 6px;
+  color: var(--primary-dark);
+}
+
+/* ====== 响应式 ====== */
+/* 平板（≤ 900px）：二维码缩小 */
+@media (max-width: 900px) {
+  .app-download-hero-grid {
+    gap: 1.25rem;
+  }
+  .app-download-title { font-size: 1.6rem; }
+  .app-download-qr-frame { padding: 8px; }
+  .app-download-qr-frame svg,
+  .app-qr-placeholder { width: 138px !important; height: 138px !important; }
+}
+
+/* 手机（≤ 640px）：隐藏二维码，单列布局，下载按钮全宽 */
+@media (max-width: 640px) {
+  .app-download-hero { padding: 1.5rem; }
+  .app-download-hero-grid {
+    grid-template-columns: 1fr;
+  }
+  .app-download-qr-wrap { display: none; }
+  .app-download-title { font-size: 1.45rem; }
+  .app-download-desc { font-size: 0.88rem; }
+  .app-download-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .app-download-btn,
+  .app-download-btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+  .app-feature-item { padding: 0.85rem; }
+  .app-feature-icon { width: 36px; height: 36px; }
+}
