@@ -62,7 +62,8 @@ export default function AppDownload() {
             </div>
 
             <div className="app-download-actions">
-              <a href={downloadUrl} className="btn btn-primary app-download-btn" download>
+              <a href={downloadUrl} className="btn btn-primary app-download-btn"
+                onClick={e => { e.preventDefault(); window.location.href = downloadUrl; }}>
                 <i className="fa-brands fa-android" />
                 <span>下载 Android 安装包</span>
               </a>

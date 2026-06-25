@@ -1257,7 +1257,8 @@ export const betaInfoAPI = {
  */
 export const appVersionAPI = {
   getLatest: async () => {
-    // 接口为公开，无需鉴权；失败时返回空对象，由前端兜底
-    return apiFetch('/api/v1/version');
+    const res = await fetch(`${API_BASE}/api/v1/version`);
+    if (!res.ok) return null;
+    return res.json();
   },
 };
