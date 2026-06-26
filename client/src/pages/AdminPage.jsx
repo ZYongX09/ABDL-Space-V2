@@ -235,13 +235,14 @@ export default function AdminPage() {
       {/* 概览 */}
       {tab === 'overview' && (
         loading ? <Spinner /> : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 admin-stats-grid">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 admin-stats-grid">
             {[
               { label: '用户', value: stats?.users, icon: 'fa-users', color: 'var(--primary)' },
               { label: '帖子', value: stats?.posts, icon: 'fa-file-lines', color: 'var(--accent)' },
               { label: '评论', value: stats?.comments, icon: 'fa-comments', color: 'var(--primary-dark)' },
               { label: '产品', value: stats?.diapers, icon: 'fa-baby', color: 'var(--success)' },
               { label: '评分', value: stats?.ratings, icon: 'fa-star', color: 'var(--warning)' },
+              { label: 'App 用户', value: stats?.appUsers, icon: 'fa-mobile-screen', color: '#89CFF0' },
             ].map(s => (
               <div key={s.label} className="card text-center">
                 <i className={`fa-solid ${s.icon} text-xl mb-1.5`} style={{ color: s.color }} />
