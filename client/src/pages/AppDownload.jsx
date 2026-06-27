@@ -47,6 +47,11 @@ export default function AppDownload() {
       <div className="card app-download-hero mb-5">
         <div className="app-download-hero-grid">
           <div className="app-download-hero-text">
+            <img
+              src="/app-icon.png"
+              alt="ABDL Space"
+              style={{ width: 80, height: 80, borderRadius: 20, marginBottom: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
+            />
             <h2 className="app-download-title">随时随地，<br />感受温暖陪伴</h2>
             <p className="app-download-desc">专为 ABDL 群体打造的移动客户端，把社区、评分与推荐装进口袋。</p>
 
