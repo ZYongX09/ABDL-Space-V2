@@ -92,7 +92,12 @@ export default function Register() {
       });
       saveConsent({ privacy: true, terms: true, userId: result?.user?.id });
       toast.success('注册成功');
-      navigate('/');
+      // 非 NBW 注册流程时，跳转到 NBW 绑定引导页
+      if (!nbwState) {
+        navigate('/nbw-bind-guide');
+      } else {
+        navigate('/');
+      }
     } catch (e) { toast.error(e.message); }
     finally { setLoading(false); }
   };

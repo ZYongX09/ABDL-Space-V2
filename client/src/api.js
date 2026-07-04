@@ -508,9 +508,9 @@ export const forumAPI = {
     };
   },
 
-  create: async ({ content, diaper_id, images, captchaToken, repost_id, is_announcement }) => {
+  create: async ({ content, diaper_id, images, captchaToken, repost_id, is_announcement, nbw_fid }) => {
     if (USE_API) {
-      const result = await apiFetch('/api/posts', { method: 'POST', body: JSON.stringify({ content, diaper_id, images, captchaToken, repost_id, is_announcement }) });
+      const result = await apiFetch('/api/posts', { method: 'POST', body: JSON.stringify({ content, diaper_id, images, captchaToken, repost_id, is_announcement, nbw_fid }) });
       cacheInvalidate('feed:');
       return result;
     }

@@ -62,6 +62,8 @@ const CreatePost = lazy(() => import('./pages/CreatePost'));
 const BugDashboard = lazy(() => import('./pages/BugDashboard'));
 const FollowersPage = lazy(() => import('./pages/FollowersPage'));
 const AppDownload = lazy(() => import('./pages/AppDownload'));
+const NBWBindGuidePage = lazy(() => import('./pages/NBWBindGuidePage'));
+const NBWOneClickRegister = lazy(() => import('./pages/NBWOneClickRegister'));
 
 function PageFallback() {
   return (
@@ -99,6 +101,8 @@ const ROUTE_TITLES = {
   '/oauth/callback': '授权回调 — ABDL Space',
   '/oauth-clients': '应用管理 — ABDL Space',
   '/auth/nbw/choose': '关联账户 — ABDL Space',
+  '/nbw-bind-guide': '绑定宝宝新天地 — ABDL Space',
+  '/nbw-one-click-register': '一键注册 — ABDL Space',
   '/points': '积分 — ABDL Space',
   '/invite': '邀请码 — ABDL Space',
   '/explore': '探索 — ABDL Space',
@@ -266,6 +270,8 @@ export default function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/auth/nbw/callback" element={<NBWCallback />} />
+                <Route path="/nbw-bind-guide" element={<NBWBindGuidePage />} />
+                <Route path="/nbw-one-click-register" element={<NBWOneClickRegister />} />
                 <Route path="/profile" element={<ProfilePageV2 />} />
                 <Route path="/profile/:id" element={<ProfilePageV2 />} />
                 <Route path="/settings" element={<Settings />} />
