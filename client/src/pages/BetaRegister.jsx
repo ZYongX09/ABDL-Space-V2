@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import VerificationInput from '../components/VerificationInput';
 import BetaInfoCard from '../components/BetaInfoCard';
@@ -22,6 +22,7 @@ const LOGO_WORD = 'https://img.abdl-space.top/file/1779879269255_ABDL_word.svg';
  */
 export default function BetaRegister() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [username, setUsername] = useState(location.state?.username || '');
   const [email, setEmail] = useState(location.state?.email || '');
   const [password, setPassword] = useState('');
@@ -105,11 +106,7 @@ export default function BetaRegister() {
       });
       saveConsent({ privacy: true, terms: true, userId: result?.user?.id });
       toast.success('欢迎加入创始成员计划！');
-      setSuccess({
-        username: username.trim(),
-        email: email.trim(),
-        time: new Date().toLocaleString('zh-CN', { hour12: false }),
-      });
+      navigate('/nbw-bind-guide');
     } catch (e) { toast.error(e.message); }
     finally { setLoading(false); }
   };

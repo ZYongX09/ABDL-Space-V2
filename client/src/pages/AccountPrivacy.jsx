@@ -406,13 +406,9 @@ function NBWBindSection({ user, toast, onUserChange }) {
           ) : nbwReady ? (
             <button
               className="btn btn-outline btn-sm"
-              onClick={async () => {
-                setBinding(true);
-                try { await startNBWBind(); } catch (e) { toast.error(e.message); setBinding(false); }
-              }}
-              disabled={binding}
+              onClick={() => navigate('/nbw-one-click-register')}
             >
-              {binding ? <i className="fa-solid fa-spinner fa-spin" /> : '去绑定'}
+              去绑定
             </button>
           ) : (
             <button
