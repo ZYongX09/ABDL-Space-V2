@@ -23,6 +23,7 @@ export default function NBWOneClickRegister() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [checking, setChecking] = useState(false);
+  const [iframeLoading, setIframeLoading] = useState(true);
   const timerRef = useRef(null);
   const phase3StartRef = useRef(null);
 
@@ -210,12 +211,25 @@ export default function NBWOneClickRegister() {
         </button>
       </div>
 
+      {/* iframe 加载动画 */}
+      {iframeLoading && (
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          background: 'var(--surface)',
+        }}>
+          <i className="fa-solid fa-circle-notch fa-spin text-3xl mb-3" style={{ color: 'var(--primary)' }} />
+          <span className="text-sm" style={{ color: 'var(--text-muted)' }}>正在加载宝宝新天地注册页面...</span>
+        </div>
+      )}
+
       {/* iframe 主体 */}
       <iframe
         src={registerUrl}
-        style={{ flex: 1, border: 'none', width: '100%' }}
+        style={{ flex: 1, border: 'none', width: '100%', display: iframeLoading ? 'none' : 'block' }}
         title="NBW 注册"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        onLoad={() => setIframeLoading(false)}
       />
     </div>
   );
