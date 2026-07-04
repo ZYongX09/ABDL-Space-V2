@@ -227,7 +227,7 @@ export default function NBWOneClickRegister() {
       <iframe
         src={registerUrl}
         style={{ flex: 1, border: 'none', width: '100%', display: iframeLoading ? 'none' : 'block' }}
-        title="NBW 注册"
+        title="宝宝新天地 注册"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
         onLoad={() => setIframeLoading(false)}
       />

@@ -37,7 +37,7 @@ export default function NBWBindGuidePage() {
         <div className="flex items-center gap-3 mb-5 p-3 rounded-lg" style={{ background: 'var(--input-bg)' }}>
           <img src={NBW_LOGO} alt="" className="w-10 h-10 rounded-lg object-contain" />
           <div>
-            <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>宝宝新天地 (NBW)</div>
+            <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>宝宝新天地</div>
             <div className="text-xs" style={{ color: 'var(--text-muted)' }}>ABDL Space 深度合作平台</div>
           </div>
         </div>
@@ -62,7 +62,7 @@ export default function NBWBindGuidePage() {
           >
             <i className="fa-solid fa-link text-lg" style={{ color: 'var(--primary-dark)' }} />
             <div className="text-left">
-              <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>绑定已有 NBW 账号</div>
+              <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>绑定已有宝宝新天地账号</div>
               <div className="text-xs" style={{ color: 'var(--text-muted)' }}>如果您已有宝宝新天地账号，直接授权绑定</div>
             </div>
           </button>
@@ -75,7 +75,7 @@ export default function NBWBindGuidePage() {
           >
             <i className="fa-solid fa-user-plus text-lg" style={{ color: 'var(--text-muted)' }} />
             <div className="text-left">
-              <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>一键注册 NBW 新账号</div>
+              <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>一键注册宝宝新天地新账号</div>
               <div className="text-xs" style={{ color: 'var(--text-muted)' }}>快速创建宝宝新天地账号并绑定</div>
             </div>
           </button>
