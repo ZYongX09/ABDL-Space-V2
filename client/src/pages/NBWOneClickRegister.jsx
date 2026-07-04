@@ -24,6 +24,7 @@ export default function NBWOneClickRegister() {
   const [error, setError] = useState('');
   const [checking, setChecking] = useState(false);
   const timerRef = useRef(null);
+  const phase3StartRef = useRef(null);
 
   const checkRegisterStatus = useCallback(async () => {
     if (checking) return;
@@ -97,16 +98,25 @@ export default function NBWOneClickRegister() {
     fetchRegisterUrl();
   }, [phase, user]);
 
-  // 阶段3：轮询检测注册状态（每1秒）
+  // 阶段3：轮询检测注册状态（渐进加速：0-10s→10s一次，10-20s→5s一次，20s+→3s一次）
   useEffect(() => {
     if (phase !== 3) return;
+    phase3StartRef.current = Date.now();
 
-    timerRef.current = setInterval(() => {
+    const poll = () => {
+      const elapsed = (Date.now() - phase3StartRef.current) / 1000;
+      let interval = 10000;
+      if (elapsed >= 20) interval = 3000;
+      else if (elapsed >= 10) interval = 5000;
+
       checkRegisterStatus();
-    }, 1000);
+      timerRef.current = setTimeout(poll, interval);
+    };
+
+    timerRef.current = setTimeout(poll, 10000);
 
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [phase, checkRegisterStatus]);
 
@@ -137,13 +147,13 @@ export default function NBWOneClickRegister() {
   // 阶段2：跳转补充信息
   if (phase === 2) {
     return (
-      <PageLayout hero={{ icon: 'fa-circle-check', title: '一键注册已完成' }}>
+      <PageLayout hero={{ icon: 'fa-circle-check', title: '第一步已完成' }}>
         <div className="card max-w-md mx-auto text-center py-8">
           <div className="mb-4">
             <img src={NBW_LOGO} alt="" className="w-16 h-16 mx-auto rounded-xl object-contain" />
           </div>
           <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--text)' }}>
-            一键注册已完成
+            第一步已完成
           </h3>
           <p className="text-sm mb-6" style={{ color: 'var(--text-light)' }}>
             但您需要前往宝宝新天地补充个人信息
