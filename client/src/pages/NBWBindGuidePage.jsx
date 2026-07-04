@@ -46,6 +46,13 @@ export default function NBWBindGuidePage() {
           绑定宝宝新天地账户后，您可以在 ABDL Space 发帖并同步到宝宝新天地社区，享受更多互动体验。
         </p>
 
+        <div className="mb-4 p-3 rounded-xl flex items-center gap-2" style={{ background: 'rgba(var(--danger-rgb, 211, 47, 47), 0.08)', border: '1px solid rgba(var(--danger-rgb, 211, 47, 47), 0.2)' }}>
+          <i className="fa-solid fa-triangle-exclamation" style={{ color: 'var(--danger)' }} />
+          <span className="text-xs font-semibold" style={{ color: 'var(--danger)' }}>
+            未绑定宝宝新天地账户将无法发帖
+          </span>
+        </div>
+
         <div className="space-y-3">
           {/* 选项1：绑定已有 NBW 账号 */}
           <button
