@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { notificationsAPI, messagesAPI } from '../api';
 import { useAuth } from './AuthContext';
-import { isPushSupported, isPushSubscribed, subscribePush as doSubscribePush, unsubscribePush as doUnsubscribePush } from '../utils/pushManager';
+import { isPushSupported, isPushSubscribed, subscribePush as doSubscribePush, unsubscribePush as doUnsubscribePush, syncExistingSubscription } from '../utils/pushManager';
 
 const NotificationContext = createContext();
 const POLL_INTERVAL = 30 * 1000; // 30秒
@@ -19,7 +19,12 @@ export function NotificationProvider({ children }) {
   useEffect(() => {
     isPushSupported().then(supported => {
       setPushSupported(supported);
-      if (supported) isPushSubscribed().then(subscribed => setPushSubscribed(subscribed));
+      if (supported) {
+        // 先同步已存在的订阅到后端（处理用户通过系统弹窗允许通知的情况）
+        syncExistingSubscription().then(() => {
+          isPushSubscribed().then(subscribed => setPushSubscribed(subscribed));
+        });
+      }
     });
   }, []);
 

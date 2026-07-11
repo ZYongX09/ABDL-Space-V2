@@ -84,3 +84,32 @@ export async function unsubscribePush() {
 
   await sub.unsubscribe();
 }
+
+/**
+ * 同步已存在的订阅到后端
+ * 用于用户通过系统弹窗允许通知后，自动同步到我们的数据库
+ */
+export async function syncExistingSubscription() {
+  try {
+    const sub = await getPushSubscription();
+    if (!sub) return false;
+
+    const subJson = sub.toJSON();
+    const res = await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        platform: 'web',
+        endpoint: subJson.endpoint,
+        p256dh: subJson.keys?.p256dh,
+        auth: subJson.keys?.auth,
+        device_info: { os: navigator.platform, ua: navigator.userAgent },
+      }),
+    });
+
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
