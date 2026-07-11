@@ -7,6 +7,13 @@
   // Skip if already played this session (prevents re-trigger on /external redirects etc.)
   try { if (sessionStorage.getItem('intro_played')) { var ph0 = document.getElementById('intro-placeholder'); if (ph0) ph0.remove(); return; } } catch (e) {}
 
+  // Skip intro animation in PWA standalone mode
+  if (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches) {
+    var ph0 = document.getElementById('intro-placeholder');
+    if (ph0) ph0.remove();
+    return;
+  }
+
   if (window.__introMounted) {
     var ph0 = document.getElementById('intro-placeholder');
     if (ph0) ph0.remove();
