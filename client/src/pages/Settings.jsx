@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNsfw } from '../contexts/NsfwContext';
 import { isPushSupported, isPushSubscribed, subscribePush as doSubscribePush, unsubscribePush as doUnsubscribePush } from '../utils/pushManager';
-import { isWebAuthnSupported, isPWA, registerPasskey, getMyCredentials, deleteCredential } from '../utils/webauthn';
+import { isPWA, registerPasskey, getMyCredentials, deleteCredential } from '../utils/webauthn';
 
 const MENU = [
   { id: 'section-theme', label: '主题', icon: 'fa-palette' },
@@ -44,8 +44,8 @@ export default function Settings() {
 
   // 宝宝安全识别
   const isPWA = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-  const webauthnSupported = isWebAuthnSupported();
-  const showBiometric = isPWA && webauthnSupported;
+  // PWA 模式下始终显示安全识别选项
+  const showBiometric = isPWA;
   const [biometricCredentials, setBiometricCredentials] = useState([]);
   const [biometricLoading, setBiometricLoading] = useState(false);
 

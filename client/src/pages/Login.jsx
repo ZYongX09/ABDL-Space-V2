@@ -42,8 +42,8 @@ export default function Login() {
   const nbwConfigured = isNBWConfigured();
 
   const isPWA = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-  const webauthnSupported = isWebAuthnSupported();
-  const showBiometricLogin = isPWA && webauthnSupported;
+  // PWA 模式下始终显示安全识别选项
+  const showBiometricLogin = isPWA;
   const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
   const [webauthnLoading, setWebauthnLoading] = useState(false);
   const [hasPasskeys, setHasPasskeys] = useState(false);
