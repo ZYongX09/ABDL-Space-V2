@@ -44,20 +44,57 @@ export async function isPushSubscribed() {
 }
 
 export async function subscribePush() {
-  const permission = await Notification.requestPermission();
+  // 先检查是否已订阅
+  const existingSub = await getPushSubscription();
+  if (existingSub) {
+    // 已有订阅，同步到后端
+    const subJson = existingSub.toJSON();
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        platform: 'web',
+        endpoint: subJson.endpoint,
+        p256dh: subJson.keys?.p256dh,
+        auth: subJson.keys?.auth,
+        device_info: { os: navigator.platform, ua: navigator.userAgent },
+      }),
+    });
+    return existingSub;
+  }
+
+  // 请求权限
+  let permission;
+  try {
+    permission = await Notification.requestPermission();
+  } catch (e) {
+    console.warn('[Push] requestPermission failed:', e);
+    return null;
+  }
+
   if (permission !== 'granted') return null;
 
+  // 获取 VAPID 密钥
   const key = await getVapidKey();
   if (!key) throw new Error('VAPID key not available');
 
-  const reg = await navigator.serviceWorker.ready;
-  const sub = await reg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(key),
-  });
+  // 订阅
+  let sub;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(key),
+    });
+  } catch (e) {
+    console.warn('[Push] pushManager.subscribe failed:', e);
+    throw e;
+  }
 
+  // 同步到后端
   const subJson = sub.toJSON();
-  await fetch('/api/push/subscribe', {
+  const res = await fetch('/api/push/subscribe', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -69,6 +106,10 @@ export async function subscribePush() {
       device_info: { os: navigator.platform, ua: navigator.userAgent },
     }),
   });
+
+  if (!res.ok) {
+    console.warn('[Push] sync to backend failed:', res.status);
+  }
 
   return sub;
 }

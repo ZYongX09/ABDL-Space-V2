@@ -30,9 +30,12 @@ export function NotificationProvider({ children }) {
 
   const subscribeToPush = useCallback(async () => {
     try {
-      await doSubscribePush();
-      setPushSubscribed(true);
-      return true;
+      const result = await doSubscribePush();
+      if (result) {
+        setPushSubscribed(true);
+        return true;
+      }
+      return false;
     } catch (e) {
       console.warn('[Push] subscribe failed:', e);
       return false;
