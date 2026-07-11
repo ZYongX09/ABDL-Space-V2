@@ -1262,3 +1262,51 @@ export const appVersionAPI = {
     return res.json();
   },
 };
+
+// =====================================================================
+// 推送 Push（Web Push + JPush）
+// =====================================================================
+export const pushAPI = {
+  subscribe: async (subscription) => {
+    return apiFetch('/api/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify(subscription),
+    });
+  },
+  unsubscribe: async () => {
+    return apiFetch('/api/push/subscribe', { method: 'DELETE' });
+  },
+  status: async () => {
+    return apiFetch('/api/push/status');
+  },
+  getVapidKey: async () => {
+    return apiFetch('/api/push/vapid-key');
+  },
+};
+
+export const adminPushAPI = {
+  stats: async () => {
+    return apiFetch('/api/push/admin/stats');
+  },
+  logs: async (page = 1) => {
+    return apiFetch(`/api/push/admin/logs?page=${page}`);
+  },
+  send: async ({ targetType, targetIds, title, body, url, platform }) => {
+    return apiFetch('/api/push/admin/send', {
+      method: 'POST',
+      body: JSON.stringify({ target_type: targetType, target_ids: targetIds, title, body, url, platform }),
+    });
+  },
+  platforms: async () => {
+    return apiFetch('/api/push/admin/platforms');
+  },
+  test: async (userId) => {
+    return apiFetch('/api/push/admin/test', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId }),
+    });
+  },
+  jpushStats: async (msgIds) => {
+    return apiFetch(`/api/push/admin/jpush-stats?msg_ids=${msgIds.join(',')}`);
+  },
+};

@@ -254,6 +254,20 @@ export default function AdminPage() {
         )
       )}
 
+      {/* 推送管理入口 */}
+      {tab === 'overview' && !loading && (
+        <div className="mt-4">
+          <Link to="/admin/notifications" className="card flex items-center gap-3 hover-lift" style={{ padding: '1rem', cursor: 'pointer' }}>
+            <i className="fa-solid fa-bell" style={{ color: 'var(--primary)', fontSize: 20 }} />
+            <div className="flex-1">
+              <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>推送通知管理</div>
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>管理 Web Push 和极光推送</div>
+            </div>
+            <i className="fa-solid fa-chevron-right" style={{ fontSize: 11, color: 'var(--text-light)' }} />
+          </Link>
+        </div>
+      )}
+
       {/* 用户管理 */}
       {tab === 'users' && (
         loading ? <LoadingSkeleton count={5} height={60} /> : (

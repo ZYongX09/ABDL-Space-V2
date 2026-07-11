@@ -64,6 +64,7 @@ const FollowersPage = lazy(() => import('./pages/FollowersPage'));
 const AppDownload = lazy(() => import('./pages/AppDownload'));
 const NBWBindGuidePage = lazy(() => import('./pages/NBWBindGuidePage'));
 const NBWOneClickRegister = lazy(() => import('./pages/NBWOneClickRegister'));
+const NotificationAdmin = lazy(() => import('./pages/NotificationAdmin'));
 
 function PageFallback() {
   return (
@@ -90,6 +91,7 @@ const ROUTE_TITLES = {
   '/messages': '私信 — ABDL Space',
   '/notifications': '通知 — ABDL Space',
   '/admin': '管理后台 — ABDL Space',
+  '/admin/notifications': '推送管理 — ABDL Space',
   '/external': '外部链接 — ABDL Space',
   '/about': '关于 — ABDL Space',
   '/app': '下载客户端 — ABDL Space',
@@ -281,6 +283,7 @@ export default function App() {
                 <Route path="/messages" element={<MessagesPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/admin" element={<AdminPage />} />
+                <Route path="/admin/notifications" element={<NotificationAdmin />} />
                 <Route path="/captcha-api" element={<CaptchaApiPage />} />
                 <Route path="/oauth/authorize" element={<OAuthAuthorize />} />
                 <Route path="/oauth/callback" element={<OAuthCallback />} />

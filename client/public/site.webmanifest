@@ -1,0 +1,19 @@
+{
+  "name": "ABDL Space",
+  "short_name": "ABDL Space",
+  "description": "ABDL Space — 纸尿裤社区",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F8FC",
+  "theme_color": "#6C63FF",
+  "orientation": "portrait",
+  "id": "https://abdl-space.top/",
+  "icons": [
+    {
+      "src": "/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

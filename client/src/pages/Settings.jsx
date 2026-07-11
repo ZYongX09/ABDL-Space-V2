@@ -6,6 +6,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNsfw } from '../contexts/NsfwContext';
+import { isPushSupported, isPushSubscribed, subscribePush as doSubscribePush, unsubscribePush as doUnsubscribePush } from '../utils/pushManager';
 
 const MENU = [
   { id: 'section-theme', label: '主题', icon: 'fa-palette' },
@@ -38,6 +39,26 @@ export default function Settings() {
       try { localStorage.setItem('abdl_intro_full_anim', String(next)); } catch {}
       return next;
     });
+  };
+
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+
+  useEffect(() => {
+    isPushSupported().then(supported => {
+      setPushSupported(supported);
+      if (supported) isPushSubscribed().then(subscribed => setPushSubscribed(subscribed));
+    });
+  }, []);
+
+  const handleTogglePush = async () => {
+    if (pushSubscribed) {
+      const ok = await doUnsubscribePush();
+      if (ok) { setPushSubscribed(false); toast.info('推送通知已关闭'); }
+    } else {
+      const ok = await doSubscribePush();
+      if (ok) { setPushSubscribed(true); toast.success('推送通知已开启'); }
+    }
   };
 
   return (
@@ -210,6 +231,42 @@ export default function Settings() {
               </div>
               <i className="fa-solid fa-chevron-right text-xs" style={{ color: 'var(--text-muted)' }} />
             </Link>
+          </div>
+        )}
+
+        {/* 推送通知 */}
+        {user && pushSupported && (
+          <div className="card mb-5">
+            <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
+              <i className="fa-solid fa-bell mr-2" style={{ color: 'var(--primary-dark)' }} />
+              推送通知
+            </h3>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                  {pushSubscribed ? '推送通知已开启' : '推送通知'}
+                </div>
+                <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                  {pushSubscribed ? '接收点赞、评论、私信等通知' : 'iOS 用户需先添加到主屏幕'}
+                </div>
+              </div>
+              <button
+                onClick={handleTogglePush}
+                style={{
+                  width: '48px', height: '26px', borderRadius: '13px',
+                  border: pushSubscribed ? 'none' : '1px solid var(--text-muted)', cursor: 'pointer',
+                  background: pushSubscribed ? 'var(--primary)' : 'var(--border)',
+                  position: 'relative', transition: 'background 0.2s, border 0.2s',
+                }}
+              >
+                <div style={{
+                  width: '22px', height: '22px', borderRadius: '50%',
+                  background: 'white', position: 'absolute', top: '2px',
+                  left: pushSubscribed ? '24px' : '2px',
+                  transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                }} />
+              </button>
+            </div>
           </div>
         )}
 
