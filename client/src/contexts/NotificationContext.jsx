@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { notificationsAPI, messagesAPI } from '../api';
 import { useAuth } from './AuthContext';
+import { isPushSupported, isPushSubscribed, subscribePush as doSubscribePush, unsubscribePush as doUnsubscribePush } from '../utils/pushManager';
 
 const NotificationContext = createContext();
 const POLL_INTERVAL = 30 * 1000; // 30秒
@@ -9,9 +10,40 @@ export function NotificationProvider({ children }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [messageUnread, setMessageUnread] = useState(0);
   const [toasts, setToasts] = useState([]); // 实时弹窗队列
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushSubscribed, setPushSubscribed] = useState(false);
   const lastNotifIdsRef = useRef(new Set());
   const lastMsgTimeRef = useRef(null);
   const { user } = useAuth();
+
+  useEffect(() => {
+    isPushSupported().then(supported => {
+      setPushSupported(supported);
+      if (supported) isPushSubscribed().then(subscribed => setPushSubscribed(subscribed));
+    });
+  }, []);
+
+  const subscribeToPush = useCallback(async () => {
+    try {
+      await doSubscribePush();
+      setPushSubscribed(true);
+      return true;
+    } catch (e) {
+      console.warn('[Push] subscribe failed:', e);
+      return false;
+    }
+  }, []);
+
+  const unsubscribeFromPush = useCallback(async () => {
+    try {
+      await doUnsubscribePush();
+      setPushSubscribed(false);
+      return true;
+    } catch (e) {
+      console.warn('[Push] unsubscribe failed:', e);
+      return false;
+    }
+  }, []);
 
   // 弹窗自动消失
   const addToast = useCallback((toast) => {
@@ -124,6 +156,8 @@ export function NotificationProvider({ children }) {
       fetchUnread, fetchMessageUnread,
       clearUnread, clearMessageUnread,
       dismissToast,
+      pushSupported, pushSubscribed,
+      subscribeToPush, unsubscribeFromPush,
     }}>
       {children}
     </NotificationContext.Provider>

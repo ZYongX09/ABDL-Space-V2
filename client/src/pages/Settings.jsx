@@ -235,7 +235,7 @@ export default function Settings() {
         )}
 
         {/* 推送通知 */}
-        {user && pushSupported && (
+        {user && (
           <div className="card mb-5">
             <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
               <i className="fa-solid fa-bell mr-2" style={{ color: 'var(--primary-dark)' }} />
@@ -247,25 +247,32 @@ export default function Settings() {
                   {pushSubscribed ? '推送通知已开启' : '推送通知'}
                 </div>
                 <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                  {pushSubscribed ? '接收点赞、评论、私信等通知' : 'iOS 用户需先添加到主屏幕'}
+                  {!pushSupported
+                    ? '请先将网站添加到主屏幕以启用推送'
+                    : pushSubscribed
+                      ? '接收点赞、评论、私信等通知'
+                      : '开启后可接收点赞、评论、私信等通知'
+                  }
                 </div>
               </div>
-              <button
-                onClick={handleTogglePush}
-                style={{
-                  width: '48px', height: '26px', borderRadius: '13px',
-                  border: pushSubscribed ? 'none' : '1px solid var(--text-muted)', cursor: 'pointer',
-                  background: pushSubscribed ? 'var(--primary)' : 'var(--border)',
-                  position: 'relative', transition: 'background 0.2s, border 0.2s',
-                }}
-              >
-                <div style={{
-                  width: '22px', height: '22px', borderRadius: '50%',
-                  background: 'white', position: 'absolute', top: '2px',
-                  left: pushSubscribed ? '24px' : '2px',
-                  transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                }} />
-              </button>
+              {pushSupported && (
+                <button
+                  onClick={handleTogglePush}
+                  style={{
+                    width: '48px', height: '26px', borderRadius: '13px',
+                    border: pushSubscribed ? 'none' : '1px solid var(--text-muted)', cursor: 'pointer',
+                    background: pushSubscribed ? 'var(--primary)' : 'var(--border)',
+                    position: 'relative', transition: 'background 0.2s, border 0.2s',
+                  }}
+                >
+                  <div style={{
+                    width: '22px', height: '22px', borderRadius: '50%',
+                    background: 'white', position: 'absolute', top: '2px',
+                    left: pushSubscribed ? '24px' : '2px',
+                    transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  }} />
+                </button>
+              )}
             </div>
           </div>
         )}

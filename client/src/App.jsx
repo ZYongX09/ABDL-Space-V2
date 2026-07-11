@@ -18,6 +18,7 @@ import BackToTop from './components/BackToTop';
 import ToastPopup from './components/ToastPopup';
 import ScrollProgress from './components/ScrollProgress';
 import ErrorBoundary from './components/ErrorBoundary';
+import PushPrompt from './components/PushPrompt';
 import { useExternalLinkInterceptor } from './hooks/useExternalLinkInterceptor';
 
 // 路由级懒加载 — 首屏只加载 HomeV2
@@ -327,6 +328,7 @@ export default function App() {
       </>
       )}
       <ToastPopup />
+      <PushPrompt />
       {pathname !== '/beta-register' && <MobileBottomNav />}
       </NsfwProvider>
       </NotificationProvider>
