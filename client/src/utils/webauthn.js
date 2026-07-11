@@ -8,17 +8,22 @@ import {
 const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 
 export function isWebAuthnSupported() {
-  // 基础检查
-  if (!browserSupportsWebAuthn()) return false
+  // 检查 navigator.credentials 是否存在
+  if (!window.navigator.credentials) return false
 
-  // 检查 PublicKeyCredential 是否真正可用（不只是存在）
+  // 检查 PublicKeyCredential 是否存在
   if (typeof window.PublicKeyCredential === 'undefined') return false
 
-  // 检查是否支持必需的方法
-  if (typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable !== 'function') {
-    return false
-  }
+  // 尝试检测是否真正支持（某些浏览器可能有对象但不支持）
+  try {
+    // 如果能调用这个方法，说明真正支持
+    if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+      return true
+    }
+  } catch {}
 
+  // 即使检测方法失败，只要基础对象存在就认为可能支持
+  // 让实际调用时捕获具体错误
   return true
 }
 
@@ -61,21 +66,9 @@ export async function registerPasskey() {
   try {
     attResp = await startRegistration({ optionsJSON })
   } catch (e) {
-    const msg = e.message || ''
-    // 具体错误处理
-    if (msg.includes('credential manager') || msg.includes('Credential Manager')) {
-      throw new Error('浏览器安全模块不可用，请尝试：1) 使用 Chrome 浏览器 2) 在系统设置中启用屏幕锁定')
-    }
-    if (e.name === 'NotAllowedError') {
-      throw new Error('用户取消了验证或设备不支持')
-    }
-    if (e.name === 'SecurityError') {
-      throw new Error('安全错误：请确保在 HTTPS 环境下使用')
-    }
-    if (e.name === 'NotSupportedError') {
-      throw new Error('此设备不支持安全识别')
-    }
-    throw e
+    // 显示实际错误信息，帮助调试
+    console.error('[WebAuthn] register error:', e)
+    throw new Error(`安全识别注册失败: ${e.message || e.name || '未知错误'}`)
   }
 
   const verifyRes = await fetch(`${API_BASE}/api/webauthn/register/verify`, {
@@ -149,11 +142,9 @@ export async function authenticateWithPasskey(username) {
   try {
     asseResp = await startAuthentication({ optionsJSON })
   } catch (e) {
-    // Edge Android PWA 兼容性错误
-    if (e.message?.includes('credential manager') || e.name === 'NotAllowedError') {
-      throw new Error('此浏览器不支持安全识别，请使用其他浏览器或密码登录')
-    }
-    throw e
+    // 显示实际错误信息，帮助调试
+    console.error('[WebAuthn] authenticate error:', e)
+    throw new Error(`安全识别失败: ${e.message || e.name || '未知错误'}`)
   }
 
   const verifyRes = await fetch(`${API_BASE}/api/webauthn/authenticate/verify`, {
