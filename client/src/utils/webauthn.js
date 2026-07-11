@@ -42,7 +42,16 @@ export async function registerPasskey() {
 
   const deviceName = getDeviceName()
 
-  const attResp = await startRegistration({ optionsJSON })
+  let attResp
+  try {
+    attResp = await startRegistration({ optionsJSON })
+  } catch (e) {
+    // Edge Android PWA 兼容性错误
+    if (e.message?.includes('credential manager') || e.name === 'NotAllowedError') {
+      throw new Error('此浏览器不支持安全识别，请使用其他浏览器或密码登录')
+    }
+    throw e
+  }
 
   const verifyRes = await fetch(`${API_BASE}/api/webauthn/register/verify`, {
     method: 'POST',
@@ -62,7 +71,16 @@ export async function authenticateWithPasskey(username) {
   })
   const optionsJSON = await optionsRes.json()
 
-  const asseResp = await startAuthentication({ optionsJSON })
+  let asseResp
+  try {
+    asseResp = await startAuthentication({ optionsJSON })
+  } catch (e) {
+    // Edge Android PWA 兼容性错误
+    if (e.message?.includes('credential manager') || e.name === 'NotAllowedError') {
+      throw new Error('此浏览器不支持安全识别，请使用其他浏览器或密码登录')
+    }
+    throw e
+  }
 
   const verifyRes = await fetch(`${API_BASE}/api/webauthn/authenticate/verify`, {
     method: 'POST',
