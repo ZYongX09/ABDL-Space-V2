@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNsfw } from '../contexts/NsfwContext';
 import { isPushSupported, isPushSubscribed, subscribePush as doSubscribePush, unsubscribePush as doUnsubscribePush } from '../utils/pushManager';
+import { isWebAuthnSupported, isPWA, registerPasskey, getMyCredentials, deleteCredential } from '../utils/webauthn';
 
 const MENU = [
   { id: 'section-theme', label: '主题', icon: 'fa-palette' },
@@ -39,6 +40,49 @@ export default function Settings() {
       try { localStorage.setItem('abdl_intro_full_anim', String(next)); } catch {}
       return next;
     });
+  };
+
+  // 宝宝安全识别
+  const isPWA = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  const webauthnSupported = isWebAuthnSupported();
+  const showBiometric = isPWA && webauthnSupported;
+  const [biometricCredentials, setBiometricCredentials] = useState([]);
+  const [biometricLoading, setBiometricLoading] = useState(false);
+
+  useEffect(() => {
+    if (showBiometric && user) {
+      getMyCredentials().then(({ credentials }) => {
+        setBiometricCredentials(credentials || []);
+      }).catch(() => {});
+    }
+  }, [showBiometric, user]);
+
+  const handleRegisterBiometric = async () => {
+    try {
+      setBiometricLoading(true);
+      const result = await registerPasskey();
+      if (result.verified) {
+        toast.success('宝宝安全识别已添加');
+        const { credentials } = await getMyCredentials();
+        setBiometricCredentials(credentials || []);
+      } else {
+        toast.error('添加失败，请重试');
+      }
+    } catch (e) {
+      toast.error('添加失败：' + (e.message || '未知错误'));
+    } finally {
+      setBiometricLoading(false);
+    }
+  };
+
+  const handleDeleteBiometric = async (id) => {
+    try {
+      await deleteCredential(id);
+      toast.info('已删除');
+      setBiometricCredentials(prev => prev.filter(c => c.id !== id));
+    } catch (e) {
+      toast.error('删除失败');
+    }
   };
 
   const [pushSupported, setPushSupported] = useState(false);
@@ -274,6 +318,57 @@ export default function Settings() {
                 </button>
               )}
             </div>
+          </div>
+        )}
+
+        {/* 宝宝安全识别 */}
+        {user && showBiometric && (
+          <div className="card mb-5">
+            <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>
+              <i className="fa-solid fa-fingerprint mr-2" style={{ color: 'var(--primary-dark)' }} />
+              宝宝安全识别
+            </h3>
+            {biometricCredentials.length === 0 ? (
+              <div>
+                <div className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>尚未设置安全识别</div>
+                <button
+                  onClick={handleRegisterBiometric}
+                  className="btn btn-primary"
+                  disabled={biometricLoading}
+                >
+                  {biometricLoading ? '添加中...' : '添加安全识别'}
+                </button>
+              </div>
+            ) : (
+              <div>
+                {biometricCredentials.map(cred => (
+                  <div key={cred.id} className="flex items-center justify-between py-2" style={{ borderBottom: '1px solid var(--border)' }}>
+                    <div>
+                      <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                        {cred.nickname || cred.device_type || '已注册设备'}
+                      </div>
+                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        添加于 {new Date(cred.created_at * 1000).toLocaleDateString('zh-CN')}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteBiometric(cred.id)}
+                      className="text-xs"
+                      style={{ color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      删除
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={handleRegisterBiometric}
+                  className="btn btn-outline mt-3"
+                  disabled={biometricLoading}
+                >
+                  {biometricLoading ? '添加中...' : '添加新设备'}
+                </button>
+              </div>
+            )}
           </div>
         )}
 

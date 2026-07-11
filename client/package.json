@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^13.3.0",
     "@tensorflow/tfjs": "^4.22.0",
     "nsfwjs": "^4.3.0",
     "qrcode.react": "^4.2.0",

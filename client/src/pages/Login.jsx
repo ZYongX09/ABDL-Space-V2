@@ -7,6 +7,8 @@ import AnimatedCharacters from '../components/AnimatedCharacters/AnimatedCharact
 import { useInlineVerify } from '../components/useInlineVerify';
 import QRLoginMode from '../components/QRLoginMode';
 import LanLoginMode from '../components/LanLoginMode';
+import { isWebAuthnSupported, isPWA, authenticateWithPasskey, getMyCredentials } from '../utils/webauthn';
+import BiometricPrompt from '../components/BiometricPrompt';
 import './Login.css';
 
 const FAIL_THRESHOLD = 2;
@@ -39,6 +41,32 @@ export default function Login() {
   const isTyping = emailFocused && login.length > 0;
   const nbwConfigured = isNBWConfigured();
 
+  const isPWA = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  const webauthnSupported = isWebAuthnSupported();
+  const showBiometricLogin = isPWA && webauthnSupported;
+  const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
+  const [webauthnLoading, setWebauthnLoading] = useState(false);
+
+  // 宝宝安全识别登录
+  const handleWebAuthnLogin = async () => {
+    if (!login.trim()) { toast.error('请先填写用户名/邮箱'); return; }
+    try {
+      setWebauthnLoading(true);
+      const result = await authenticateWithPasskey(login.trim());
+      if (result.verified && result.token) {
+        saveConsent({ privacy: true, minor: true, userId: result.user?.id });
+        toast.success('登录成功');
+        navigate(location.state?.from || '/');
+      } else {
+        toast.error(result.error || '验证失败');
+      }
+    } catch (e) {
+      toast.error('验证失败：' + (e.message || '未知错误'));
+    } finally {
+      setWebauthnLoading(false);
+    }
+  };
+
 
 
   const handleSubmit = async (e) => {
@@ -56,6 +84,17 @@ export default function Login() {
       const result = await authLogin({ login: login.trim(), password, captchaToken: captchaTokenRef.current || undefined });
       try { saveConsent({ privacy: true, minor: true, userId: result?.user?.id }); } catch {}
       toast.success('登录成功');
+
+      // PWA 模式下检查是否需要推荐设置宝宝安全识别
+      if (showBiometricLogin && result?.user?.id) {
+        try {
+          const { credentials } = await getMyCredentials();
+          if (!credentials || credentials.length === 0) {
+            setShowBiometricPrompt(true);
+          }
+        } catch {}
+      }
+
       navigate(location.state?.from || '/');
     } catch (e) {
       const msg = e.message || '';
@@ -98,6 +137,26 @@ export default function Login() {
           <LanLoginMode onSwitchBack={() => setLanMode(false)} />
         ) : (
           <>
+        {/* 宝宝安全识别登录（仅 PWA） */}
+        {showBiometricLogin && (
+          <>
+            <button
+              className="login-nbw-btn"
+              style={{ background: 'var(--primary)', color: 'white', borderColor: 'var(--primary)' }}
+              onClick={handleWebAuthnLogin}
+              disabled={webauthnLoading}
+            >
+              <i className={`fa-solid ${webauthnLoading ? 'fa-spinner fa-spin' : 'fa-fingerprint'}`} />
+              <span>{webauthnLoading ? '验证中...' : '宝宝安全识别登录'}</span>
+            </button>
+            <div className="login-divider">
+              <div className="login-divider-line" />
+              <span>或使用账号密码</span>
+              <div className="login-divider-line" />
+            </div>
+          </>
+        )}
+
         {/* NBW 登录 */}
         {nbwConfigured ? (
           <>
@@ -252,6 +311,27 @@ export default function Login() {
           {loginForm}
         </div>
       </div>
+
+      {/* 宝宝安全识别设置推荐弹窗 */}
+      {showBiometricPrompt && (
+        <BiometricPrompt
+          onSetup={async () => {
+            setShowBiometricPrompt(false);
+            try {
+              const { registerPasskey } = await import('../utils/webauthn');
+              const result = await registerPasskey();
+              if (result.verified) {
+                toast.success('宝宝安全识别已设置');
+              } else {
+                toast.error('设置失败，请重试');
+              }
+            } catch (e) {
+              toast.error('设置失败：' + (e.message || '未知错误'));
+            }
+          }}
+          onDismiss={() => setShowBiometricPrompt(false)}
+        />
+      )}
     </>
   );
 }
