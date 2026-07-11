@@ -16,6 +16,7 @@ const TABS = [
   { key: 'diapers', label: '纸尿裤', icon: 'fa-baby' },
   { key: 'brands', label: '品牌', icon: 'fa-copyright' },
   { key: 'reports', label: '举报', icon: 'fa-flag' },
+  { key: 'friend_reports', label: '交友举报', icon: 'fa-user-group' },
   { key: 'security', label: '安全', icon: 'fa-shield-halved' },
 ];
 
@@ -32,6 +33,8 @@ export default function AdminPage() {
   const [reports, setReports] = useState([]);
   const [reportStatus, setReportStatus] = useState('pending');
   const [diapers, setDiapers] = useState([]);
+  const [friendReports, setFriendReports] = useState([]);
+  const [friendReportStatus, setFriendReportStatus] = useState('pending');
   const [showDiaperForm, setShowDiaperForm] = useState(false);
   const [editingDiaper, setEditingDiaper] = useState(null);
   const [diaperForm, setDiaperForm] = useState({
@@ -76,6 +79,9 @@ export default function AdminPage() {
       } else if (t === 'reports') {
         const data = await adminAPI.reports(reportStatus);
         setReports(data.reports || []);
+      } else if (t === 'friend_reports') {
+        const data = await adminAPI.friendRequestReports(friendReportStatus);
+        setFriendReports(data.reports || []);
       } else if (t === 'diapers') {
         const data = await adminAPI.listDiapers();
         setDiapers(data.diapers || []);
@@ -662,6 +668,98 @@ export default function AdminPage() {
                         </button>
                         <button className="btn btn-outline btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem' }}
                           onClick={async () => { try { await adminAPI.resolveReport(r.id, 'dismiss'); setReports(prev => prev.filter(x => x.id !== r.id)); toast.success('已驳回'); } catch (e) { toast.error(e.message); } }}
+                          title="驳回">
+                          <i className="fa-solid fa-xmark" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ====== 交友举报管理 ====== */}
+      {tab === 'friend_reports' && (
+        <>
+          <div className="flex gap-2 mb-4">
+            {['pending', 'resolved', 'dismissed'].map(s => (
+              <button
+                key={s}
+                className="btn btn-sm"
+                onClick={() => { setFriendReportStatus(s); loadTab('friend_reports'); }}
+                style={{
+                  background: friendReportStatus === s ? 'var(--primary)' : 'var(--input-bg)',
+                  color: friendReportStatus === s ? 'white' : 'var(--text)',
+                  border: 'none', fontSize: '0.75rem',
+                }}
+              >
+                {{ pending: '待处理', resolved: '已处理', dismissed: '已驳回' }[s]}
+              </button>
+            ))}
+          </div>
+          {loading ? <LoadingSkeleton count={5} height={80} /> : (
+            <div className="space-y-2">
+              {friendReports.length === 0 ? (
+                <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>暂无交友举报</p>
+              ) : friendReports.map(r => (
+                <div key={r.id} className="card" style={{ padding: '0.75rem 1rem' }}>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'rgba(255,109,0,0.15)', color: '#FF6D00' }}>
+                      <i className="fa-solid fa-user-group text-xs" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                          {r.request?.title || '未知'}
+                        </span>
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                          找{r.request?.looking_for || ''}
+                        </span>
+                      </div>
+                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        举报人: {r.reporter?.username} · {r.created_at ? new Date(r.created_at + 'Z').toLocaleString('zh-CN') : ''}
+                      </div>
+                      <p className="text-sm mt-1" style={{ color: 'var(--text-light)' }}>{r.reason}</p>
+                      {r.request?.description && (
+                        <p className="text-xs mt-1 truncate" style={{ color: 'var(--text-muted)' }}>
+                          内容: {r.request.description}
+                        </p>
+                      )}
+                      {r.evidence_urls && r.evidence_urls.length > 0 && (
+                        <div className="flex gap-2 mt-2">
+                          {r.evidence_urls.map((url, i) => (
+                            <img key={i} src={url} alt="证据" className="w-16 h-16 object-cover rounded-lg" />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {friendReportStatus === 'pending' && (
+                      <div className="flex gap-1.5 flex-shrink-0">
+                        <button className="btn btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'var(--danger)', color: 'white' }}
+                          onClick={async () => {
+                            try {
+                              await adminAPI.acceptFriendRequestReport(r.id);
+                              setFriendReports(prev => prev.filter(x => x.id !== r.id));
+                              toast.success('已采纳：删除并封禁用户');
+                            } catch (e) { toast.error(e.message); }
+                          }}
+                          title="采纳（删除+封禁）">
+                          <i className="fa-solid fa-check" />
+                        </button>
+                        <button className="btn btn-outline btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                          onClick={async () => {
+                            const reply = prompt('请输入驳回理由（可选）：');
+                            if (reply === null) return;
+                            try {
+                              await adminAPI.dismissFriendRequestReport(r.id, reply || undefined);
+                              setFriendReports(prev => prev.filter(x => x.id !== r.id));
+                              toast.success('已驳回');
+                            } catch (e) { toast.error(e.message); }
+                          }}
                           title="驳回">
                           <i className="fa-solid fa-xmark" />
                         </button>

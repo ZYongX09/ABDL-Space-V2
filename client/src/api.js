@@ -1052,6 +1052,22 @@ export const adminAPI = {
     if (USE_API) return apiFetch('/api/admin/security/stats');
     return { dayCount: 0, weekCount: 0, typeStats: [], scoreDistribution: [], trend: [] };
   },
+
+  // 交友请求举报管理
+  friendRequestReports: async (status = 'pending', page = 1) => {
+    if (USE_API) return apiFetch(`/api/friend-request/admin/reports?status=${status}&page=${page}`);
+    return { reports: [], pagination: { page: 1, limit: 20, total: 0 } };
+  },
+
+  acceptFriendRequestReport: async (id) => {
+    if (USE_API) return apiFetch(`/api/friend-request/admin/reports/${id}/accept`, { method: 'POST' });
+    return { message: '已采纳' };
+  },
+
+  dismissFriendRequestReport: async (id, reply) => {
+    if (USE_API) return apiFetch(`/api/friend-request/admin/reports/${id}/dismiss`, { method: 'POST', body: JSON.stringify({ reply }) });
+    return { message: '已驳回' };
+  },
 };
 
 // =====================================================================
