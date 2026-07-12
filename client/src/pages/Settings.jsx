@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNsfw } from '../contexts/NsfwContext';
 import { isPushSupported, isPushSubscribed, subscribePush as doSubscribePush, unsubscribePush as doUnsubscribePush } from '../utils/pushManager';
-import { isPWA, registerPasskey, getMyCredentials, deleteCredential } from '../utils/webauthn';
+import { isPWA, isWebAuthnReallyAvailable, registerPasskey, getMyCredentials, deleteCredential } from '../utils/webauthn';
 
 const MENU = [
   { id: 'section-theme', label: '主题', icon: 'fa-palette' },
@@ -44,10 +44,18 @@ export default function Settings() {
 
   // 宝宝安全识别
   const isPWA = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-  // PWA 模式下始终显示安全识别选项
-  const showBiometric = isPWA;
+  const [showBiometric, setShowBiometric] = useState(false);
   const [biometricCredentials, setBiometricCredentials] = useState([]);
   const [biometricLoading, setBiometricLoading] = useState(false);
+
+  // 异步检测 WebAuthn 是否真正可用
+  useEffect(() => {
+    if (isPWA) {
+      isWebAuthnReallyAvailable().then(available => {
+        setShowBiometric(available);
+      });
+    }
+  }, [isPWA]);
 
   useEffect(() => {
     if (showBiometric && user) {

@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { isNBWConfigured, startNBWOAuth } from '../utils/nbwOAuth';
 import { useInlineVerify } from '../components/useInlineVerify';
-import { isWebAuthnSupported, isPWA, authenticateWithPasskey, getMyCredentials } from '../utils/webauthn';
+import { isWebAuthnReallyAvailable, isPWA, authenticateWithPasskey, getMyCredentials } from '../utils/webauthn';
 import BiometricPrompt from '../components/BiometricPrompt';
 
 const FAIL_THRESHOLD = 2;
@@ -31,13 +31,21 @@ export default function Login() {
   const nbwConfigured = isNBWConfigured();
 
   const isPWA = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-  // PWA 模式下始终显示安全识别选项
-  const showBiometricLogin = isPWA;
+  const [showBiometricLogin, setShowBiometricLogin] = useState(false);
   const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
   const [webauthnLoading, setWebauthnLoading] = useState(false);
   const [hasPasskeys, setHasPasskeys] = useState(false);
   const [showAccountConfirm, setShowAccountConfirm] = useState(false);
   const [passkeyAccounts, setPasskeyAccounts] = useState([]);
+
+  // 异步检测 WebAuthn 是否真正可用
+  useEffect(() => {
+    if (isPWA) {
+      isWebAuthnReallyAvailable().then(available => {
+        setShowBiometricLogin(available);
+      });
+    }
+  }, [isPWA]);
 
   // 检查是否有已注册的 passkey（用于免账号登录）
   useEffect(() => {

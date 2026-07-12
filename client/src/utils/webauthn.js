@@ -7,29 +7,19 @@ import {
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 
-export function isWebAuthnSupported() {
-  // 检查 navigator.credentials 是否存在
-  if (!window.navigator.credentials) return false
-
-  // 检查 PublicKeyCredential 是否存在
-  if (typeof window.PublicKeyCredential === 'undefined') return false
-
-  // 尝试检测是否真正支持（某些浏览器可能有对象但不支持）
+/**
+ * 异步检测 WebAuthn 是否真正可用
+ * Edge Android PWA 可能有 navigator.credentials 但实际调用会失败
+ */
+export async function isWebAuthnReallyAvailable() {
   try {
-    // 如果能调用这个方法，说明真正支持
-    if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
-      return true
-    }
-  } catch {}
+    if (!window.navigator.credentials) return false
+    if (typeof window.PublicKeyCredential === 'undefined') return false
 
-  // 即使检测方法失败，只要基础对象存在就认为可能支持
-  // 让实际调用时捕获具体错误
-  return true
-}
-
-export async function isPlatformAuthAvailable() {
-  try {
-    return await platformAuthenticatorIsAvailable()
+    // 关键检测：平台认证器是否可用（Face ID/指纹）
+    // 这个方法会真正测试是否能使用，不只是检查对象存在
+    const available = await platformAuthenticatorIsAvailable()
+    return available
   } catch {
     return false
   }
