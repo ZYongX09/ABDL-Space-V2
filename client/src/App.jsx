@@ -203,11 +203,25 @@ function AdminOnlyProfile() {
   return <Profile />;
 }
 
+function isPhone() {
+  return /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    && !/iPad|Tablet/i.test(navigator.userAgent);
+}
+
 export default function App() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { pathname } = useLocation();
   useExternalLinkInterceptor();
+
+  // 手机端访问 /profile/* 强制跳转 m.abdl-space.top
+  useEffect(() => {
+    if (!isPhone()) return;
+    if (window.location.hostname.startsWith('m.')) return;
+    if (pathname.startsWith('/profile')) {
+      window.location.replace('https://m.abdl-space.top' + pathname + window.location.search);
+    }
+  }, [pathname]);
 
   // 初始化 NBW OAuth 配置
   useEffect(() => { initNBWConfig(); }, []);

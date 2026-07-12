@@ -117,44 +117,6 @@ export async function authenticateWithPasskey(username) {
 
   return verifyRes.json()
 }
-    throw e
-  }
-
-  const verifyRes = await fetch(`${API_BASE}/api/webauthn/register/verify`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ ...attResp, challenge: optionsJSON.challenge, nickname: deviceName }),
-  })
-
-  return verifyRes.json()
-}
-
-export async function authenticateWithPasskey(username) {
-  const optionsRes = await fetch(`${API_BASE}/api/webauthn/authenticate/options`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username }),
-  })
-  const optionsJSON = await optionsRes.json()
-
-  let asseResp
-  try {
-    asseResp = await startAuthentication({ optionsJSON })
-  } catch (e) {
-    // 显示实际错误信息，帮助调试
-    console.error('[WebAuthn] authenticate error:', e)
-    throw new Error(`安全识别失败: ${e.message || e.name || '未知错误'}`)
-  }
-
-  const verifyRes = await fetch(`${API_BASE}/api/webauthn/authenticate/verify`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...asseResp, challenge: optionsJSON.challenge }),
-  })
-
-  return verifyRes.json()
-}
 
 export async function getMyCredentials() {
   const res = await fetch(`${API_BASE}/api/webauthn/credentials`, {
