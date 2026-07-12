@@ -44,8 +44,8 @@ export default function HomeV2() {
         search: search || undefined,
         filter,
       });
-      // 过滤掉回帖（reply_to_id 不为空的帖子）
-      const newPosts = (data.posts || []).filter(p => !p.reply_to_id);
+      // 过滤掉回帖（in_reply_to_id 不为空的帖子）
+      const newPosts = (data.posts || []).filter(p => !p.in_reply_to_id);
       setPosts(prev => append ? [...prev, ...newPosts] : newPosts);
       setHasMore(newPosts.length >= 20);
       setPage(pageNum);
