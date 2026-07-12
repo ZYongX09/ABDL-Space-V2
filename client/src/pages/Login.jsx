@@ -85,11 +85,18 @@ export default function Login() {
 
   // 显示账户确认弹窗
   const handleBiometricClick = () => {
+    // 如果输入框有用户名，直接用它
+    if (login.trim()) {
+      handleWebAuthnLogin(login.trim());
+      return;
+    }
+    // 有保存的账户，弹窗选择
     if (passkeyAccounts.length > 0) {
       setShowAccountConfirm(true);
     } else {
-      // 无已保存账户，需要输入用户名
-      toast.info('请先输入用户名/邮箱');
+      // 无保存账户，也不需要输入用户名
+      // Passkey 的 discoverable credentials 会自动匹配账户
+      handleWebAuthnLogin('');
     }
   };
 
