@@ -26,34 +26,34 @@ function classifyPredictions(predictions) {
   const drawing = get('Drawing');
 
 
-  // 高敏感: Porn ≥ 0.2 → 禁止上传（不放过任何可能的色情内容）
-  if (porn >= 0.2) {
+  // 高敏感: Porn ≥ 0.7 → 禁止上传
+  if (porn >= 0.7) {
     return { level: 'high', type: '色情内容', score: porn };
   }
 
-  // 高敏感: Hentai ≥ 0.25 → 禁止上传
-  if (hentai >= 0.25) {
+  // 高敏感: Hentai ≥ 0.7 → 禁止上传
+  if (hentai >= 0.7) {
     return { level: 'high', type: '成人动漫内容', score: hentai };
   }
 
-  // 高敏感: Sexy ≥ 0.5 → 禁止上传（高度擦边视为高敏感）
-  if (sexy >= 0.5) {
+  // 高敏感: Sexy ≥ 0.8 → 禁止上传
+  if (sexy >= 0.8) {
     return { level: 'high', type: '擦边内容', score: sexy };
   }
 
-  // 低敏感: Sexy ≥ 0.15
-  if (sexy >= 0.15) {
-    return { level: 'low', type: '擦边内容', score: sexy };
+  // 低敏感: Porn ≥ 0.5
+  if (porn >= 0.5) {
+    return { level: 'low', type: '疑似色情内容', score: porn };
   }
 
-  // 低敏感: Hentai ≥ 0.1
-  if (hentai >= 0.1) {
+  // 低敏感: Hentai ≥ 0.5
+  if (hentai >= 0.5) {
     return { level: 'low', type: '疑似成人动漫', score: hentai };
   }
 
-  // 低敏感: Porn ≥ 0.1
-  if (porn >= 0.1) {
-    return { level: 'low', type: '疑似色情内容', score: porn };
+  // 低敏感: Sexy ≥ 0.5
+  if (sexy >= 0.5) {
+    return { level: 'low', type: '擦边内容', score: sexy };
   }
 
   return { level: 'safe', type: null, score: 0 };
