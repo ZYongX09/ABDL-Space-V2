@@ -65,7 +65,11 @@ export async function registerPasskey() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ ...attResp, challenge: optionsJSON.challenge, nickname: deviceName }),
+    body: JSON.stringify({
+      ...attResp,
+      challengeId: optionsJSON.challengeId,
+      nickname: deviceName,
+    }),
   })
 
   return verifyRes.json()
@@ -102,7 +106,10 @@ export async function authenticateWithPasskey(username) {
   const verifyRes = await fetch(`${API_BASE}/api/webauthn/authenticate/verify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...asseResp, challenge: optionsJSON.challenge }),
+    body: JSON.stringify({
+      ...asseResp,
+      challengeId: optionsJSON.challengeId,
+    }),
   })
 
   return verifyRes.json()
