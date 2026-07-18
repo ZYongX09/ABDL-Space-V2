@@ -7,6 +7,9 @@ import { isNBWConfigured, startNBWOAuth } from '../utils/nbwOAuth';
 import { useInlineVerify } from '../components/useInlineVerify';
 import { isWebAuthnReallyAvailable, isPWA, authenticateWithPasskey, getMyCredentials } from '../utils/webauthn';
 import BiometricPrompt from '../components/BiometricPrompt';
+import AnimatedCharacters from '../components/AnimatedCharacters/AnimatedCharacters';
+import QRLoginMode from '../components/QRLoginMode';
+import './Login.css';
 
 const FAIL_THRESHOLD = 2;
 const NBW_LOGO = 'https://img.abdl-space.top/file/nbwlogo.png';
@@ -16,6 +19,8 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [consented, setConsented] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loginFocused, setLoginFocused] = useState(false);
+  const [qrMode, setQrMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [failCount, setFailCount] = useState(0);
   const [showNBWConsent, setShowNBWConsent] = useState(false);
@@ -143,8 +148,32 @@ export default function Login() {
   };
 
   return (
-    <PageLayout hero={{ icon: 'fa-right-to-bracket', title: '登录', subtitle: '欢迎回到 ABDL Space' }}>
-      <div className="card max-w-md mx-auto">
+    <div className="login-page-shell">
+      <aside className="login-animation-desktop" aria-hidden="true">
+        <AnimatedCharacters
+          isTyping={loginFocused && login.length > 0}
+          showPassword={showPassword && password.length > 0}
+          passwordLength={password.length}
+        />
+        <p className="login-left-text">探索 ABDL 世界</p>
+      </aside>
+
+      <PageLayout hero={{ icon: 'fa-right-to-bracket', title: '登录', subtitle: '欢迎回到 ABDL Space' }}>
+      <div className="card max-w-md mx-auto relative">
+        <button
+          type="button"
+          className="qr-toggle-btn"
+          onClick={() => setQrMode(value => !value)}
+          title={qrMode ? '切换到账号密码登录' : '切换到二维码登录'}
+          aria-label={qrMode ? '切换到账号密码登录' : '切换到二维码登录'}
+        >
+          <i className={`fa-solid ${qrMode ? 'fa-keyboard' : 'fa-qrcode'}`} />
+        </button>
+
+        {qrMode ? (
+          <QRLoginMode onSwitchBack={() => setQrMode(false)} />
+        ) : (
+          <>
         {/* 宝宝安全识别登录按钮（仅 PWA + 支持 WebAuthn 时显示） */}
         {showBiometricLogin && (
           <>
@@ -233,7 +262,7 @@ export default function Login() {
         <form onSubmit={handleSubmit}>
           <div className="mb-4 miui-input-group">
             <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>用户名 / 邮箱</label>
-            <input className="form-control" value={login} onChange={e => { setLogin(e.target.value); if (e.target.value) setShowPassword(true); }} placeholder="输入用户名或邮箱" autoFocus />
+            <input className="form-control" value={login} onChange={e => { setLogin(e.target.value); if (e.target.value) setShowPassword(true); }} onFocus={() => setLoginFocused(true)} onBlur={() => setLoginFocused(false)} placeholder="输入用户名或邮箱" autoFocus />
           </div>
           <div className="mb-5 miui-input-group">
             <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text)' }}>密码</label>
@@ -292,6 +321,8 @@ export default function Login() {
           <span style={{ color: 'var(--text-muted)', margin: '0 8px' }}>|</span>
           <Link to="/forgot-password" style={{ color: 'var(--link-color)' }}>忘记密码？</Link>
         </p>
+          </>
+        )}
       </div>
 
       {/* 宝宝安全识别设置推荐弹窗 */}
@@ -381,6 +412,7 @@ export default function Login() {
           </div>
         </div>
       )}
-    </PageLayout>
+      </PageLayout>
+    </div>
   );
 }
