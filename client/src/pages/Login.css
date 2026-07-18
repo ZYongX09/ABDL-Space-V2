@@ -1,32 +1,5 @@
 /* ===== Login — 左右分栏布局 ===== */
 
-.login-page-shell {
-  display: grid;
-  grid-template-columns: minmax(360px, 45%) minmax(480px, 1fr);
-  min-height: 100vh;
-  min-height: 100dvh;
-}
-
-.login-animation-desktop {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.login-page-shell > .miui-page-in {
-  align-self: center;
-  width: 100%;
-  padding: 48px 32px;
-}
-
-.login-page-shell .qr-toggle-btn {
-  top: 16px;
-  right: 16px;
-  z-index: 2;
-}
-
 /* 桌面端 */
 .login-desktop {
   display: flex;
@@ -338,16 +311,6 @@
 
 /* ===== 移动端 ===== */
 @media (max-width: 768px) {
-  .login-page-shell {
-    display: block;
-    min-height: auto;
-  }
-  .login-animation-desktop {
-    display: none;
-  }
-  .login-page-shell > .miui-page-in {
-    padding: 0;
-  }
   .login-desktop { display: none; }
   .login-mobile {
     display: flex;
