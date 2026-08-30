@@ -205,7 +205,7 @@ export default function ForumFeed() {
               </Link>
               {/* Line 4: images */}
               {post.images && post.images.length > 0 && (
-                <ImageGrid images={post.images} />
+                <ImageGrid images={post.images} postId={post.id} />
               )}
               {/* NSFW tag */}
               {post.has_nsfw === 1 && (

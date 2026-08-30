@@ -508,6 +508,12 @@ export const forumAPI = {
     };
   },
 
+  /** 浏览打点：进入帖子详情或打开帖子大图时调用，服务端做 12h 去重，失败静默 */
+  recordView: async (id) => {
+    if (USE_API) return apiFetch(`/api/v1/statuses/${id}/view`, { method: 'POST' }).catch(() => null);
+    return null;
+  },
+
   create: async ({ content, diaper_id, images, captchaToken, repost_id, is_announcement, nbw_fid }) => {
     if (USE_API) {
       const result = await apiFetch('/api/posts', { method: 'POST', body: JSON.stringify({ content, diaper_id, images, captchaToken, repost_id, is_announcement, nbw_fid }) });
@@ -957,6 +963,11 @@ export const adminAPI = {
   banUser: async (id) => {
     if (USE_API) return apiFetch(`/api/admin/users/${id}/ban`, { method: 'POST' });
     return { banned: true };
+  },
+
+  trackAndBanUserIp: async (id) => {
+    if (USE_API) return apiFetch(`/api/admin/security/users/${id}/track-and-ban`, { method: 'POST' });
+    return { tracked: true, banned_ip_count: 0 };
   },
 
   pinPost: async (id) => {

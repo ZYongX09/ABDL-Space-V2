@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import NsfwGuard from './NsfwGuard';
+import { forumAPI } from '../api';
 
 function ImageItem({ url, onClick, overlay, isNsfw, nsfwType }) {
   const [loaded, setLoaded] = useState(false);
@@ -342,7 +343,7 @@ function MobileLightbox({ urls, index, onClose, onNavigate }) {
   );
 }
 
-export default function ImageGrid({ images = [] }) {
+export default function ImageGrid({ images = [], postId }) {
   const [lightbox, setLightbox] = useState(null);
   if (!images.length) return null;
 
@@ -385,7 +386,11 @@ export default function ImageGrid({ images = [] }) {
             url={item.url}
             isNsfw={item.isNsfw}
             nsfwType={item.nsfwType}
-            onClick={() => setLightbox(i)}
+            onClick={() => {
+              setLightbox(i);
+              // 大图浏览打点：与详情页同一 12h 去重窗口，失败静默
+              if (postId) forumAPI.recordView(postId).catch(() => {});
+            }}
             overlay={
               i === 3 && urls.length > 4
                 ? <div className="img-grid-more">+{urls.length - 4}</div>

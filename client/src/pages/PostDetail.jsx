@@ -91,6 +91,8 @@ export default function PostDetail() {
         const data = await forumAPI.getPost(id);
         setPost(data.post);
         setComments(data.comments || []);
+        // 浏览打点：服务端 12h 去重，失败静默
+        forumAPI.recordView(id).catch(() => {});
       } catch (e) {
         toast.error(e.message);
       } finally {
@@ -315,7 +317,7 @@ export default function PostDetail() {
         ) : (
           <>
             <p className="whitespace-pre-wrap break-words mb-4"><RichContent text={post.content} /></p>
-            {post.images && post.images.length > 0 && <ImageGrid images={post.images} />}
+            {post.images && post.images.length > 0 && <ImageGrid images={post.images} postId={post.id} />}
           </>
         )}
 
