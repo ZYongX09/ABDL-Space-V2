@@ -348,8 +348,10 @@ export default function ImageGrid({ images = [], postId }) {
   if (!images.length) return null;
 
   const imageItems = images.map(img => {
-    if (typeof img === 'string') return { url: img, isNsfw: undefined, nsfwType: undefined };
-    return { url: img?.image_url || img?.src || '', isNsfw: img?.is_nsfw, nsfwType: img?.nsfw_type };
+    if (typeof img === 'string') return { url: img, preview: img, isNsfw: undefined, nsfwType: undefined };
+    const src = img?.image_url || img?.src || '';
+    // 网格缩略图优先用小图（preview_url）节省流量，点开大图仍用原图
+    return { url: src, preview: img?.preview_url || src, isNsfw: img?.is_nsfw, nsfwType: img?.nsfw_type };
   });
   const urls = imageItems.map(i => i.url);
   const count = Math.min(urls.length, 4);
@@ -383,7 +385,7 @@ export default function ImageGrid({ images = [], postId }) {
         {imageItems.slice(0, 4).map((item, i) => (
           <ImageItem
             key={i}
-            url={item.url}
+            url={item.preview}
             isNsfw={item.isNsfw}
             nsfwType={item.nsfwType}
             onClick={() => {
