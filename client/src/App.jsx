@@ -51,7 +51,17 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const BetaRegister = lazy(() => import('./pages/BetaRegister'));
 const AccountPrivacy = lazy(() => import('./pages/AccountPrivacy'));
 const ProfilePageV2 = lazy(() => import('./pages/ProfilePageV2'));
-const AdminPage = lazy(() => import('./pages/AdminPage'));
+const AdminOverview = lazy(() => import('./pages/admin/overview'));
+const AdminUsers = lazy(() => import('./pages/admin/users'));
+const AdminPosts = lazy(() => import('./pages/admin/posts'));
+const AdminComments = lazy(() => import('./pages/admin/comments'));
+const AdminNovels = lazy(() => import('./pages/admin/novels'));
+const AdminDiapers = lazy(() => import('./pages/admin/diapers'));
+const AdminBadges = lazy(() => import('./pages/admin/badges'));
+const AdminReports = lazy(() => import('./pages/admin/reports'));
+const AdminSecurity = lazy(() => import('./pages/admin/security'));
+const AdminSettings = lazy(() => import('./pages/admin/settings'));
+const AdminNotifications = lazy(() => import('./pages/admin/notifications'));
 const CaptchaApiPage = lazy(() => import('./pages/CaptchaApiPage'));
 const PointsPage = lazy(() => import('./pages/PointsPage'));
 const InvitePage = lazy(() => import('./pages/InvitePage'));
@@ -65,7 +75,6 @@ const FollowersPage = lazy(() => import('./pages/FollowersPage'));
 const AppDownload = lazy(() => import('./pages/AppDownload'));
 const NBWBindGuidePage = lazy(() => import('./pages/NBWBindGuidePage'));
 const NBWOneClickRegister = lazy(() => import('./pages/NBWOneClickRegister'));
-const NotificationAdmin = lazy(() => import('./pages/NotificationAdmin'));
 
 function PageFallback() {
   return (
@@ -91,7 +100,16 @@ const ROUTE_TITLES = {
   '/account': '账户与隐私 — ABDL Space',
   '/messages': '私信 — ABDL Space',
   '/notifications': '通知 — ABDL Space',
-  '/admin': '管理后台 — ABDL Space',
+  '/admin': '仪表盘 — ABDL Space',
+  '/admin/users': '用户管理 — ABDL Space',
+  '/admin/badges': '徽章体系 — ABDL Space',
+  '/admin/posts': '帖子管理 — ABDL Space',
+  '/admin/comments': '评论管理 — ABDL Space',
+  '/admin/novels': '小说作品 — ABDL Space',
+  '/admin/reports': '举报中心 — ABDL Space',
+  '/admin/security': '安全中心 — ABDL Space',
+  '/admin/settings': '站点设置 — ABDL Space',
+  '/admin/diapers': '纸尿裤 / 品牌 — ABDL Space',
   '/admin/notifications': '推送管理 — ABDL Space',
   '/external': '外部链接 — ABDL Space',
   '/about': '关于 — ABDL Space',
@@ -113,6 +131,7 @@ const ROUTE_TITLES = {
 
 function getTitle(pathname) {
   if (ROUTE_TITLES[pathname]) return ROUTE_TITLES[pathname];
+  if (pathname.startsWith('/admin')) return '管理后台 — ABDL Space';
   if (pathname.startsWith('/diaper/')) return '纸尿裤详情 — ABDL Space';
   if (pathname.startsWith('/diaper-wiki/')) return '裤裤百科 — ABDL Space';
   if (pathname.startsWith('/forum/')) return '帖子详情 — ABDL Space';
@@ -246,13 +265,29 @@ export default function App() {
       <ScrollToTop />
       <NotificationProvider>
       <NsfwProvider>
-      {/* 独立布局页面 — 无侧边栏/导航/footer */}
-      {pathname === '/beta-register' ? (
-        <div style={{ flex: 1, width: '100%', minHeight: '100vh', padding: '20px 16px', overflowY: 'auto' }} className="page-transition-enter">
+      {/* 独立布局页面 — 无侧边栏/导航/footer（admin 控制台 + 内测注册页） */}
+      {pathname === '/beta-register' || pathname.startsWith('/admin') ? (
+        <div
+          style={pathname.startsWith('/admin')
+            ? { flex: 1, width: '100%', minHeight: '100vh', overflowY: 'auto' }
+            : { flex: 1, width: '100%', minHeight: '100vh', padding: '20px 16px', overflowY: 'auto' }}
+          className={pathname === '/beta-register' ? 'page-transition-enter' : ''}
+        >
           <ErrorBoundary>
             <Suspense fallback={<PageFallback />}>
               <Routes>
                 <Route path="/beta-register" element={<BetaRegister />} />
+                <Route path="/admin" element={<AdminOverview />} />
+                <Route path="/admin/users" element={<AdminUsers />} />
+                <Route path="/admin/badges" element={<AdminBadges />} />
+                <Route path="/admin/posts" element={<AdminPosts />} />
+                <Route path="/admin/comments" element={<AdminComments />} />
+                <Route path="/admin/novels" element={<AdminNovels />} />
+                <Route path="/admin/reports" element={<AdminReports />} />
+                <Route path="/admin/security" element={<AdminSecurity />} />
+                <Route path="/admin/settings" element={<AdminSettings />} />
+                <Route path="/admin/diapers" element={<AdminDiapers />} />
+                <Route path="/admin/notifications" element={<AdminNotifications />} />
               </Routes>
             </Suspense>
           </ErrorBoundary>
@@ -297,8 +332,6 @@ export default function App() {
                 <Route path="/user/:id/following" element={<FollowersPage />} />
                 <Route path="/messages" element={<MessagesPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
-                <Route path="/admin" element={<AdminPage />} />
-                <Route path="/admin/notifications" element={<NotificationAdmin />} />
                 <Route path="/captcha-api" element={<CaptchaApiPage />} />
                 <Route path="/oauth/authorize" element={<OAuthAuthorize />} />
                 <Route path="/oauth/callback" element={<OAuthCallback />} />
@@ -342,8 +375,8 @@ export default function App() {
       </>
       )}
       <ToastPopup />
-      <PushPrompt />
-      {pathname !== '/beta-register' && <MobileBottomNav />}
+      {!pathname.startsWith('/admin') && <PushPrompt />}
+      {pathname !== '/beta-register' && !pathname.startsWith('/admin') && <MobileBottomNav />}
       </NsfwProvider>
       </NotificationProvider>
       <AdBlockNotice />

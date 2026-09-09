@@ -531,3 +531,9 @@
 - 桌面端专项适配（双栏布局：左侧用户卡片 + 右侧内容区）
 - 点击头像/用户名跳转 /account
 - v2.20.0 正式替代旧版，旧版保留为 /profile-legacy（仅管理员）
+
+**管理后台全面重构——大厂风运维控制台 (v2.21.0)**
+- 删除旧 951 行 tab 式 AdminPage，重建为独立布局控制台（深色侧栏 + 主题化内容区, 独立路由 `/admin/*`）
+- 11 个功能页：总览(11 指标卡+趋势图/待办/地域 Top10/徽章 Top6)、用户(详情抽屉/封禁/提升/追踪封IP/删除)、帖子(置顶/删除)、评论、小说(状态筛选+发布/归档)、纸尿裤+品牌双 tab CRUD、徽章(创建/发放/收回/持有者)、内容举报+交友举报双 tab、安全中心(24h 柱状图/类型等级分布/日志)、站点设置(beta 模式白名单/站点 KV/改密码)、推送通知管理
+- 后端新增业务端点: /api/admin/stats/overview、/stats/trends、/users 分页、/users/:id/detail、/posts、/comments、/novels、/novels/:id/status、/settings GET/PUT、badges /holders 与 DELETE
+- 趋势图后端只返回有数据的日期, 前端按北京时区补零

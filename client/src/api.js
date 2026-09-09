@@ -944,15 +944,41 @@ export const usersAPI = {
 // 管理 Admin（后端 /api/admin/*）
 // =====================================================================
 export const adminAPI = {
+  // ── 统计卡片（简单合计） ──────────────────────────
   stats: async () => {
     if (USE_API) return apiFetch('/api/admin/stats');
     return { users: Object.keys(LS.get('users') || {}).length, posts: (LS.get('posts') || []).length, diapers: _diapers?.length || 0, comments: 0, ratings: 0 };
   },
 
-  users: async () => {
-    if (USE_API) return apiFetch('/api/admin/users');
+  // ── 运营总览（新版 /stats/overview） ──────────────
+  overview: async () => {
+    if (USE_API) return apiFetch('/api/admin/stats/overview');
+    return { totals: {}, today: {}, yesterday: {}, week: {}, prevWeek: {}, novels: {}, pending: {}, provinces: [], topBadges: [], recentUsers: [], recentPosts: [] };
+  },
+
+  // ── 每日趋势序列（day=7~90） ──────────────────────
+  trends: async (days = 30) => {
+    if (USE_API) return apiFetch(`/api/admin/stats/trends?days=${days}`);
+    return { days, series: {} };
+  },
+
+  // ── 用户管理（分页 + 搜索 + 角色筛选） ────────────
+  users: async ({ page = 1, limit = 20, q = '', role = '' } = {}) => {
+    const params = new URLSearchParams({ page, limit, q, role });
+    if (USE_API) return apiFetch(`/api/admin/users?${params}`);
     const users = LS.get('users') || {};
-    return { users: Object.values(users).map(u => ({ ...u, password: undefined })) };
+    const list = Object.values(users).map(u => ({ ...u, password: undefined }));
+    return { users: list, pagination: { page: 1, limit, total: list.length, totalPages: 1 } };
+  },
+
+  userDetail: async (id) => {
+    if (USE_API) return apiFetch(`/api/admin/users/${id}/detail`);
+    return { user: {}, counts: {}, badges: [], tracking: {}, trackEvents: [], recentPosts: [] };
+  },
+
+  userTracking: async (id) => {
+    if (USE_API) return apiFetch(`/api/admin/security/users/${id}/tracking`);
+    return { enabled: false, ips: [] };
   },
 
   deleteUser: async (id) => {
@@ -970,6 +996,24 @@ export const adminAPI = {
     return { tracked: true, banned_ip_count: 0 };
   },
 
+  promoteUser: async (id) => {
+    if (USE_API) return apiFetch('/api/admin/add', { method: 'POST', body: JSON.stringify({ user_ids: [id] }) });
+    return { message: '已提升' };
+  },
+
+  resetPassword: async (old_password, new_password) => {
+    if (USE_API) return apiFetch('/api/admin/reset/password', { method: 'POST', body: JSON.stringify({ old_password, new_password }) });
+    return { message: '密码已修改' };
+  },
+
+  // ── 帖子管理（分页 + 搜索） ───────────────────────
+  posts: async ({ page = 1, limit = 20, q = '' } = {}) => {
+    const params = new URLSearchParams({ page, limit, q });
+    if (USE_API) return apiFetch(`/api/admin/posts?${params}`);
+    const posts = LS.get('posts') || [];
+    return { posts, pagination: { page: 1, limit, total: posts.length, totalPages: 1 } };
+  },
+
   pinPost: async (id) => {
     if (USE_API) return apiFetch(`/api/admin/posts/${id}/pin`, { method: 'POST' });
     return { pinned: true };
@@ -983,16 +1027,31 @@ export const adminAPI = {
     return { message: '已删除' };
   },
 
+  // ── 评论管理（分页 + 搜索） ───────────────────────
+  listComments: async ({ page = 1, limit = 20, q = '', post_id = 0 } = {}) => {
+    const params = new URLSearchParams({ page, limit, q, post_id });
+    if (USE_API) return apiFetch(`/api/admin/comments?${params}`);
+    return { comments: [], pagination: { page: 1, limit, total: 0, totalPages: 0 } };
+  },
+
   deleteComment: async (id) => {
     if (USE_API) return apiFetch(`/api/admin/comments/${id}`, { method: 'DELETE' });
     return { message: '已删除' };
   },
 
-  deleteDiaper: async (id) => {
-    if (USE_API) return apiFetch(`/api/admin/diapers/${id}`, { method: 'DELETE' });
-    return { message: '已删除' };
+  // ── 小说管理 ──────────────────────────────────────
+  novels: async ({ page = 1, limit = 20, q = '', status = 'all' } = {}) => {
+    const params = new URLSearchParams({ page, limit, q, status });
+    if (USE_API) return apiFetch(`/api/admin/novels?${params}`);
+    return { novels: [], statusCounts: {}, pagination: { page: 1, limit, total: 0, totalPages: 0 } };
   },
 
+  novelStatus: async (id, status) => {
+    if (USE_API) return apiFetch(`/api/admin/novels/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) });
+    return { ok: true, status };
+  },
+
+  // ── 纸尿裤 / 品牌管理 ────────────────────────────
   listDiapers: async () => {
     if (USE_API) return apiFetch('/api/admin/diapers');
     return { diapers: _diapers || [] };
@@ -1006,6 +1065,11 @@ export const adminAPI = {
   updateDiaper: async (id, data) => {
     if (USE_API) return apiFetch(`/api/admin/diapers/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
     return { message: '更新成功' };
+  },
+
+  deleteDiaper: async (id) => {
+    if (USE_API) return apiFetch(`/api/admin/diapers/${id}`, { method: 'DELETE' });
+    return { message: '已删除' };
   },
 
   // 品牌管理
@@ -1022,27 +1086,55 @@ export const adminAPI = {
     return { message: '删除成功' };
   },
 
-  posts: async () => {
-    if (USE_API) return apiFetch('/api/admin/posts');
-    return { posts: LS.get('posts') || [] };
+  // ── 徽章管理 ─────────────────────────────────────
+  badges: async () => {
+    if (USE_API) return apiFetch('/api/admin/badges');
+    return { badges: [] };
+  },
+  createBadge: async (data) => {
+    if (USE_API) return apiFetch('/api/admin/badges', { method: 'POST', body: JSON.stringify(data) });
+    return { success: true, key: data.key };
+  },
+  updateBadge: async (key, data) => {
+    if (USE_API) return apiFetch(`/api/admin/badges/${key}`, { method: 'PATCH', body: JSON.stringify(data) });
+    return { success: true };
+  },
+  deleteBadge: async (key) => {
+    if (USE_API) return apiFetch(`/api/admin/badges/${key}`, { method: 'DELETE' });
+    return { success: true };
+  },
+  badgeHolders: async (key) => {
+    if (USE_API) return apiFetch(`/api/admin/badges/${key}/holders`);
+    return { holders: [], total: 0 };
+  },
+  badgeGrant: async (data) => {
+    if (USE_API) return apiFetch('/api/admin/badges/grant', { method: 'POST', body: JSON.stringify(data) });
+    return { success: true };
+  },
+  badgeRevoke: async (data) => {
+    if (USE_API) return apiFetch('/api/admin/badges/revoke', { method: 'POST', body: JSON.stringify(data) });
+    return { success: true };
   },
 
-  comments: async () => {
-    if (USE_API) return apiFetch('/api/admin/comments');
-    return { comments: [] };
+  // ── 站点设置 / 内测模式 ──────────────────────────
+  settings: async () => {
+    if (USE_API) return apiFetch('/api/admin/settings');
+    return { settings: [] };
+  },
+  saveSetting: async (key, value) => {
+    if (USE_API) return apiFetch('/api/admin/settings', { method: 'PUT', body: JSON.stringify({ key, value }) });
+    return { ok: true };
+  },
+  betaMode: async () => {
+    if (USE_API) return apiFetch('/api/admin/beta-mode');
+    return { enabled: false, allowedRoutes: [], message: '' };
+  },
+  setBetaMode: async (cfg) => {
+    if (USE_API) return apiFetch('/api/admin/beta-mode', { method: 'PUT', body: JSON.stringify(cfg) });
+    return { ok: true };
   },
 
-  diapers: async () => {
-    if (USE_API) return apiFetch('/api/admin/diapers');
-    return { diapers: [] };
-  },
-
-  promoteUser: async (id) => {
-    if (USE_API) return apiFetch('/api/admin/add', { method: 'POST', body: JSON.stringify({ user_ids: [id] }) });
-    return { message: '已提升' };
-  },
-
-  // 举报管理
+  // ── 举报管理 ─────────────────────────────────────
   reports: async (status = 'pending', page = 1) => {
     if (USE_API) return apiFetch(`/api/reports/admin?status=${status}&page=${page}`);
     return { reports: [], pagination: { page: 1, total: 0 } };
@@ -1053,7 +1145,7 @@ export const adminAPI = {
     return { message: '已处理' };
   },
 
-  // 安全中心
+  // ── 安全中心 ─────────────────────────────────────
   getSecurityLogs: async (page = 1, limit = 50, type = '') => {
     if (USE_API) return apiFetch(`/api/admin/security/logs?page=${page}&limit=${limit}&type=${type}`);
     return { logs: [], total: 0, page, limit };
@@ -1064,7 +1156,7 @@ export const adminAPI = {
     return { dayCount: 0, weekCount: 0, typeStats: [], scoreDistribution: [], trend: [] };
   },
 
-  // 交友请求举报管理
+  // ── 交友请求举报管理 ─────────────────────────────
   friendRequestReports: async (status = 'pending', page = 1) => {
     if (USE_API) return apiFetch(`/api/friend-request/admin/reports?status=${status}&page=${page}`);
     return { reports: [], pagination: { page: 1, limit: 20, total: 0 } };
