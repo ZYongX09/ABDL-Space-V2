@@ -62,6 +62,7 @@ const AdminReports = lazy(() => import('./pages/admin/reports'));
 const AdminSecurity = lazy(() => import('./pages/admin/security'));
 const AdminSettings = lazy(() => import('./pages/admin/settings'));
 const AdminNotifications = lazy(() => import('./pages/admin/notifications'));
+const ConfirmProvider = lazy(() => import('./pages/admin/ui').then(m => ({ default: m.ConfirmProvider })));
 const CaptchaApiPage = lazy(() => import('./pages/CaptchaApiPage'));
 const PointsPage = lazy(() => import('./pages/PointsPage'));
 const InvitePage = lazy(() => import('./pages/InvitePage'));
@@ -275,20 +276,22 @@ export default function App() {
         >
           <ErrorBoundary>
             <Suspense fallback={<PageFallback />}>
-              <Routes>
-                <Route path="/beta-register" element={<BetaRegister />} />
-                <Route path="/admin" element={<AdminOverview />} />
-                <Route path="/admin/users" element={<AdminUsers />} />
-                <Route path="/admin/badges" element={<AdminBadges />} />
-                <Route path="/admin/posts" element={<AdminPosts />} />
-                <Route path="/admin/comments" element={<AdminComments />} />
-                <Route path="/admin/novels" element={<AdminNovels />} />
-                <Route path="/admin/reports" element={<AdminReports />} />
-                <Route path="/admin/security" element={<AdminSecurity />} />
-                <Route path="/admin/settings" element={<AdminSettings />} />
-                <Route path="/admin/diapers" element={<AdminDiapers />} />
-                <Route path="/admin/notifications" element={<AdminNotifications />} />
-              </Routes>
+              <ConfirmProvider>
+                <Routes>
+                  <Route path="/beta-register" element={<BetaRegister />} />
+                  <Route path="/admin" element={<AdminOverview />} />
+                  <Route path="/admin/users" element={<AdminUsers />} />
+                  <Route path="/admin/badges" element={<AdminBadges />} />
+                  <Route path="/admin/posts" element={<AdminPosts />} />
+                  <Route path="/admin/comments" element={<AdminComments />} />
+                  <Route path="/admin/novels" element={<AdminNovels />} />
+                  <Route path="/admin/reports" element={<AdminReports />} />
+                  <Route path="/admin/security" element={<AdminSecurity />} />
+                  <Route path="/admin/settings" element={<AdminSettings />} />
+                  <Route path="/admin/diapers" element={<AdminDiapers />} />
+                  <Route path="/admin/notifications" element={<AdminNotifications />} />
+                </Routes>
+              </ConfirmProvider>
             </Suspense>
           </ErrorBoundary>
         </div>

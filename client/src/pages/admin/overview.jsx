@@ -103,7 +103,6 @@ export default function AdminOverview() {
               <div className="ac-stat-num">{fmtNum(ov?.totals?.[t.key])}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span className="ac-stat-label">{t.label}</span>
-                {t.tKey && <Delta cur={ov?.today?.[t.tKey]} prev={ov?.yesterday?.[t.tKey]} />}
               </div>
             </div>
           ))}

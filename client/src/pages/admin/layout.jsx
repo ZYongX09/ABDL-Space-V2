@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { ConfirmProvider } from './ui';
 import './admin.css';
 
 const NAV = [
@@ -135,7 +134,7 @@ export default function AdminLayout({ active = 'overview', children }) {
         </header>
         <div className="ac-content">
           <div className="ac-content-inner">
-            <ConfirmProvider>{children}</ConfirmProvider>
+            {children}
           </div>
         </div>
       </div>
