@@ -1134,6 +1134,20 @@ export const adminAPI = {
     return { ok: true };
   },
 
+  // ── 邮箱屏蔽名单 ──────────────────────────────────
+  blockedEmails: async () => {
+    if (USE_API) return apiFetch('/api/admin/blocked-emails');
+    return { emails: [] };
+  },
+  addBlockedEmail: async (email, reason) => {
+    if (USE_API) return apiFetch('/api/admin/blocked-emails', { method: 'POST', body: JSON.stringify({ email, reason }) });
+    return { ok: true, email };
+  },
+  removeBlockedEmail: async (email) => {
+    if (USE_API) return apiFetch(`/api/admin/blocked-emails/${encodeURIComponent(email)}`, { method: 'DELETE' });
+    return { ok: true, email };
+  },
+
   // ── 举报管理 ─────────────────────────────────────
   reports: async (status = 'pending', page = 1) => {
     if (USE_API) return apiFetch(`/api/reports/admin?status=${status}&page=${page}`);

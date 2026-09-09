@@ -23,9 +23,14 @@ export default function AdminSettings() {
   const [pw, setPw] = useState({ old: '', fresh: '' });
   const [pwSaving, setPwSaving] = useState(false);
 
+  // 邮箱屏蔽名单
+  const [emails, setEmails] = useState(null);
+  const [blockForm, setBlockForm] = useState({ email: '', reason: '' });
+  const [blockSaving, setBlockSaving] = useState(false);
+
   const load = useCallback(async () => {
     try {
-      const [b, s] = await Promise.all([adminAPI.betaMode(), adminAPI.settings()]);
+      const [b, s, e] = await Promise.all([adminAPI.betaMode(), adminAPI.settings(), adminAPI.blockedEmails()]);
       setBeta(b);
       setBetaForm({
         enabled: !!b.enabled,
@@ -33,8 +38,9 @@ export default function AdminSettings() {
         message: b.message || '',
       });
       setSettings(s.settings || []);
-    } catch (e) {
-      toast.error('设置加载失败: ' + (e.message || ''));
+      setEmails(e.emails || []);
+    } catch (err) {
+      toast.error('设置加载失败: ' + (err.message || ''));
     }
   }, [toast]);
 
@@ -82,6 +88,32 @@ export default function AdminSettings() {
     setPwSaving(false);
   };
 
+  const addBlockedEmail = async () => {
+    const email = blockForm.email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error('请输入有效的邮箱地址'); return; }
+    setBlockSaving(true);
+    try {
+      await adminAPI.addBlockedEmail(email, blockForm.reason.trim());
+      toast.success('已加入屏蔽名单');
+      setBlockForm({ email: '', reason: '' });
+      load();
+    } catch (e) {
+      toast.error(e.message || '添加失败');
+    }
+    setBlockSaving(false);
+  };
+
+  const removeBlockedEmail = async (email) => {
+    if (!window.confirm(`确定从屏蔽名单移除 ${email} 吗？`)) return;
+    try {
+      await adminAPI.removeBlockedEmail(email);
+      toast.success('已移除');
+      load();
+    } catch (e) {
+      toast.error(e.message || '移除失败');
+    }
+  };
+
   return (
     <AdminLayout active="settings">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -123,7 +155,50 @@ export default function AdminSettings() {
                       <td><code style={{ color: 'var(--primary-dark)' }}>{s.key}</code></td>
                       <td style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12.5 }}>{s.value}</td>
                       <td style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}>{s.updated_at ? fmtFull(s.updated_at) : '-'}</td>
-                      <td><button className="ac-btn" onClick={() => addSetting(s)}><i className="fa-solid fa-pen" /></button></td>
+                      <td><button className="ac-btn" onClick={() => editSetting(s)}><i className="fa-solid fa-pen" /></button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+
+        {/* 邮箱屏蔽名单 */}
+        <Card title="邮箱屏蔽名单" icon="fa-ban" action={
+          <button className="ac-btn primary" disabled={blockSaving} onClick={addBlockedEmail}>{blockSaving ? '添加中...' : '添加屏蔽'}</button>
+        }>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>邮箱地址</div>
+                <input className="ac-input" type="email" style={{ width: '100%' }} placeholder="user@example.com"
+                  value={blockForm.email} onChange={e => setBlockForm(f => ({ ...f, email: e.target.value }))} />
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>屏蔽原因（可选，≤200 字符）</div>
+                <input className="ac-input" style={{ width: '100%' }} value={blockForm.reason}
+                  onChange={e => setBlockForm(f => ({ ...f, reason: e.target.value }))} />
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              被屏蔽的邮箱在注册 / 绑定邮箱 / 找回密码申请验证码时会被后端直接拒绝（网页与 App 同一接口）。
+            </div>
+          </div>
+          {!emails ? <Loading /> : !emails.length ? <Empty text="暂无屏蔽邮箱" icon="fa-ban" /> : (
+            <div className="ac-table-wrap">
+              <table className="ac-table">
+                <thead>
+                  <tr><th>邮箱</th><th>原因</th><th>操作人</th><th>屏蔽时间</th><th style={{ width: 70 }}>操作</th></tr>
+                </thead>
+                <tbody>
+                  {emails.map(r => (
+                    <tr key={r.email}>
+                      <td><code style={{ color: 'var(--danger, #dc2626)' }}>{r.email}</code></td>
+                      <td style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12.5 }}>{r.reason || '-'}</td>
+                      <td style={{ fontSize: 12.5 }}>{r.created_by_username || '-'}</td>
+                      <td style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}>{r.created_at ? fmtFull(r.created_at) : '-'}</td>
+                      <td><button className="ac-btn danger" onClick={() => removeBlockedEmail(r.email)}><i className="fa-solid fa-trash" /> 移除</button></td>
                     </tr>
                   ))}
                 </tbody>
