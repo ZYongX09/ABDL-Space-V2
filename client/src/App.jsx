@@ -3,7 +3,7 @@ import { Routes, Route, useLocation, useNavigate, useParams } from 'react-router
 import { useAuth } from './contexts/AuthContext';
 import { authAPI, usersAPI } from './api';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://api.abdl-space.top';
+const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { NsfwProvider } from './contexts/NsfwContext';
 import { initNBWConfig } from './utils/nbwOAuth';

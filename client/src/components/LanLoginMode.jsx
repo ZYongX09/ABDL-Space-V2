@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://api.abdl-space.top';
+const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 const POLL_INTERVAL = 500;
 
 export default function LanLoginMode({ onSwitchBack }) {

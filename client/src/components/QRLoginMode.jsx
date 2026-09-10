@@ -4,7 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://api.abdl-space.top';
+const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 const POLL_INTERVAL = 500; // 0.5秒轮询
 
 export default function QRLoginMode({ onSwitchBack }) {

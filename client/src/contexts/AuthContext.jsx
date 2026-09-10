@@ -2,8 +2,8 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 
 const AuthContext = createContext();
 
-const API_BASE = import.meta.env.VITE_API_BASE || '';
-const USE_API = !!API_BASE;
+const API_BASE = import.meta.env.VITE_API_BASE ?? '';
+const USE_API = API_BASE !== undefined && API_BASE !== null;
 
 const ACCOUNTS_KEY = 'abdl_accounts';
 const ACTIVE_KEY = 'abdl_active_account';
