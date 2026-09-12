@@ -15,6 +15,7 @@ const NAV = [
     items: [
       { key: 'users', path: '/admin/users', label: '用户管理', icon: 'fa-users' },
       { key: 'badges', path: '/admin/badges', label: '徽章体系', icon: 'fa-medal' },
+      { key: 'sponsors', path: '/admin/sponsors', label: '赞助者管理', icon: 'fa-heart' },
     ],
   },
   {
@@ -45,6 +46,7 @@ const NAV = [
 const TITLES = {
   overview: '仪表盘概览',
   users: '用户管理',
+  sponsors: '赞助者管理',
   badges: '徽章体系',
   posts: '帖子管理',
   comments: '评论管理',
@@ -98,6 +100,7 @@ export default function AdminLayout({ active = 'overview', children }) {
                   key={it.key}
                   to={it.path}
                   className={`ac-nav-item ${active === it.key ? 'active' : ''}`}
+                  aria-current={active === it.key ? 'page' : undefined}
                   onClick={() => setSideOpen(false)}
                 >
                   <i className={`fa-solid ${it.icon} fa-icon`} />

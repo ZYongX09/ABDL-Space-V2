@@ -53,6 +53,7 @@ const AccountPrivacy = lazy(() => import('./pages/AccountPrivacy'));
 const ProfilePageV2 = lazy(() => import('./pages/ProfilePageV2'));
 const AdminOverview = lazy(() => import('./pages/admin/overview'));
 const AdminUsers = lazy(() => import('./pages/admin/users'));
+const AdminSponsors = lazy(() => import('./pages/admin/sponsors.jsx'));
 const AdminPosts = lazy(() => import('./pages/admin/posts'));
 const AdminComments = lazy(() => import('./pages/admin/comments'));
 const AdminNovels = lazy(() => import('./pages/admin/novels'));
@@ -103,6 +104,7 @@ const ROUTE_TITLES = {
   '/notifications': '通知 — ABDL Space',
   '/admin': '仪表盘 — ABDL Space',
   '/admin/users': '用户管理 — ABDL Space',
+  '/admin/sponsors': '赞助者管理 — ABDL Space',
   '/admin/badges': '徽章体系 — ABDL Space',
   '/admin/posts': '帖子管理 — ABDL Space',
   '/admin/comments': '评论管理 — ABDL Space',
@@ -281,6 +283,7 @@ export default function App() {
                   <Route path="/beta-register" element={<BetaRegister />} />
                   <Route path="/admin" element={<AdminOverview />} />
                   <Route path="/admin/users" element={<AdminUsers />} />
+                  <Route path="/admin/sponsors" element={<AdminSponsors />} />
                   <Route path="/admin/badges" element={<AdminBadges />} />
                   <Route path="/admin/posts" element={<AdminPosts />} />
                   <Route path="/admin/comments" element={<AdminComments />} />
