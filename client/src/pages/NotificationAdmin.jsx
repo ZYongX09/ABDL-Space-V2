@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { adminPushAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { Card, Empty, ErrorBox, FormField, Loading, StatCard } from './admin/ui';
 
 export default function NotificationAdmin() {
   const { user } = useAuth();
@@ -9,6 +10,8 @@ export default function NotificationAdmin() {
   const [stats, setStats] = useState(null);
   const [logs, setLogs] = useState([]);
   const [platforms, setPlatforms] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [sendForm, setSendForm] = useState({
     platform: 'all',
     targetType: 'all',
@@ -20,56 +23,62 @@ export default function NotificationAdmin() {
   const [sending, setSending] = useState(false);
   const [jpushMsgId, setJpushMsgId] = useState('');
   const [jpushStats, setJpushStats] = useState(null);
+  const [querying, setQuerying] = useState(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setLoadError('');
     try {
-      const [s, l, p] = await Promise.all([
+      const [statsResult, logsResult, platformsResult] = await Promise.all([
         adminPushAPI.stats(),
         adminPushAPI.logs(),
         adminPushAPI.platforms(),
       ]);
-      setStats(s);
-      setLogs(l.logs || []);
-      setPlatforms(p);
-    } catch (e) {
-      console.error('[PushAdmin] load failed:', e);
+      setStats(statsResult);
+      setLogs(logsResult.logs || []);
+      setPlatforms(platformsResult);
+    } catch (error) {
+      console.error('[PushAdmin] load failed:', error);
+      setLoadError(`推送管理数据加载失败：${error.message || '请稍后重试'}`);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (user?.role !== 'admin') return;
-    loadData();
-  }, [user, loadData]);
+    if (user?.role === 'admin') void loadData();
+  }, [user?.role, loadData]);
 
   const handleSend = async () => {
-    if (!sendForm.title || !sendForm.body) {
+    if (!sendForm.title.trim() || !sendForm.body.trim()) {
       toast.error('请填写标题和内容');
       return;
     }
     setSending(true);
     try {
       const targetIds = sendForm.targetIds
-        ? sendForm.targetIds.split(',').map(s => s.trim()).filter(Boolean).map(Number)
+        ? sendForm.targetIds.split(',').map(value => value.trim()).filter(Boolean).map(Number)
         : undefined;
       const result = await adminPushAPI.send({
         targetType: sendForm.targetType,
         targetIds,
-        title: sendForm.title,
-        body: sendForm.body,
-        url: sendForm.url,
+        title: sendForm.title.trim(),
+        body: sendForm.body.trim(),
+        url: sendForm.url.trim() || '/notifications',
         platform: sendForm.platform,
       });
-      toast.success(`推送已发送 (Web: ${result.webSent || 0}, JPush: ${result.jpushSent || 0})`);
-      setSendForm(prev => ({ ...prev, title: '', body: '' }));
-      loadData();
-    } catch (e) {
-      toast.error('发送失败: ' + (e.message || '未知错误'));
+      toast.success(`推送已发送（Web ${result.webSent || 0}，JPush ${result.jpushSent || 0}）`);
+      setSendForm(previous => ({ ...previous, title: '', body: '' }));
+      await loadData();
+    } catch (error) {
+      toast.error(`发送失败：${error.message || '未知错误'}`);
+    } finally {
+      setSending(false);
     }
-    setSending(false);
   };
 
   const handleTestSend = async () => {
-    if (!sendForm.targetIds) {
+    if (!sendForm.targetIds.trim()) {
       toast.error('请填写用户 ID');
       return;
     }
@@ -78,211 +87,162 @@ export default function NotificationAdmin() {
       const userId = Number(sendForm.targetIds.split(',')[0].trim());
       await adminPushAPI.test(userId);
       toast.success('测试推送已发送');
-    } catch (e) {
-      toast.error('测试失败: ' + (e.message || '未知错误'));
+    } catch (error) {
+      toast.error(`测试失败：${error.message || '未知错误'}`);
+    } finally {
+      setSending(false);
     }
-    setSending(false);
   };
 
   const handleQueryJPushStats = async () => {
-    if (!jpushMsgId) return;
+    if (!jpushMsgId.trim()) return;
+    setQuerying(true);
     try {
-      const data = await adminPushAPI.jpushStats(jpushMsgId.split(',').map(s => s.trim()));
+      const data = await adminPushAPI.jpushStats(jpushMsgId.split(',').map(value => value.trim()).filter(Boolean));
       setJpushStats(data);
-    } catch (e) {
-      toast.error('查询失败: ' + (e.message || '未知错误'));
+    } catch (error) {
+      toast.error(`查询失败：${error.message || '未知错误'}`);
+    } finally {
+      setQuerying(false);
     }
   };
 
-  if (user?.role !== 'admin') {
-    return <div className="text-center py-20" style={{ color: 'var(--text-muted)' }}>无权限</div>;
-  }
+  if (user?.role !== 'admin') return <Empty text="无权限" icon="fa-lock" />;
+
+  const statItems = [
+    { label: 'Web Push', value: stats?.web_count ?? '-', icon: 'fa-globe', tone: 'blue' },
+    { label: 'JPush', value: stats?.jpush_count ?? '-', icon: 'fa-mobile-screen', tone: 'violet' },
+    { label: '今日发送', value: stats?.today_sent ?? '-', icon: 'fa-paper-plane', tone: 'green' },
+    { label: '今日失败', value: stats?.today_failed ?? '-', icon: 'fa-triangle-exclamation', tone: 'red' },
+  ];
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh', paddingBottom: 20 }}>
-      <div style={{ padding: '16px 16px 0' }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-          <i className="fa-solid fa-bell" style={{ color: 'var(--primary)', marginRight: 8 }} />
-          推送通知管理
-        </h2>
+    <div className="ac-page-stack">
+      <div className="ac-toolbar">
+        <div className="ac-section-note">平台配置、发送能力和投递结果会在这里集中展示。</div>
+        <button type="button" className="ac-btn" onClick={loadData} disabled={loading}>
+          <i className={`fa-solid fa-rotate${loading ? ' fa-spin' : ''}`} aria-hidden="true" />
+          刷新数据
+        </button>
       </div>
 
-      {/* 统计面板 */}
-      <div style={{ padding: '12px 16px' }}>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: 'Web Push', value: stats?.web_count ?? '-', color: 'var(--primary)' },
-            { label: 'JPush', value: stats?.jpush_count ?? '-', color: 'var(--accent)' },
-            { label: '今日发送', value: stats?.today_sent ?? '-', color: 'var(--success)' },
-            { label: '失败', value: stats?.today_failed ?? '-', color: 'var(--danger)' },
-          ].map(s => (
-            <div key={s.label} className="card text-center" style={{ padding: '12px 8px' }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
+      <ErrorBox msg={loadError} />
+      {loading && !stats && !platforms && !logs.length && <Loading text="正在加载推送管理数据…" />}
+
+      <div className="ac-stat-grid">
+        {statItems.map(item => <StatCard compact key={item.label} {...item} />)}
       </div>
 
-      {/* 平台状态 */}
       {platforms && (
-        <div style={{ padding: '0 16px 12px' }}>
-          <div className="card" style={{ padding: '12px 16px' }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>平台状态</div>
+        <Card title="平台状态" description="发送前请确认目标推送通道已正确配置。" icon="fa-server">
+          <div className="ac-form-grid">
             {[
-              { name: 'Web Push (VAPID)', ok: platforms.vapidConfigured, detail: platforms.vapidConfigured ? '已配置' : '未配置' },
-              { name: '极光推送', ok: platforms.jpushEnabled, detail: platforms.jpushEnabled ? `AppKey: ${platforms.jpushAppKey || '***'}` : '未启用' },
-            ].map(p => (
-              <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
-                <i className={`fa-solid ${p.ok ? 'fa-circle-check' : 'fa-circle-xmark'}`}
-                  style={{ color: p.ok ? 'var(--success)' : 'var(--text-light)', fontSize: 14 }} />
-                <span style={{ fontSize: 13, color: 'var(--text)' }}>{p.name}</span>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 'auto' }}>{p.detail}</span>
+              { name: 'Web Push（VAPID）', ok: platforms.vapidConfigured, detail: platforms.vapidConfigured ? '已配置' : '未配置' },
+              { name: '极光推送', ok: platforms.jpushEnabled, detail: platforms.jpushEnabled ? `AppKey：${platforms.jpushAppKey || '***'}` : '未启用' },
+            ].map(platform => (
+              <div className="ac-platform-row" key={platform.name}>
+                <i className={`fa-solid ${platform.ok ? 'fa-circle-check ac-text-success' : 'fa-circle-xmark ac-text-muted'}`} aria-hidden="true" />
+                <span className="ac-grow ac-row-label">{platform.name}</span>
+                <span className={`ac-pill ${platform.ok ? 'green' : 'slate'}`}>{platform.detail}</span>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* 发送通知 */}
-      <div style={{ padding: '0 16px 12px' }}>
-        <div className="card" style={{ padding: '16px' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>发送通知</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <select
-                className="form-control"
-                style={{ flex: 1, padding: '8px 12px', fontSize: 13 }}
-                value={sendForm.platform}
-                onChange={e => setSendForm(p => ({ ...p, platform: e.target.value }))}
-              >
-                <option value="all">全部平台</option>
-                <option value="web">Web Push</option>
-                <option value="jpush">极光推送</option>
-              </select>
-              <select
-                className="form-control"
-                style={{ flex: 1, padding: '8px 12px', fontSize: 13 }}
-                value={sendForm.targetType}
-                onChange={e => setSendForm(p => ({ ...p, targetType: e.target.value }))}
-              >
-                <option value="all">全部用户</option>
-                <option value="user">指定用户</option>
-              </select>
+      <div className="ac-grid-2">
+        <Card title="发送通知" description="群发属于高影响操作，发送前请核对平台、范围和内容。" icon="fa-paper-plane">
+          <div className="ac-form-grid">
+            <div className="ac-form-grid ac-form-grid-2">
+              <FormField label="推送平台" htmlFor="push-platform">
+                <select id="push-platform" className="ac-select" value={sendForm.platform} onChange={event => setSendForm(previous => ({ ...previous, platform: event.target.value }))}>
+                  <option value="all">全部平台</option>
+                  <option value="web">Web Push</option>
+                  <option value="jpush">极光推送</option>
+                </select>
+              </FormField>
+              <FormField label="接收范围" htmlFor="push-target-type">
+                <select id="push-target-type" className="ac-select" value={sendForm.targetType} onChange={event => setSendForm(previous => ({ ...previous, targetType: event.target.value }))}>
+                  <option value="all">全部用户</option>
+                  <option value="user">指定用户</option>
+                </select>
+              </FormField>
             </div>
             {sendForm.targetType === 'user' && (
-              <input
-                className="form-control"
-                style={{ padding: '8px 12px', fontSize: 13 }}
-                placeholder="用户 ID，多个用逗号分隔"
-                value={sendForm.targetIds}
-                onChange={e => setSendForm(p => ({ ...p, targetIds: e.target.value }))}
-              />
+              <FormField label="用户 ID" hint="多个用户 ID 用英文逗号分隔。" htmlFor="push-target-ids">
+                <input id="push-target-ids" className="ac-input" inputMode="text" autoComplete="off" value={sendForm.targetIds} onChange={event => setSendForm(previous => ({ ...previous, targetIds: event.target.value }))} />
+              </FormField>
             )}
-            <input
-              className="form-control"
-              style={{ padding: '8px 12px', fontSize: 13 }}
-              placeholder="标题"
-              value={sendForm.title}
-              onChange={e => setSendForm(p => ({ ...p, title: e.target.value }))}
-            />
-            <textarea
-              className="form-control"
-              style={{ padding: '8px 12px', fontSize: 13, minHeight: 60 }}
-              placeholder="内容"
-              value={sendForm.body}
-              onChange={e => setSendForm(p => ({ ...p, body: e.target.value }))}
-            />
-            <input
-              className="form-control"
-              style={{ padding: '8px 12px', fontSize: 13 }}
-              placeholder="跳转路径 (默认 /notifications)"
-              value={sendForm.url}
-              onChange={e => setSendForm(p => ({ ...p, url: e.target.value }))}
-            />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                className="btn btn-primary btn-sm"
-                style={{ flex: 1 }}
-                onClick={handleSend}
-                disabled={sending}
-              >
-                {sending ? '发送中...' : '群发通知'}
+            <FormField label="通知标题" required htmlFor="push-title">
+              <input id="push-title" className="ac-input" value={sendForm.title} onChange={event => setSendForm(previous => ({ ...previous, title: event.target.value }))} />
+            </FormField>
+            <FormField label="通知内容" required htmlFor="push-body">
+              <textarea id="push-body" className="ac-textarea" value={sendForm.body} onChange={event => setSendForm(previous => ({ ...previous, body: event.target.value }))} />
+            </FormField>
+            <FormField label="跳转路径" hint="使用站内路径，例如 /notifications。" htmlFor="push-url">
+              <input id="push-url" className="ac-input" value={sendForm.url} onChange={event => setSendForm(previous => ({ ...previous, url: event.target.value }))} />
+            </FormField>
+            <div className="ac-action-group">
+              <button type="button" className="ac-btn primary" onClick={handleSend} disabled={sending}>
+                {sending && <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" />}
+                {sending ? '发送中' : '发送通知'}
               </button>
-              {sendForm.targetType === 'user' && sendForm.targetIds && (
-                <button
-                  className="btn btn-outline btn-sm"
-                  style={{ flex: 1 }}
-                  onClick={handleTestSend}
-                  disabled={sending}
-                >
-                  发送测试
+              {sendForm.targetType === 'user' && sendForm.targetIds.trim() && (
+                <button type="button" className="ac-btn" onClick={handleTestSend} disabled={sending}>
+                  <i className="fa-solid fa-vial" aria-hidden="true" />发送测试
                 </button>
               )}
             </div>
           </div>
-        </div>
-      </div>
+        </Card>
 
-      {/* JPush 送达统计 */}
-      <div style={{ padding: '0 16px 12px' }}>
-        <div className="card" style={{ padding: '16px' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>极光送达统计</div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-            <input
-              className="form-control"
-              style={{ flex: 1, padding: '8px 12px', fontSize: 13 }}
-              placeholder="输入 msg_id，多个用逗号分隔"
-              value={jpushMsgId}
-              onChange={e => setJpushMsgId(e.target.value)}
-            />
-            <button className="btn btn-outline btn-sm" onClick={handleQueryJPushStats}>查询</button>
-          </div>
-          {jpushStats && Array.isArray(jpushStats) && jpushStats.map((s, i) => (
-            <div key={i} style={{ fontSize: 12, color: 'var(--text-muted)', padding: '4px 0', borderTop: '1px solid var(--border)' }}>
-              <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>msg_id: {s.msg_id}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-                <span>极光通道送达: {s.jpush_received ?? '-'}</span>
-                <span>厂商通道送达: {s.android_pns_received ?? '-'}</span>
-                <span>iOS APNs 送达: {s.ios_apns_received ?? '-'}</span>
-                <span>iOS 消息送达: {s.ios_msg_received ?? '-'}</span>
+        <Card title="极光送达统计" description="按极光消息 ID 查询各通道送达数据。" icon="fa-chart-column">
+          <div className="ac-form-grid">
+            <FormField label="消息 ID" hint="多个 msg_id 用英文逗号分隔。" htmlFor="jpush-message-id">
+              <input id="jpush-message-id" className="ac-input" value={jpushMsgId} onChange={event => setJpushMsgId(event.target.value)} />
+            </FormField>
+            <div className="ac-action-group">
+              <button type="button" className="ac-btn" onClick={handleQueryJPushStats} disabled={querying || !jpushMsgId.trim()}>
+                {querying && <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" />}
+                {querying ? '查询中' : '查询统计'}
+              </button>
+            </div>
+            {Array.isArray(jpushStats) && jpushStats.length > 0 && (
+              <div className="ac-table-wrap">
+                <table className="ac-table">
+                  <thead><tr><th scope="col">msg_id</th><th scope="col">极光通道</th><th scope="col">厂商通道</th><th scope="col">iOS APNs</th><th scope="col">iOS 消息</th></tr></thead>
+                  <tbody>
+                    {jpushStats.map((item, index) => (
+                      <tr key={item.msg_id ?? index}><td>{item.msg_id}</td><td>{item.jpush_received ?? '-'}</td><td>{item.android_pns_received ?? '-'}</td><td>{item.ios_apns_received ?? '-'}</td><td>{item.ios_msg_received ?? '-'}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
-          ))}
-        </div>
+            )}
+            {Array.isArray(jpushStats) && !jpushStats.length && <Empty text="未查询到送达数据" icon="fa-chart-column" />}
+          </div>
+        </Card>
       </div>
 
-      {/* 推送记录 */}
-      <div style={{ padding: '0 16px 12px' }}>
-        <div className="card" style={{ padding: '16px' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>最近推送记录</div>
-          {logs.length === 0 ? (
-            <div style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: 16 }}>暂无记录</div>
-          ) : (
-            <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-              {logs.map(log => (
-                <div key={log.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '8px 0', borderBottom: '1px solid var(--border)',
-                  fontSize: 12, color: 'var(--text-muted)',
-                }}>
-                  <span style={{ flexShrink: 0 }}>
-                    {new Date(log.created_at).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  <span style={{ flex: 1, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {log.title}
-                  </span>
-                  <span style={{ flexShrink: 0 }}>
-                    <span style={{ color: 'var(--primary)' }}>Web:{log.sent_count || 0}</span>
-                    {' '}
-                    <span style={{ color: 'var(--accent)' }}>JP:{log.jpush_sent || 0}</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      <Card title="最近推送记录" description="用于核对近期 Web Push 与 JPush 的发送数量。" icon="fa-clock-rotate-left" pad={false}>
+        {!logs.length ? <Empty text="暂无推送记录" icon="fa-clock-rotate-left" /> : (
+          <div className="ac-table-wrap">
+            <table className="ac-table">
+              <thead><tr><th scope="col">发送时间</th><th scope="col">标题</th><th scope="col">Web Push</th><th scope="col">JPush</th></tr></thead>
+              <tbody>
+                {logs.map(log => (
+                  <tr key={log.id}>
+                    <td className="ac-cell-muted">{new Date(log.created_at).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+                    <td title={log.title}>{log.title}</td>
+                    <td><span className="ac-pill blue">{log.sent_count || 0}</span></td>
+                    <td><span className="ac-pill violet">{log.jpush_sent || 0}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

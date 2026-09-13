@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { adminAPI } from '../../api';
 import { useToast } from '../../contexts/ToastContext';
 import AdminLayout from './layout';
-import { Modal, Pagination, Empty, UserCell, StatusPill, useConfirm } from './ui';
+import { Modal, Pagination, Empty, FormField, StatusPill, useConfirm } from './ui';
 import { fmtFull } from './util';
 
 const PAGE_SIZE = 20;
@@ -17,6 +17,8 @@ export default function AdminReports() {
   const [pagination, setPagination] = useState({ page: 1, total: 0, totalPages: 1 });
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState(null); // 详情弹窗
+  const [dismissTarget, setDismissTarget] = useState(null);
+  const [dismissReason, setDismissReason] = useState('');
   const [busy, setBusy] = useState(null);
 
   // 内容举报
@@ -84,13 +86,14 @@ export default function AdminReports() {
     setBusy(null);
   };
 
-  const dismissFriend = async (r) => {
-    const reply = window.prompt('驳回理由（将发送给举报人）：', '');
-    if (reply === null) return;
-    setBusy(r.id);
+  const dismissFriend = async () => {
+    if (!dismissTarget) return;
+    setBusy(dismissTarget.id);
     try {
-      await adminAPI.dismissFriendRequestReport(r.id, reply.trim() || '');
+      await adminAPI.dismissFriendRequestReport(dismissTarget.id, dismissReason.trim());
       toast.success('已驳回');
+      setDismissTarget(null);
+      setDismissReason('');
       loadFriend(status, page);
     } catch (e) {
       toast.error(e.message || '操作失败');
@@ -102,35 +105,38 @@ export default function AdminReports() {
 
   return (
     <AdminLayout active="reports">
-      <div className="ac-flex" style={{ gap: 8, marginBottom: 14 }}>
-        <button className={`ac-btn ${tab === 'content' ? 'primary' : ''}`} onClick={() => setTab('content')}>内容举报</button>
-        <button className={`ac-btn ${tab === 'friend' ? 'primary' : ''}`} onClick={() => setTab('friend')}>交友请求举报</button>
-      </div>
-
-      <div className="ac-card">
-        <div className="ac-card-head">
-          <span className="ac-card-title"><i className="fa-solid fa-flag fa-icon" /> {isContent ? '内容举报' : '交友请求举报'}</span>
-          <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-            {['pending', 'resolved', 'dismissed'].map(s => (
-              <a key={s} className={`ac-btn ${status === s ? 'primary' : ''}`} style={{ padding: '3px 10px', fontSize: 12 }} onClick={() => setStatusAndReset(s)}>
-                {s === 'pending' ? '待处理' : s === 'resolved' ? '已处理' : '已驳回'}
-              </a>
-            ))}
-          </span>
+      <div className="ac-page-stack">
+        <div className="ac-toolbar">
+          <div className="ac-toolbar-group">
+            <button type="button" className={`ac-btn ${tab === 'content' ? 'primary' : ''}`} aria-pressed={tab === 'content'} onClick={() => setTab('content')}>内容举报</button>
+            <button type="button" className={`ac-btn ${tab === 'friend' ? 'primary' : ''}`} aria-pressed={tab === 'friend'} onClick={() => setTab('friend')}>交友请求举报</button>
+          </div>
         </div>
-        <div className="ac-card-body">
+
+        <div className="ac-card">
+          <div className="ac-card-head">
+          <span className="ac-card-title"><i className="fa-solid fa-flag fa-icon" /> {isContent ? '内容举报' : '交友请求举报'}</span>
+          <div className="ac-action-group">
+            {['pending', 'resolved', 'dismissed'].map(s => (
+              <button type="button" key={s} className={`ac-btn ${status === s ? 'primary' : ''}`} aria-pressed={status === s} onClick={() => setStatusAndReset(s)}>
+                {s === 'pending' ? '待处理' : s === 'resolved' ? '已处理' : '已驳回'}
+              </button>
+            ))}
+          </div>
+          </div>
+          <div className="ac-card-body">
           <div className="ac-table-wrap">
             <table className="ac-table">
               <thead>
                 <tr>
-                  <th style={{ width: 60 }}>ID</th>
+                  <th scope="col">ID</th>
                   {isContent ? (
                     <>
-                      <th style={{ width: 110 }}>对象</th><th>被举报内容</th><th style={{ width: 110 }}>举报人</th><th>理由</th><th style={{ width: 110 }}>时间</th><th style={{ width: 90 }}>状态</th><th style={{ width: 150 }}>操作</th>
+                      <th scope="col">对象</th><th scope="col">被举报内容</th><th scope="col">举报人</th><th scope="col">理由</th><th scope="col">时间</th><th scope="col">状态</th><th scope="col">操作</th>
                     </>
                   ) : (
                     <>
-                      <th style={{ width: 110 }}>被举报请求</th><th>请求描述</th><th style={{ width: 110 }}>举报人</th><th>理由</th><th style={{ width: 110 }}>时间</th><th style={{ width: 90 }}>状态</th><th style={{ width: 150 }}>操作</th>
+                      <th scope="col">被举报请求</th><th scope="col">请求描述</th><th scope="col">举报人</th><th scope="col">理由</th><th scope="col">时间</th><th scope="col">状态</th><th scope="col">操作</th>
                     </>
                   )}
                 </tr>
@@ -142,34 +148,34 @@ export default function AdminReports() {
                     {isContent ? (
                       <>
                         <td><span className="ac-pill blue">{r.target_type === 'post' ? '帖子' : '评论'}</span></td>
-                        <td style={{ maxWidth: 300 }}>
-                          <div style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.content_preview || '(空)'}</div>
-                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>#{r.target_id}</div>
+                        <td>
+                          <div className="ac-cell-truncate" title={r.content_preview || '(空)'}>{r.content_preview || '(空)'}</div>
+                          <div className="ac-cell-muted">#{r.target_id}</div>
                         </td>
                       </>
                     ) : (
                       <>
                         <td style={{ fontWeight: 600 }}>@{r.request_username}</td>
-                        <td style={{ maxWidth: 300, fontSize: 12.5, color: 'var(--text-light)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.request_title || r.request_description || '-'}</td>
+                        <td className="ac-cell-muted ac-cell-truncate" title={r.request_title || r.request_description || '-'}>{r.request_title || r.request_description || '-'}</td>
                       </>
                     )}
-                    <td style={{ fontSize: 12.5 }}>@{r.reporter_name}</td>
-                    <td style={{ maxWidth: 160, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.reason || '-'}</td>
-                    <td style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}>{fmtFull(r.created_at)}</td>
+                    <td>@{r.reporter_name}</td>
+                    <td className="ac-cell-truncate" title={r.reason || '-'}>{r.reason || '-'}</td>
+                    <td className="ac-cell-muted">{fmtFull(r.created_at)}</td>
                     <td><StatusPill status={r.status} /></td>
                     <td>
-                      <div className="ac-flex" style={{ gap: 4 }}>
-                        <button className="ac-btn" onClick={() => setView(r)}><i className="fa-solid fa-eye" /></button>
+                      <div className="ac-table-actions">
+                        <button type="button" className="ac-btn ac-icon-button" aria-label="查看举报详情" title="查看详情" onClick={() => setView(r)}><i className="fa-solid fa-eye" aria-hidden="true" /></button>
                         {r.status === 'pending' && (
                           isContent ? (
                             <>
-                              <button className="ac-btn" disabled={busy === r.id} onClick={() => handleContent(r, 'resolve', false)}>处理</button>
-                              <button className="ac-btn" disabled={busy === r.id} onClick={() => handleContent(r, 'dismiss', false)}>驳回</button>
+                              <button type="button" className="ac-btn" disabled={busy === r.id} onClick={() => handleContent(r, 'resolve', false)}>处理</button>
+                              <button type="button" className="ac-btn" disabled={busy === r.id} onClick={() => handleContent(r, 'dismiss', false)}>驳回</button>
                             </>
                           ) : (
                             <>
-                              <button className="ac-btn danger" disabled={busy === r.id} onClick={() => acceptFriend(r)}>采纳</button>
-                              <button className="ac-btn" disabled={busy === r.id} onClick={() => dismissFriend(r)}>驳回</button>
+                              <button type="button" className="ac-btn danger" disabled={busy === r.id} onClick={() => acceptFriend(r)}>采纳</button>
+                              <button type="button" className="ac-btn" disabled={busy === r.id} onClick={() => { setDismissTarget(r); setDismissReason(''); }}>驳回</button>
                             </>
                           )
                         )}
@@ -184,14 +190,14 @@ export default function AdminReports() {
           </div>
           <div style={{ marginTop: 12 }}>
             <Pagination page={pagination.page} totalPages={pagination.totalPages} total={pagination.total} onChange={setPage} />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* 内容举报详情 */}
+        {/* 内容举报详情 */}
       <Modal open={!!view && isContent} onClose={() => setView(null)} title={`举报 #${view?.id} 详情`}>
         {view && isContent && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="ac-page-stack">
             <dl className="ac-kv">
               <dt>对象</dt><dd>{view.target_type === 'post' ? '帖子' : '评论'} #{view.target_id}</dd>
               <dt>举报人</dt><dd>@{view.reporter_name}</dd>
@@ -200,14 +206,14 @@ export default function AdminReports() {
               <dt>目标内容</dt><dd style={{ whiteSpace: 'pre-wrap' }}>{view.content_preview || '(已删除或为空)'}</dd>
             </dl>
             {view.status === 'pending' && (
-              <div className="ac-flex" style={{ gap: 8, flexWrap: 'wrap' }}>
-                <button className="ac-btn primary" disabled={busy === view.id} onClick={() => handleContent(view, 'resolve', true)}>
-                  <i className="fa-solid fa-trash-can" /> 删除内容并处理
+              <div className="ac-action-group">
+                <button type="button" className="ac-btn primary" disabled={busy === view.id} onClick={() => handleContent(view, 'resolve', true)}>
+                  <i className="fa-solid fa-trash-can" aria-hidden="true" /> 删除内容并处理
                 </button>
-                <button className="ac-btn" disabled={busy === view.id} onClick={() => handleContent(view, 'resolve', false)}>
+                <button type="button" className="ac-btn" disabled={busy === view.id} onClick={() => handleContent(view, 'resolve', false)}>
                   仅处理
                 </button>
-                <button className="ac-btn" disabled={busy === view.id} onClick={() => handleContent(view, 'dismiss', false)}>
+                <button type="button" className="ac-btn" disabled={busy === view.id} onClick={() => handleContent(view, 'dismiss', false)}>
                   驳回
                 </button>
               </div>
@@ -219,7 +225,7 @@ export default function AdminReports() {
       {/* 交友请求详情 */}
       <Modal open={!!view && !isContent} onClose={() => setView(null)} title={`交友请求举报 · ${view?.id}`}>
         {view && !isContent && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="ac-page-stack">
             <dl className="ac-kv">
               <dt>被举报请求</dt><dd>@{view.request_username}{view.request_user_email ? ` · ${view.request_user_email}` : ''}</dd>
               <dt>标题</dt><dd>{view.request_title || '-'}</dd>
@@ -233,6 +239,24 @@ export default function AdminReports() {
           </div>
         )}
       </Modal>
+
+      <Modal
+        open={!!dismissTarget}
+        onClose={() => { setDismissTarget(null); setDismissReason(''); }}
+        title="驳回交友请求举报"
+        width={460}
+        footer={(
+          <>
+            <button type="button" className="ac-btn" onClick={() => { setDismissTarget(null); setDismissReason(''); }}>取消</button>
+            <button type="button" className="ac-btn primary" disabled={busy === dismissTarget?.id} onClick={dismissFriend}>确认驳回</button>
+          </>
+        )}
+      >
+        <FormField label="驳回理由" hint="该内容会发送给举报人；如无须补充可留空。" htmlFor="dismiss-friend-reason">
+          <textarea id="dismiss-friend-reason" className="ac-textarea" value={dismissReason} onChange={event => setDismissReason(event.target.value)} />
+        </FormField>
+      </Modal>
+      </div>
     </AdminLayout>
   );
 }

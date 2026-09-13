@@ -2,41 +2,44 @@ import { useEffect, useMemo, useState } from 'react';
 import { adminAPI } from '../../api';
 import { useToast } from '../../contexts/ToastContext';
 import AdminLayout from './layout';
-import { Card, Delta, ErrorBox, Loading, Empty, Avatar } from './ui';
-import { LinesChart, HBars } from './charts';
+import { Card, Delta, Empty, ErrorBox, Loading, StatCard, Avatar } from './ui';
+import { fillDaily, HBars, LinesChart } from './charts';
 import { fmtFull, fmtNum } from './util';
 
-const STAT_TABLES = {
-  users: { label: '注册用户', color: '#3B82F6' },
-  posts: { label: '帖子', color: '#F59E0B' },
-  post_comments: { label: '评论', color: '#14B8A6' },
-  ratings: { label: '评分', color: '#8B5CF6' },
-  daily_checkins: { label: '签到', color: '#10B981' },
-  likes: { label: '点赞', color: '#EC4899' },
-};
-
-const TREND_KEYS = [
-  { key: 'users', name: '新增用户', color: '#3B82F6' },
-  { key: 'posts', name: '新帖子', color: '#F59E0B' },
-  { key: 'comments', name: '评论', color: '#14B8A6' },
-  { key: 'checkins', name: '签到', color: '#10B981' },
-  { key: 'likes', name: '点赞', color: '#EC4899' },
-  { key: 'ratings', name: '评分', color: '#8B5CF6' },
-  { key: 'novels', name: '小说', color: '#6366F1' },
+const ACTIVITY_ITEMS = [
+  { key: 'users', label: '新增用户' },
+  { key: 'posts', label: '新帖子' },
+  { key: 'post_comments', label: '评论' },
+  { key: 'daily_checkins', label: '签到' },
+  { key: 'likes', label: '点赞' },
+  { key: 'ratings', label: '评分' },
 ];
 
-const TOTALS = [
-  { key: 'users', label: '注册用户', icon: 'fa-user-plus', color: '#3B82F6', tKey: 'users' },
-  { key: 'appUsers', label: '已装 App', icon: 'fa-mobile-screen', color: '#0EA5E9', tKey: null },
-  { key: 'bannedUsers', label: '封禁账号', icon: 'fa-ban', color: '#F43F5E', tKey: null },
-  { key: 'posts', label: '帖子总数', icon: 'fa-file-lines', color: '#F59E0B', tKey: 'posts' },
-  { key: 'comments', label: '评论总数', icon: 'fa-comments', color: '#14B8A6', tKey: 'post_comments' },
-  { key: 'likes', label: '点赞总数', icon: 'fa-heart', color: '#EC4899', tKey: 'likes' },
-  { key: 'checkins', label: '签到总数', icon: 'fa-calendar-check', color: '#10B981', tKey: 'daily_checkins' },
-  { key: 'ratings', label: '评分总数', icon: 'fa-star', color: '#8B5CF6', tKey: 'ratings' },
-  { key: 'diapers', label: '纸尿裤条目', icon: 'fa-box-open', color: '#D97706', tKey: null },
-  { key: 'novels', label: '小说作品', icon: 'fa-book-open', color: '#6366F1', tKey: null },
-  { key: 'badges', label: '徽章发放', icon: 'fa-medal', color: '#B45309', tKey: null },
+const TREND_KEYS = [
+  { key: 'users', name: '新增用户', color: '#245f97' },
+  { key: 'posts', name: '新帖子', color: '#a76100' },
+  { key: 'comments', name: '评论', color: '#147a70' },
+  { key: 'checkins', name: '签到', color: '#147a55' },
+  { key: 'likes', name: '点赞', color: '#a43f72' },
+  { key: 'ratings', name: '评分', color: '#6b4fb2' },
+  { key: 'novels', name: '小说', color: '#4c61a8' },
+];
+
+const PRIMARY_TOTALS = [
+  { key: 'users', label: '注册用户', icon: 'fa-users', tone: 'blue' },
+  { key: 'appUsers', label: 'App 用户', icon: 'fa-mobile-screen', tone: 'green' },
+  { key: 'posts', label: '帖子总数', icon: 'fa-file-lines', tone: 'amber' },
+  { key: 'comments', label: '评论总数', icon: 'fa-comments', tone: 'violet' },
+];
+
+const SECONDARY_TOTALS = [
+  { key: 'bannedUsers', label: '封禁账号', icon: 'fa-ban', tone: 'red' },
+  { key: 'likes', label: '点赞总数', icon: 'fa-heart', tone: 'pink' },
+  { key: 'checkins', label: '签到总数', icon: 'fa-calendar-check', tone: 'green' },
+  { key: 'ratings', label: '评分总数', icon: 'fa-star', tone: 'violet' },
+  { key: 'diapers', label: '产品条目', icon: 'fa-box-open', tone: 'amber' },
+  { key: 'novels', label: '小说作品', icon: 'fa-book-open', tone: 'blue' },
+  { key: 'badges', label: '徽章发放', icon: 'fa-medal', tone: 'amber' },
 ];
 
 const PENDING_ITEMS = [
@@ -44,24 +47,24 @@ const PENDING_ITEMS = [
   { key: 'friend_reports', label: '交友请求举报', icon: 'fa-user-group', href: '/admin/reports' },
   { key: 'novel_reports', label: '小说举报', icon: 'fa-book-skull', href: '/admin/novels' },
   { key: 'novel_appeals', label: '申诉待审', icon: 'fa-scale-balanced', href: '/admin/novels' },
-  { key: 'security_24h', label: '24h 安全事件', icon: 'fa-shield-halved', href: '/admin/security' },
+  { key: 'security_24h', label: '24 小时安全事件', icon: 'fa-shield-halved', href: '/admin/security' },
 ];
 
-function weekDelta(ov, key) {
-  const w = Number(ov?.week?.[key]) || 0;
-  const pw = Number(ov?.prevWeek?.[key]) || 0;
-  if (pw <= 0) return w > 0 ? '新增' : '—';
-  const d = Math.round(((w - pw) / pw) * 100);
-  if (d === 0) return '持平';
-  return `${d > 0 ? '+' : ''}${d}%`;
+function weekDelta(overview, key) {
+  const week = Number(overview?.week?.[key]) || 0;
+  const previousWeek = Number(overview?.prevWeek?.[key]) || 0;
+  if (previousWeek <= 0) return week > 0 ? '新增' : '—';
+  const delta = Math.round(((week - previousWeek) / previousWeek) * 100);
+  if (delta === 0) return '持平';
+  return `${delta > 0 ? '+' : ''}${delta}%`;
 }
 
 export default function AdminOverview() {
   const toast = useToast();
-  const [ov, setOv] = useState(null);
+  const [overview, setOverview] = useState(null);
   const [trends, setTrends] = useState(null);
   const [range, setRange] = useState(30);
-  const [tKey, setTKey] = useState('users');
+  const [trendKey, setTrendKey] = useState('users');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -69,184 +72,175 @@ export default function AdminOverview() {
     setLoading(true);
     setError('');
     try {
-      const [o, t] = await Promise.all([adminAPI.overview(), adminAPI.trends(range)]);
-      setOv(o);
-      setTrends(t);
-    } catch (e) {
-      setError(e.message || '加载失败');
-      toast.error('统计加载失败: ' + (e.message || ''));
+      const [overviewResult, trendsResult] = await Promise.all([adminAPI.overview(), adminAPI.trends(range)]);
+      setOverview(overviewResult);
+      setTrends(trendsResult);
+    } catch (loadError) {
+      const message = loadError.message || '加载失败';
+      setError(message);
+      toast.error(`统计加载失败：${message}`);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [range]);
 
-  const chart = useMemo(() => {
-    if (!trends) return null;
-    const series = trends.series?.[tKey] || [];
-    return series; // 直接交给 LinesChart 由其补齐日期
-  }, [trends, tKey]);
+  const chartData = useMemo(() => {
+    if (!trends) return [];
+    return fillDaily(trends.series?.[trendKey] || [], trends.days || range);
+  }, [trends, trendKey, range]);
+
+  const currentTrend = TREND_KEYS.find(item => item.key === trendKey) || TREND_KEYS[0];
+  const lastUpdated = overview?.generatedAt || overview?.updated_at;
 
   return (
     <AdminLayout active="overview">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {loading && !ov && <Loading />}
-        {error && <ErrorBox msg={error} />}
+      <div className="ac-page-stack">
+        {loading && !overview && <Loading text="正在汇总运营数据…" />}
+        <ErrorBox msg={error} />
 
-        {/* 核心指标 */}
-        <div className="ac-stat-grid">
-          {TOTALS.map(t => (
-            <div className="ac-stat" key={t.key}>
-              <span className="ac-stat-icon" style={{ background: t.color + '18', color: t.color }}>
-                <i className={`fa-solid ${t.icon}`} />
-              </span>
-              <div className="ac-stat-num">{fmtNum(ov?.totals?.[t.key])}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span className="ac-stat-label">{t.label}</span>
-              </div>
-            </div>
+        <div className="ac-stat-grid ac-overview-primary">
+          {PRIMARY_TOTALS.map(item => (
+            <StatCard
+              key={item.key}
+              label={item.label}
+              value={fmtNum(overview?.totals?.[item.key])}
+              icon={item.icon}
+              tone={item.tone}
+              meta={lastUpdated ? `更新于 ${fmtFull(lastUpdated)}` : '累计数据'}
+            />
           ))}
         </div>
 
-        {/* 今日动态 */}
+        <div className="ac-overview-secondary">
+          {SECONDARY_TOTALS.map(item => (
+            <StatCard
+              compact
+              key={item.key}
+              label={item.label}
+              value={fmtNum(overview?.totals?.[item.key])}
+              icon={item.icon}
+              tone={item.tone}
+            />
+          ))}
+        </div>
+
         <Card
-          title="今日活跃"
+          title="今日运营"
+          description="今日实时数据，并与昨日和近七天表现对照。"
           icon="fa-bolt"
-          action={<span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 400 }}>对比昨日 · 环比上周</span>}
         >
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
-            {Object.keys(STAT_TABLES).map(k => (
-              <div key={k}>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-                  <span style={{ fontSize: 12, color: 'var(--text-light)' }}>{STAT_TABLES[k].label}</span>
-                  <Delta cur={ov?.today?.[k]} prev={ov?.yesterday?.[k]} />
+          <div className="ac-activity-grid">
+            {ACTIVITY_ITEMS.map(item => (
+              <div className="ac-activity-item" key={item.key}>
+                <div className="ac-activity-head">
+                  <span className="ac-activity-label">{item.label}</span>
+                  <Delta cur={overview?.today?.[item.key]} prev={overview?.yesterday?.[item.key]} />
                 </div>
-                <div style={{ fontSize: 20, fontWeight: 700, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>
-                  {fmtNum(ov?.today?.[k])}
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>今日</span>
-                </div>
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>
-                  近7天 {fmtNum(ov?.week?.[k])} · 环比 {weekDelta(ov, k)}
-                </div>
+                <div className="ac-activity-value">{fmtNum(overview?.today?.[item.key])}</div>
+                <div className="ac-activity-meta">近 7 天 {fmtNum(overview?.week?.[item.key])} · 环比 {weekDelta(overview, item.key)}</div>
               </div>
             ))}
           </div>
         </Card>
 
-        {/* 趋势 */}
         <Card
           title={`近 ${range} 天趋势`}
+          description="切换时间范围和指标，观察运营数据变化。"
           icon="fa-chart-line"
-          action={
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {[7, 30, 60, 90].map(r => (
-                <a key={r} className={`ac-btn ${range === r ? 'primary' : ''}`} style={{ padding: '3px 10px', fontSize: 12 }} onClick={() => setRange(r)}>{r}天</a>
+          action={(
+            <div className="ac-action-group" aria-label="趋势时间范围">
+              {[7, 30, 60, 90].map(days => (
+                <button type="button" key={days} className={`ac-btn ${range === days ? 'primary' : ''}`} aria-pressed={range === days} onClick={() => setRange(days)}>{days} 天</button>
               ))}
             </div>
-          }
+          )}
         >
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-            {TREND_KEYS.map(k => (
-              <a key={k.key} className={`ac-btn ${tKey === k.key ? 'primary' : ''}`} style={{ padding: '3px 10px', fontSize: 12 }} onClick={() => setTKey(k.key)}>
-                {k.name}
-              </a>
+          <div className="ac-tabs" role="tablist" aria-label="趋势指标" style={{ marginBottom: 14 }}>
+            {TREND_KEYS.map(item => (
+              <button
+                type="button"
+                role="tab"
+                key={item.key}
+                className={`ac-tab ${trendKey === item.key ? 'active' : ''}`}
+                aria-selected={trendKey === item.key}
+                onClick={() => setTrendKey(item.key)}
+              >{item.name}</button>
             ))}
           </div>
-          {chart ? (
+          {trends ? (
             <LinesChart
-              datasets={[{
-                name: TREND_KEYS.find(k => k.key === tKey)?.name || tKey,
-                color: TREND_KEYS.find(k => k.key === tKey)?.color || '#3B82F6',
-                values: trendFilled(chart, trends?.days || range).map(d => d.count),
-              }]}
-              labels={trendFilled(chart, trends?.days || range).map(d => d.date)}
+              title={`${currentTrend.name}近 ${range} 天趋势`}
+              datasets={[{ name: currentTrend.name, color: currentTrend.color, values: chartData.map(item => item.count) }]}
+              labels={chartData.map(item => item.date)}
             />
           ) : <Loading />}
         </Card>
 
-        {/* 待办 + 分布 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
-          <Card title="待办工单" icon="fa-list-check">
-            {PENDING_ITEMS.map(it => (
-              <a key={it.key} href={it.href} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 2px', borderBottom: '1px solid var(--border)', textDecoration: 'none', color: 'var(--text)' }}>
-                <i className={`fa-solid ${it.icon}`} style={{ width: 20, textAlign: 'center', color: 'var(--primary-dark)', fontSize: 13 }} />
-                <span style={{ fontSize: 13, flex: 1 }}>{it.label}</span>
-                <span className={`ac-pill ${Number(ov?.pending?.[it.key]) > 0 ? 'amber' : 'slate'}`}>
-                  {Number(ov?.pending?.[it.key]) > 0 ? `${fmtNum(ov.pending[it.key])} 待处理` : '已清空'}
-                </span>
-              </a>
-            ))}
+        <div className="ac-overview-grid">
+          <Card title="待处理事项" description="需要管理员关注的治理与安全事项。" icon="fa-list-check">
+            <div className="ac-list">
+              {PENDING_ITEMS.map(item => {
+                const count = Number(overview?.pending?.[item.key]) || 0;
+                return (
+                  <a className="ac-list-row" key={item.key} href={item.href}>
+                    <span className="ac-list-row-icon"><i className={`fa-solid ${item.icon}`} aria-hidden="true" /></span>
+                    <span className="ac-list-copy"><span className="ac-list-title">{item.label}</span></span>
+                    <span className={`ac-pill ${count > 0 ? 'amber' : 'slate'}`}>{count > 0 ? `${fmtNum(count)} 待处理` : '已清空'}</span>
+                  </a>
+                );
+              })}
+            </div>
           </Card>
 
-          <Card title="近 30 天地域分布（Top 10）" icon="fa-map-location-dot">
-            {(ov?.provinces || []).length ? (
-              <HBars
-                items={(ov.provinces || []).map(p => ({ label: p.name || '未知', value: p.c }))}
-                max={ov.provinces?.[0]?.c || 1}
-                unit=" 帖"
-              />
-            ) : <Empty text="暂无地域数据" />}
+          <Card title="近 30 天地域分布" description="发帖量最高的十个地区。" icon="fa-map-location-dot">
+            {(overview?.provinces || []).length ? (
+              <HBars items={overview.provinces.map(item => ({ label: item.name || '未知', value: item.c }))} max={overview.provinces?.[0]?.c || 1} unit=" 帖" />
+            ) : <Empty text="暂无地域数据" icon="fa-map-location-dot" />}
           </Card>
 
-          <Card title="徽章持有排行" icon="fa-medal">
-            {(ov?.topBadges || []).length ? (
-              <HBars
-                items={(ov.topBadges || []).map(b => ({ label: b.name, value: b.c }))}
-                max={ov.topBadges?.[0]?.c || 1}
-                color="#B45309"
-              />
-            ) : <Empty text="暂无徽章" />}
+          <Card title="徽章持有排行" description="按当前持有人数排序。" icon="fa-medal">
+            {(overview?.topBadges || []).length ? (
+              <HBars items={overview.topBadges.map(item => ({ label: item.name, value: item.c }))} max={overview.topBadges?.[0]?.c || 1} color="#a76100" />
+            ) : <Empty text="暂无徽章数据" icon="fa-medal" />}
           </Card>
         </div>
 
-        {/* 最新动态 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16 }}>
-          <Card title="最新注册" icon="fa-user-plus">
-            {(ov?.recentUsers || []).length ? (
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {(ov.recentUsers || []).map(u => (
-                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
-                    <Avatar src={u.avatar} size={30} />
-                    <a href={`/user/${u.id}`} style={{ color: 'var(--text)', fontWeight: 500, fontSize: 13, textDecoration: 'none', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.username}</a>
-                    <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--text-muted)', flexShrink: 0 }}>{fmtFull(u.created_at)}</span>
+        <div className="ac-overview-grid ac-overview-grid-wide">
+          <Card title="最新注册" description="近期加入社区的用户。" icon="fa-user-plus">
+            {(overview?.recentUsers || []).length ? (
+              <div className="ac-list">
+                {overview.recentUsers.map(user => (
+                  <div className="ac-list-row" key={user.id}>
+                    <Avatar src={user.avatar} size={32} />
+                    <div className="ac-list-copy">
+                      <a className="ac-list-title ac-link-button" href={`/user/${user.id}`}>{user.username}</a>
+                    </div>
+                    <span className="ac-list-time">{fmtFull(user.created_at)}</span>
                   </div>
                 ))}
               </div>
-            ) : <Empty text="暂无新注册" />}
+            ) : <Empty text="暂无新注册" icon="fa-user-plus" />}
           </Card>
 
-          <Card title="最新帖子" icon="fa-comment-dots">
-            {(ov?.recentPosts || []).length ? (
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {(ov.recentPosts || []).map(p => (
-                  <a key={p.id} href={`/forum/${p.id}`} style={{ display: 'flex', gap: 10, padding: '7px 0', borderBottom: '1px solid var(--border)', textDecoration: 'none', color: 'var(--text)', alignItems: 'flex-start' }}>
-                    <i className="fa-solid fa-file-lines" style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 3 }} />
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.content}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>@{p.username} · {fmtFull(p.created_at)}</div>
+          <Card title="最新帖子" description="社区最近发布的内容。" icon="fa-comment-dots">
+            {(overview?.recentPosts || []).length ? (
+              <div className="ac-list">
+                {overview.recentPosts.map(post => (
+                  <a className="ac-list-row" key={post.id} href={`/forum/${post.id}`}>
+                    <span className="ac-list-row-icon"><i className="fa-solid fa-file-lines" aria-hidden="true" /></span>
+                    <div className="ac-list-copy">
+                      <div className="ac-list-title">{post.content}</div>
+                      <div className="ac-list-meta">@{post.username} · {fmtFull(post.created_at)}</div>
                     </div>
                   </a>
                 ))}
               </div>
-            ) : <Empty>暂无帖子</Empty>}
+            ) : <Empty text="暂无帖子" icon="fa-file-lines" />}
           </Card>
         </div>
       </div>
     </AdminLayout>
   );
-}
-
-/* 趋势序列补齐为 days 天 {date,count}（后端只返回有数据的日子，缺日补 0） */
-function trendFilled(series, days) {
-  const map = {};
-  (series || []).forEach(s => { map[s.d] = Number(s.c) || 0; });
-  const out = [];
-  const p = (n) => String(n).padStart(2, '0');
-  for (let i = days - 1; i >= 0; i--) {
-    const t = new Date(Date.now() + 8 * 3600 * 1000);
-    t.setUTCDate(t.getUTCDate() - i);
-    const date = `${t.getUTCFullYear()}-${p(t.getUTCMonth() + 1)}-${p(t.getUTCDate())}`;
-    out.push({ date, count: map[date] || 0 });
-  }
-  return out;
 }

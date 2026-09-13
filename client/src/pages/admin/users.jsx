@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { adminAPI } from '../../api';
 import { useToast } from '../../contexts/ToastContext';
 import AdminLayout from './layout';
-import { Card, Pill, Pagination, Loading, Empty, Drawer, UserCell, useConfirm } from './ui';
+import { Card, Pill, Pagination, Loading, Empty, Drawer, ErrorBox, UserCell, useConfirm } from './ui';
 import { fmtDT, fmtFull, fmtNum } from './util';
 
 const PAGE_SIZE = 20;
@@ -127,60 +127,63 @@ export default function AdminUsers() {
 
   return (
     <AdminLayout active="users">
-      <Card
-        title="用户管理"
-        icon="fa-users"
-        action={
-          <div className="ac-flex" style={{ gap: 8, flexWrap: 'wrap' }}>
-            <div className="ac-search"><i className="fa-solid fa-magnifying-glass fa-icon" /><input className="ac-input" placeholder="搜索用户名 / 邮箱" value={q} onChange={e => { setQ(e.target.value); setPage(1); }} style={{ width: 200 }} /></div>
-            <select className="ac-select" value={role} onChange={e => { setRole(e.target.value); setPage(1); }}>
-              <option value="">全部角色</option>
-              <option value="admin">管理员</option>
-              <option value="user">普通用户</option>
-            </select>
-          </div>
-        }
-      >
-        {errors && <div style={{ color: 'var(--danger)', fontSize: 13, padding: '8px 0' }}>{errors}</div>}
-        <div className="ac-table-wrap">
+      <div className="ac-page-stack">
+        <Card
+          title="用户管理"
+          icon="fa-users"
+          action={
+            <div className="ac-toolbar">
+              <div className="ac-toolbar-group">
+                <div className="ac-search"><i className="fa-solid fa-magnifying-glass fa-icon" aria-hidden="true" /><input className="ac-input" aria-label="搜索用户名或邮箱" placeholder="搜索用户名 / 邮箱" value={q} onChange={e => { setQ(e.target.value); setPage(1); }} /></div>
+                <select className="ac-select" aria-label="按用户角色筛选" value={role} onChange={e => { setRole(e.target.value); setPage(1); }}>
+                  <option value="">全部角色</option>
+                  <option value="admin">管理员</option>
+                  <option value="user">普通用户</option>
+                </select>
+              </div>
+            </div>
+          }
+        >
+          <ErrorBox msg={errors} />
+          <div className="ac-table-wrap">
           <table className="ac-table">
             <thead>
               <tr>
-                <th>用户</th><th>角色</th><th>邮箱</th><th>注册时间</th>
-                <th>帖子</th><th>评论</th><th>签到</th><th>状态</th><th style={{ width: 210 }}>操作</th>
+                <th scope="col">用户</th><th scope="col">角色</th><th scope="col">邮箱</th><th scope="col">注册时间</th>
+                <th scope="col">帖子</th><th scope="col">评论</th><th scope="col">签到</th><th scope="col">状态</th><th scope="col">操作</th>
               </tr>
             </thead>
             <tbody>
               {(list || []).map(u => (
                 <tr key={u.id}>
                   <td><UserCell name={u.display_name || u.username} avatar={u.avatar} sub={u.id} /></td>
-                  <td>{u.role === 'admin' ? <Pill tone="violet"><i className="fa-solid fa-user-shield" style={{ fontSize: 10 }} /> 管理员</Pill> : <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>user</span>}</td>
-                  <td style={{ fontSize: 12.5, wordBreak: 'break-all' }}>{u.email}</td>
-                  <td style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}>{fmtFull(u.created_at)}</td>
+                  <td className="ac-cell-nowrap">{u.role === 'admin' ? <Pill tone="violet"><i className="fa-solid fa-user-shield" style={{ fontSize: 10 }} /> 管理员</Pill> : <span className="ac-cell-muted">用户</span>}</td>
+                  <td className="ac-cell-muted ac-cell-truncate ac-cell-nowrap" title={u.email}>{u.email}</td>
+                  <td className="ac-cell-muted ac-cell-nowrap">{fmtFull(u.created_at)}</td>
                   <td>{u.post_count ?? 0}</td>
                   <td>{u.comment_count ?? 0}</td>
                   <td>{u.checkin_count ?? 0}</td>
                   <td>{u.banned ? <Pill tone="red">封禁</Pill> : <Pill tone="green">正常</Pill>}</td>
                   <td>
-                    <div className="ac-flex" style={{ gap: 4 }}>
-                      <button className="ac-btn" title="查看详情" disabled={busyId === u.id} onClick={() => openDetail(u)}><i className="fa-solid fa-eye" /></button>
-                      <button className="ac-btn" title={u.banned ? '解封' : '封禁'} disabled={busyId === u.id} onClick={() => toggleBan(u)}><i className={`fa-solid ${u.banned ? 'fa-lock-open' : 'fa-lock'}`} /></button>
-                      <button className="ac-btn" title="提升为管理员" disabled={busyId === u.id || u.role === 'admin'} onClick={() => promote(u)}><i className="fa-solid fa-user-shield" /></button>
-                      <button className="ac-btn" title="追踪并封禁 IP" disabled={busyId === u.id} onClick={() => doTrackAndBan(u)}><i className="fa-solid fa-location-crosshairs" /></button>
-                      <button className="ac-btn danger" title="删除账号" disabled={busyId === u.id} onClick={() => remove(u)}><i className="fa-solid fa-trash-can" /></button>
+                    <div className="ac-table-actions">
+                      <button type="button" className="ac-btn ac-icon-button" aria-label="查看用户详情" title="查看详情" disabled={busyId === u.id} onClick={() => openDetail(u)}><i className="fa-solid fa-eye" aria-hidden="true" /></button>
+                      <button type="button" className="ac-btn ac-icon-button" aria-label={u.banned ? '解封账号' : '封禁账号'} title={u.banned ? '解封' : '封禁'} disabled={busyId === u.id} onClick={() => toggleBan(u)}><i className={`fa-solid ${u.banned ? 'fa-lock-open' : 'fa-lock'}`} aria-hidden="true" /></button>
+                      <button type="button" className="ac-btn ac-icon-button" aria-label="提升为管理员" title="提升为管理员" disabled={busyId === u.id || u.role === 'admin'} onClick={() => promote(u)}><i className="fa-solid fa-user-shield" aria-hidden="true" /></button>
+                      <button type="button" className="ac-btn ac-icon-button" aria-label="追踪并封禁 IP" title="追踪并封禁 IP" disabled={busyId === u.id} onClick={() => doTrackAndBan(u)}><i className="fa-solid fa-location-crosshairs" aria-hidden="true" /></button>
+                      <button type="button" className="ac-btn ac-icon-button danger" aria-label="删除账号" title="删除账号" disabled={busyId === u.id} onClick={() => remove(u)}><i className="fa-solid fa-trash-can" aria-hidden="true" /></button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
-          {!loading && !list?.length && <Empty text="没有匹配的用户" />}
-          {loading && !list && <Loading />}
-        </div>
-        <div style={{ marginTop: 12 }}>
-          <Pagination page={pagination.page} totalPages={pagination.totalPages} total={pagination.total} onChange={setPage} />
-        </div>
-      </Card>
+            </table>
+            {!loading && !list?.length && <Empty text="没有匹配的用户" />}
+            {loading && !list && <Loading />}
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <Pagination page={pagination.page} totalPages={pagination.totalPages} total={pagination.total} onChange={setPage} />
+          </div>
+        </Card>
 
       {/* 用户详情抽屉 */}
       <Drawer open={!!detail} onClose={() => setDetail(null)} head={info ? `@${info.user.username}` : '用户详情'}>
@@ -189,7 +192,7 @@ export default function AdminUsers() {
         ) : detail.error ? (
           <Empty text={detail.error} icon="fa-triangle-exclamation" />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="ac-page-stack">
             <div className="ac-flex" style={{ gap: 12, alignItems: 'flex-start' }}>
               <img src={info.user.avatar || ''} alt="" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', background: 'var(--input-bg)', flexShrink: 0 }} onError={e => { e.currentTarget.style.visibility = 'hidden'; }} />
               <div style={{ minWidth: 0 }}>
@@ -205,15 +208,15 @@ export default function AdminUsers() {
               </div>
             </div>
 
-            <div className="ac-stat-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(104px, 1fr))', gap: 8 }}>
+            <div className="ac-detail-stat-grid">
               {[
                 { label: '帖子', v: info.counts.posts }, { label: '评论', v: info.counts.comments },
                 { label: '点赞', v: info.counts.likes }, { label: '评分', v: info.counts.ratings },
                 { label: '打卡', v: info.counts.feelings }, { label: '签到', v: info.counts.checkins },
                 { label: '金币', v: info.counts.points },
               ].map(c => (
-                <div key={c.label} className="ac-stat" style={{ padding: '8px 10px', gap: 2 }}>
-                  <div className="ac-stat-num" style={{ fontSize: 16 }}>{fmtNum(c.v)}</div>
+                <div key={c.label} className="ac-detail-stat">
+                  <div className="ac-detail-stat-value">{fmtNum(c.v)}</div>
                   <div className="ac-stat-label">{c.label}</div>
                 </div>
               ))}
@@ -237,7 +240,7 @@ export default function AdminUsers() {
             <div>
               <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8 }}>最近发言（{info.recentPosts?.length || 0} 条）</div>
               {info.recentPosts?.length ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="ac-page-stack">
                   {info.recentPosts.map(p => (
                     <div key={p.id} style={{ fontSize: 12.5, background: 'var(--bg)', borderRadius: 8, padding: '8px 10px' }}>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.content}</div>
@@ -254,7 +257,7 @@ export default function AdminUsers() {
                 {info.tracking?.enabled ? <Pill tone="red"><i className="fa-solid fa-location-dot" style={{ fontSize: 10 }} /> 已启用追踪</Pill> : <Pill tone="slate">未启用</Pill>}
               </div>
               {info.trackEvents?.length ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12.5 }}>
+                <div className="ac-page-stack" style={{ fontSize: 12.5 }}>
                   {info.trackEvents.map((ev, i) => (
                     <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
                       <code style={{ color: 'var(--primary-dark)', flexShrink: 0 }}>{ev.ip}</code>
@@ -268,6 +271,7 @@ export default function AdminUsers() {
           </div>
         )}
       </Drawer>
+      </div>
     </AdminLayout>
   );
 }

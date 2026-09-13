@@ -115,38 +115,42 @@ export default function AdminBadges() {
 
   return (
     <AdminLayout active="badges">
-      <Card
-        title="徽章定义"
-        icon="fa-medal"
-        action={<button className="ac-btn primary" onClick={() => setForm({ mode: 'create', item: null })}><i className="fa-solid fa-plus" /> 新建徽章</button>}
-      >
-        {error && <div style={{ color: 'var(--danger)', fontSize: 13, padding: '8px 0' }}>{error}</div>}
-        {!badges && <div className="ac-loading"><i className="fa-solid fa-spinner fa-spin" /> 加载中...</div>}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-          {(badges || []).map(b => (
-            <div key={b.key} className="ac-card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div className="ac-flex" style={{ gap: 10 }}>
-                <span className="ac-badge-swatch" style={{ background: b.color || '#7C4DFF', width: 18, height: 18, borderRadius: 6 }} />
-                <div style={{ fontWeight: 700, fontSize: 14, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.name}</div>
-                <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{b.holders ?? 0} 人持有</span>
+      <div className="ac-page-stack">
+        <Card
+          title="徽章定义"
+          icon="fa-medal"
+          action={<button type="button" className="ac-btn primary" onClick={() => setForm({ mode: 'create', item: null })}><i className="fa-solid fa-plus" /> 新建徽章</button>}
+        >
+          {error && <div style={{ color: 'var(--danger)', fontSize: 13, padding: '8px 0' }}>{error}</div>}
+          {!badges && <div className="ac-loading"><i className="fa-solid fa-spinner fa-spin" /> 加载中...</div>}
+          <div className="ac-grid-3">
+            {(badges || []).map(b => (
+              <div key={b.key} className="ac-card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="ac-flex" style={{ gap: 10 }}>
+                  <span className="ac-badge-swatch" style={{ background: b.color || '#7C4DFF', width: 18, height: 18, borderRadius: 6 }} />
+                  <div style={{ fontWeight: 700, fontSize: 14, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.name}</div>
+                  <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{b.holders ?? 0} 人持有</span>
+                </div>
+                <div style={{ fontSize: 12.5, color: 'var(--text-light)', lineHeight: 1.5, minHeight: 36 }}>{b.description || '暂无说明'}</div>
+                <div className="ac-toolbar">
+                  <div className="ac-toolbar-group">
+                    <code style={{ fontSize: 11.5, color: 'var(--text-muted)', background: 'var(--input-bg)', padding: '2px 8px', borderRadius: 6 }}>{b.key}</code>
+                    {b.icon && <code style={{ fontSize: 11.5, color: 'var(--text-muted)', background: 'var(--input-bg)', padding: '2px 8px', borderRadius: 6 }}>{b.icon}</code>}
+                  </div>
+                  <div className="ac-table-actions">
+                    <button type="button" className="ac-btn" onClick={() => openHolders(b)}><i className="fa-solid fa-users" /> 持有人</button>
+                    <button type="button" className="ac-btn" onClick={() => setGrant({ key: b.key, name: b.name })}><i className="fa-solid fa-gift" /> 颁发</button>
+                    <button type="button" className="ac-btn" onClick={() => doRevoke(b)}><i className="fa-solid fa-rotate-left" /> 收回</button>
+                    <button type="button" className="ac-btn ac-icon-button" aria-label={`编辑徽章「${b.name}」`} title={`编辑徽章「${b.name}」`} onClick={() => setForm({ mode: 'edit', item: b })}><i className="fa-solid fa-pen" /></button>
+                    <button type="button" className="ac-btn danger ac-icon-button" aria-label={`删除徽章「${b.name}」`} title={`删除徽章「${b.name}」`} onClick={() => remove(b)}><i className="fa-solid fa-trash-can" /></button>
+                  </div>
+                </div>
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--text-light)', lineHeight: 1.5, minHeight: 36 }}>{b.description || '暂无说明'}</div>
-              <div className="ac-flex" style={{ gap: 6, flexWrap: 'wrap' }}>
-                <code style={{ fontSize: 11.5, color: 'var(--text-muted)', background: 'var(--input-bg)', padding: '2px 8px', borderRadius: 6 }}>{b.key}</code>
-                {b.icon && <code style={{ fontSize: 11.5, color: 'var(--text-muted)', background: 'var(--input-bg)', padding: '2px 8px', borderRadius: 6 }}>{b.icon}</code>}
-                <span style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
-                  <button className="ac-btn" onClick={() => openHolders(b)}><i className="fa-solid fa-users" /> 持有人</button>
-                  <button className="ac-btn" onClick={() => setGrant({ key: b.key, name: b.name })}><i className="fa-solid fa-gift" /> 颁发</button>
-                  <button className="ac-btn" onClick={() => doRevoke(b)}><i className="fa-solid fa-rotate-left" /> 收回</button>
-                  <button className="ac-btn" onClick={() => setForm({ mode: 'edit', item: b })}><i className="fa-solid fa-pen" /></button>
-                  <button className="ac-btn danger" onClick={() => remove(b)}><i className="fa-solid fa-trash-can" /></button>
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-        {badges && !badges.length && <Empty text="尚未创建任何徽章" icon="fa-medal" />}
-      </Card>
+            ))}
+          </div>
+          {badges && !badges.length && <Empty text="尚未创建任何徽章" icon="fa-medal" />}
+        </Card>
+      </div>
 
       {/* 新建/编辑徽章 */}
       <BadgeForm open={!!form} mode={form?.mode} item={form?.item} saving={saving} onClose={() => setForm(null)} onSubmit={submit} />
@@ -196,34 +200,34 @@ function BadgeForm({ open, mode, item, saving, onClose, onSubmit }) {
     onSubmit({ key: f.key.trim(), name: f.name.trim(), description: f.description.trim(), color: f.color, icon: f.icon.trim() });
   };
   return (
-    <Modal title={mode === 'edit' ? `编辑徽章 ${item?.key}` : '新建徽章'} onClose={onClose} footer={
+    <Modal open={open} title={mode === 'edit' ? `编辑徽章 ${item?.key}` : '新建徽章'} onClose={onClose} footer={
       <>
-        <button className="ac-btn" onClick={onClose}>取消</button>
-        <button className="ac-btn primary" disabled={saving} onClick={submit}>{saving ? '保存中...' : '保存'}</button>
+        <button type="button" className="ac-btn" onClick={onClose}>取消</button>
+        <button type="button" className="ac-btn primary" disabled={saving} onClick={submit}>{saving ? '保存中...' : '保存'}</button>
       </>
     }>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>key（仅创建时，小写字母/数字/下划线）* </div>
+      <div className="ac-form-grid">
+        <label className="ac-form-field">
+          <span className="ac-field-label">key（仅创建时，小写字母/数字/下划线）*</span>
           <input className="ac-input" style={{ width: '100%' }} disabled={mode === 'edit'} value={f.key} onChange={e => setF(p => ({ ...p, key: e.target.value }))} placeholder="early_bird" />
-        </div>
-        <div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>名称 *</div>
+        </label>
+        <label className="ac-form-field">
+          <span className="ac-field-label">名称 *</span>
           <input className="ac-input" style={{ width: '100%' }} value={f.name} onChange={e => setF(p => ({ ...p, name: e.target.value }))} />
-        </div>
-        <div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>说明</div>
+        </label>
+        <label className="ac-form-field">
+          <span className="ac-field-label">说明</span>
           <textarea className="ac-textarea" style={{ width: '100%', minHeight: 60 }} value={f.description} onChange={e => setF(p => ({ ...p, description: e.target.value }))} />
-        </div>
-        <div className="ac-flex" style={{ gap: 12 }}>
-          <div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>颜色（#RRGGBB）</div>
+        </label>
+        <div className="ac-form-grid ac-form-grid-2">
+          <label className="ac-form-field">
+            <span className="ac-field-label">颜色（#RRGGBB）</span>
             <input type="color" value={f.color} onChange={e => setF(p => ({ ...p, color: e.target.value }))} style={{ width: 54, height: 34, border: '1px solid var(--border)', borderRadius: 8, background: 'transparent', padding: 3 }} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>图标（App 内徽章图标 key）</div>
+          </label>
+          <label className="ac-form-field">
+            <span className="ac-field-label">图标（App 内徽章图标 key）</span>
             <input className="ac-input" style={{ width: '100%' }} value={f.icon} onChange={e => setF(p => ({ ...p, icon: e.target.value }))} placeholder="verified" />
-          </div>
+          </label>
         </div>
       </div>
     </Modal>
@@ -243,16 +247,17 @@ function GrantModal({ open, badge, saving, onClose, onSubmit }) {
     onSubmit(key, target);
   };
   return (
-    <Modal title={revoke ? `收回徽章「${name}」` : `颁发徽章「${name}」`} onClose={onClose} footer={
+    <Modal open={open} title={revoke ? `收回徽章「${name}」` : `颁发徽章「${name}」`} onClose={onClose} footer={
       <>
-        <button className="ac-btn" onClick={onClose}>取消</button>
-        <button className="ac-btn primary" disabled={saving} onClick={submit}>{saving ? '提交中...' : '确认'}</button>
+        <button type="button" className="ac-btn" onClick={onClose}>取消</button>
+        <button type="button" className="ac-btn primary" disabled={saving} onClick={submit}>{saving ? '提交中...' : '确认'}</button>
       </>
     }>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ fontSize: 13, color: 'var(--text)' }}>{revoke ? '该操作将移除指定用户的该徽章。' : '输入用户名（不含 @）或用户 ID。'}</div>
+      <label className="ac-form-field">
+        <span className="ac-field-label">用户名或用户 ID</span>
+        <span className="ac-field-hint">{revoke ? '该操作将移除指定用户的该徽章。' : '输入用户名（不含 @）或用户 ID。'}</span>
         <input className="ac-input" autoFocus placeholder="用户名或数字 ID" value={target} onChange={e => setTarget(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') submit(); }} />
-      </div>
+      </label>
     </Modal>
   );
 }

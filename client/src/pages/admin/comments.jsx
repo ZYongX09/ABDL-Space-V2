@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { adminAPI } from '../../api';
 import { useToast } from '../../contexts/ToastContext';
 import AdminLayout from './layout';
-import { Card, Pagination, Loading, Empty, UserCell, useConfirm } from './ui';
+import { Card, Pagination, Loading, Empty, ErrorBox, UserCell, useConfirm } from './ui';
 import { fmtFull, fmtNum } from './util';
 
 const PAGE_SIZE = 20;
@@ -56,28 +56,31 @@ export default function AdminComments() {
 
   return (
     <AdminLayout active="comments">
-      <Card
-        title="评论管理"
-        icon="fa-comments"
-        action={
-          <div className="ac-flex" style={{ gap: 8, flexWrap: 'wrap' }}>
-            <div className="ac-search"><i className="fa-solid fa-magnifying-glass fa-icon" /><input className="ac-input" placeholder="搜索评论内容" value={q} onChange={e => { setQ(e.target.value); setPage(1); }} style={{ width: 180 }} /></div>
-            <input className="ac-input" placeholder="帖子 ID 过滤" value={postId} onChange={e => { setPostId(e.target.value.replace(/\D/g, '')); setPage(1); }} style={{ width: 110 }} />
-          </div>
-        }
-      >
-        {errors && <div style={{ color: 'var(--danger)', fontSize: 13, padding: '8px 0' }}>{errors}</div>}
-        <div className="ac-table-wrap">
+      <div className="ac-page-stack">
+        <Card
+          title="评论管理"
+          icon="fa-comments"
+          action={
+            <div className="ac-toolbar">
+              <div className="ac-toolbar-group">
+                <div className="ac-search"><i className="fa-solid fa-magnifying-glass fa-icon" aria-hidden="true" /><input className="ac-input" aria-label="搜索评论内容" placeholder="搜索评论内容" value={q} onChange={e => { setQ(e.target.value); setPage(1); }} /></div>
+                <input className="ac-input" inputMode="numeric" aria-label="按帖子 ID 过滤" placeholder="帖子 ID 过滤" value={postId} onChange={e => { setPostId(e.target.value.replace(/\D/g, '')); setPage(1); }} />
+              </div>
+            </div>
+          }
+        >
+          <ErrorBox msg={errors} />
+          <div className="ac-table-wrap">
           <table className="ac-table">
             <thead>
               <tr>
-                <th style={{ width: 60 }}>ID</th>
-                <th style={{ width: 90 }}>帖子</th>
-                <th style={{ width: 200 }}>作者</th>
-                <th>内容</th>
-                <th style={{ width: 80 }}>点赞</th>
-                <th style={{ width: 130 }}>时间</th>
-                <th style={{ width: 70 }}>操作</th>
+                <th scope="col">ID</th>
+                <th scope="col">帖子</th>
+                <th scope="col">作者</th>
+                <th scope="col">内容</th>
+                <th scope="col">点赞</th>
+                <th scope="col">时间</th>
+                <th scope="col">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -91,27 +94,30 @@ export default function AdminComments() {
                       {c.content}
                     </div>
                     {c.content && c.content.length > 60 && (
-                      <a style={{ fontSize: 11.5, color: 'var(--link-color)', cursor: 'pointer' }} onClick={() => setExpanded(e => ({ ...e, [c.id]: !e[c.id] }))}>
+                      <button type="button" className="ac-link-button" aria-expanded={!!expanded[c.id]} onClick={() => setExpanded(e => ({ ...e, [c.id]: !e[c.id] }))}>
                         {expanded[c.id] ? '收起' : '展开'}
-                      </a>
+                      </button>
                     )}
                   </td>
                   <td style={{ fontSize: 12.5 }}>{fmtNum(c.like_count)}</td>
-                  <td style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}>{fmtFull(c.created_at)}</td>
+                  <td className="ac-cell-muted">{fmtFull(c.created_at)}</td>
                   <td>
-                    <button className="ac-btn danger" disabled={busy === c.id} onClick={() => remove(c)}><i className="fa-solid fa-trash-can" /></button>
+                    <div className="ac-table-actions">
+                      <button type="button" className="ac-btn ac-icon-button danger" aria-label="删除评论" title="删除评论" disabled={busy === c.id} onClick={() => remove(c)}><i className="fa-solid fa-trash-can" aria-hidden="true" /></button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
-          {!loading && !list?.length && <Empty text="没有匹配的评论" />}
-          {loading && !list && <Loading />}
-        </div>
-        <div style={{ marginTop: 12 }}>
-          <Pagination page={pagination.page} totalPages={pagination.totalPages} total={pagination.total} onChange={setPage} />
-        </div>
-      </Card>
+            </table>
+            {!loading && !list?.length && <Empty text="没有匹配的评论" />}
+            {loading && !list && <Loading />}
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <Pagination page={pagination.page} totalPages={pagination.totalPages} total={pagination.total} onChange={setPage} />
+          </div>
+        </Card>
+      </div>
     </AdminLayout>
   );
 }

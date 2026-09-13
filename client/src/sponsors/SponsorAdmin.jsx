@@ -116,7 +116,7 @@ export default function SponsorAdmin() {
   const views = { overview: OverviewTab, config: ConfigTab, plans: PlansTab, users: UsersTab, codes: CodesTab, stock: StockTab, batches: BatchesTab, audit: AuditTab };
   const View = views[tab];
   return <Api.Provider value={api}><Actions.Provider value={{ busy, run, mutate, confirm, overviewVersion }}><div className="sponsor-admin" data-testid="sponsor-admin" aria-busy={busy}>
-    <header className="sa-heading"><div><h1>赞助者管理</h1><p>管理权益、套餐与库存。所有数据来自服务器，变更均留存审计。</p></div><span className="sa-badge">管理员 · @{user?.username}</span></header>
+    <div className="sa-context-bar"><span>所有数据来自服务器，变更均留存审计。</span><span className="sa-badge">管理员 · @{user?.username}</span></div>
     <nav aria-label="赞助者管理栏目" className="sa-tabs">{TABS.map(([key, label]) => <Link key={key} to={`?tab=${key}`} aria-current={tab === key ? 'page' : undefined} aria-disabled={busy || undefined} onClick={e => { if (busy) e.preventDefault(); }} data-testid={`sponsor-tab-${key}`}>{label}</Link>)}</nav>
     <div ref={feedback} tabIndex={-1} className="sa-feedback">
     {busy && <p role="status" className="sa-message">正在处理，请勿重复提交或离开页面…</p>}

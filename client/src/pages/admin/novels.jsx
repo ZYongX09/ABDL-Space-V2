@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { adminAPI } from '../../api';
 import { useToast } from '../../contexts/ToastContext';
 import AdminLayout from './layout';
-import { Card, Pill, Pagination, Loading, Empty, useConfirm } from './ui';
+import { Card, Pill, Pagination, Loading, Empty, ErrorBox, useConfirm } from './ui';
 import { fmtFull } from './util';
 
 const PAGE_SIZE = 20;
@@ -67,33 +67,36 @@ export default function AdminNovels() {
 
   return (
     <AdminLayout active="novels">
-      <Card
-        title="小说作品"
-        icon="fa-book-open"
-        action={
-          <div className="ac-flex" style={{ gap: 8, flexWrap: 'wrap' }}>
-            <div className="ac-search"><i className="fa-solid fa-magnifying-glass fa-icon" /><input className="ac-input" placeholder="搜索标题" value={q} onChange={e => { setQ(e.target.value); setPage(1); }} style={{ width: 160 }} /></div>
-            <select className="ac-select" value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}>
-              <option value="all">全部状态</option>
-              {Object.keys(STATUS_META).map(k => (
-                <option key={k} value={k}>{STATUS_META[k].label}{statusCounts[k] ? ` (${statusCounts[k]})` : ''}</option>
-              ))}
-            </select>
-          </div>
-        }
-      >
-        {errors && <div style={{ color: 'var(--danger)', fontSize: 13, padding: '8px 0' }}>{errors}</div>}
-        <div className="ac-table-wrap">
+      <div className="ac-page-stack">
+        <Card
+          title="小说作品"
+          icon="fa-book-open"
+          action={
+            <div className="ac-toolbar">
+              <div className="ac-toolbar-group">
+                <div className="ac-search"><i className="fa-solid fa-magnifying-glass fa-icon" aria-hidden="true" /><input className="ac-input" aria-label="搜索小说标题" placeholder="搜索标题" value={q} onChange={e => { setQ(e.target.value); setPage(1); }} /></div>
+                <select className="ac-select" aria-label="按小说状态筛选" value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}>
+                  <option value="all">全部状态</option>
+                  {Object.keys(STATUS_META).map(k => (
+                    <option key={k} value={k}>{STATUS_META[k].label}{statusCounts[k] ? ` (${statusCounts[k]})` : ''}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          }
+        >
+          <ErrorBox msg={errors} />
+          <div className="ac-table-wrap">
           <table className="ac-table">
             <thead>
               <tr>
-                <th style={{ width: 70 }}>ID</th>
-                <th>标题 / 作者</th>
-                <th>类别</th>
-                <th style={{ width: 120 }}>卷 / 章</th>
-                <th>状态</th>
-                <th>更新于</th>
-                <th style={{ width: 170 }}>操作</th>
+                <th scope="col">ID</th>
+                <th scope="col">标题 / 作者</th>
+                <th scope="col">类别</th>
+                <th scope="col">卷 / 章</th>
+                <th scope="col">状态</th>
+                <th scope="col">更新于</th>
+                <th scope="col">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -107,31 +110,32 @@ export default function AdminNovels() {
                   <td style={{ fontSize: 12.5 }}>{n.category || '-'}</td>
                   <td style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}>{n.volumes} 卷 / {n.chapters} 章</td>
                   <td><Pill tone={(STATUS_META[n.status] || {}).tone || 'slate'}>{(STATUS_META[n.status] || { label: n.status }).label}</Pill></td>
-                  <td style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}>{fmtFull(n.updated_at)}</td>
+                  <td className="ac-cell-muted">{fmtFull(n.updated_at)}</td>
                   <td>
-                    <div className="ac-flex" style={{ gap: 4, flexWrap: 'wrap' }}>
+                    <div className="ac-table-actions">
                       {n.status === 'published' && (
-                        <button className="ac-btn" disabled={busy === n.id} onClick={() => changeStatus(n, 'archived')}><i className="fa-solid fa-box-archive" /> 归档</button>
+                        <button type="button" className="ac-btn" disabled={busy === n.id} onClick={() => changeStatus(n, 'archived')}><i className="fa-solid fa-box-archive" aria-hidden="true" /> 归档</button>
                       )}
                       {n.status === 'archived' && (
-                        <button className="ac-btn" disabled={busy === n.id} onClick={() => changeStatus(n, 'published')}><i className="fa-solid fa-upload" /> 重新发布</button>
+                        <button type="button" className="ac-btn" disabled={busy === n.id} onClick={() => changeStatus(n, 'published')}><i className="fa-solid fa-upload" aria-hidden="true" /> 重新发布</button>
                       )}
                       {(n.status === 'review_pending' || n.status === 'reviewing' || n.status === 'rejected' || n.status === 'draft') && (
-                        <button className="ac-btn" disabled={busy === n.id} onClick={() => changeStatus(n, 'published')}><i className="fa-solid fa-check" /> 发布</button>
+                        <button type="button" className="ac-btn" disabled={busy === n.id} onClick={() => changeStatus(n, 'published')}><i className="fa-solid fa-check" aria-hidden="true" /> 发布</button>
                       )}
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
-          {!loading && !list?.length && <Empty text="没有匹配的作品" />}
-          {loading && !list && <Loading />}
-        </div>
-        <div style={{ marginTop: 12 }}>
-          <Pagination page={pagination.page} totalPages={pagination.totalPages} total={pagination.total} onChange={setPage} />
-        </div>
-      </Card>
+            </table>
+            {!loading && !list?.length && <Empty text="没有匹配的作品" />}
+            {loading && !list && <Loading />}
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <Pagination page={pagination.page} totalPages={pagination.totalPages} total={pagination.total} onChange={setPage} />
+          </div>
+        </Card>
+      </div>
     </AdminLayout>
   );
 }
