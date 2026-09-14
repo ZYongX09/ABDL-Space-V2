@@ -19,6 +19,11 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith('/c/') || url.pathname.startsWith('/api/v1/baby-verification/verify/') || url.pathname.startsWith('/api/admin/baby-verification')) {
+    event.respondWith(fetch(event.request, { cache: 'no-store' }));
+    return;
+  }
   event.respondWith(
     caches.open(CACHE_NAME).then(cache =>
       cache.match(event.request).then(cached => {
@@ -75,6 +80,6 @@ self.addEventListener('pushsubscriptionchange', (event) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(sub.toJSON()),
-      }).catch(() => {})
+      }).catch(() => {}))
   );
 });

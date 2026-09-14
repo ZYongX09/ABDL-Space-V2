@@ -1337,10 +1337,10 @@ export const badgesAPI = {
   },
 
   /** 设置展示徽章 */
-  setDisplay: async (userId, badgeKeys) => {
+  setDisplay: async (userId, badgeKey) => {
     return apiFetch(`/api/users/${userId}/badges/display`, {
       method: 'POST',
-      body: JSON.stringify({ badge_keys: badgeKeys }),
+      body: JSON.stringify({ badge_key: badgeKey || null }),
     });
   },
 
