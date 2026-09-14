@@ -54,6 +54,9 @@ const ProfilePageV2 = lazy(() => import('./pages/ProfilePageV2'));
 const AdminOverview = lazy(() => import('./pages/admin/overview'));
 const AdminUsers = lazy(() => import('./pages/admin/users'));
 const AdminSponsors = lazy(() => import('./pages/admin/sponsors.jsx'));
+const AdminBabyVerifications = lazy(() => import('./pages/admin/babyVerifications.jsx'));
+const CertificateVerify = lazy(() => import('./pages/CertificateVerify.jsx'));
+const BabyVerificationStatus = lazy(() => import('./pages/BabyVerificationStatus.jsx'));
 const AdminPosts = lazy(() => import('./pages/admin/posts'));
 const AdminComments = lazy(() => import('./pages/admin/comments'));
 const AdminNovels = lazy(() => import('./pages/admin/novels'));
@@ -105,6 +108,8 @@ const ROUTE_TITLES = {
   '/admin': '仪表盘 — ABDL Space',
   '/admin/users': '用户管理 — ABDL Space',
   '/admin/sponsors': '赞助者管理 — ABDL Space',
+  '/admin/baby-verifications': '宝宝认证审核 — ABDL Space',
+  '/baby-verification': '宝宝认证 — ABDL Space',
   '/admin/badges': '徽章体系 — ABDL Space',
   '/admin/posts': '帖子管理 — ABDL Space',
   '/admin/comments': '评论管理 — ABDL Space',
@@ -134,6 +139,7 @@ const ROUTE_TITLES = {
 
 function getTitle(pathname) {
   if (ROUTE_TITLES[pathname]) return ROUTE_TITLES[pathname];
+  if (pathname.startsWith('/c/')) return '证书验真 — ABDL Space';
   if (pathname.startsWith('/admin')) return '管理后台 — ABDL Space';
   if (pathname.startsWith('/diaper/')) return '纸尿裤详情 — ABDL Space';
   if (pathname.startsWith('/diaper-wiki/')) return '裤裤百科 — ABDL Space';
@@ -263,15 +269,15 @@ export default function App() {
 
   return (
     <MobileHeaderProvider>
-    <RedirectNotice />
+    {!pathname.startsWith('/c/') && <RedirectNotice />}
     <div className="app-layout">
       <ScrollToTop />
       <NotificationProvider>
       <NsfwProvider>
       {/* 独立布局页面 — 无侧边栏/导航/footer（admin 控制台 + 内测注册页） */}
-      {pathname === '/beta-register' || pathname.startsWith('/admin') ? (
+      {pathname === '/beta-register' || pathname.startsWith('/admin') || pathname.startsWith('/c/') ? (
         <div
-          style={pathname.startsWith('/admin')
+          style={pathname.startsWith('/admin') || pathname.startsWith('/c/')
             ? { flex: 1, width: '100%', minHeight: '100vh', overflowY: 'auto' }
             : { flex: 1, width: '100%', minHeight: '100vh', padding: '20px 16px', overflowY: 'auto' }}
           className={pathname === '/beta-register' ? 'page-transition-enter' : ''}
@@ -281,9 +287,11 @@ export default function App() {
               <ConfirmProvider>
                 <Routes>
                   <Route path="/beta-register" element={<BetaRegister />} />
+                  <Route path="/c/:token" element={<CertificateVerify />} />
                   <Route path="/admin" element={<AdminOverview />} />
                   <Route path="/admin/users" element={<AdminUsers />} />
                   <Route path="/admin/sponsors" element={<AdminSponsors />} />
+                  <Route path="/admin/baby-verifications" element={<AdminBabyVerifications />} />
                   <Route path="/admin/badges" element={<AdminBadges />} />
                   <Route path="/admin/posts" element={<AdminPosts />} />
                   <Route path="/admin/comments" element={<AdminComments />} />
@@ -344,6 +352,7 @@ export default function App() {
                 <Route path="/oauth-clients" element={<OAuthClientsPage />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/account" element={<AccountPrivacy />} />
+                <Route path="/baby-verification" element={<BabyVerificationStatus />} />
                 <Route path="/profile-legacy" element={<AdminOnlyProfile />} />
                 <Route path="/profile-legacy/:id" element={<AdminOnlyProfile />} />
                 <Route path="/external" element={<ExternalLink />} />
@@ -380,15 +389,15 @@ export default function App() {
       </div>
       </>
       )}
-      <ToastPopup />
-      {!pathname.startsWith('/admin') && <PushPrompt />}
-      {pathname !== '/beta-register' && !pathname.startsWith('/admin') && <MobileBottomNav />}
+      {!pathname.startsWith('/c/') && <ToastPopup />}
+      {!pathname.startsWith('/admin') && !pathname.startsWith('/c/') && <PushPrompt />}
+      {pathname !== '/beta-register' && !pathname.startsWith('/admin') && !pathname.startsWith('/c/') && <MobileBottomNav />}
       </NsfwProvider>
       </NotificationProvider>
-      <AdBlockNotice />
-      <CookieConsent />
-      <ScrollProgress />
-      <BackToTop />
+      {!pathname.startsWith('/c/') && <AdBlockNotice />}
+      {!pathname.startsWith('/c/') && <CookieConsent />}
+      {!pathname.startsWith('/c/') && <ScrollProgress />}
+      {!pathname.startsWith('/c/') && <BackToTop />}
     </div>
     </MobileHeaderProvider>
   );

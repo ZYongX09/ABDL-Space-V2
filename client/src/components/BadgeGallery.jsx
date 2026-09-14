@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { badgesAPI } from '../api';
 
 /**
  * BadgeGallery — 徽章画廊组件
@@ -10,7 +11,7 @@ export default function BadgeGallery({ userId, editable = false }) {
   const [badges, setBadges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [selected, setSelected] = useState([]);
+  const [selected, setSelected] = useState(null);
 
   const targetId = userId || user?.id;
 
@@ -22,15 +23,10 @@ export default function BadgeGallery({ userId, editable = false }) {
   async function fetchBadges() {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/users/${targetId}/badges`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const json = await res.json();
-        setBadges(json.badges || []);
-        setSelected((json.badges || []).filter(b => b.displayed).map(b => b.key));
-      }
+      const json = await badgesAPI.getUserBadges(targetId);
+      const list = Array.isArray(json.badges) ? json.badges : (json.badge ? [json.badge] : []);
+      setBadges(list);
+      setSelected(list.find(b => b.displayed)?.key || list.find(b => b.displayed)?.badge_key || null);
     } catch (err) {
       console.error('Failed to fetch badges:', err);
     } finally {
@@ -40,30 +36,16 @@ export default function BadgeGallery({ userId, editable = false }) {
 
   async function handleSave() {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/users/${targetId}/badges/display`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ badge_keys: selected }),
-      });
-      if (res.ok) {
-        setEditing(false);
-        fetchBadges();
-      }
+      await badgesAPI.setDisplay(targetId, selected);
+      setEditing(false);
+      fetchBadges();
     } catch (err) {
       console.error('Failed to save badges:', err);
     }
   }
 
   function toggleBadge(key) {
-    if (selected.includes(key)) {
-      setSelected(selected.filter(k => k !== key));
-    } else if (selected.length < 3) {
-      setSelected([...selected, key]);
-    }
+    setSelected(selected === key ? null : key);
   }
 
   if (loading) {
@@ -151,7 +133,7 @@ export default function BadgeGallery({ userId, editable = false }) {
             }}
           >
             <i className={`fa-solid ${editing ? 'fa-check' : 'fa-pen'}`} style={{ fontSize: '10px' }} />
-            {editing ? `保存 (${selected.length}/3)` : '编辑展示'}
+            {editing ? `保存 (${selected ? 1 : 0}/1)` : '编辑展示'}
           </button>
         )}
       </div>
@@ -163,8 +145,8 @@ export default function BadgeGallery({ userId, editable = false }) {
       }}>
         {badges.map(badge => (
           <div
-            key={badge.key}
-            onClick={() => editing && toggleBadge(badge.key)}
+            key={badge.key || badge.badge_key}
+            onClick={() => editing && toggleBadge(badge.key || badge.badge_key)}
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -173,7 +155,7 @@ export default function BadgeGallery({ userId, editable = false }) {
               background: badge.displayed
                 ? 'linear-gradient(135deg, var(--primary)15, var(--primary)08)'
                 : 'var(--bg)',
-              border: editing && selected.includes(badge.key)
+              border: editing && selected === (badge.key || badge.badge_key)
                 ? '2px solid var(--primary)'
                 : badge.displayed
                   ? '1px solid var(--primary)30'
@@ -181,7 +163,7 @@ export default function BadgeGallery({ userId, editable = false }) {
               borderRadius: '12px',
               cursor: editing ? 'pointer' : 'default',
               transition: 'all 0.2s ease',
-              opacity: editing && !selected.includes(badge.key) && selected.length >= 3 ? 0.5 : 1,
+              opacity: editing && selected && selected !== (badge.key || badge.badge_key) ? 0.65 : 1,
             }}
           >
             <i className={`fa-solid ${badge.icon || 'fa-award'}`} style={{

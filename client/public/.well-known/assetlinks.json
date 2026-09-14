@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "top.abdl_space.app",
+      "sha256_cert_fingerprints": [
+        "FD:20:98:A3:D3:49:32:22:C2:47:A7:BA:27:87:EC:48:FD:8F:62:D3:8E:94:32:ED:4D:62:90:A0:57:DE:A4:75"
+      ]
+    }
+  }
+]

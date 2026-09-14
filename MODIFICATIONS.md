@@ -1,3 +1,10 @@
+**宝宝认证网页端 (2026-09-13)**
+- 新增公开 `/c/:token` 实时证书验真、个人认证状态/额度/证书入口和 `/admin/baby-verifications` 管理控制台。
+- 管理端覆盖筛选、详情、认领/释放、通过/驳回、吊销/补发、短期照片访问、审计与配置；照片默认不加载且模糊展示。
+- 新增强验证 API/model helper 与 node:test；verify 强制 no-store/no-referrer，SW network-only。
+- 修复 BadgeGallery `{badge_key}` 兼容与当前账号 token 漂移。
+- 网页不提供认证照片或相册上传，仅提示在 Android App 完成拍摄。
+
 **创始成员计划 / 内测预注册 (v2.25.0) — 2026-06-09 23:30**
 - 新增独立页面 `/beta-register`（主站 + 移动端同域）
 - 与 /register 业务逻辑一致，唯一差异是移除所有跨页跳转入口

@@ -244,6 +244,9 @@ abdl-space-v2/
 | `/messages` | MessagesPage | 私信 |
 | `/notifications` | NotificationsPage | 通知 |
 | `/admin` | AdminPage | 管理后台 |
+| `/admin/baby-verifications` | AdminBabyVerifications | 宝宝认证审核 |
+| `/baby-verification` | BabyVerificationStatus | 当前账号认证状态与额度 |
+| `/c/:token` | CertificateVerify | 公开证书实时验真 |
 | `/external` | ExternalLink | 外部链接跳转 |
 | `/profile-legacy` | Profile | 旧版个人中心（仅管理员） |
 | `/captcha-api` | CaptchaApiPage | 验证码 API Key 管理（隐藏页面） |
