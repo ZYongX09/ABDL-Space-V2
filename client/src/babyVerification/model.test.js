@@ -73,10 +73,13 @@ test('管理 API 适配 applications 路径、状态和 decision 请求', async 
 		return Response.json({ items: [], total: 0 });
 	} });
 	await api.admin.list({ status: 'pending', page: 2, limit: 20 });
+	await api.admin.claim('R1', '', current);
 	await api.admin.approve('R1', '资料相符', current);
 	assert.match(calls[0].url, /applications\?status=submitted&limit=20&offset=20$/);
 	assert.equal(calls[0].options.headers.Authorization, 'Bearer current-token');
-	assert.deepEqual(JSON.parse(calls[1].options.body), { decision: 'approve', note: '资料相符', operation_id: '00000000-0000-4000-8000-000000000000' });
+	assert.equal(calls[1].options.headers['Content-Type'], 'application/json');
+	assert.deepEqual(JSON.parse(calls[1].options.body), {});
+	assert.deepEqual(JSON.parse(calls[2].options.body), { decision: 'approve', note: '资料相符', operation_id: '00000000-0000-4000-8000-000000000000' });
 });
 
 test('配置保存使用 expected_version、reason 和 config 包装', () => {

@@ -73,8 +73,8 @@ export function createBabyVerificationAPI({ base = '', fetcher = (...args) => fe
 				return request(`/api/admin/baby-verification/applications${query({ status, limit: params?.limit, offset })}`, { parser: parseList });
 			},
 			detail: verificationId => request(`/api/admin/baby-verification/applications/${id(verificationId)}`, { parser: parseAdminItem }),
-			claim: async (verificationId, _reason, current) => merge(current, await request(`/api/admin/baby-verification/applications/${id(verificationId)}/claim`, { method: 'POST' })),
-			release: async (verificationId, _reason, current) => merge(current, await request(`/api/admin/baby-verification/applications/${id(verificationId)}/release`, { method: 'POST' })),
+claim: async (verificationId, _reason, current) => merge(current, await request(`/api/admin/baby-verification/applications/${id(verificationId)}/claim`, { method: 'POST', body: {} })),
+				release: async (verificationId, _reason, current) => merge(current, await request(`/api/admin/baby-verification/applications/${id(verificationId)}/release`, { method: 'POST', body: {} })),
 				approve: async (verificationId, reason, current, stableOperationId) => merge(current, await request(`/api/admin/baby-verification/applications/${id(verificationId)}/decision`, { method: 'POST', body: { decision: 'approve', note: reason, operation_id: stableOperationId || operationId() } })),
 				reject: async (verificationId, reason, current, stableOperationId) => merge(current, await request(`/api/admin/baby-verification/applications/${id(verificationId)}/decision`, { method: 'POST', body: { decision: 'reject', note: reason, operation_id: stableOperationId || operationId() } })),
 			revoke: async (verificationId, reason, current) => {
@@ -87,7 +87,7 @@ export function createBabyVerificationAPI({ base = '', fetcher = (...args) => fe
 				const certificate = parseCertificate(await request(`/api/admin/baby-verification/certificates/${id(current.certificate.id)}/reissue`, { method: 'POST', body: { reason, operation_id: operationId() } })).certificate;
 				return { ...current, certificate };
 			},
-			photo: (verificationId, photoId, signal) => request(`/api/admin/baby-verification/applications/${id(verificationId)}/evidence/${id(photoId)}/view-authorize`, { method: 'POST', parser: parsePhotoAccess, signal }),
+			photo: (verificationId, photoId, signal) => request(`/api/admin/baby-verification/applications/${id(verificationId)}/evidence/${id(photoId)}/view-authorize`, { method: 'POST', body: {}, parser: parsePhotoAccess, signal }),
 			audit: params => {
 				const offset = Math.max(0, ((Number(params?.page) || 1) - 1) * (Number(params?.limit) || 20));
 				return request(`/api/admin/baby-verification/audit${query({ application_id: params?.applicationId, limit: params?.limit, offset })}`, { parser: parseAudit });
