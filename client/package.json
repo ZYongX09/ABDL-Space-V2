@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test src/babyVerification/model.test.js src/sponsors/adminModel.test.js"
+    "test": "node --test src/babyVerification/model.test.js src/sponsors/adminModel.test.js public/sw-policy.test.js"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^13.3.0",

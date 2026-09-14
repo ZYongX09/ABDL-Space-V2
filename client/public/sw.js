@@ -1,4 +1,6 @@
-const CACHE_NAME = 'abdl-v1';
+importScripts('/sw-policy.js');
+
+const CACHE_NAME = 'abdl-v2';
 const SHELL_URLS = ['/', '/app-icon.png', '/fontawesome.min.css'];
 
 self.addEventListener('install', (event) => {
@@ -18,19 +20,18 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  const url = new URL(event.request.url);
-  if (url.pathname.startsWith('/c/') || url.pathname.startsWith('/api/v1/baby-verification/verify/') || url.pathname.startsWith('/api/admin/baby-verification')) {
-    event.respondWith(fetch(event.request, { cache: 'no-store' }));
-    return;
-  }
+  if (!self.shouldCacheRequest(event.request, self.location.origin)) return;
+
   event.respondWith(
     caches.open(CACHE_NAME).then(cache =>
       cache.match(event.request).then(cached => {
         const fetched = fetch(event.request).then(response => {
-          if (response.ok) cache.put(event.request, response.clone());
+          if (response.ok && response.type === 'basic') cache.put(event.request, response.clone());
           return response;
-        }).catch(() => cached);
+        }).catch(error => {
+          if (cached) return cached;
+          throw error;
+        });
         return cached || fetched;
       })
     )
