@@ -1019,6 +1019,20 @@ export const adminAPI = {
     return { pinned: true };
   },
 
+  setPostNsfw: async (id, hasNsfw) => {
+    if (USE_API) return apiFetch(`/api/admin/posts/${id}/nsfw`, {
+      method: 'PATCH',
+      body: JSON.stringify({ has_nsfw: !!hasNsfw }),
+    });
+    const posts = LS.get('posts') || [];
+    LS.set('posts', posts.map(post => post.id === Number(id) ? {
+      ...post,
+      has_nsfw: !!hasNsfw,
+      images: (post.images || []).map(image => ({ ...image, is_nsfw: !!hasNsfw })),
+    } : post));
+    return { has_nsfw: !!hasNsfw };
+  },
+
   deletePost: async (id) => {
     if (USE_API) return apiFetch(`/api/admin/posts/${id}`, { method: 'DELETE' });
     let posts = LS.get('posts') || [];

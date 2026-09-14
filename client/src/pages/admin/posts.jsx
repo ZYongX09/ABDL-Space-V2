@@ -15,7 +15,7 @@ export default function AdminPosts() {
   const [q, setQ] = useState('');
   const [pagination, setPagination] = useState({ page: 1, total: 0, totalPages: 1 });
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState(null);
+  const [busy, setBusy] = useState(null); // { id, action }
   const [expanded, setExpanded] = useState({});
   const [errors, setErrors] = useState('');
 
@@ -35,32 +35,62 @@ export default function AdminPosts() {
   useEffect(() => { load(page, q); }, [page, q, load]);
 
   const togglePin = async (post) => {
+    setBusy({ id: post.id, action: 'pin' });
     try {
-      await adminAPI.pinPost(post.id);
-      toast.success(post.pinned ? '已取消置顶' : '已置顶');
-      load(page, q);
+      const result = await adminAPI.pinPost(post.id);
+      setList(items => (items || []).map(item => item.id === post.id ? { ...item, pinned: !!result.pinned } : item));
+      toast.success(result.pinned ? '已置顶' : '已取消置顶');
+      await load(page, q);
     } catch (e) {
       toast.error(e.message || '操作失败');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const setNsfw = async (post) => {
+    const next = !post.has_nsfw;
+    const ok = await confirm({
+      title: next ? '标记敏感内容' : '取消敏感标记',
+      message: next
+        ? `确定将帖子 #${post.id} 标记为敏感内容吗？前台将显示敏感提示，并按客户端设置遮挡相关媒体。`
+        : `确定取消帖子 #${post.id} 的敏感内容标记吗？取消后该帖子可能直接进入普通信息流和搜索结果。`,
+      okText: next ? '标记为敏感' : '取消标记',
+      danger: !next,
+    });
+    if (!ok) return;
+
+    setBusy({ id: post.id, action: 'nsfw' });
+    try {
+      const result = await adminAPI.setPostNsfw(post.id, next);
+      setList(items => (items || []).map(item => item.id === post.id ? { ...item, has_nsfw: !!result.has_nsfw } : item));
+      toast.success(result.has_nsfw ? '已标记为敏感内容' : '已取消敏感标记');
+      await load(page, q);
+    } catch (e) {
+      toast.error(e.message || '敏感状态更新失败');
+    } finally {
+      setBusy(null);
     }
   };
 
   const remove = async (p) => {
     const ok = await confirm({
       title: '删除帖子',
-      message: `将永久删除帖子 #${p.id}（@{p.user?.username}）。此操作不可恢复！`,
+      message: `将永久删除帖子 #${p.id}（@${p.user?.username || '未知用户'}）。此操作不可恢复！`,
       okText: '永久删除',
       danger: true,
     });
     if (!ok) return;
-    setBusyId(p.id);
+    setBusy({ id: p.id, action: 'delete' });
     try {
       await adminAPI.deletePost(p.id);
       toast.success('帖子已删除');
-      load(page, q);
+      await load(page, q);
     } catch (e) {
       toast.error(e.message || '删除失败');
+    } finally {
+      setBusy(null);
     }
-    setBusyId(null);
   };
 
   return (
@@ -112,17 +142,28 @@ export default function AdminPosts() {
                   <td>
                     <div className="ac-flex" style={{ gap: 4, flexWrap: 'wrap' }}>
                       {p.pinned && <Pill tone="amber"><i className="fa-solid fa-thumbtack" style={{ fontSize: 9 }} /> 置顶</Pill>}
-                      {p.has_nsfw && <Pill tone="slate">NSFW</Pill>}
+                      {p.has_nsfw && <Pill tone="amber"><i className="fa-solid fa-eye-slash" aria-hidden="true" /> 敏感内容</Pill>}
                       {p.is_announcement && <Pill tone="blue">公告</Pill>}
                     </div>
                   </td>
                   <td>
                     <div className="ac-table-actions">
-                      <button type="button" className="ac-btn ac-icon-button" aria-label={p.pinned ? '取消置顶帖子' : '置顶帖子'} title={p.pinned ? '取消置顶' : '置顶'} disabled={busyId === p.id} onClick={() => togglePin(p)}>
-                        <i className={`fa-solid ${p.pinned ? 'fa-thumbtack-slash' : 'fa-thumbtack'}`} aria-hidden="true" />
+                      <button type="button" className="ac-btn ac-icon-button" aria-label={p.pinned ? '取消置顶帖子' : '置顶帖子'} title={p.pinned ? '取消置顶' : '置顶'} disabled={busy?.id === p.id} onClick={() => togglePin(p)}>
+                        <i className={`fa-solid ${busy?.id === p.id && busy.action === 'pin' ? 'fa-spinner fa-spin' : p.pinned ? 'fa-thumbtack-slash' : 'fa-thumbtack'}`} aria-hidden="true" />
                       </button>
-                      <button type="button" className="ac-btn ac-icon-button danger" aria-label="删除帖子" title="删除" disabled={busyId === p.id} onClick={() => remove(p)}>
-                        <i className="fa-solid fa-trash-can" aria-hidden="true" />
+                      <button
+                        type="button"
+                        className="ac-btn ac-icon-button"
+                        aria-label={p.has_nsfw ? '取消帖子的敏感内容标记' : '将帖子标记为敏感内容'}
+                        aria-pressed={!!p.has_nsfw}
+                        title={p.has_nsfw ? '取消敏感标记' : '标记为敏感内容'}
+                        disabled={busy?.id === p.id}
+                        onClick={() => setNsfw(p)}
+                      >
+                        <i className={`fa-solid ${busy?.id === p.id && busy.action === 'nsfw' ? 'fa-spinner fa-spin' : p.has_nsfw ? 'fa-eye' : 'fa-eye-slash'}`} aria-hidden="true" />
+                      </button>
+                      <button type="button" className="ac-btn ac-icon-button danger" aria-label="删除帖子" title="删除" disabled={busy?.id === p.id} onClick={() => remove(p)}>
+                        <i className={`fa-solid ${busy?.id === p.id && busy.action === 'delete' ? 'fa-spinner fa-spin' : 'fa-trash-can'}`} aria-hidden="true" />
                       </button>
                     </div>
                   </td>
