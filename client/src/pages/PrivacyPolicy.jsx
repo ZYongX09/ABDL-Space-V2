@@ -7,7 +7,7 @@ const EN = () => {
 
   return (
     <div className="space-y-4 text-sm leading-relaxed" style={s}>
-      <p><strong>Last Updated:</strong> June 20, 2026</p>
+      <p><strong>Last Updated:</strong> September 23, 2026</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>1. Introduction</h2>
       <p>Welcome to ABDL Space ("we," "us," or "our"). We operate the website abdl-space.top (the "Website"), a diaper review and community platform. This Privacy Policy explains how we collect, use, store, and protect your personal information when you use our Website.</p>
@@ -60,6 +60,7 @@ const EN = () => {
         <p className="mt-2"><strong>Baidu Analytics</strong> — Standard web browsing data (page views, device information, browsing behavior) — Website analytics and improvement.</p>
         <p className="mt-2"><strong>Third-Party Mastodon Clients</strong> — When you log in via a third-party Mastodon-compatible client, we share an OAuth access token with that client to enable it to access your ABDL Space account on your behalf.</p>
         <p className="mt-2"><strong>JPush (极光推送)</strong> — Device identifiers for push notification delivery. You may disable push notifications at any time in app settings.</p>
+        <p className="mt-2"><strong>Tencent QQ Connect Android SDK 3.5.19 (operator: Shenzhen Tencent Computer Systems Company Limited)</strong> — Used only when you actively choose QQ login or account linking in the Android App. For this purpose, the SDK and ABDL Space process QQ authorization identifiers (OpenID and the UnionID required by ABDL Space for cross-platform account linking), nickname, profile avatar, and the device model information that Tencent's official SDK privacy statement identifies as necessary for SDK reporting, issue monitoring, and device compatibility troubleshooting. After server-side verification, we store HMAC-protected representations of the QQ identifiers for account association, together with the QQ nickname and profile avatar shown in Account Settings. These records are refreshed when you authorize QQ and retained until you unlink QQ or delete your ABDL Space account. QQ access tokens are not ABDL Space credentials and are not retained long term. You may unlink QQ in Account Settings.</p>
       </div>
       <h3 className="text-base font-bold pt-1" style={h}>5.2 What We Do NOT Do</h3>
       <ul className="list-disc pl-6 space-y-1">
@@ -106,7 +107,7 @@ const ZH = () => {
 
   return (
     <div className="space-y-4 text-sm leading-relaxed" style={s}>
-      <p><strong>最后更新日期：</strong>2026年6月20日</p>
+      <p><strong>最后更新日期：</strong>2026年9月23日</p>
 
       <h2 className="text-lg font-bold pt-2" style={h}>1. 引言</h2>
       <p>欢迎访问ABDL Space（"我们"）。我们运营网站 abdl-space.top（"本网站"），这是一个纸尿裤评价与社区平台。本隐私政策说明了您在使用本网站时，我们如何收集、使用、存储和保护您的个人信息。</p>
@@ -159,6 +160,7 @@ const ZH = () => {
         <p className="mt-2"><strong>百度统计</strong> — 标准网络浏览数据（页面浏览量、设备信息、浏览行为）— 网站分析与改进。</p>
         <p className="mt-2"><strong>第三方Mastodon客户端</strong> — 当您通过第三方Mastodon兼容客户端登录时，我们会向该客户端授予OAuth访问令牌，使其能够代表您访问ABDL Space账户。</p>
         <p className="mt-2"><strong>极光推送（JPush）</strong> — 设备标识符用于推送通知的发送。您可在应用设置中随时关闭推送通知。</p>
+        <p className="mt-2"><strong>腾讯QQ互联 Android SDK 3.5.19（运营主体：深圳市腾讯计算机系统有限公司）</strong> — 仅在您于 Android App 中主动选择 QQ 登录或账户绑定时调用。为实现该功能，SDK 与 ABDL Space 会处理 QQ 授权标识（OpenID，以及 ABDL Space 用于跨端账户关联所必需的 UnionID）、昵称、头像，以及腾讯官方 SDK 隐私声明明确用于 SDK 后台上报、问题监控和机型兼容性问题定位的设备型号信息。服务端验证通过后，我们会保存经 HMAC 保护的 QQ 标识，以及在账户设置中展示的 QQ 昵称和头像；您每次授权 QQ 时可能更新这些资料，并保留至您解绑 QQ 或删除 ABDL Space 账户。QQ 访问令牌不作为 ABDL Space 凭证，且不长期存储。您可在账户设置中解绑 QQ。</p>
       </div>
       <h3 className="text-base font-bold pt-1" style={h}>5.2 我们不做的事情</h3>
       <ul className="list-disc pl-6 space-y-1">
@@ -201,7 +203,7 @@ const ZH = () => {
 export default function PrivacyPolicy() {
   return (
     <>
-    <PageLayout hero={{ icon: 'fa-shield-halved', title: 'Privacy Policy / 隐私政策', subtitle: '最后更新：2026年6月20日' }}>
+    <PageLayout hero={{ icon: 'fa-shield-halved', title: 'Privacy Policy / 隐私政策', subtitle: '最后更新：2026年9月23日' }}>
       {/* 中文翻译声明 */}
       <div className="p-4 rounded-xl mb-5 flex items-start gap-3" style={{ background: 'var(--warning-bg, #FFF8E1)', border: '2px solid var(--warning)' }}>
         <i className="fa-solid fa-circle-exclamation mt-0.5 text-lg" style={{ color: 'var(--warning)' }} />

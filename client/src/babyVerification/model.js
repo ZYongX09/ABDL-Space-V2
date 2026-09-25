@@ -191,6 +191,14 @@ export function classifyVerificationOrigin(value, token) {
 	return 'unofficial';
 }
 
+export function canViewPhoto(application, photo, adminId) {
+	return application?.status === 'reviewing'
+		&& application?.claimedBy != null
+		&& adminId != null
+		&& String(application.claimedBy) === String(adminId)
+		&& photo?.status === 'ready';
+}
+
 export function createDecisionOperationStore(createId = () => crypto.randomUUID()) {
 	const operations = new Map();
 	const keyFor = (applicationId, action, reason) => JSON.stringify([String(applicationId), action, reason]);

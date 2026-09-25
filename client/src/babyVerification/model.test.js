@@ -1,7 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyVerificationOrigin, configRequest, createDecisionOperationStore, parseCertificate, parseList, parseMe, parsePhotoAccess, validateReason } from './model.js';
+import { canViewPhoto, classifyVerificationOrigin, configRequest, createDecisionOperationStore, parseCertificate, parseList, parseMe, parsePhotoAccess, validateReason } from './model.js';
+import { messageFor } from './api.js';
 import { createBabyVerificationAPI } from './api.js';
+
+test('错误码优先映射照片访问提示，未知 404 保留通用文案', () => {
+	assert.equal(messageFor({ status: 409 }, { code: 'application_claim_required' }), '请先认领审核后再查看照片');
+	assert.equal(messageFor({ status: 409 }, { code: 'application_claimed_by_other' }), '该申请已由其他管理员认领');
+	assert.equal(messageFor({ status: 409 }, { code: 'evidence_not_ready' }), '照片仍在校验');
+	assert.equal(messageFor({ status: 404 }, { code: 'evidence_not_found' }), '照片不存在或已被移除');
+	assert.equal(messageFor({ status: 404 }, { error: '其它错误' }), '记录不存在或已被移除');
+});
+
+test('只有当前管理员认领且照片 ready 时允许查看', () => {
+	const application = { status: 'reviewing', claimedBy: 42 };
+	assert.equal(canViewPhoto(application, { status: 'ready' }, 42), true);
+	assert.equal(canViewPhoto({ ...application, claimedBy: 7 }, { status: 'ready' }, 42), false);
+	assert.equal(canViewPhoto({ ...application, status: 'pending' }, { status: 'ready' }, 42), false);
+	assert.equal(canViewPhoto(application, { status: 'processing' }, 42), false);
+});
 
 test('解析后端 active、revoked、superseded 和 unknown 证书', () => {
 	assert.equal(parseCertificate({ valid: true, status: 'active', username: 'baby', issued_at: 1 }).status, 'approved');

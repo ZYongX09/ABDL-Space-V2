@@ -962,12 +962,15 @@ export const adminAPI = {
     return { days, series: {} };
   },
 
-  // ── 用户管理（分页 + 搜索 + 角色筛选） ────────────
-  users: async ({ page = 1, limit = 20, q = '', role = '' } = {}) => {
+  // ── 用户管理（分页 + 搜索 + 角色 / QQ 绑定筛选） ─────
+  users: async ({ page = 1, limit = 20, q = '', role = '', qq_bound = '' } = {}) => {
     const params = new URLSearchParams({ page, limit, q, role });
+    if (qq_bound === 'bound' || qq_bound === 'unbound') params.set('qq_bound', qq_bound);
     if (USE_API) return apiFetch(`/api/admin/users?${params}`);
     const users = LS.get('users') || {};
-    const list = Object.values(users).map(u => ({ ...u, password: undefined }));
+    let list = Object.values(users).map(u => ({ ...u, password: undefined, qq_bound: u.qq_bound === true }));
+    if (qq_bound === 'bound') list = list.filter(u => u.qq_bound);
+    if (qq_bound === 'unbound') list = list.filter(u => !u.qq_bound);
     return { users: list, pagination: { page: 1, limit, total: list.length, totalPages: 1 } };
   },
 

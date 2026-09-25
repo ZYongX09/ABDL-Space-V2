@@ -13,7 +13,14 @@ async function decode(response) {
 	try { return await response.json(); } catch { throw new Error('服务器响应无法解析'); }
 }
 
-function messageFor(response, data) {
+export function messageFor(response, data) {
+	const messages = {
+		application_claim_required: '请先认领审核后再查看照片',
+		application_claimed_by_other: '该申请已由其他管理员认领',
+		evidence_not_ready: '照片仍在校验',
+		evidence_not_found: '照片不存在或已被移除',
+	};
+	if (typeof data?.code === 'string' && messages[data.code]) return messages[data.code];
 	if (response.status === 401) return '登录已过期，请重新登录';
 	if (response.status === 403) return '服务器拒绝访问，请确认管理员权限';
 	if (response.status === 404) return '记录不存在或已被移除';
