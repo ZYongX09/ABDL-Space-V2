@@ -331,7 +331,7 @@ export default function OAuthClientsPage() {
                 <h4 className="font-semibold mb-2">Step 1: 引导用户授权</h4>
                 <pre className="text-xs p-3 rounded overflow-x-auto" style={{ background: 'var(--input-bg)' }}>
 {`GET https://abdl-space.top/oauth/authorize
-  ?client_id=oc_your_client_id
+  ?client_id=<your_client_id>
   &redirect_uri=https://your-app.com/callback
   &scope=profile email
   &state=random_csrf_token
@@ -351,8 +351,8 @@ Content-Type: application/json
   "grant_type": "authorization_code",
   "code": "授权码",
   "redirect_uri": "https://your-app.com/callback",
-  "client_id": "oc_your_client_id",
-  "client_secret": "ocs_your_client_secret",
+  "client_id": "<your_client_id>",
+  "client_secret": "<your_client_secret>",
   "code_verifier": "原始随机字符串"
 }`}
                 </pre>
@@ -375,8 +375,8 @@ Content-Type: application/json
 {
   "grant_type": "refresh_token",
   "refresh_token": "...",
-  "client_id": "oc_your_client_id",
-  "client_secret": "ocs_your_client_secret"
+  "client_id": "<your_client_id>",
+  "client_secret": "<your_client_secret>"
 }`}
                 </pre>
               </section>
