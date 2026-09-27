@@ -5,5 +5,11 @@
 # matches a Function. The catch-all /api/* must NOT be caught by the
 # SPA fallback below, so we leave it to Functions to handle.)
 #
+# Canonical policy routes for older app and external links.
+/agreement       /terms      301
+/user-agreement  /terms      301
+/privacy-policy  /privacy    301
+/cookie          /cookies    301
+
 # All other paths fall back to index.html for client-side routing.
 /*    /index.html   200

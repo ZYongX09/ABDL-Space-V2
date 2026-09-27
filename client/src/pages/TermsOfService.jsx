@@ -117,7 +117,7 @@ export default function TermsOfService() {
         <p>8.2 用户可选择通过宝宝新天地(NewBabyWorld)第三方账户授权登录本平台。该登录方式将获取用户的宝宝新天地用户ID和用户名,用于关联或创建本平台账户。用户可随时在账户设置中解除第三方账户绑定。</p>
         <p>8.3 本平台支持第三方Mastodon兼容客户端通过标准OAuth协议进行登录授权。用户使用第三方客户端登录本平台时,该客户端将获取本平台授予的访问令牌,用于代表用户访问本平台服务。用户可在本平台账户设置中撤销第三方客户端的授权。</p>
         <p>8.4 本平台使用极光推送(JPush)服务向用户发送应用内推送通知。该服务会收集设备标识符信息,用于消息推送。用户可在应用设置中关闭推送通知。</p>
-        <p>8.5 有关数据收集、使用和保护的详细信息,请参阅本平台<a href="/privacy" style={{ color: 'var(--link-color)' }}>《隐私政策》</a>和<a href="/cookie" style={{ color: 'var(--link-color)' }}>《Cookie政策》</a>。</p>
+        <p>8.5 有关数据收集、使用和保护的详细信息,请参阅本平台<a href="/privacy" style={{ color: 'var(--link-color)' }}>《隐私政策》</a>和<a href="/cookies" style={{ color: 'var(--link-color)' }}>《Cookie政策》</a>。</p>
 
         <h2 className="text-lg font-bold pt-2" style={h}>第九条 免责声明与责任限制</h2>
         <p>9.1 <strong>本平台提供的服务按"现状"和"现有"状态提供。</strong> 在法律允许的最大范围内,本平台不对服务的及时性、安全性、准确性、可靠性、完整性作任何明示或暗示的保证。</p>
