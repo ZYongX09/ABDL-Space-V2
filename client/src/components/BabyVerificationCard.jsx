@@ -23,7 +23,7 @@ export default function BabyVerificationCard() {
 		{loading ? <p><i className="fa-solid fa-spinner fa-spin" /> 正在读取认证状态…</p> : error ? <p className="verification-error">{error}</p> : <>
 			<div className="verification-quota"><span>今日认证额度</span><strong>{data.quota.remaining} / {data.quota.limit}</strong><small>{data.quota.resetAt ? `重置：${formatTime(data.quota.resetAt)}` : '额度由服务器实时计算'}</small></div>
 			{data.reason && <p className="verification-reason">审核说明：{data.reason}</p>}
-			{data.certificates.length > 0 && <div className="verification-certificates"><h3>我的证书</h3>{data.certificates.map(cert => <Link key={cert.id} to={`/c/${encodeURIComponent(cert.token)}`} referrerPolicy="no-referrer"><span>{cert.id}</span><span>{statusMeta(cert.status).label} <i className="fa-solid fa-chevron-right" /></span></Link>)}</div>}
+				{data.certificates.length > 0 && <div className="verification-certificates"><h3>我的证书</h3>{data.certificates.map(cert => cert.token ? <Link key={cert.id} to={`/c/${encodeURIComponent(cert.token)}`} referrerPolicy="no-referrer"><span>{cert.id}</span><span>{statusMeta(cert.status).label} · 第 {cert.generation ?? '—'} 代 <i className="fa-solid fa-chevron-right" /></span></Link> : <div key={cert.id} className="verification-certificate-static"><span>{cert.id}</span><span>{statusMeta(cert.status).label} · 第 {cert.generation ?? '—'} 代</span></div>)}</div>}
 			<div className="verification-app-notice"><i className="fa-solid fa-mobile-screen-button" /><div><strong>请在 Android App 完成认证拍摄</strong><p>网页端不提供认证照片或相册上传入口。拍摄完成后，可在这里查看状态、额度和证书链接。</p></div></div>
 		</>}
 	</section>;

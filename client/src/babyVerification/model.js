@@ -1,7 +1,7 @@
-const STATUSES = new Set(['pending', 'reviewing', 'approved', 'rejected', 'revoked', 'superseded', 'not_found']);
-const STATUS_ALIASES = {
-	draft: 'pending', submitted: 'pending', cancelled: 'rejected', active: 'approved', unknown: 'not_found',
-};
+const APPLICATION_STATUSES = new Set(['draft', 'submitted', 'reviewing', 'approved', 'rejected', 'cancelled']);
+const APPLICATION_STATUS_ALIASES = { pending: 'submitted' };
+const CERTIFICATE_STATUSES = new Set(['active', 'revoked']);
+const PUBLIC_VERIFY_STATUSES = new Set(['active', 'superseded', 'revoked', 'unknown']);
 
 export function isRecord(value) {
 	return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -28,52 +28,104 @@ export function integer(value, field, min = 0, max = Number.MAX_SAFE_INTEGER) {
 	return number;
 }
 
+function optionalInteger(value, field, min = 0, max = Number.MAX_SAFE_INTEGER) {
+	if (value == null || value === '') return null;
+	return integer(value, field, min, max);
+}
+
 function optionalTime(value, field) {
 	if (value == null || value === '') return null;
 	if ((typeof value !== 'string' && typeof value !== 'number') || !Number.isFinite(new Date(typeof value === 'number' ? value * 1000 : value).getTime())) throw new Error(`${field}格式无效`);
 	return value;
 }
 
+function scalarText(value, field, max = 160) {
+	if (value == null || value === '') return '';
+	if (!['string', 'number'].includes(typeof value)) throw new Error(`${field}格式无效`);
+	return text(String(value), field, { max });
+}
+
 export function normalizeStatus(value) {
-	const raw = text(value, '状态', { required: true, max: 32 }).toLowerCase();
-	const status = STATUS_ALIASES[raw] || raw;
-	if (!STATUSES.has(status)) throw new Error('状态格式无效');
+	const raw = text(value, '申请状态', { required: true, max: 32 }).toLowerCase();
+	const status = APPLICATION_STATUS_ALIASES[raw] || raw;
+	if (!APPLICATION_STATUSES.has(status)) throw new Error('申请状态格式无效');
 	return status;
+}
+
+export function normalizeCertificateStatus(value) {
+	const status = text(value, '证书状态', { required: true, max: 32 }).toLowerCase();
+	if (!CERTIFICATE_STATUSES.has(status)) throw new Error('证书状态格式无效');
+	return status;
+}
+
+export function normalizePublicVerifyStatus(value) {
+	const status = text(value, '验真状态', { required: true, max: 32 }).toLowerCase();
+	if (!PUBLIC_VERIFY_STATUSES.has(status)) throw new Error('验真状态格式无效');
+	return status;
+}
+
+function revocationActor(source) {
+	const actor = isRecord(source.revoked_by_admin) ? source.revoked_by_admin : isRecord(source.revokedByAdmin) ? source.revokedByAdmin : {};
+	return {
+		revokedBy: scalarText(source.revoked_by ?? source.revokedBy ?? actor.id, '吊销操作者'),
+		revokedByName: text(source.revoked_by_username ?? source.revokedByUsername ?? actor.username ?? actor.display_name, '吊销操作者名称', { max: 100 }),
+	};
 }
 
 export function parseCertificate(payload) {
 	if (!isRecord(payload)) throw new Error('证书响应格式无效');
 	const source = isRecord(payload.certificate) ? payload.certificate : payload;
-	const status = normalizeStatus(source.status || (source.valid === true ? 'active' : source.valid === false ? 'unknown' : 'unknown'));
-	if (status === 'not_found') return { status, certificate: null };
-	const certificate = {
-		id: text(source.id ?? source.certificate_id ?? `credential-${source.generation ?? 1}`, '证书编号', { required: true, max: 160 }),
+	const status = normalizeCertificateStatus(source.status);
+	const actor = revocationActor(source);
+	return {
+		id: text(source.id ?? source.certificate_id, '证书编号', { required: true, max: 160 }),
 		token: text(source.token ?? source.certificate_token ?? source.verification_token, '证书令牌', { max: 512 }),
 		status,
+		generation: optionalInteger(source.generation ?? source.credential_generation, '证书代次', 1),
 		displayName: text(source.display_name ?? source.displayName ?? source.subject_name, '展示名称', { max: 100 }),
 		username: text(source.username, '用户名', { max: 100 }),
 		issuedAt: optionalTime(source.issued_at ?? source.certificate_issued_at ?? source.issuedAt, '签发时间'),
 		revokedAt: optionalTime(source.revoked_at ?? source.revokedAt, '吊销时间'),
-		supersededAt: optionalTime(source.superseded_at ?? source.supersededAt, '补发时间'),
-		reason: text(source.reason ?? source.status_reason ?? source.revoke_reason, '状态原因', { max: 500 }),
-		replacementToken: text(source.replacement_token ?? source.replacementToken, '替代证书令牌', { max: 512 }),
+		revokeReason: text(source.revoke_reason ?? source.revokeReason ?? source.status_reason, '吊销原因', { max: 500 }),
+		...actor,
 		verificationUrl: text(source.verification_url ?? source.verificationUrl ?? source.verify_path, '验真链接', { max: 2048 }),
 	};
-	return { status, certificate };
+}
+
+export function parsePublicVerification(payload) {
+	if (!isRecord(payload)) throw new Error('验真响应格式无效');
+	const source = isRecord(payload.certificate) ? payload.certificate : payload;
+	const status = normalizePublicVerifyStatus(source.status || (source.valid === true ? 'active' : 'unknown'));
+	if (status === 'unknown') return { status, certificate: null };
+	return {
+		status,
+		certificate: {
+			id: text(source.id ?? source.certificate_id, '证书编号', { max: 160 }),
+			status,
+			displayName: text(source.display_name ?? source.displayName ?? source.subject_name, '展示名称', { max: 100 }),
+			username: text(source.username, '用户名', { max: 100 }),
+			generation: optionalInteger(source.generation, '证书代次', 1),
+			issuedAt: optionalTime(source.issued_at ?? source.certificate_issued_at ?? source.issuedAt, '签发时间'),
+			revokedAt: optionalTime(source.revoked_at ?? source.revokedAt, '吊销时间'),
+			revokeReason: text(source.revoke_reason ?? source.revokeReason ?? source.status_reason, '吊销原因', { max: 500 }),
+			supersededAt: optionalTime(source.superseded_at ?? source.supersededAt, '替代时间'),
+		},
+	};
 }
 
 export function parseMe(payload) {
 	if (!isRecord(payload)) throw new Error('认证状态响应格式无效');
-	const source = isRecord(payload.application) ? payload.application : isRecord(payload.verification) ? payload.verification : payload;
+	const source = isRecord(payload.application) ? payload.application : isRecord(payload.verification) ? payload.verification : null;
+	const application = source || {};
 	const certificatePayload = payload.certificate ?? (Array.isArray(payload.certificates) ? payload.certificates[0] : null);
-	const certificates = certificatePayload ? [parseCertificate(certificatePayload).certificate].filter(Boolean) : [];
+	const certificates = certificatePayload ? [parseCertificate(certificatePayload)] : [];
 	return {
-		status: normalizeStatus(source.status || (certificates.length ? certificates[0].status : 'pending')),
-		requestId: text(source.id ?? source.request_id, '申请编号', { max: 160 }),
-		submittedAt: optionalTime(source.submitted_at, '提交时间'),
-		updatedAt: optionalTime(source.updated_at, '更新时间'),
-		reason: text(source.reason ?? source.review_reason ?? source.decision_note, '审核说明', { max: 1000 }),
-		quota: parseQuota(payload.quota ?? source.quota ?? { limit: 0, used: 0, remaining: 0 }),
+		status: normalizeStatus(source?.status || 'draft'),
+		requestId: text(application.id ?? application.request_id, '申请编号', { max: 160 }),
+		submittedAt: optionalTime(application.submitted_at, '提交时间'),
+		updatedAt: optionalTime(application.updated_at, '更新时间'),
+		reason: text(application.reason ?? application.review_reason ?? application.decision_note, '审核说明', { max: 1000 }),
+		quota: parseQuota(payload.quota ?? application.quota ?? { limit: 0, used: 0, remaining: 0 }),
 		config: isRecord(payload.config) ? parseConfig(payload.config) : null,
 		certificates,
 	};
@@ -105,7 +157,17 @@ export function parseAdminItem(value) {
 		...(value.adult_declaration != null ? { 成年声明: value.adult_declaration ? '已确认' : '未确认' } : {}),
 		...(value.declaration_version ? { 声明版本: value.declaration_version } : {}),
 	};
-	const certificateSource = value.certificate || (value.certificate_id ? { id: value.certificate_id, status: value.status === 'approved' ? 'active' : value.status, verification_token: value.verification_token, verify_path: value.verify_path } : null);
+	const certificateSource = value.certificate || (value.certificate_id ? {
+		id: value.certificate_id,
+		status: value.certificate_status ?? 'active',
+		generation: value.generation ?? value.credential_generation,
+		verification_token: value.verification_token,
+		verify_path: value.verify_path,
+		revoked_at: value.revoked_at,
+		revoke_reason: value.revoke_reason,
+		revoked_by: value.revoked_by,
+		revoked_by_username: value.revoked_by_username,
+	} : null);
 	return {
 		id: identifier(String(value.id ?? value.request_id), '申请编号'),
 		status: normalizeStatus(value.status),
@@ -120,7 +182,7 @@ export function parseAdminItem(value) {
 		photoCount: integer(value.photo_count ?? evidence.length, '照片数量', 0, 20),
 		photos: evidence.map(parsePhoto),
 		profile,
-		certificate: certificateSource ? parseCertificate(certificateSource).certificate : null,
+		certificate: certificateSource ? parseCertificate(certificateSource) : null,
 	};
 }
 
@@ -194,37 +256,63 @@ export function classifyVerificationOrigin(value, token) {
 export function canViewPhoto(application, photo, adminId) {
 	return application?.status === 'reviewing'
 		&& application?.claimedBy != null
+		&& application.claimedBy !== ''
 		&& adminId != null
 		&& String(application.claimedBy) === String(adminId)
 		&& photo?.status === 'ready';
 }
 
+export function adminActionAvailability(application, adminId) {
+	const claimed = application?.claimedBy != null && application.claimedBy !== '';
+	const claimedByCurrentAdmin = claimed && adminId != null && String(application.claimedBy) === String(adminId);
+	const claimedByOtherAdmin = claimed && !claimedByCurrentAdmin;
+	const reviewingOwned = application?.status === 'reviewing' && claimedByCurrentAdmin;
+	const activeCertificate = application?.status === 'approved' && application?.certificate?.status === 'active';
+	const actions = {
+		claim: application?.status === 'submitted' && !claimed,
+		release: reviewingOwned,
+		approve: reviewingOwned,
+		reject: reviewingOwned,
+		revoke: activeCertificate,
+		reissue: activeCertificate,
+	};
+	return { ...actions, claimedByCurrentAdmin, claimedByOtherAdmin, readOnly: !Object.values(actions).some(Boolean) };
+}
+
 export function createDecisionOperationStore(createId = () => crypto.randomUUID()) {
 	const operations = new Map();
-	const keyFor = (applicationId, action, reason) => JSON.stringify([String(applicationId), action, reason]);
+	const slotFor = (targetId, action) => JSON.stringify([String(targetId), action]);
+	const fingerprintFor = reason => JSON.stringify({ reason });
 	return {
-		acquire(applicationId, action, reason) {
-			const key = keyFor(applicationId, action, reason);
-			if (!operations.has(key)) operations.set(key, createId());
-			return operations.get(key);
+		acquire(targetId, action, reason) {
+			const slot = slotFor(targetId, action);
+			const fingerprint = fingerprintFor(reason);
+			const current = operations.get(slot);
+			if (!current || current.fingerprint !== fingerprint) operations.set(slot, { fingerprint, id: createId() });
+			return operations.get(slot).id;
 		},
-		settle(applicationId, action, reason) {
-			operations.delete(keyFor(applicationId, action, reason));
+		settle(targetId, action, reason) {
+			const slot = slotFor(targetId, action);
+			if (operations.get(slot)?.fingerprint === fingerprintFor(reason)) operations.delete(slot);
 		},
-		reject(applicationId, action, reason, error) {
-			if (Number.isInteger(error?.status) && error.status >= 400 && error.status < 500) operations.delete(keyFor(applicationId, action, reason));
+		reject(targetId, action, reason, error) {
+			const definitive = error?.definitive === true || (Number.isInteger(error?.status) && error.status >= 400 && error.status < 500);
+			if (definitive) this.settle(targetId, action, reason);
 		},
 	};
 }
 
 export function statusMeta(status) {
 	return ({
-		approved: { label: '有效', tone: 'green', icon: 'fa-circle-check' },
+		active: { label: '有效', tone: 'green', icon: 'fa-circle-check' },
 		revoked: { label: '已吊销', tone: 'red', icon: 'fa-ban' },
-		superseded: { label: '已补发替代', tone: 'amber', icon: 'fa-arrows-rotate' },
-		not_found: { label: '证书不存在', tone: 'slate', icon: 'fa-circle-question' },
-		pending: { label: '待审核', tone: 'amber', icon: 'fa-clock' },
+		superseded: { label: '已替代', tone: 'amber', icon: 'fa-arrows-rotate' },
+		unknown: { label: '未知证书', tone: 'slate', icon: 'fa-circle-question' },
+		draft: { label: '草稿', tone: 'slate', icon: 'fa-file-pen' },
+		submitted: { label: '待审核', tone: 'amber', icon: 'fa-clock' },
 		reviewing: { label: '审核中', tone: 'blue', icon: 'fa-user-shield' },
+		approved: { label: '已通过', tone: 'green', icon: 'fa-circle-check' },
 		rejected: { label: '未通过', tone: 'red', icon: 'fa-circle-xmark' },
+		cancelled: { label: '已取消', tone: 'slate', icon: 'fa-circle-minus' },
 	})[status] || { label: '未知状态', tone: 'slate', icon: 'fa-circle-question' };
 }

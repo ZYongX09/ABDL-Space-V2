@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AdminLayout from './layout.jsx';
 import { babyVerificationAPI } from '../../babyVerification/api.js';
-import { canViewPhoto, createDecisionOperationStore, statusMeta, validateReason } from '../../babyVerification/model.js';
+import { adminActionAvailability, canViewPhoto, createDecisionOperationStore, statusMeta, validateReason } from '../../babyVerification/model.js';
 import { Card, Empty, ErrorBox, Loading, Pagination, Pill, Toolbar } from './ui.jsx';
 import { fmtFull } from './util.js';
 import { useToast } from '../../contexts/ToastContext.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import './baby-verifications.css';
 
-const FILTERS = ['', 'pending', 'reviewing', 'approved', 'rejected'];
+const FILTERS = ['', 'submitted', 'reviewing', 'approved', 'rejected'];
 
 function Photo({ verificationId, photo, canView, isClaimedByCurrentAdmin }) {
 	const [state, setState] = useState({ loading: false, url: '', error: '', revealed: false });
@@ -37,35 +37,47 @@ function Photo({ verificationId, photo, canView, isClaimedByCurrentAdmin }) {
 
 function Detail({ item, onChanged, onClose, adminId }) {
 	const toast = useToast();
-	const isClaimedByCurrentAdmin = item.status === 'reviewing' && item.claimedBy != null && item.claimedBy !== '' && adminId != null && String(item.claimedBy) === String(adminId);
+	const permissions = adminActionAvailability(item, adminId);
 	const [reason, setReason] = useState('');
 	const [busy, setBusy] = useState(false);
-	const decisionOperations = useRef(createDecisionOperationStore());
+	const operations = useRef(createDecisionOperationStore());
 	const action = async (name, needsReason = false) => {
 		setBusy(true);
 		let checked;
 		let stableOperationId;
 		try {
 			checked = needsReason ? validateReason(reason) : undefined;
-			if (name === 'approve' || name === 'reject') stableOperationId = decisionOperations.current.acquire(item.id, name, checked);
+			if (['approve', 'reject', 'revoke', 'reissue'].includes(name)) stableOperationId = operations.current.acquire(item.id, name, checked);
 			const next = await babyVerificationAPI.admin[name](item.id, checked, item, stableOperationId);
 			if (name === 'claim' || name === 'release') {
 				const refreshed = await babyVerificationAPI.admin.detail(item.id);
 				onChanged(refreshed); setReason(''); toast.success('操作已由服务器确认'); return;
 			}
-			if (stableOperationId) decisionOperations.current.settle(item.id, name, checked);
+			if (stableOperationId) operations.current.settle(item.id, name, checked);
 			onChanged(next); setReason(''); toast.success('操作已由服务器确认');
 		} catch (error) {
-			if (stableOperationId) decisionOperations.current.reject(item.id, name, checked, error);
+			if (stableOperationId) operations.current.reject(item.id, name, checked, error);
 			toast.error(error.message);
 		} finally { setBusy(false); }
 	};
+	const certificateMeta = item.certificate ? statusMeta(item.certificate.status) : null;
+	const actor = item.certificate?.revokedByName || item.certificate?.revokedBy;
+	const hasActions = ['claim', 'release', 'approve', 'reject', 'revoke', 'reissue'].some(name => permissions[name]);
 	return <div className="bv-detail-mask" role="presentation" onMouseDown={onClose}><aside className="bv-detail" role="dialog" aria-modal="true" aria-label="认证审核详情" onMouseDown={e => e.stopPropagation()}>
 		<header><div><h2>{item.displayName || item.username || `用户 ${item.userId}`}</h2><p>申请 {item.id} · 提交 {fmtFull(item.submittedAt)}</p></div><button className="ac-icon-button" onClick={onClose}><i className="fa-solid fa-xmark" /></button></header>
 		<section className="bv-profile"><h3>已认证个人资料信息</h3><dl>{Object.entries(item.profile || {}).filter(([, value]) => value != null && value !== '').map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl></section>
-		<section><h3>服务端认证要求与照片</h3><p className="bv-sensitive-note">照片默认模糊且未加载。仅在点击单张照片后请求短期 URL；离开详情即清空。</p><div className="bv-photos">{item.photos.map(photo => <Photo key={photo.id} verificationId={item.id} photo={photo} canView={canViewPhoto(item, photo, adminId)} isClaimedByCurrentAdmin={isClaimedByCurrentAdmin} />)}{!item.photos.length && <Empty text="服务端未返回照片清单" />}</div></section>
-		<section><h3>审核操作</h3><textarea className="ac-input" rows="3" value={reason} onChange={e => setReason(e.target.value)} placeholder="通过、驳回、吊销或补发均需填写明确理由" maxLength="500" />
-			<div className="bv-actions"><button className="ac-btn" disabled={busy} onClick={() => action(item.claimedBy ? 'release' : 'claim')}>{item.claimedBy ? '释放审核' : '认领审核'}</button><button className="ac-btn primary" disabled={busy} onClick={() => action('approve', true)}>通过</button><button className="ac-btn danger" disabled={busy} onClick={() => action('reject', true)}>驳回</button><button className="ac-btn danger" disabled={busy} onClick={() => action('revoke', true)}>吊销</button><button className="ac-btn" disabled={busy} onClick={() => action('reissue', true)}>补发证书</button></div>
+		<section><h3>证书信息</h3>{item.certificate ? <dl className="bv-certificate-details">
+			<div><dt>证书状态</dt><dd><Pill tone={certificateMeta.tone}>{certificateMeta.label}</Pill></dd></div>
+			<div><dt>Generation</dt><dd>{item.certificate.generation ?? '—'}</dd></div>
+			<div><dt>证书编号</dt><dd>{item.certificate.id}</dd></div>
+			<div><dt>签发时间</dt><dd>{fmtFull(item.certificate.issuedAt)}</dd></div>
+			{item.certificate.revokedAt && <div><dt>吊销时间</dt><dd>{fmtFull(item.certificate.revokedAt)}</dd></div>}
+			{item.certificate.revokeReason && <div><dt>吊销原因</dt><dd>{item.certificate.revokeReason}</dd></div>}
+			{actor && <div><dt>吊销操作者</dt><dd>{actor}</dd></div>}
+		</dl> : <Empty text="当前申请没有证书" />}</section>
+		<section><h3>服务端认证要求与照片</h3><p className="bv-sensitive-note">照片默认模糊且未加载。仅在点击单张照片后请求短期 URL；离开详情即清空。</p><div className="bv-photos">{item.photos.map(photo => <Photo key={photo.id} verificationId={item.id} photo={photo} canView={canViewPhoto(item, photo, adminId)} isClaimedByCurrentAdmin={permissions.claimedByCurrentAdmin} />)}{!item.photos.length && <Empty text="服务端未返回照片清单" />}</div></section>
+		<section><h3>审核操作</h3>{hasActions ? <><textarea className="ac-input" rows="3" value={reason} onChange={e => setReason(e.target.value)} placeholder="通过、驳回、吊销或补发均需填写明确理由" maxLength="500" />
+			<div className="bv-actions">{permissions.claim && <button className="ac-btn" disabled={busy} onClick={() => action('claim')}>认领审核</button>}{permissions.release && <button className="ac-btn" disabled={busy} onClick={() => action('release')}>释放审核</button>}{permissions.approve && <button className="ac-btn primary" disabled={busy} onClick={() => action('approve', true)}>通过</button>}{permissions.reject && <button className="ac-btn danger" disabled={busy} onClick={() => action('reject', true)}>驳回</button>}{permissions.revoke && <button className="ac-btn danger" disabled={busy} onClick={() => action('revoke', true)}>吊销</button>}{permissions.reissue && <button className="ac-btn" disabled={busy} onClick={() => action('reissue', true)}>补发证书</button>}</div></> : <p className="bv-readonly">{permissions.claimedByOtherAdmin ? `该申请已由管理员 ${item.claimedBy} 认领，当前为只读。` : '当前状态没有可执行的管理操作。'}</p>}
 		</section>{item.certificate?.token && <a className="ac-btn" href={`/c/${encodeURIComponent(item.certificate.token)}`} target="_blank" rel="noreferrer">打开证书验真页</a>}
 	</aside></div>;
 }
@@ -74,7 +86,7 @@ export default function AdminBabyVerifications() {
 	const toast = useToast();
 	const { user } = useAuth();
 	const [tab, setTab] = useState('reviews');
-	const [status, setStatus] = useState('pending');
+	const [status, setStatus] = useState('submitted');
 	const [page, setPage] = useState(1);
 	const [data, setData] = useState(null);
 	const [selected, setSelected] = useState(null);
