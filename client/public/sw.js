@@ -1,7 +1,7 @@
 importScripts('/sw-policy.js');
 
-const CACHE_NAME = 'abdl-v2';
-const SHELL_URLS = ['/', '/app-icon.png', '/fontawesome.min.css'];
+const CACHE_NAME = 'abdl-v3';
+const SHELL_URLS = ['/app-icon.png', '/fontawesome.min.css'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

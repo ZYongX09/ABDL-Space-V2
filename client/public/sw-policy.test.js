@@ -13,5 +13,12 @@ test('service worker ignores cross-origin, API, certificate, and authorized requ
 
 test('service worker only caches same-origin static GET requests', () => {
   assert.equal(globalThis.shouldCacheRequest(new Request(`${origin}/assets/app.js`), origin), true);
+  assert.equal(globalThis.shouldCacheRequest(new Request(`${origin}/app-icon.png`), origin), true);
   assert.equal(globalThis.shouldCacheRequest(new Request(`${origin}/assets/app.js`, { method: 'POST' }), origin), false);
+});
+
+test('service worker never caches HTML navigation or SPA routes', () => {
+  assert.equal(globalThis.shouldCacheRequest(new Request(`${origin}/`, { headers: { Accept: 'text/html' } }), origin), false);
+  assert.equal(globalThis.shouldCacheRequest(new Request(`${origin}/forum/61`, { headers: { Accept: 'text/html' } }), origin), false);
+  assert.equal(globalThis.shouldCacheRequest(new Request(`${origin}/login`, { headers: { Accept: 'text/html' } }), origin), false);
 });
