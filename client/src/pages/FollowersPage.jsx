@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { LoadingSkeleton, EmptyState } from '../components/Feedback';
@@ -6,6 +6,7 @@ import OfficialBadge from '../components/OfficialBadge';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { followsAPI } from '../api';
+import { useFollowStatuses } from '../hooks/useFollowStatuses.js';
 
 export default function FollowersPage() {
   const { id } = useParams();
@@ -19,43 +20,32 @@ export default function FollowersPage() {
   const [users, setUsers] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [followMap, setFollowMap] = useState({});
   const [followLoading, setFollowLoading] = useState({});
+  const loadVersionRef = useRef(0);
+  const followTargetIds = users
+    .map(listUser => listUser.id)
+    .filter(userId => String(userId) !== String(currentUser?.id));
+  const { followMap, setFollowing } = useFollowStatuses(currentUser?.id, followTargetIds, followsAPI.statusMany);
 
   useEffect(() => {
     setTab(isFollowingTab ? 'following' : 'followers');
   }, [isFollowingTab]);
 
   useEffect(() => {
+    const loadVersion = ++loadVersionRef.current;
     setLoading(true);
     setUsers([]);
-    setFollowMap({});
     const fetchFn = tab === 'followers' ? followsAPI.followers : followsAPI.following;
     fetchFn(id)
-      .then(async data => {
-        const fetchedUsers = data.users || [];
-        setUsers(fetchedUsers);
+      .then(data => {
+        if (loadVersion !== loadVersionRef.current) return;
+        setUsers(data.users || []);
         setTotal(data.total || 0);
-        // 批量初始化关注状态
-        if (currentUser && fetchedUsers.length > 0) {
-          const entries = await Promise.all(
-            fetchedUsers
-              .filter(u => String(u.id) !== String(currentUser.id))
-              .map(async u => {
-                try {
-                  const s = await followsAPI.status(u.id);
-                  return [u.id, s.following || s.mutual || false];
-                } catch {
-                  return [u.id, false];
-                }
-              })
-          );
-          setFollowMap(Object.fromEntries(entries));
-        }
       })
-      .catch(e => toast.error(e.message))
-      .finally(() => setLoading(false));
-  }, [id, tab, currentUser]);
+      .catch(e => { if (loadVersion === loadVersionRef.current) toast.error(e.message); })
+      .finally(() => { if (loadVersion === loadVersionRef.current) setLoading(false); });
+    return () => { loadVersionRef.current++; };
+  }, [id, tab, currentUser, toast]);
 
   const handleTabChange = (newTab) => {
     navigate(`/user/${id}/${newTab}`, { replace: true });
@@ -64,8 +54,7 @@ export default function FollowersPage() {
   const handleFollow = async (userId) => {
     if (!currentUser) { toast.error('请先登录'); return; }
     const wasFollowing = followMap[userId];
-    // 乐观更新
-    setFollowMap(prev => ({ ...prev, [userId]: !wasFollowing }));
+    setFollowing(userId, !wasFollowing);
     setFollowLoading(prev => ({ ...prev, [userId]: true }));
     try {
       if (wasFollowing) {
@@ -74,8 +63,7 @@ export default function FollowersPage() {
         await followsAPI.follow(userId);
       }
     } catch (e) {
-      // 回滚
-      setFollowMap(prev => ({ ...prev, [userId]: wasFollowing }));
+      setFollowing(userId, wasFollowing);
       toast.error(e.message);
     } finally {
       setFollowLoading(prev => ({ ...prev, [userId]: false }));

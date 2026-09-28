@@ -10,6 +10,7 @@ import { LoadingSkeleton, EmptyState } from '../components/Feedback';
 import PullToRefresh from '../components/PullToRefresh';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useFollowStatuses } from '../hooks/useFollowStatuses.js';
 
 const TABS = [
   { key: 'latest', label: '最新' },
@@ -26,8 +27,11 @@ export default function HomeV2() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [activeTab, setActiveTab] = useState('latest');
-  const [followMap, setFollowMap] = useState({});
   const { user } = useAuth();
+  const followTargetIds = posts
+    .map(post => post.user?.id)
+    .filter(id => id && String(id) !== String(user?.id));
+  const { followMap, setFollowing } = useFollowStatuses(user?.id, followTargetIds, followsAPI.statusMany);
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -67,21 +71,6 @@ export default function HomeV2() {
     loadPosts(1);
   }, [activeTab, loadPosts]);
 
-  // 获取关注状态
-  useEffect(() => {
-    if (!user || posts.length === 0) return;
-    const userIds = [...new Set(posts.map(p => p.user?.id).filter(id => id && id !== user.id))];
-    if (userIds.length === 0) return;
-    (async () => {
-      try {
-        const results = await Promise.all(userIds.map(id => followsAPI.status(id).catch(() => null)));
-        const map = {};
-        userIds.forEach((id, i) => { if (results[i]) map[id] = results[i].following; });
-        if (Object.keys(map).length > 0) setFollowMap(prev => ({ ...prev, ...map }));
-      } catch {}
-    })();
-  }, [posts, user]);
-
   const likingRef = useRef(new Set());
 
   const handleLike = useCallback(async (postId) => {
@@ -117,14 +106,14 @@ export default function HomeV2() {
     e?.preventDefault();
     if (!user) { toast.error('请先登录'); return; }
     const wasFollowing = followMap[userId];
-    setFollowMap(prev => ({ ...prev, [userId]: !wasFollowing }));
+    setFollowing(userId, !wasFollowing);
     try {
       if (wasFollowing) await followsAPI.unfollow(userId);
       else await followsAPI.follow(userId);
     } catch {
-      setFollowMap(prev => ({ ...prev, [userId]: wasFollowing }));
+      setFollowing(userId, wasFollowing);
     }
-  }, [user, followMap]);
+  }, [user, followMap, setFollowing]);
 
   const handlePostCreated = useCallback((result) => {
     // prepend 新帖而非全量刷新

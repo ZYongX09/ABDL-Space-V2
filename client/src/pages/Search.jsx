@@ -7,6 +7,7 @@ import OfficialBadge from '../components/OfficialBadge';
 import { forumAPI, usersAPI, followsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useFollowStatuses } from '../hooks/useFollowStatuses.js';
 
 const TABS = [
   { key: 'all', label: '全部' },
@@ -34,9 +35,14 @@ export default function Search() {
   const [posts, setPosts] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [followMap, setFollowMap] = useState({});
   const inputRef = useRef(null);
+  const searchVersionRef = useRef(0);
   const { user: currentUser } = useAuth();
+  const followTargetIds = [
+    ...users.map(resultUser => resultUser.id),
+    ...posts.map(post => post.user?.id),
+  ].filter(id => id && String(id) !== String(currentUser?.id));
+  const { followMap, setFollowing } = useFollowStatuses(currentUser?.id, followTargetIds, followsAPI.statusMany);
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -46,10 +52,16 @@ export default function Search() {
   // URL → input
   useEffect(() => { setInput(q); }, [q]);
 
-  // 搜索执行（debounce 300ms）
+  // 搜索执行（debounce 300ms）；query/tab 一变化立即使旧请求失效。
   useEffect(() => {
-    if (!q.trim()) { setPosts([]); setUsers([]); return; }
-    const t = setTimeout(() => doSearch(), 300);
+    const searchVersion = ++searchVersionRef.current;
+    if (!q.trim()) {
+      setPosts([]);
+      setUsers([]);
+      setLoading(false);
+      return undefined;
+    }
+    const t = setTimeout(() => doSearch(searchVersion), 300);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, tab]);
@@ -63,7 +75,8 @@ export default function Search() {
     setSearchParams(params, { replace: true });
   };
 
-  const doSearch = async () => {
+  const doSearch = async (searchVersion) => {
+    if (searchVersion !== searchVersionRef.current) return;
     setLoading(true);
     try {
       const tasks = [];
@@ -76,12 +89,13 @@ export default function Search() {
         tasks.push(usersAPI.search(q).then(d => d.users || []));
       } else { tasks.push(Promise.resolve([])); }
       const [p, u] = await Promise.all(tasks);
+      if (searchVersion !== searchVersionRef.current) return;
       setPosts(p);
       setUsers(u);
     } catch (e) {
-      toast.error(e.message);
+      if (searchVersion === searchVersionRef.current) toast.error(e.message);
     } finally {
-      setLoading(false);
+      if (searchVersion === searchVersionRef.current) setLoading(false);
     }
   };
 
@@ -90,37 +104,20 @@ export default function Search() {
     ? posts.filter(p => p.is_announcement)
     : posts;
 
-  // 取用户关注状态
-  useEffect(() => {
-    if (!currentUser || users.length === 0) return;
-    (async () => {
-      const map = { ...followMap };
-      for (const u of users) {
-        if (u.id === currentUser.id) continue;
-        try {
-          const r = await followsAPI.status(u.id);
-          map[u.id] = r.following;
-        } catch {}
-      }
-      setFollowMap(map);
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [users, currentUser]);
-
   const handleFollow = useCallback(async (userId, e) => {
     e?.stopPropagation();
     e?.preventDefault();
     if (!currentUser) { toast.error('请先登录'); return; }
     const wasFollowing = followMap[userId];
-    setFollowMap(prev => ({ ...prev, [userId]: !wasFollowing }));
+    setFollowing(userId, !wasFollowing);
     try {
       if (wasFollowing) await followsAPI.unfollow(userId);
       else await followsAPI.follow(userId);
     } catch (err) {
-      setFollowMap(prev => ({ ...prev, [userId]: wasFollowing }));
+      setFollowing(userId, wasFollowing);
       toast.error(err.message);
     }
-  }, [currentUser, followMap, toast]);
+  }, [currentUser, followMap, setFollowing, toast]);
 
   // 点赞（简单实现）
   const likingRef = useRef(new Set());

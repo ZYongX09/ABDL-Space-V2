@@ -3,6 +3,8 @@
  * Base URL: 生产 https://api.abdl.space / 本地 http://localhost:8787
  * 双模式：VITE_API_BASE 为空时走 localStorage 离线模式
  */
+import { fetchFollowStatuses } from './utils/followStatus.js';
+
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 // 空字符串也是有效值（相对路径），只有显式设为 undefined/null 时才走离线
 const USE_API = API_BASE !== undefined && API_BASE !== null;
@@ -1234,6 +1236,16 @@ export const followsAPI = {
     if (USE_API) return apiFetch(`/api/follows/${userId}/status`);
     return { following: false, follower: false, mutual: false };
   },
+
+  // 每批最多 99 个目标 ID：加上当前用户参数后仍满足 D1 的 100 参数上限。
+  // 任一批次失败即上抛，禁止把 401/429/5xx 放大为 N 个逐用户请求。
+  statusMany: async (userIds) => fetchFollowStatuses(userIds, async ids => {
+    if (!USE_API) {
+      return Object.fromEntries(ids.map(id => [id, { following: false, follower: false, mutual: false }]));
+    }
+    const data = await apiFetch(`/api/follows/batch-status?ids=${ids.join(',')}`);
+    return data.statuses || {};
+  }),
 
   followers: async (userId, page = 1) => {
     if (USE_API) return apiFetch(`/api/follows/${userId}/followers?page=${page}`);
