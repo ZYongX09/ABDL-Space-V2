@@ -91,8 +91,8 @@ export function LinesChart({ datasets, labels, height = 220, unit = '', title = 
           const gridY = padTop + (row / 4) * innerHeight;
           return (
             <g key={row}>
-              <line x1={padLeft} x2={width - padRight} y1={gridY} y2={gridY} stroke="#e2e7ec" strokeWidth="1" />
-              <text x={padLeft - 5} y={gridY + 3} fontSize="10" fill="#66758a" textAnchor="end">{Math.round(yMax * (1 - row / 4))}</text>
+              <line x1={padLeft} x2={width - padRight} y1={gridY} y2={gridY} stroke="var(--ac-border)" strokeWidth="1" />
+              <text x={padLeft - 5} y={gridY + 3} fontSize="10" fill="var(--ac-text-muted)" textAnchor="end">{Math.round(yMax * (1 - row / 4))}</text>
             </g>
           );
         })}
@@ -109,15 +109,15 @@ export function LinesChart({ datasets, labels, height = 220, unit = '', title = 
           </g>
         ))}
         {displayedDates.map(index => (
-          <text key={index} x={x(index)} y={chartHeight - 7} fontSize="10" fill="#66758a" textAnchor="middle">
+          <text key={index} x={x(index)} y={chartHeight - 7} fontSize="10" fill="var(--ac-text-muted)" textAnchor="middle">
             {labels[index]?.slice(5) || ''}
           </text>
         ))}
         {activeIndex != null && (
           <g aria-hidden="true">
-            <line x1={x(activeIndex)} x2={x(activeIndex)} y1={padTop} y2={padTop + innerHeight} stroke="#7b899a" strokeWidth="1" strokeDasharray="3 3" />
+            <line x1={x(activeIndex)} x2={x(activeIndex)} y1={padTop} y2={padTop + innerHeight} stroke="var(--ac-text-muted)" strokeWidth="1" strokeDasharray="3 3" />
             {datasets.map((dataset, index) => (
-              <circle key={dataset.name || index} cx={x(activeIndex)} cy={y(dataset.values[activeIndex])} r="3.5" fill={dataset.color} stroke="#ffffff" strokeWidth="1.5" />
+              <circle key={dataset.name || index} cx={x(activeIndex)} cy={y(dataset.values[activeIndex])} r="3.5" fill={dataset.color} stroke="var(--ac-surface)" strokeWidth="1.5" />
             ))}
           </g>
         )}
@@ -146,7 +146,7 @@ export function LinesChart({ datasets, labels, height = 220, unit = '', title = 
       )}
       {activeIndex != null && (
         <div className="ac-chart-tooltip" style={{ left: `${Math.min(88, Math.max(12, (x(activeIndex) / width) * 100))}%`, top: 38, transform: 'translateX(-50%)' }}>
-          <div style={{ marginBottom: 4, color: '#aeb9c6' }}>{labels[activeIndex]}</div>
+          <div style={{ marginBottom: 4, color: 'var(--ac-text-secondary)' }}>{labels[activeIndex]}</div>
           {datasets.map(dataset => (
             <div key={dataset.name} style={{ display: 'flex', alignItems: 'center', gap: 6, lineHeight: 1.55 }}>
               <span className="ac-chart-dot" style={{ background: dataset.color }} />
@@ -160,7 +160,7 @@ export function LinesChart({ datasets, labels, height = 220, unit = '', title = 
   );
 }
 
-export function Spark({ data, color = '#245f97', height = 34 }) {
+export function Spark({ data, color = 'var(--ac-action)', height = 34 }) {
   const width = 120;
   const chartHeight = 40;
   const max = Math.max(...data, 1);
@@ -175,7 +175,7 @@ export function Spark({ data, color = '#245f97', height = 34 }) {
   );
 }
 
-export function HBars({ items, max, color = '#245f97', unit = '' }) {
+export function HBars({ items, max, color = 'var(--ac-action)', unit = '' }) {
   const maximum = max || Math.max(...items.map(item => item.value), 1);
   return (
     <div className="ac-bars">
@@ -194,7 +194,7 @@ export function HBars({ items, max, color = '#245f97', unit = '' }) {
   );
 }
 
-export function MiniBars({ data, color = '#245f97', showLabels = false, ariaLabel = '柱状趋势图' }) {
+export function MiniBars({ data, color = 'var(--ac-action)', showLabels = false, ariaLabel = '柱状趋势图' }) {
   const max = Math.max(...data.map(item => item.count), 1);
   const width = 900;
   const height = showLabels ? 108 : 90;
@@ -210,8 +210,8 @@ export function MiniBars({ data, color = '#245f97', showLabels = false, ariaLabe
         return (
           <g key={`${item.date}-${index}`}>
             <rect x={barWidth * index + barWidth * 0.18} y={height - chartBottom - barHeight} width={barWidth * 0.64} height={barHeight} rx="2" fill={color} opacity={item.count > 0 ? 1 : 0.08} />
-            <text x={centerX} y={height - chartBottom - barHeight - 4} fontSize="9" fill="#66758a" textAnchor="middle">{item.count > 0 ? item.count : ''}</text>
-            {showLabels && index % labelEvery === 0 && <text x={centerX} y={height - 5} fontSize="9" fill="#66758a" textAnchor="middle">{item.date}</text>}
+            <text x={centerX} y={height - chartBottom - barHeight - 4} fontSize="9" fill="var(--ac-text-muted)" textAnchor="middle">{item.count > 0 ? item.count : ''}</text>
+            {showLabels && index % labelEvery === 0 && <text x={centerX} y={height - 5} fontSize="9" fill="var(--ac-text-muted)" textAnchor="middle">{item.date}</text>}
           </g>
         );
       })}

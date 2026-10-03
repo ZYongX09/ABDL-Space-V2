@@ -28,6 +28,22 @@ export function assertSafeIdentityResponse(value) {
 	return value;
 }
 
+/** 兼容布尔和旧版 0/1 状态；缺失或无法识别的值不能证明未绑定。 */
+export function qqBindingState(value) {
+	if (value === true || value === 1 || value === '1' || value === 'true') return 'bound';
+	if (value === false || value === 0 || value === '0' || value === 'false') return 'unbound';
+	return 'unknown';
+}
+
+export function qqBindingPresentation(value) {
+	const state = qqBindingState(value);
+	return {
+		state,
+		label: state === 'bound' ? '已绑定' : state === 'unbound' ? '未绑定' : '状态未知',
+		tone: state === 'bound' ? 'blue' : state === 'unbound' ? 'slate' : 'amber',
+	};
+}
+
 export function validateReason(value) {
 	if (typeof value !== 'string' || !value.trim()) throw new Error('请填写解绑理由');
 	if (value.length > 500) throw new Error('解绑理由最多 500 个字符');
