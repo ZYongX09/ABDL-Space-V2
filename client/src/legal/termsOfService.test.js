@@ -41,6 +41,18 @@ test('版本日期、运营方、成年限制和各端范围明确', () => {
   assert.doesNotMatch(content, /年满16|未满16/);
 });
 
+test('协议正文、标题、提示及链接名称统一使用宝宝新天地，内部标识保持不变', () => {
+  const displayedText = [
+    termsOfService.title,
+    ...termsOfService.notices,
+    ...termsOfService.sections.flatMap(section => [section.title, ...section.clauses.map(clause => clause.text)]),
+    ...termsOfService.links.map(link => link.label),
+    termsOfService.closingNotice,
+  ];
+  displayedText.forEach(value => assert.doesNotMatch(value, /\bNBW\b|NewBabyWorld/i));
+  assert.equal(termsOfService.sections.find(section => section.id === 'nbw').title, '第四条 宝宝新天地授权、注册与内容双发');
+});
+
 test('章节顺序及内容完整，锚点标识唯一且稳定', () => {
   const ids = ['scope', 'account', 'qq', 'nbw', 'conduct', 'content', 'verification', 'paid', 'novels', 'ai', 'privacy', 'availability', 'moderation', 'closure', 'liability', 'ip', 'changes', 'contact'];
   assert.deepEqual(termsOfService.sections.map(section => section.id), ids);
@@ -56,8 +68,8 @@ test('QQ使用触发、标识处理及腾讯侧撤销边界', () => {
   includesAll(['QQ SDK 3.5.19', '仅在您选择相应登录、绑定操作后发起', 'openid', 'unionid', 'HMAC', '昵称、头像', '不等于在腾讯侧撤销授权']);
 });
 
-test('NBW覆盖邮箱和注册，明确默认双发、控件缺口和第三方副本', () => {
-  includesAll(['OAuth授权', '邮箱查询', '在NBW注册', '帖子及所附图片', '可能默认双发', '不能仅凭关闭选项确认内容不会发送到NBW', '暂勿提交有关内容', '先解除绑定', '不会删除已双发的第三方副本']);
+test('宝宝新天地覆盖邮箱和注册，明确默认双发、控件缺口和第三方副本', () => {
+  includesAll(['OAuth授权', '邮箱查询', '在宝宝新天地注册', '帖子及所附图片', '可能默认双发', '不能仅凭关闭选项确认内容不会发送到宝宝新天地', '暂勿提交有关内容', '先解除绑定', '不会删除已双发的第三方副本']);
 });
 
 test('登录与本地锁不能代替年龄和实名核验', () => {
@@ -77,7 +89,7 @@ test('小说云端上传同步、版权和非永久私密备份边界', () => {
   includesAll(['TXT、EPUB', '文件上传到云端', '阅读进度和笔记', '同步到服务器', '必须具备相应版权或授权', '处理完整文件，不属于仅本地阅读', '不承诺绝对私密或零泄露风险', '不意味着本平台可以任意公开或使用您的文件', '不承诺云端资料永久可用、永久备份']);
 });
 
-test('DeepSeek推荐与NBW分区AI分别披露输入及非医疗用途', () => {
+test('DeepSeek推荐与宝宝新天地分区AI分别披露输入及非医疗用途', () => {
   includesAll(['DeepSeek', '选择提交的资料', '使用感受汇总', 'AI选分区', '帖子正文片段', '不只是传送一个分区名称', '不提供医疗诊断、治疗建议或健康效果承诺']);
 });
 
