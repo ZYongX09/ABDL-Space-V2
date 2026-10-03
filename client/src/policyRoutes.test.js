@@ -5,6 +5,7 @@ import test from 'node:test';
 const app = readFileSync(new URL('./App.jsx', import.meta.url), 'utf8');
 const terms = readFileSync(new URL('./pages/TermsOfService.jsx', import.meta.url), 'utf8');
 const redirects = readFileSync(new URL('../public/_redirects', import.meta.url), 'utf8');
+const modal = readFileSync(new URL('./components/PolicyModal.jsx', import.meta.url), 'utf8');
 
 test('policy pages use canonical routes and titles', () => {
   for (const [path, title] of [
@@ -17,6 +18,15 @@ test('policy pages use canonical routes and titles', () => {
   }
   assert.ok(terms.includes('href="/cookies"'));
   assert.ok(!terms.includes('href="/cookie"'));
+});
+
+test('registration summaries expose current complete policies', () => {
+  assert.ok(modal.includes('2026.10'));
+  assert.ok(modal.includes('年满18周岁'));
+  assert.ok(modal.includes("'/terms'"));
+  assert.ok(modal.includes("'/privacy'"));
+  assert.ok(modal.includes('阅读完整'));
+  assert.ok(!modal.includes('完整版将在内测正式开放时同步'));
 });
 
 test('legacy policy routes redirect before the SPA fallback', () => {
