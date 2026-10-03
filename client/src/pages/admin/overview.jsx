@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { exactCount } from '../../appClients/model.js';
 import { adminAPI } from '../../api';
 import { useToast } from '../../contexts/ToastContext';
 import AdminLayout from './layout';
@@ -27,7 +29,7 @@ const TREND_KEYS = [
 
 const PRIMARY_TOTALS = [
   { key: 'users', label: '注册用户', icon: 'fa-users', tone: 'blue' },
-  { key: 'appUsers', label: 'App 用户', icon: 'fa-mobile-screen', tone: 'green' },
+  { key: 'appUsers', label: '原生 App 观测账号', icon: 'fa-mobile-screen', tone: 'green' },
   { key: 'posts', label: '帖子总数', icon: 'fa-file-lines', tone: 'amber' },
   { key: 'comments', label: '评论总数', icon: 'fa-comments', tone: 'violet' },
 ];
@@ -67,6 +69,17 @@ export default function AdminOverview() {
   const [trendKey, setTrendKey] = useState('users');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [appStats, setAppStats] = useState({ loading: true, data: null, error: '' });
+  useEffect(() => {
+    let current = true;
+    const controller = new AbortController();
+    adminAPI.appClientStats({ signal: controller.signal }).then(data => {
+      if (current) setAppStats({ loading: false, data, error: '' });
+    }).catch(error => {
+      if (current) setAppStats({ loading: false, data: null, error: error.message || '加载失败' });
+    });
+    return () => { current = false; controller.abort(); };
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -101,15 +114,12 @@ export default function AdminOverview() {
         <ErrorBox msg={error} />
 
         <div className="ac-stat-grid ac-overview-primary">
-          {PRIMARY_TOTALS.map(item => (
-            <StatCard
-              key={item.key}
-              label={item.label}
-              value={fmtNum(overview?.totals?.[item.key])}
-              icon={item.icon}
-              tone={item.tone}
-              meta={lastUpdated ? `更新于 ${fmtFull(lastUpdated)}` : '累计数据'}
-            />
+          {PRIMARY_TOTALS.map(item => item.key === 'appUsers' ? (
+            <Link key={item.key} to="/admin/app-clients" title="进入 App 管理，查看认证原生时间线请求的精确观测统计">
+              <StatCard label={item.label} value={appStats.data?.available ? exactCount(appStats.data.totals.observed_users) : '—'} icon={item.icon} tone={item.tone} meta={appStats.loading ? '正在读取观测数据…' : appStats.error ? '统计读取失败，进入 App 管理重试' : appStats.data?.available === false ? '迁移未完成或读取失败，统计不可用（不是 0）' : '迁移后认证时间线请求 · 非安装量；查看明细'} />
+            </Link>
+          ) : (
+            <StatCard key={item.key} label={item.label} value={fmtNum(overview?.totals?.[item.key])} icon={item.icon} tone={item.tone} meta={lastUpdated ? `更新于 ${fmtFull(lastUpdated)}` : '累计数据'} />
           ))}
         </div>
 

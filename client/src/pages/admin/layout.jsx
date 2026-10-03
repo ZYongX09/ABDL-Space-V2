@@ -39,6 +39,7 @@ const NAV = [
     group: '系统',
     items: [
       { key: 'security', path: '/admin/security', label: '安全中心', icon: 'fa-shield-halved' },
+      { key: 'app-clients', path: '/admin/app-clients', label: 'App 管理', icon: 'fa-mobile-screen' },
       { key: 'settings', path: '/admin/settings', label: '站点设置', icon: 'fa-gear' },
     ],
   },
@@ -57,6 +58,7 @@ const PAGE_META = {
   push: { title: '推送通知', description: '向指定平台或用户发送通知并查看投递记录。' },
   diapers: { title: '纸尿裤与品牌', description: '维护产品资料、品牌信息与展示内容。' },
   security: { title: '安全中心', description: '查看安全事件、风险分布与近期日志。' },
+  'app-clients': { title: 'App 管理', description: '配置原生 App 版本访问策略，查看认证时间线请求的账号与版本观测。' },
   settings: { title: '站点设置', description: '维护运行模式、站点配置、邮箱治理与管理员账号安全。' },
 };
 
