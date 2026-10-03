@@ -8,10 +8,10 @@ import { fmtFull, fmtNum } from './util';
 
 const PAGE_SIZE = 50;
 const LEVEL_META = {
-  critical: { label: '高危', color: '#c83535' },
-  warning: { label: '警告', color: '#a76100' },
-  info: { label: '提示', color: '#245f97' },
-  normal: { label: '正常', color: '#147a55' },
+  critical: { label: '高危', color: 'var(--ac-danger)' },
+  warning: { label: '警告', color: 'var(--ac-warning)' },
+  info: { label: '提示', color: 'var(--ac-action)' },
+  normal: { label: '正常', color: 'var(--ac-success)' },
 };
 
 function scoreTone(score) {
@@ -77,7 +77,7 @@ export default function AdminSecurity() {
 
         <div className="ac-grid-3">
           <Card title="24 小时事件趋势" description="按小时统计安全事件数量。" icon="fa-chart-column">
-            {trendData.length ? <MiniBars data={trendData} color="#245f97" showLabels ariaLabel="近 24 小时安全事件趋势" /> : <Empty text="近 24 小时暂无事件" icon="fa-chart-column" />}
+            {trendData.length ? <MiniBars data={trendData} color="var(--ac-action)" showLabels ariaLabel="近 24 小时安全事件趋势" /> : <Empty text="近 24 小时暂无事件" icon="fa-chart-column" />}
           </Card>
           <Card title="事件类型分布" description="近 7 天出现频率最高的事件类型。" icon="fa-list">
             {(stats?.typeStats || []).length ? (
@@ -90,7 +90,7 @@ export default function AdminSecurity() {
                 items={stats.scoreDistribution.map(item => ({
                   label: LEVEL_META[item.level]?.label || item.level,
                   value: item.cnt,
-                  color: LEVEL_META[item.level]?.color || '#66758a',
+                  color: LEVEL_META[item.level]?.color || 'var(--ac-text-muted)',
                 }))}
                 max={levelMax}
               />

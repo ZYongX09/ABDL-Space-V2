@@ -18,13 +18,13 @@ const ACTIVITY_ITEMS = [
 ];
 
 const TREND_KEYS = [
-  { key: 'users', name: '新增用户', color: '#245f97' },
-  { key: 'posts', name: '新帖子', color: '#a76100' },
-  { key: 'comments', name: '评论', color: '#147a70' },
-  { key: 'checkins', name: '签到', color: '#147a55' },
-  { key: 'likes', name: '点赞', color: '#a43f72' },
-  { key: 'ratings', name: '评分', color: '#6b4fb2' },
-  { key: 'novels', name: '小说', color: '#4c61a8' },
+  { key: 'users', name: '新增用户', color: 'var(--ac-action)' },
+  { key: 'posts', name: '新帖子', color: 'var(--ac-warning)' },
+  { key: 'comments', name: '评论', color: 'var(--ac-comment)' },
+  { key: 'checkins', name: '签到', color: 'var(--ac-success)' },
+  { key: 'likes', name: '点赞', color: 'var(--ac-pink)' },
+  { key: 'ratings', name: '评分', color: 'var(--ac-violet)' },
+  { key: 'novels', name: '小说', color: 'var(--ac-series-novel)' },
 ];
 
 const PRIMARY_TOTALS = [
@@ -212,7 +212,7 @@ export default function AdminOverview() {
 
           <Card title="徽章持有排行" description="按当前持有人数排序。" icon="fa-medal">
             {(overview?.topBadges || []).length ? (
-              <HBars items={overview.topBadges.map(item => ({ label: item.name, value: item.c }))} max={overview.topBadges?.[0]?.c || 1} color="#a76100" />
+              <HBars items={overview.topBadges.map(item => ({ label: item.name, value: item.c }))} max={overview.topBadges?.[0]?.c || 1} color="var(--ac-warning)" />
             ) : <Empty text="暂无徽章数据" icon="fa-medal" />}
           </Card>
         </div>

@@ -1,38 +1,3 @@
-/* 从全局主题根取值，避免旧后台固定浅色变量覆盖这页的三主题。 */
-:root {
-  --app-admin-canvas: var(--bg);
-  --app-admin-surface: var(--bg-card);
-  --app-admin-soft: var(--input-bg);
-  --app-admin-border: var(--border);
-  --app-admin-text: var(--text);
-  --app-admin-secondary: color-mix(in srgb, var(--text) 80%, var(--bg-card));
-  --app-admin-action: color-mix(in srgb, var(--post) 75%, var(--text));
-  --app-admin-action-soft: var(--post-soft);
-  --app-admin-danger: var(--spend);
-  --app-admin-danger-soft: var(--muted-bg);
-  --app-admin-on: var(--points-on);
-}
-[data-theme="colorful"] { --app-admin-canvas: var(--hero-bg); }
-.admin-console:has(.ac-app-clients) {
-  --ac-canvas: var(--app-admin-canvas);
-  --ac-surface: var(--app-admin-surface);
-  --ac-surface-soft: var(--app-admin-soft);
-  --ac-border: var(--app-admin-border);
-  --ac-border-strong: var(--app-admin-border);
-  --ac-text: var(--app-admin-text);
-  --ac-text-secondary: var(--app-admin-secondary);
-  --ac-text-muted: var(--app-admin-secondary);
-  --ac-action: var(--app-admin-action);
-  --ac-action-hover: var(--app-admin-action);
-  --ac-action-soft: var(--app-admin-action-soft);
-  --ac-focus: var(--app-admin-action);
-  --ac-danger: var(--app-admin-danger);
-  --ac-danger-soft: var(--app-admin-danger-soft);
-  background: var(--ac-canvas);
-}
-[data-theme="dark"] .admin-console:has(.ac-app-clients) { color-scheme: dark; --app-admin-on: var(--app-admin-canvas); }
-[data-theme="colorful"] .admin-console:has(.ac-app-clients) { --app-admin-on: var(--points-on); }
-.admin-console:has(.ac-app-clients) .ac-topbar { background: var(--ac-surface); }
 .ac-app-clients .ac-app-fieldset { display: grid; gap: 14px; min-width: 0; margin: 0; padding: 0; border: 0; }
 .ac-app-clients .ac-app-note { padding: 12px 14px; border: 1px solid var(--ac-border); border-radius: var(--ac-radius-sm); background: var(--ac-surface-soft); color: var(--ac-text); font-size: 13px; line-height: 1.7; margin-bottom: 14px; }
 .ac-app-clients .ac-app-policy-status { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; color: var(--ac-text-secondary); font-size: 12px; }
@@ -43,18 +8,8 @@
 .ac-app-clients .ac-app-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 16px 0; }
 .ac-app-clients .ac-app-subtitle { font-size: 14px; font-weight: 650; margin: 16px 0 8px; }
 .ac-app-clients .ac-table-wrap { margin: 12px 0; }
-.ac-app-clients .ac-table th { background: var(--ac-surface-soft); }
-.ac-app-clients .ac-table td { border-color: var(--ac-border); }
-.ac-app-clients .ac-table tbody tr:hover :is(td, th) { background: var(--ac-action-soft); }
 .ac-app-clients .ac-table tbody th { font-weight: 500; }
-.ac-app-clients :is(.ac-pill.slate, .ac-pill.amber) { background: var(--ac-surface-soft); border-color: var(--ac-border); color: var(--ac-text); white-space: normal; }
-.ac-app-clients .ac-error-box { color: var(--ac-danger); border-color: var(--ac-danger); }
-.ac-app-clients :is(.ac-btn, .ac-page-btn):hover:not(:disabled) { background: var(--ac-action-soft); border-color: var(--ac-action); }
-.ac-app-clients :is(.ac-btn.primary, .ac-page-btn.active) { background: var(--ac-action); color: var(--app-admin-on); }
-.ac-app-clients :is(.ac-btn.primary, .ac-page-btn.active):hover:not(:disabled) { background: var(--ac-action); color: var(--app-admin-on); }
-.ac-app-clients :is(.ac-input, .ac-select, .ac-textarea):disabled { background: var(--ac-surface-soft); color: var(--ac-text-secondary); }
-.ac-app-clients :is(.ac-input, .ac-select, .ac-textarea)::placeholder { color: var(--ac-text-secondary); }
-.ac-app-clients :is(input, select, textarea, button, a):focus-visible { outline: 3px solid var(--ac-focus); outline-offset: 2px; }
+.ac-app-clients :is(.ac-pill.slate, .ac-pill.amber) { white-space: normal; }
 .ac-app-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 @media (max-width: 900px) { .ac-app-clients .ac-app-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) {

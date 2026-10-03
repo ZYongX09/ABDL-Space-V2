@@ -5,7 +5,8 @@ function isObject(value) {
 }
 
 function validDetail(data) {
-	return isObject(data) && isObject(data.user) && isObject(data.methods) && isObject(data.methods.qq) && Array.isArray(data.audit);
+	return isObject(data) && isObject(data.user) && isObject(data.methods)
+		&& (data.methods.qq == null || isObject(data.methods.qq)) && Array.isArray(data.audit);
 }
 
 function validUnbind(data) {

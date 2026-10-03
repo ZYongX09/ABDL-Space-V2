@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { adminAPI } from '../../api';
 import { createAdminIdentityAPI } from '../../adminIdentity/api.js';
-import { operationKeeper, validateUnbindInput } from '../../adminIdentity/model.js';
+import { operationKeeper, qqBindingPresentation, qqBindingState, validateUnbindInput } from '../../adminIdentity/model.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { useToast } from '../../contexts/ToastContext';
 import AdminLayout from './layout';
@@ -17,12 +17,18 @@ function qqVersion(method) { return method?.updated_at; }
 function qqNickname(method) { return method?.nickname || ''; }
 function qqAvatar(method) { return method?.avatar || ''; }
 
-function LoginMethods({ identity, onUnbind }) {
+function QQStatus({ value }) {
+  const { label, tone } = qqBindingPresentation(value);
+  return <Pill tone={tone}>{label}</Pill>;
+}
+
+export function LoginMethods({ identity, onUnbind }) {
   const methods = identity?.methods || {};
   const qq = pickQQ(identity);
+  const qqStatus = qqBindingPresentation(qq?.bound);
   const standard = ['password', 'email', 'nbw', 'passkey'];
   return <section className="ac-identity-section">
-    <div className="ac-identity-heading"><div><h3>登录方式</h3><p>仅展示后端允许管理员查看的状态与第三方身份资料。</p></div>{qq?.bound === true && <Pill tone="blue">QQ 已绑定</Pill>}</div>
+    <div className="ac-identity-heading"><div><h3>登录方式</h3><p>仅展示后端允许管理员查看的状态与第三方身份资料。</p></div>{qqStatus.state === 'bound' && <Pill tone="blue">QQ 已绑定</Pill>}</div>
     <div className="ac-login-method-grid">
       {standard.map(type => {
         const bound = type === 'email' ? methods.verified_email === true : type === 'passkey' ? Number(methods.passkeys?.count || 0) > 0 : methods[type] === true;
@@ -39,17 +45,29 @@ function LoginMethods({ identity, onUnbind }) {
           {qqAvatar(qq) ? <img src={qqAvatar(qq)} alt="QQ 头像" referrerPolicy="no-referrer" onError={event => { event.currentTarget.style.display = 'none'; }} /> : null}
           <i className="fa-brands fa-qq" aria-hidden="true" />
         </span>
-        <div className="ac-grow"><div className="ac-qq-title">QQ {qq?.bound === true ? '已绑定' : '未绑定'}</div><div className="ac-qq-nickname">{qqNickname(qq) || '未提供 QQ 昵称'}</div></div>
-        {qq?.bound === true && <button type="button" className="ac-btn danger" onClick={() => onUnbind(qq)} disabled={qq.can_unbind !== true} title={qq.can_unbind === true ? '解绑该用户的 QQ 身份' : (qq.block_reason || '后端不允许解绑')}>管理解绑</button>}
+        <div className="ac-grow"><div className="ac-qq-title">QQ {qqStatus.label}</div><div className="ac-qq-nickname">{qqNickname(qq) || '未提供 QQ 昵称'}</div></div>
+        {qqStatus.state === 'bound' && <button type="button" className="ac-btn danger" onClick={() => onUnbind(qq)} disabled={qq.can_unbind !== true} title={qq.can_unbind === true ? '解绑该用户的 QQ 身份' : (qq.block_reason || '后端不允许解绑')}>管理解绑</button>}
       </div>
-      {qq?.bound === true ? <dl className="ac-qq-meta">
+      {qqStatus.state === 'bound' ? <dl className="ac-qq-meta">
         <div><dt>绑定时间</dt><dd>{fmtFull(qq.created_at)}</dd></div>
         <div><dt>更新时间</dt><dd>{fmtFull(qq.updated_at)}</dd></div>
         <div><dt>绑定版本</dt><dd>{qqVersion(qq) ?? '—'}</dd></div>
         <div><dt>允许解绑</dt><dd>{qq.can_unbind === true ? '是' : `否${qq.block_reason ? ` · ${qq.block_reason}` : ''}`}</dd></div>
-      </dl> : <div className="ac-section-note">该用户当前没有 QQ 第三方身份。主站不提供 QQ 登录或绑定入口。</div>}
+      </dl> : <div className="ac-section-note">{qqStatus.state === 'unbound' ? '该用户当前没有 QQ 第三方身份。主站不提供 QQ 登录或绑定入口。' : '后端未提供可确认的 QQ 绑定状态，不能判定为未绑定。请刷新身份详情或联系维护者。'}</div>}
     </div>
   </section>;
+}
+
+/** 专用身份资料不可用时，仅使用普通详情的 QQ 状态；不推断其他登录方式或解绑权限。 */
+export function UserIdentityDetails({ identity, identityError, user, onUnbind }) {
+  if (identity) return <><LoginMethods identity={identity} onUnbind={onUnbind} /><IdentityAudit items={identity.audit} /></>;
+  return <>
+    <ErrorBox msg={`身份详情：${identityError || '身份资料不可用'}`} />
+    <section className="ac-identity-section">
+      <div className="ac-identity-heading"><div><h3>QQ 绑定状态</h3><p>来自普通用户详情，仅展示绑定状态。</p></div><QQStatus value={user?.qq_bound} /></div>
+      <p className="ac-section-note">第三方身份资料暂不可用，无法展示 QQ 昵称、头像、其他登录方式或执行解绑。</p>
+    </section>
+  </>;
 }
 
 function IdentityAudit({ items }) {
@@ -145,7 +163,7 @@ export default function AdminUsers() {
   };
 
   const remove = async (u) => {
-    const thirdParty = u.qq_bound ? '并删除其 QQ 绑定资料等第三方身份资料，' : '并删除其全部第三方身份资料，';
+    const thirdParty = qqBindingState(u.qq_bound) === 'bound' ? '并删除其 QQ 绑定资料等第三方身份资料，' : '并删除其全部第三方身份资料，';
     const ok = await confirm({ title: '删除账号', message: `将永久删除 @${u.username}（ID ${u.id}）及其全部内容（帖子、点赞、评论、签到记录、私人小说对象等），${thirdParty}同时注销现有会话。此操作不可恢复！`, okText: '永久删除', danger: true });
     if (!ok) return;
     setBusyId(u.id);
@@ -184,7 +202,7 @@ export default function AdminUsers() {
       <select className="ac-select" aria-label="按QQ绑定状态筛选" value={qqBound} onChange={e => { setQqBound(e.target.value); setPage(1); }}><option value="">全部 QQ 状态</option><option value="bound">已绑定 QQ</option><option value="unbound">未绑定 QQ</option></select>
     </div></div>}>
       <ErrorBox msg={errors} /><div className="ac-table-wrap"><table className="ac-table"><thead><tr><th scope="col">用户</th><th scope="col">角色</th><th scope="col">邮箱</th><th scope="col">QQ</th><th scope="col">注册时间</th><th scope="col">帖子</th><th scope="col">评论</th><th scope="col">签到</th><th scope="col">状态</th><th scope="col">操作</th></tr></thead>
-        <tbody>{(list || []).map(u => <tr key={u.id}><td><UserCell name={u.display_name || u.username} avatar={u.avatar} sub={u.id} /></td><td className="ac-cell-nowrap">{u.role === 'admin' ? <Pill tone="violet"><i className="fa-solid fa-user-shield" style={{ fontSize: 10 }} /> 管理员</Pill> : <span className="ac-cell-muted">用户</span>}</td><td className="ac-cell-muted ac-cell-truncate ac-cell-nowrap" title={u.email}>{u.email}</td><td>{u.qq_bound === true ? <Pill tone="blue"><i className="fa-brands fa-qq" /> 已绑定</Pill> : <Pill tone="slate">未绑定</Pill>}</td><td className="ac-cell-muted ac-cell-nowrap">{fmtFull(u.created_at)}</td><td>{u.post_count ?? 0}</td><td>{u.comment_count ?? 0}</td><td>{u.checkin_count ?? 0}</td><td>{u.banned ? <Pill tone="red">封禁</Pill> : <Pill tone="green">正常</Pill>}</td><td><div className="ac-table-actions">
+        <tbody>{(list || []).map(u => <tr key={u.id}><td><UserCell name={u.display_name || u.username} avatar={u.avatar} sub={u.id} /></td><td className="ac-cell-nowrap">{u.role === 'admin' ? <Pill tone="violet"><i className="fa-solid fa-user-shield" style={{ fontSize: 10 }} /> 管理员</Pill> : <span className="ac-cell-muted">用户</span>}</td><td className="ac-cell-muted ac-cell-truncate ac-cell-nowrap" title={u.email}>{u.email}</td><td><QQStatus value={u.qq_bound} /></td><td className="ac-cell-muted ac-cell-nowrap">{fmtFull(u.created_at)}</td><td>{u.post_count ?? 0}</td><td>{u.comment_count ?? 0}</td><td>{u.checkin_count ?? 0}</td><td>{u.banned ? <Pill tone="red">封禁</Pill> : <Pill tone="green">正常</Pill>}</td><td><div className="ac-table-actions">
           <button type="button" className="ac-btn ac-icon-button" aria-label="查看用户详情" title="查看详情" disabled={busyId === u.id} onClick={() => openDetail(u)}><i className="fa-solid fa-eye" /></button><button type="button" className="ac-btn ac-icon-button" aria-label={u.banned ? '解封账号' : '封禁账号'} title={u.banned ? '解封' : '封禁'} disabled={busyId === u.id} onClick={() => toggleBan(u)}><i className={`fa-solid ${u.banned ? 'fa-lock-open' : 'fa-lock'}`} /></button><button type="button" className="ac-btn ac-icon-button" aria-label="提升为管理员" title="提升为管理员" disabled={busyId === u.id || u.role === 'admin'} onClick={() => promote(u)}><i className="fa-solid fa-user-shield" /></button><button type="button" className="ac-btn ac-icon-button" aria-label="追踪并封禁 IP" title="追踪并封禁 IP" disabled={busyId === u.id} onClick={() => doTrackAndBan(u)}><i className="fa-solid fa-location-crosshairs" /></button><button type="button" className="ac-btn ac-icon-button danger" aria-label="删除账号" title="删除账号" disabled={busyId === u.id} onClick={() => remove(u)}><i className="fa-solid fa-trash-can" /></button>
         </div></td></tr>)}</tbody></table>{!loading && !list?.length && <Empty text="没有匹配的用户" />}{loading && !list && <Loading />}</div><div style={{ marginTop: 12 }}><Pagination page={pagination.page} totalPages={pagination.totalPages} total={pagination.total} onChange={setPage} /></div>
     </Card>
@@ -194,7 +212,7 @@ export default function AdminUsers() {
         {detail.error && <ErrorBox msg={detail.error} />}
         <div className="ac-flex ac-user-detail-head"><img src={info?.user?.avatar || ''} alt="" className="ac-user-detail-avatar" onError={e => { e.currentTarget.style.visibility = 'hidden'; }} /><div className="ac-grow"><div className="ac-user-detail-name">{info?.user?.display_name || info?.user?.username}</div><div className="ac-cell-muted">@{info?.user?.username} · ID {info?.user?.id} · {info?.user?.role === 'admin' ? '管理员' : '普通用户'}</div><div className="ac-cell-muted">注册于 {fmtFull(info?.user?.created_at)}</div></div><div className="ac-flex">{info?.user?.banned ? <Pill tone="red">已封禁</Pill> : <Pill tone="green">正常</Pill>}{info?.user?.has_app && <Pill tone="slate" title="旧标记可能来自网页 OAuth，不证明安装或原生 App 使用；精确观测请查看 App 管理">历史客户端标记（非精确统计）</Pill>}</div></div>
         {info?.counts && <div className="ac-detail-stat-grid">{[{ label: '帖子', v: info.counts.posts }, { label: '评论', v: info.counts.comments }, { label: '点赞', v: info.counts.likes }, { label: '评分', v: info.counts.ratings }, { label: '打卡', v: info.counts.feelings }, { label: '签到', v: info.counts.checkins }, { label: '金币', v: info.counts.points }].map(c => <div key={c.label} className="ac-detail-stat"><div className="ac-detail-stat-value">{fmtNum(c.v)}</div><div className="ac-stat-label">{c.label}</div></div>)}</div>}
-        {detail.identityError ? <ErrorBox msg={`身份详情：${detail.identityError}`} /> : detail.identity && <><LoginMethods identity={detail.identity} onUnbind={qq => setUnbind({ userId: info.user.id, username: info.user.username, version: qqVersion(qq), reason: '', confirmUsername: '', busy: false, error: '' })} /><IdentityAudit items={detail.identity.audit} /></>}
+        <UserIdentityDetails identity={detail.identity} identityError={detail.identityError} user={info?.user} onUnbind={qq => setUnbind({ userId: info.user.id, username: info.user.username, version: qqVersion(qq), reason: '', confirmUsername: '', busy: false, error: '' })} />
         <section className="ac-identity-section"><div className="ac-identity-heading"><div><h3>徽章（{info?.badges?.length || 0}）</h3></div></div>{info?.badges?.length ? <div className="ac-flex ac-wrap">{info.badges.map(b => <span key={b.key} className="ac-inline-chip"><span className="ac-badge-swatch" style={{ background: b.color || '#7C4DFF' }} />{b.name || b.key}<span className="ac-cell-muted">{b.created_at ? fmtDT(b.created_at) : ''}</span></span>)}</div> : <Empty text="暂无徽章" icon="fa-medal" />}</section>
         <section className="ac-identity-section"><div className="ac-identity-heading"><div><h3>最近发言（{info?.recentPosts?.length || 0} 条）</h3></div></div>{info?.recentPosts?.length ? <div className="ac-page-stack">{info.recentPosts.map(p => <div key={p.id} className="ac-recent-post"><div>{p.content}</div><small>#{p.id} · {fmtFull(p.created_at)}</small></div>)}</div> : <Empty text="暂无发言" icon="fa-receipt" />}</section>
         <section className="ac-identity-section"><div className="ac-identity-heading"><div><h3>IP 追踪</h3></div>{info?.tracking?.enabled ? <Pill tone="red">已启用追踪</Pill> : <Pill tone="slate">未启用</Pill>}</div>{info?.trackEvents?.length ? <div className="ac-track-list">{info.trackEvents.map((ev, i) => <div key={i}><code>{ev.ip}</code><span>{ev.path}</span><time>{fmtFull(ev.created_at)}</time></div>)}</div> : <Empty text="暂无追踪记录" icon="fa-location-dot" />}</section>
