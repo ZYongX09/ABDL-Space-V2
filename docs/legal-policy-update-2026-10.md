@@ -23,20 +23,20 @@
 | 推送 | App `MastodonApp.java`、jiguang-sdk；后端 `src/routes/jpush.ts`、`src/lib/jpush.ts` | 启动初始化、设备/网络信息及通知内容；关闭展示不等于停止全部SDK处理 |
 | 付费 | 后端 sponsors、afdian 与 sponsor-stock；App SponsorPurchaseFragment | 外部爱发电付款、兑换和权益记录；取消纯赠与/绝不退款旧表述 |
 | 小说 | 后端 `src/routes/novel-private.ts`、`src/routes/novel-authoring-v2.ts`；App novel/importer | 文件全文云端上传、校验摘要、进度笔记；删除含异步清理，不沿用已下线MiMo |
-| NBW与AI | 后端 `src/routes/nbw.ts`、`src/lib/nbw-sync.ts`、`src/routes/recommend.ts` | 账号资料、邮箱流程、默认双发及第三方副本；DeepSeek资料/感受汇总及正文片段 |
+| 宝宝新天地与AI | 后端 `src/routes/nbw.ts`、`src/lib/nbw-sync.ts`、`src/routes/recommend.ts` | 账号资料、邮箱流程、默认双发及第三方副本；DeepSeek资料/感受汇总及正文片段 |
 | 安全与位置 | 后端 `src/middleware/ip-security.ts`、`src/lib/captcha.ts`、`src/lib/baidu-ip.ts`；App LocationUtils | IP/UA/路径与安全行为数据、系统定位逆编码、IP属地和统计 |
 | 注销 | 后端 `src/routes/admin.ts`、auth路由和相关外键 | 现有完整自助注销/导出不可用，邮箱申请；不承诺全部即时自动删除 |
 
 ## 本次没有通过改条款修复的实现问题
 
-1. NBW 双发：App 将关闭选择转换为空 `nbw_fid`，后端只有 `-1` 才明确跳过；空值可能默认同步。文档已披露不能仅凭关闭控件保证不发送，但该问题仍需要业务修复及实际验证。
+1. 宝宝新天地 双发：App 将关闭选择转换为空 `nbw_fid`，后端只有 `-1` 才明确跳过；空值可能默认同步。文档已披露不能仅凭关闭控件保证不发送，但该问题仍需要业务修复及实际验证。
 2. 极光 SDK 在 Application 启动中直接初始化；系统通知权限与隐私同意门禁不是一回事。披露真实处理不代表已取得合法同意，也不能替代SDK初始化门禁整改。
 3. 自助注销与导出没有完整后端实现；管理员删除还有赞助外键、QQ映射和认证COS对象等覆盖问题。权利申请渠道不等于清理链路已完善。
 4. 认证照片没有审核/取消后定期自动销毁路径；日志与备份未核实统一保留期限，不能写虚构天数。
 5. 私人小说对象实际Bucket Policy/ACL未远程核验；不作绝对私密或全量即时删除承诺。
 6. App 精确版本记录与认证恢复修复在仓库记录中仍为未部署；未迁移D1或启用线上策略。
 7. 运营名称及既有联系邮箱保留；未凭空填写未核实的法人身份、地址、统一保留期限或退款时限。
-8. 网页Passkey/NBW/部分内测入口的年龄确认覆盖仍不一致；本轮仅统一法律文本及移动现有注册勾选文案，不重构身份验证流程。
+8. 网页Passkey/宝宝新天地/部分内测入口的年龄确认覆盖仍不一致；本轮仅统一法律文本及移动现有注册勾选文案，不重构身份验证流程。
 
 以上为实现边界记录，不是完整安全审计或法律合规认证。上线公告、必要重新同意、数据处理留存制度和法律主体信息须与实际运营配套。
 

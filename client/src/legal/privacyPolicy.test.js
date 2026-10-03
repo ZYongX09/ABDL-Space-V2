@@ -94,6 +94,22 @@ test('每项中英文完整对应，编号连续，目录覆盖全部唯一锚�
   assert.deepEqual(contents.map(c => c.number), allSections.map(s => s.number));
 });
 
+test('中英文正文、标题、目录及链接名称统一使用宝宝新天地，保留内部标识与地址', () => {
+  const displayedText = [
+    notice, sensitiveNotice,
+    ...allSections.flatMap(section => [section.title, ...section.paragraphs, ...(section.links || []).map(link => link.label)]),
+    ...contents.map(entry => entry.title),
+  ];
+  for (const value of displayedText) {
+    // 域名及邮箱必须保留；只排除固定域名，仍检查其余展示品牌文案。
+    for (const language of ['en', 'zh']) assert.doesNotMatch(value[language].replaceAll('newbabyworld.top', ''), /\bNBW\b|NewBabyWorld/i);
+  }
+  assert.equal(byId('nbw').title.en, 'Optional 宝宝新天地 integration');
+  assert.ok(body('nbw', 'en').startsWith('宝宝新天地 (newbabyworld.top)'));
+  assert.ok(body('nbw', 'zh').startsWith('宝宝新天地（newbabyworld.top）'));
+  assert.doesNotMatch(body('nbw', 'en'), /宝宝新天地[’']s/);
+});
+
 test('账户、公开内容、私信与敏感同意', () => {
   for (const [language, patterns] of Object.entries({
     en: [/email address/, /password hash/, /age, region, weight, waist and hip/, /preferences, biography and avatar/],
@@ -110,8 +126,8 @@ const verifiedFacts = [
     [/3\.5\.19 lite/, /Shenzhen Tencent Computer Systems/, /select QQ login\/linking and confirm/, /code and access token.*temporarily.*OpenID, UnionID, nickname and avatar/s, /device model/, /even if linking is not completed/, /not anonymization/, /not retained long term/, /corresponding identifier mapping/, /another working login method/, /not revocation of Tencent authorization/],
     [/3\.5\.19 lite/, /深圳市腾讯计算机系统有限公司/, /主动选择 QQ 登录或绑定并确认后/, /code.*access token.*临时.*OpenID、UnionID、昵称及头像/s, /设备型号/, /即使未完成绑定/, /不是匿名化/, /token 不长期保存/, /对应标识映射/, /其他可用登录方式/, /不等于撤销腾讯授权/]],
   ['nbw',
-    [/independently operated/, /UID, username and avatar/, /Email lookup\/registration sends/, /cross-posted.*by default/, /first 500 characters.*DeepSeek/s, /disable option alone cannot reliably confirm/, /does not delete.*NBW account or copies/, /2024-08-05/, /admin@mail.newbabyworld.top/, /14\+.*remains 18\+/s],
-    [/独立运营/, /UID、用户名和头像/, /邮箱查询或注册会将邮箱发送/, /默认双发/, /前 500 字符.*DeepSeek/, /关闭选项不能可靠确认/, /不会删除 NBW 账户或.*副本/, /2024-08-05/, /admin@mail.newbabyworld.top/, /14\+.*仍为 18\+/s]],
+    [/independently operated/, /UID, username and avatar/, /Email lookup\/registration sends/, /cross-posted.*by default/, /first 500 characters.*DeepSeek/s, /disable option alone cannot reliably confirm/, /does not delete.*宝宝新天地 account or copies/, /2024-08-05/, /admin@mail.newbabyworld.top/, /14\+.*remains 18\+/s],
+    [/独立运营/, /UID、用户名和头像/, /邮箱查询或注册会将邮箱发送/, /默认双发/, /前 500 字符.*DeepSeek/, /关闭选项不能可靠确认/, /不会删除 宝宝新天地 账户或.*副本/, /2024-08-05/, /admin@mail.newbabyworld.top/, /14\+.*仍为 18\+/s]],
   ['verification-submission',
     [/complete photo.*COS/, /not hash-only/, /AES-GCM/, /adult declaration.*time and policy version/, /random shooting requirements/, /SHA-256, size and object key/, /review status, remarks, reviewer and review time/, /separate consent/, /not identity-card.*facial recognition.*medical/, /short-lived signed URLs/, /not the verification photo or contact QQ/, /not publish.*advertising/s],
     [/完整照片.*COS/, /并非只保存哈希/, /AES-GCM/, /成年声明.*时间和政策版本/, /随机拍摄要求/, /SHA-256、大小和对象键/, /审核状态、备注、审核人员和审核时间/, /单独同意/, /不是身份证实名验证、人脸识别或医学鉴定/, /短期签名链接/, /不公开认证照片或联系 QQ/, /不将认证照片公开或用于广告/]],
@@ -163,7 +179,7 @@ const verifiedFacts = [
 ];
 
 for (const [id, enPatterns, zhPatterns] of verifiedFacts) {
-  test(`${id} 已核实事实及限制在中英文中同时保留`, () => {
+  test(`${id === 'nbw' ? '宝宝新天地' : id} 已核实事实及限制在中英文中同时保留`, () => {
     enPatterns.forEach(pattern => assert.match(body(id, 'en'), pattern));
     zhPatterns.forEach(pattern => assert.match(body(id, 'zh'), pattern));
   });
@@ -179,7 +195,7 @@ test('留存与更新不作无依据的自动销毁或敏感授权承诺', () =>
   for (const language of ['en', 'zh']) assert.doesNotMatch(allText(language), /MiMo|September 23|2026年9月23日|industry-standard|自动删除所有|完全符合 GDPR/);
 });
 
-test('仅使用核实链接，不编造 NBW、天地图或 DeepSeek 隐私路径', () => {
+test('仅使用核实链接，不编造 宝宝新天地、天地图或 DeepSeek 隐私路径', () => {
   assert.deepEqual(byId('qq').links.map(l => l.href), [
     'https://wiki.connect.qq.com/qq互联sdk隐私保护声明',
     'https://wiki.connect.qq.com/开发者协议', 'https://privacy.qq.com/',
