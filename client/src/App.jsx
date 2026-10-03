@@ -53,6 +53,7 @@ const AccountPrivacy = lazy(() => import('./pages/AccountPrivacy'));
 const ProfilePageV2 = lazy(() => import('./pages/ProfilePageV2'));
 const AdminOverview = lazy(() => import('./pages/admin/overview'));
 const AdminUsers = lazy(() => import('./pages/admin/users'));
+const AdminAppClients = lazy(() => import('./pages/admin/appClients.jsx'));
 const AdminSponsors = lazy(() => import('./pages/admin/sponsors.jsx'));
 const AdminBabyVerifications = lazy(() => import('./pages/admin/babyVerifications.jsx'));
 const CertificateVerify = lazy(() => import('./pages/CertificateVerify.jsx'));
@@ -107,6 +108,7 @@ const ROUTE_TITLES = {
   '/notifications': '通知 — ABDL Space',
   '/admin': '仪表盘 — ABDL Space',
   '/admin/users': '用户管理 — ABDL Space',
+  '/admin/app-clients': 'App 管理 — ABDL Space',
   '/admin/sponsors': '赞助者管理 — ABDL Space',
   '/admin/baby-verifications': '宝宝认证审核 — ABDL Space',
   '/baby-verification': '宝宝认证 — ABDL Space',
@@ -293,6 +295,7 @@ export default function App() {
                   <Route path="/c/:token" element={<CertificateVerify />} />
                   <Route path="/admin" element={<AdminOverview />} />
                   <Route path="/admin/users" element={<AdminUsers />} />
+                  <Route path="/admin/app-clients" element={<AdminAppClients />} />
                   <Route path="/admin/sponsors" element={<AdminSponsors />} />
                   <Route path="/admin/baby-verifications" element={<AdminBabyVerifications />} />
                   <Route path="/admin/badges" element={<AdminBadges />} />

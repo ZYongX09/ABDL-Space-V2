@@ -4,6 +4,8 @@
  * 双模式：VITE_API_BASE 为空时走 localStorage 离线模式
  */
 import { fetchFollowStatuses } from './utils/followStatus.js';
+import { createAppClientsAPI } from './appClients/api.js';
+import { APP_POLICY_SETTING_KEY } from './appClients/model.js';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 // 空字符串也是有效值（相对路径），只有显式设为 undefined/null 时才走离线
@@ -946,6 +948,7 @@ export const usersAPI = {
 // 管理 Admin（后端 /api/admin/*）
 // =====================================================================
 export const adminAPI = {
+  ...createAppClientsAPI(apiFetch),
   // ── 统计卡片（简单合计） ──────────────────────────
   stats: async () => {
     if (USE_API) return apiFetch('/api/admin/stats');
@@ -1141,6 +1144,7 @@ export const adminAPI = {
     return { settings: [] };
   },
   saveSetting: async (key, value) => {
+    if (key.trim() === APP_POLICY_SETTING_KEY) throw new Error('App 策略为保留配置，请前往 App 管理保存');
     if (USE_API) return apiFetch('/api/admin/settings', { method: 'PUT', body: JSON.stringify({ key, value }) });
     return { ok: true };
   },

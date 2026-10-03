@@ -4,6 +4,8 @@ import { useToast } from '../../contexts/ToastContext';
 import AdminLayout from './layout';
 import { Card, Empty, FormField, Loading, Modal, Pill, useConfirm } from './ui';
 import { fmtFull } from './util';
+import { Link } from 'react-router-dom';
+import { APP_POLICY_SETTING_KEY } from '../../appClients/model.js';
 
 export default function AdminSettings() {
   const toast = useToast();
@@ -59,6 +61,10 @@ export default function AdminSettings() {
   const submitSetting = async () => {
     if (!saveKey?.key.trim()) {
       toast.error('key 不能为空');
+      return;
+    }
+    if (saveKey.key.trim() === APP_POLICY_SETTING_KEY) {
+      toast.error('App 策略是保留配置，请前往 App 管理使用专用表单保存');
       return;
     }
     setSettingSaving(true);
@@ -159,9 +165,9 @@ export default function AdminSettings() {
 
         <Card
           title="站点配置"
-          description="维护 site_settings 中的运行参数。修改前请确认配置用途。"
+          description="维护站点运行参数。App 策略为专用保留配置，不可在此直接编辑。"
           icon="fa-database"
-          action={<button type="button" className="ac-btn primary" onClick={() => setSaveKey({ key: '', value: '' })}><i className="fa-solid fa-plus" aria-hidden="true" />新增配置项</button>}
+          action={<button type="button" className="ac-btn primary" onClick={() => setSaveKey({ key: '', value: '', existing: false })}><i className="fa-solid fa-plus" aria-hidden="true" />新增配置项</button>}
           pad={false}
         >
           {!settings ? <Loading /> : !settings.length ? <Empty text="暂无配置项" icon="fa-database" /> : (
@@ -175,9 +181,9 @@ export default function AdminSettings() {
                       <td><div className="ac-cell-truncate" title={setting.value}>{setting.value}</div></td>
                       <td className="ac-cell-muted">{setting.updated_at ? fmtFull(setting.updated_at) : '-'}</td>
                       <td>
-                        <button type="button" className="ac-icon-button" aria-label={`编辑配置 ${setting.key}`} title="编辑配置" onClick={() => setSaveKey({ key: setting.key, value: setting.value })}>
+                        {setting.key === APP_POLICY_SETTING_KEY ? <Link className="ac-link-button" to="/admin/app-clients">专用 App 管理（保留配置）</Link> : <button type="button" className="ac-icon-button" aria-label={`编辑配置 ${setting.key}`} title="编辑配置" onClick={() => setSaveKey({ key: setting.key, value: setting.value, existing: true })}>
                           <i className="fa-solid fa-pen" aria-hidden="true" />
-                        </button>
+                        </button>}
                       </td>
                     </tr>
                   ))}
@@ -260,8 +266,9 @@ export default function AdminSettings() {
         >
           {saveKey && (
             <div className="ac-form-grid">
+              <p className="ac-section-note">{APP_POLICY_SETTING_KEY} 是保留配置，请使用 <Link className="ac-link-button" to="/admin/app-clients">App 管理</Link>，不要直接修改 JSON。</p>
               <FormField label="配置键" required hint="仅支持小写字母、数字和下划线，最多 64 个字符。" htmlFor="setting-key">
-                <input id="setting-key" className="ac-input" disabled={!!saveKey.key} value={saveKey.key} onChange={event => setSaveKey(value => ({ ...value, key: event.target.value }))} />
+                <input id="setting-key" className="ac-input" disabled={saveKey.existing === true} value={saveKey.key} onChange={event => setSaveKey(value => ({ ...value, key: event.target.value }))} />
               </FormField>
               <FormField label="配置值" hint="最多 8000 个字符。" htmlFor="setting-value">
                 <textarea id="setting-value" className="ac-textarea" value={saveKey.value} onChange={event => setSaveKey(value => ({ ...value, value: event.target.value }))} />

@@ -245,6 +245,7 @@ abdl-space-v2/
 | `/notifications` | NotificationsPage | 通知 |
 | `/admin` | AdminPage | 管理后台 |
 | `/admin/baby-verifications` | AdminBabyVerifications | 宝宝认证审核 |
+| `/admin/app-clients` | AdminAppClients | 原生 App 版本策略与请求观测统计 |
 | `/baby-verification` | BabyVerificationStatus | 当前账号认证状态与额度 |
 | `/c/:token` | CertificateVerify | 公开证书实时验真 |
 | `/external` | ExternalLink | 外部链接跳转 |
@@ -290,6 +291,48 @@ abdl-space-v2/
 3. `api.abdl-space.top` → 后端 API（Worker），和 #2 共用仓库
 
 ---
+
+## App 管理（2026-10-03）
+
+- 页面：`/admin/app-clients`，管理导航「系统 → App 管理」。仪表盘链接读取专用观测统计，不回退到旧 `has_app` 标记。旧用户详情标签改为「历史客户端标记（非精确统计）」；它可能来自网页 OAuth，不能证明安装或原生使用。
+- API：`GET/PUT /api/admin/app-clients/policy`、`GET /api/admin/app-clients/stats`、`GET /api/admin/app-clients/users`，均通过 `client/src/api.js` 的 `adminAPI`，不缓存管理员观测结果，不静默生成离线数据。
+- 策略默认关闭；仅明确列出的内部 `versionCode` 被废弃，不是显示版本名或最低版本门槛。总开关关闭时所有版本拦截失效，但列表和独立 `block_unversioned` 配置保留。版本号范围 1–2147483647，自动去重、排序，最多 200 个；更新提示非空、最多 2000 字符。保存提交完整四字段 JSON。网页访问不受该策略影响。
+- 保留键 `app_client_policy` 必须使用专用端点整体保存。通用站点配置只提供 App 管理链接；新增键也不能绕过此限制。
+- 观测只记录认证原生时间线请求，从迁移开始，不回填历史。不是安装量、下载量、设备数，也不是 App 全活动。`available:false` 表示数据库迁移缺失或观测数据读取失败，不展示为 0；HTTP/响应错误独立显示并可重试。数值显示精确整数。
+- 总账号数按账号去重；`versioned_users` / `unversioned_users` 是「曾上报」/「曾未上报有效版本」，可能重叠。版本行 `observed_users` 是历史账号×版本配对，同账号升级后跨行重叠；`latest_users` 按最近观测唯一归属。各行 1/7/30 天活跃同样可能重叠，不可直接相加。未上报组包含缺失或无效版本号，不代表未安装。
+- 用户列表 `version_code=all` 每账号只显示最近记录；`version_code=missing` 或指定正整数显示该版本的历史配对，不表示账号当前仍使用此版本。支持 `q`、20 条分页及首次/末次观测时间（本地时区）。切换筛选、分页、刷新、卸载、切换管理员账户后，旧异步响应失效；保存失败保留输入且不自动重试写入。
+
+### 仅本地的 GUI 验证 fixture
+
+以下测试服务器仅监听 `127.0.0.1`，不转发生产 API；本地模拟 `/api/auth/me` 供原有鉴权 UI 验证，生产入口没有新增鉴权绕过。所有策略保存只写内存，服务器重启恢复默认关闭。
+
+```bash
+npm --prefix /home/ZYongX/projects/ABDL-Space-V2/client run test:app-fixture
+VITE_API_BASE=http://127.0.0.1:8791 npm --prefix /home/ZYongX/projects/ABDL-Space-V2/client run dev -- --host 127.0.0.1
+```
+
+打开 `http://127.0.0.1:5173/admin/app-clients`（Vite 端口占用时用其实际端口）。fixtures 定义在 `client/src/appClients/fixture.js`，HTTP 包装在 `client/tests/app-clients-fixture-server.js`，均不被生产页面导入。不得用真实 API 地址进行策略保存测试。
+
+在本地浏览器打开 `http://127.0.0.1:8791/__fixture?scenario=场景名` 切换场景，再回页面刷新对应策略/统计。
+
+| 场景 | 验证目标 |
+|---|---|
+| `normal` | 46 个去重账号；42 曾上报、6 曾未上报（有重叠）；版本 100 有 26 条历史配对与 2 页；账号升级导致历史版本与最近版本不同 |
+| `empty` | 迁移可用但全部为真实 0；搜索无匹配也是成功的空列表 |
+| `unavailable` | 策略存储模拟 503（不把安全默认值当已保存配置）；统计迁移缺失，明确不可用而非 0；版本明细/用户列表不伪造为空 |
+| `errors` | 策略/统计/列表模拟 503，显示错误与重试；不显示假成功或假 0 |
+| `save-error` | GET 正常，PUT 模拟失败；保留输入、按钮恢复、显示错误 |
+| `slow` | 版本 100 的列表延迟 1500ms，其余 100ms；快速从 100 切到 200/未上报/全部，旧响应不得覆盖新筛选 |
+
+也可启动时设置 `APP_FIXTURE_SCENARIO`、`APP_FIXTURE_PORT`（改端口需同步 `VITE_API_BASE`）。建议 GUI 检查正常保存后重载、独立开关保留、非法/重复版本、空提示、搜索/分页、未上报组、升级历史说明、浅色/深色/多彩、窄屏表格局部横滚与原生键盘标签。主题沿用全站设置；本地重载的存储键为 `abdl_theme`。
+
+```bash
+npm --prefix /home/ZYongX/projects/ABDL-Space-V2/client test
+npm --prefix /home/ZYongX/projects/ABDL-Space-V2/client run build
+node --test /home/ZYongX/projects/ABDL-Space-V2/client/src/appClients/model.test.js
+```
+
+新增纯 helper/API/fixture 测试覆盖版本归一化与边界、策略完整 payload、URL 编码、取消信号、去重/重叠、最近与历史列表、分页和晚到请求门控。客户端部署代理及 OAuth 版本头透传由主协调任务负责，不在 App 管理实现中修改。
 
 ## 📋 待办事项
 
