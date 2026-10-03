@@ -1,245 +1,123 @@
+import { useState } from 'react';
 import PageLayout from '../components/PageLayout';
+import {
+  privacyPolicyMeta,
+  privacyPolicyNotice,
+  privacyPolicySensitiveNotice,
+  privacyPolicySections,
+  privacyPolicyContents,
+} from '../legal/privacyPolicy';
 
-const EN = () => {
-  const s = { color: 'var(--text-light)' };
-  const h = { color: 'var(--text)' };
-  const link = { color: 'var(--link-color)' };
-
-  return (
-    <div className="space-y-4 text-sm leading-relaxed" style={s}>
-      <p><strong>Last Updated:</strong> September 23, 2026</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>1. Introduction</h2>
-      <p>Welcome to ABDL Space ("we," "us," or "our"). We operate the website abdl-space.top (the "Website"), a diaper review and community platform. This Privacy Policy explains how we collect, use, store, and protect your personal information when you use our Website.</p>
-      <p>By registering an account, logging in, or otherwise using the Website, you agree to the terms of this Privacy Policy. <strong>Your consent is obtained through an explicit checkbox during the registration or login process.</strong> If you do not agree, please do not use the Website.</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>2. Information We Collect</h2>
-      <h3 className="text-base font-bold pt-1" style={h}>2.1 Information You Provide Directly</h3>
-      <p><strong>Account Registration:</strong> Email address, username, password (stored in hashed form).</p>
-      <p><strong>Profile Information (optional):</strong> Age, region/location, weight, waist circumference, hip circumference, style preferences, personal bio, profile avatar.</p>
-      <p><strong>Community Activity:</strong> Forum posts and comments, likes on posts and comments, diaper ratings (5 dimensions: comfort, absorption, thickness, appearance, and value for money, scored 1–10), usage reviews (5 dimensions, scored −5 to +5), private messages sent to other users.</p>
-
-      <p><strong>Third-Party Account (optional):</strong> If you choose to log in via NewBabyWorld (宝宝新天地) OAuth, we receive your NewBabyWorld user ID and username to link or create your ABDL Space account.</p>
-
-      <h3 className="text-base font-bold pt-1" style={h}>2.2 AI Recommendation Data</h3>
-      <p>When you choose to use our AI-powered recommendation feature, you may elect to send certain body measurement data (such as weight, waist circumference, and hip circumference) to DeepSeek's AI API for processing. <strong>This data is only transmitted when you explicitly opt in and confirm your consent.</strong> You are not required to use this feature to access the Website.</p>
-
-      <h3 className="text-base font-bold pt-1" style={h}>2.3 Information We Do NOT Collect</h3>
-      <ul className="list-disc pl-6 space-y-1">
-        <li><strong>No advertising identifiers</strong></li>
-        <li><strong>No web beacons or pixels</strong></li>
-        <li><strong>No device fingerprinting</strong></li>
-        <li><strong>No location tracking</strong></li>
-        <li><strong>No third-party cookies</strong> (except cookies used by Baidu Analytics, see Section 2.4)</li>
-      </ul>
-
-      <h3 className="text-base font-bold pt-1" style={h}>2.4 Automatic Data Collection</h3>
-      <p>We use <strong>Baidu Analytics (百度统计)</strong> to understand how visitors use our Website. Baidu Analytics collects standard web browsing information, including but not limited to page views, visit duration, referral sources, browser type, operating system, and device identifiers. This information is collected through cookies and similar technologies and is used in aggregate form to help us improve the Website.</p>
-      <p>Baidu Analytics does not collect information that directly identifies you (such as your name, email address, or account credentials). For more information about how Baidu handles data, please refer to Baidu's privacy policy.</p>
-      <p>You may opt out of analytics tracking by adjusting your browser settings to block cookies or by using browser extensions that block analytics scripts.</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>3. How We Use Your Information</h2>
-      <ul className="list-disc pl-6 space-y-1">
-        <li><strong>Account management</strong> — Create and maintain your account, authenticate your identity.</li>
-        <li><strong>Community features</strong> — Enable forum participation, ratings, reviews, private messaging.</li>
-        <li><strong>AI recommendations</strong> — Process your body measurement data through DeepSeek's AI API when you explicitly opt in.</li>
-        <li><strong>Service improvement</strong> — Understand how visitors use the Website through analytics data and improve features.</li>
-        <li><strong>Security</strong> — Detect, prevent, and address fraud, abuse, and security issues.</li>
-        <li><strong>Legal compliance</strong> — Comply with applicable laws, regulations, and legal processes.</li>
-      </ul>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>4. Legal Bases for Processing (EEA/UK Users)</h2>
-      <p>If you are located in the European Economic Area (EEA) or the United Kingdom (UK), we process your personal data based on: contract performance (Art. 6(1)(b) GDPR), consent (Art. 6(1)(a) GDPR), legitimate interests (Art. 6(1)(f) GDPR), and legal obligation (Art. 6(1)(c) GDPR).</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>5. Data Sharing and Disclosure</h2>
-      <h3 className="text-base font-bold pt-1" style={h}>5.1 Third-Party Services</h3>
-      <p>We share data with the following third-party service providers:</p>
-      <div className="p-3 rounded-xl" style={{ background: 'var(--input-bg)' }}>
-        <p><strong>NewBabyWorld (宝宝新天地)</strong> — NewBabyWorld user ID and username (only when you choose OAuth login) — Account linking and authentication.</p>
-        <p className="mt-2"><strong>DeepSeek AI</strong> — Body measurement data (only with your explicit consent) — AI-powered diaper recommendations.</p>
-        <p className="mt-2"><strong>Baidu Analytics</strong> — Standard web browsing data (page views, device information, browsing behavior) — Website analytics and improvement.</p>
-        <p className="mt-2"><strong>Third-Party Mastodon Clients</strong> — When you log in via a third-party Mastodon-compatible client, we share an OAuth access token with that client to enable it to access your ABDL Space account on your behalf.</p>
-        <p className="mt-2"><strong>JPush (极光推送)</strong> — Device identifiers for push notification delivery. You may disable push notifications at any time in app settings.</p>
-        <p className="mt-2"><strong>Tencent QQ Connect Android SDK 3.5.19 (operator: Shenzhen Tencent Computer Systems Company Limited)</strong> — Used only when you actively choose QQ login or account linking in the Android App. For this purpose, the SDK and ABDL Space process QQ authorization identifiers (OpenID and the UnionID required by ABDL Space for cross-platform account linking), nickname, profile avatar, and the device model information that Tencent's official SDK privacy statement identifies as necessary for SDK reporting, issue monitoring, and device compatibility troubleshooting. After server-side verification, we store HMAC-protected representations of the QQ identifiers for account association, together with the QQ nickname and profile avatar shown in Account Settings. These records are refreshed when you authorize QQ and retained until you unlink QQ or delete your ABDL Space account. QQ access tokens are not ABDL Space credentials and are not retained long term. You may unlink QQ in Account Settings.</p>
-      </div>
-      <h3 className="text-base font-bold pt-1" style={h}>5.2 What We Do NOT Do</h3>
-      <ul className="list-disc pl-6 space-y-1">
-        <li>We do <strong>not</strong> sell your personal data to third parties.</li>
-        <li>We do <strong>not</strong> share your data with advertisers or advertising networks.</li>
-        <li>We do <strong>not</strong> share your data with data brokers.</li>
-      </ul>
-      <h3 className="text-base font-bold pt-1" style={h}>5.3 Other Disclosures</h3>
-      <p>We may disclose your information if required by law, to protect safety, or in connection with a business transfer (merger, acquisition, or sale of assets).</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>6. Data Storage and Security</h2>
-      <p>Your data is stored on secure servers. We implement industry-standard security measures including password hashing, encrypted data transmission (HTTPS/TLS), and access controls.</p>
-      <p><strong>Data Retention:</strong> Account data is retained while your account is active. Community content may persist after account deletion to maintain community integrity. AI recommendation data is subject to DeepSeek's retention policies. Server logs are automatically deleted after a short operational period.</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>7. Your Rights</h2>
-      <p><strong>All users:</strong> Access, correction, deletion, and export of your data.</p>
-      <p><strong>EEA/UK users (GDPR):</strong> Right to restrict processing, object, data portability, withdraw consent, and lodge a complaint with a supervisory authority.</p>
-      <p><strong>California residents (CCPA/CPRA):</strong> Right to know, delete, and opt out of sale/sharing. We do not sell or share personal information as defined by CCPA/CPRA.</p>
-      <p>To exercise any rights, contact us at <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a>.</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>8. User Age Requirement</h2>
-      <p>This Website is exclusively intended for users who are 18 years of age or older. Minors under the age of 18 are prohibited from registering or using any services of this Website. Users must confirm that they are at least 18 years old during registration.</p>
-      <p>If we discover that a user is under 18 years of age, we reserve the right to immediately terminate services and delete their account and associated data.</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>9. International Data Transfers</h2>
-      <p>If you access the Website from outside the jurisdiction where our servers are located, your data may be transferred across international borders. We rely on appropriate safeguards for such transfers.</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>10. Third-Party Links</h2>
-      <p>The Website may contain links to third-party websites. We are not responsible for the privacy practices or content of those websites.</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>11. Changes to This Policy</h2>
-      <p>We may update this Privacy Policy from time to time. When we make material changes, we will notify you by posting the updated policy on this page with a revised "Last Updated" date. <strong>We will also notify users through website announcements and in-app notifications when significant changes are made.</strong></p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>12. Contact Us</h2>
-      <p>If you have any questions about this Privacy Policy, please contact us at <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a></p>
-    </div>
-  );
-};
-
-const ZH = () => {
-  const s = { color: 'var(--text-light)' };
-  const h = { color: 'var(--text)' };
-  const link = { color: 'var(--link-color)' };
+function PolicySection({ section, language, nested = false }) {
+  const Heading = nested ? 'h3' : 'h2';
+  const titleId = `${section.id}-title`;
 
   return (
-    <div className="space-y-4 text-sm leading-relaxed" style={s}>
-      <p><strong>最后更新日期：</strong>2026年9月23日</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>1. 引言</h2>
-      <p>欢迎访问ABDL Space（"我们"）。我们运营网站 abdl-space.top（"本网站"），这是一个纸尿裤评价与社区平台。本隐私政策说明了您在使用本网站时，我们如何收集、使用、存储和保护您的个人信息。</p>
-      <p>注册账户、登录或以其他方式使用本网站即表示您同意本隐私政策的条款。<strong>您的同意通过注册或登录流程中的明确勾选操作获取。</strong>如果您不同意，请勿使用本网站。</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>2. 我们收集的信息</h2>
-      <h3 className="text-base font-bold pt-1" style={h}>2.1 您直接提供的信息</h3>
-      <p><strong>账户注册：</strong>电子邮箱地址、用户名、密码（以哈希形式存储）。</p>
-      <p><strong>个人资料信息（可选）：</strong>年龄、地区/所在地、体重、腰围、臀围、风格偏好、个人简介、头像。</p>
-      <p><strong>社区活动：</strong>广场帖子和评论、对帖子和评论的点赞、纸尿裤评分（5个维度：舒适性、吸收量、厚度、外观和性价比，1-10分）、使用感受评价（5个维度，-5至+5分）、发送给其他用户的私信。</p>
-
-      <p><strong>第三方账户（可选）：</strong>如果您选择通过宝宝新天地（NewBabyWorld）OAuth 登录，我们将获取您的宝宝新天地用户ID和用户名，用于关联或创建您的 ABDL Space 账户。</p>
-
-      <h3 className="text-base font-bold pt-1" style={h}>2.2 AI推荐数据</h3>
-      <p>当您选择使用我们的AI推荐功能时，您可以选择将某些身体测量数据（如体重、腰围和臀围）发送给DeepSeek的AI API进行处理。<strong>此数据仅在您明确选择并确认同意后才会传输。</strong>您无需使用此功能即可访问本网站。</p>
-
-      <h3 className="text-base font-bold pt-1" style={h}>2.3 我们不收集的信息</h3>
-      <ul className="list-disc pl-6 space-y-1">
-        <li><strong>无广告标识符</strong></li>
-        <li><strong>无网络信标或像素</strong></li>
-        <li><strong>无设备指纹</strong></li>
-        <li><strong>无位置追踪</strong></li>
-        <li><strong>无第三方Cookie</strong>（百度统计使用的Cookie除外，见第2.4节）</li>
-      </ul>
-
-      <h3 className="text-base font-bold pt-1" style={h}>2.4 自动数据收集</h3>
-      <p>我们使用<strong>百度统计（Baidu Analytics）</strong>来了解访问者如何使用本网站。百度统计会收集标准的网络浏览信息，包括但不限于页面浏览量、访问时长、来源渠道、浏览器类型、操作系统和设备标识符。这些信息通过Cookie及类似技术以汇总形式收集，用于帮助我们改进网站。</p>
-      <p>百度统计不会收集能够直接识别您个人身份的信息（如姓名、电子邮箱地址或账户凭据）。有关百度如何处理数据的更多信息，请参阅百度的隐私政策。</p>
-      <p>您可以通过调整浏览器设置屏蔽Cookie或使用屏蔽分析脚本的浏览器扩展来退出分析追踪。</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>3. 我们如何使用您的信息</h2>
-      <ul className="list-disc pl-6 space-y-1">
-        <li><strong>账户管理</strong> — 创建和维护您的账户、验证您的身份。</li>
-        <li><strong>社区功能</strong> — 支持广场参与、评分、评价、私信。</li>
-        <li><strong>AI推荐</strong> — 在您明确选择同意后，通过DeepSeek的AI API处理您的身体测量数据。</li>
-        <li><strong>服务改进</strong> — 通过分析数据了解访问者如何使用本网站，改进功能。</li>
-        <li><strong>安全</strong> — 检测、预防和处理欺诈、滥用和安全问题。</li>
-        <li><strong>法律合规</strong> — 遵守适用的法律法规和法律程序。</li>
-      </ul>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>4. 数据处理的法律依据（欧洲经济区/英国用户）</h2>
-      <p>如果您位于欧洲经济区（EEA）或英国（UK），我们基于以下法律依据处理您的个人数据：合同履行（GDPR第6条第1款b项）、同意（GDPR第6条第1款a项）、合法权益（GDPR第6条第1款f项）、法律义务（GDPR第6条第1款c项）。</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>5. 数据共享与披露</h2>
-      <h3 className="text-base font-bold pt-1" style={h}>5.1 第三方服务</h3>
-      <p>我们与以下第三方服务提供商共享数据：</p>
-      <div className="p-3 rounded-xl" style={{ background: 'var(--input-bg)' }}>
-        <p><strong>宝宝新天地（NewBabyWorld）</strong> — 宝宝新天地用户ID和用户名（仅在您选择OAuth登录时）— 账户关联和身份验证。</p>
-        <p className="mt-2"><strong>DeepSeek AI</strong> — 身体测量数据（仅在您明确同意后）— AI纸尿裤推荐。</p>
-        <p className="mt-2"><strong>百度统计</strong> — 标准网络浏览数据（页面浏览量、设备信息、浏览行为）— 网站分析与改进。</p>
-        <p className="mt-2"><strong>第三方Mastodon客户端</strong> — 当您通过第三方Mastodon兼容客户端登录时，我们会向该客户端授予OAuth访问令牌，使其能够代表您访问ABDL Space账户。</p>
-        <p className="mt-2"><strong>极光推送（JPush）</strong> — 设备标识符用于推送通知的发送。您可在应用设置中随时关闭推送通知。</p>
-        <p className="mt-2"><strong>腾讯QQ互联 Android SDK 3.5.19（运营主体：深圳市腾讯计算机系统有限公司）</strong> — 仅在您于 Android App 中主动选择 QQ 登录或账户绑定时调用。为实现该功能，SDK 与 ABDL Space 会处理 QQ 授权标识（OpenID，以及 ABDL Space 用于跨端账户关联所必需的 UnionID）、昵称、头像，以及腾讯官方 SDK 隐私声明明确用于 SDK 后台上报、问题监控和机型兼容性问题定位的设备型号信息。服务端验证通过后，我们会保存经 HMAC 保护的 QQ 标识，以及在账户设置中展示的 QQ 昵称和头像；您每次授权 QQ 时可能更新这些资料，并保留至您解绑 QQ 或删除 ABDL Space 账户。QQ 访问令牌不作为 ABDL Space 凭证，且不长期存储。您可在账户设置中解绑 QQ。</p>
-      </div>
-      <h3 className="text-base font-bold pt-1" style={h}>5.2 我们不做的事情</h3>
-      <ul className="list-disc pl-6 space-y-1">
-        <li>我们<strong>不会</strong>向第三方出售您的个人数据。</li>
-        <li>我们<strong>不会</strong>与广告商或广告网络共享您的数据。</li>
-        <li>我们<strong>不会</strong>与数据经纪商共享您的数据。</li>
-      </ul>
-      <h3 className="text-base font-bold pt-1" style={h}>5.3 其他披露情形</h3>
-      <p>在法律要求、保护安全或业务转让（合并、收购或资产出售）的情况下，我们可能会披露您的信息。</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>6. 数据存储与安全</h2>
-      <p>您的数据存储在安全的服务器上。我们实施行业标准的安全措施，包括密码哈希、加密数据传输（HTTPS/TLS）和访问控制。</p>
-      <p><strong>数据保留：</strong>账户数据在账户活跃期间保留。社区内容可能在账户删除后继续保留以维护社区完整性。AI推荐数据受DeepSeek的保留政策约束。服务器日志在短期运营期后自动删除。</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>7. 您的权利</h2>
-      <p><strong>所有用户：</strong>访问、更正、删除和导出您的数据。</p>
-      <p><strong>欧洲经济区/英国用户（GDPR）：</strong>限制处理权、反对权、数据可携权、撤回同意权、投诉权。</p>
-      <p><strong>加利福尼亚州居民（CCPA/CPRA）：</strong>知情权、删除权、退出出售/共享权。我们不会按照CCPA/CPRA的定义出售或共享个人信息。</p>
-      <p>如需行使任何权利，请通过 <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a> 联系我们。</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>8. 用户年龄要求与账户安全</h2>
-      <p>本平台仅面向年满18周岁及以上的成年人用户开放。未满18周岁的自然人禁止注册或使用本平台的任何服务。用户在注册时须确认其已年满18周岁。</p>
-      <p>如本平台发现用户为未满18周岁的未成年人,有权立即终止对该用户的服务并删除其账户及相关数据。</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>9. 国际数据传输</h2>
-      <p>如果您从我们服务器所在地以外的司法管辖区访问本网站，您的数据可能会被跨境传输。我们依赖适当的保障措施进行此类传输。</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>10. 第三方链接</h2>
-      <p>本网站可能包含指向第三方网站的链接。我们不对这些网站的隐私做法或内容负责。</p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>11. 本政策的变更</h2>
-      <p>我们可能会不时更新本隐私政策。当我们做出重大变更时，将在本页面发布更新后的政策并修订"最后更新日期"。<strong>重大变更时，我们还将通过网站公告和应用内通知的方式告知用户。</strong></p>
-
-      <h2 className="text-lg font-bold pt-2" style={h}>12. 联系我们</h2>
-      <p>如果您对本隐私政策有任何疑问，请通过 <a href="mailto:zhx589@outlook.com" style={link}>zhx589@outlook.com</a> 联系我们。</p>
-    </div>
+    <section
+      id={section.id}
+      aria-labelledby={titleId}
+      className={section.service ? 'privacy-policy-service' : 'privacy-policy-section'}
+    >
+      <Heading id={titleId} className={nested ? 'text-base font-bold' : 'text-lg font-bold'}>
+        {section.number}. {section.title[language]}
+      </Heading>
+      {section.sensitive && (
+        <p className="privacy-policy-sensitive font-semibold">
+          {language === 'zh' ? '敏感信息 · 请仅提供必要内容，注意单独同意' : 'Sensitive information · minimize disclosure; separate consent matters'}
+        </p>
+      )}
+      {section.paragraphs.map((paragraph, index) => <p key={index}>{paragraph[language]}</p>)}
+      {section.links && (
+        <ul className="flex flex-wrap gap-x-5 gap-y-2 mt-3 list-none" aria-label={language === 'zh' ? '相关链接' : 'Related links'}>
+          {section.links.map(link => (
+            <li key={link.href}>
+              <a href={link.href} {...(link.href.startsWith('https://') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
+                {link.label[language]}{link.href.startsWith('https://') ? (language === 'zh' ? '（新窗口）' : ' (new window)') : ''}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+      {section.children?.map(child => <PolicySection key={child.id} section={child} language={language} nested />)}
+    </section>
   );
-};
+}
 
 export default function PrivacyPolicy() {
+  const [language, setLanguage] = useState(privacyPolicyMeta.defaultLanguage);
+  const isChinese = language === 'zh';
+
   return (
-    <>
-    <PageLayout hero={{ icon: 'fa-shield-halved', title: 'Privacy Policy / 隐私政策', subtitle: '最后更新：2026年9月23日' }}>
-      {/* 中文翻译声明 */}
-      <div className="p-4 rounded-xl mb-5 flex items-start gap-3" style={{ background: 'var(--warning-bg, #FFF8E1)', border: '2px solid var(--warning)' }}>
-        <i className="fa-solid fa-circle-exclamation mt-0.5 text-lg" style={{ color: 'var(--warning)' }} />
-        <div className="text-sm">
-          <div className="font-bold mb-1" style={{ color: 'var(--text)' }}>
-            声明 / Disclaimer
+    <PageLayout hero={{ icon: 'fa-shield-halved', title: 'Privacy Policy / 隐私政策', subtitle: `更新 / 生效：${privacyPolicyMeta.updated} · 版本 ${privacyPolicyMeta.version} · 18+` }}>
+      <style>{`
+        .privacy-policy { color: var(--text); overflow-wrap: anywhere; line-height: 1.8; }
+        .privacy-policy a { color: var(--link-color); text-decoration: underline; text-underline-offset: .2em; }
+        .privacy-policy a:focus-visible, .privacy-policy button:focus-visible {
+          outline: 2px solid var(--link-color); outline-offset: 4px;
+        }
+        .privacy-policy-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 1rem; padding: 1rem; }
+        .privacy-policy-notice { background: var(--warning-bg, var(--input-bg)); border: 2px solid var(--warning); }
+        .privacy-policy-sensitive { border-left: 3px solid var(--warning); padding-left: .75rem; }
+        .privacy-policy-section { margin-top: 1.75rem; }
+        .privacy-policy-section, .privacy-policy-service, #privacy-policy-top { scroll-margin-top: 6rem; }
+        .privacy-policy-service { margin-top: 1.25rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: .75rem; padding: 1rem; }
+        .privacy-policy-section p, .privacy-policy-service p { margin-top: .75rem; }
+        .privacy-policy-reader { max-width: 76ch; margin-inline: auto; }
+        .privacy-policy-toc { display: grid; gap: .25rem 1.5rem; }
+        .privacy-policy-toc a { display: block; padding-block: .4rem; }
+        .privacy-policy button { min-height: 44px; padding: .5rem 1rem; border: 1px solid var(--border); border-radius: .75rem; color: var(--text); background: var(--input-bg); }
+        .privacy-policy button[aria-pressed="true"] { background: var(--primary-light); border-color: var(--link-color); font-weight: 700; }
+        @media (min-width: 640px) {
+          .privacy-policy-box { padding: 1.5rem; }
+          .privacy-policy-toc { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+      `}</style>
+      <div className="privacy-policy space-y-5 text-sm" id="privacy-policy-top">
+        <aside className="privacy-policy-box privacy-policy-notice space-y-2" aria-label="正式语言声明 / Official language notice">
+          <h2 className="font-bold text-base">英文正式 · 中文 AI 参考 / English official · Chinese AI reference</h2>
+          <p lang="zh-CN">{privacyPolicyNotice.zh}</p>
+          <p lang="en">{privacyPolicyNotice.en}</p>
+        </aside>
+
+        <div className="flex flex-wrap gap-3" role="group" aria-label="阅读语言 / Reading language">
+          <button type="button" lang="zh-CN" aria-pressed={isChinese} aria-controls="privacy-policy-document" onClick={() => setLanguage('zh')}>中文 · AI 参考</button>
+          <button type="button" lang="en" aria-pressed={!isChinese} aria-controls="privacy-policy-document" onClick={() => setLanguage('en')}>English · Official</button>
+        </div>
+        <p aria-live="polite" lang={isChinese ? 'zh-CN' : 'en'} className="font-semibold">
+          {isChinese ? '当前阅读：中文 AI 参考译文；正式版本请切换 English。' : 'Reading: English — the sole official version.'}
+        </p>
+
+        <div id="privacy-policy-document" lang={isChinese ? 'zh-CN' : 'en'} className="space-y-5">
+          <div className="privacy-policy-box space-y-2">
+            <p><strong>{isChinese ? '最后更新：' : 'Last updated: '}</strong><time dateTime={privacyPolicyMeta.updated}>{privacyPolicyMeta.updated}</time></p>
+            <p><strong>{isChinese ? '生效日期：' : 'Effective date: '}</strong><time dateTime={privacyPolicyMeta.effective}>{privacyPolicyMeta.effective}</time></p>
+            <p><strong>{isChinese ? '版本：' : 'Version: '}</strong>{privacyPolicyMeta.version} · {privacyPolicyMeta.operator} · 18+</p>
+            <p><strong>{isChinese ? '联系：' : 'Contact: '}</strong><a href={`mailto:${privacyPolicyMeta.contact}`}>{privacyPolicyMeta.contact}</a></p>
           </div>
-          <p style={{ color: 'var(--text-light)' }}>
-            <strong style={{ color: 'var(--danger)' }}>以下英文版本为本政策的唯一正式版本。</strong>中文版本由AI翻译生成，仅供参考。如中英文版本存在差异，以英文版本为准。
-          </p>
-          <p className="mt-1" style={{ color: 'var(--text-light)' }}>
-            <strong style={{ color: 'var(--danger)' }}>The English version below is the sole official version of this policy.</strong> The Chinese version is generated by AI translation and is for reference only. In case of any discrepancy between the English and Chinese versions, the English version shall prevail.
-          </p>
-        </div>
-      </div>
 
-      {/* 英文原版 */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'var(--primary)', color: 'white' }}>ENGLISH — OFFICIAL</span>
-        </div>
-        <div className="card">
-          <EN />
-        </div>
-      </div>
+          <aside className="privacy-policy-box privacy-policy-notice" aria-label={isChinese ? '敏感信息提示' : 'Sensitive information notice'}>
+            <p className="font-semibold">{privacyPolicySensitiveNotice[language]}</p>
+          </aside>
 
-      {/* 中文翻译版 */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'var(--accent)', color: 'white' }}>中文 — AI翻译仅供参考</span>
-        </div>
-        <div className="card" style={{ opacity: 0.9 }}>
-          <ZH />
+          <nav className="privacy-policy-box" aria-labelledby="privacy-policy-contents-title">
+            <h2 id="privacy-policy-contents-title" className="text-base font-bold mb-3">{isChinese ? '完整目录' : 'Complete contents'}</h2>
+            <ol className="privacy-policy-toc list-none">
+              {privacyPolicyContents.map(entry => (
+                <li key={entry.id} style={{ paddingInlineStart: entry.number.includes('.') ? '1rem' : 0 }}>
+                  <a href={`#${entry.id}`}>{entry.number}. {entry.title[language]}</a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+
+          <article className="privacy-policy-box" aria-label={isChinese ? '隐私政策中文参考正文' : 'Official English privacy policy'}>
+            <div className="privacy-policy-reader">
+              {privacyPolicySections.map(section => <PolicySection key={section.id} section={section} language={language} />)}
+              <p className="mt-6"><a href="#privacy-policy-top">{isChinese ? '返回顶部与语言选择' : 'Back to top and language selection'}</a></p>
+            </div>
+          </article>
         </div>
       </div>
     </PageLayout>
-    </>
   );
 }
