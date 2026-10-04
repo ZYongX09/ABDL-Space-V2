@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { adminAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
-import { createRequestGate, DEFAULT_APP_POLICY, exactCount, MAX_UPDATE_MESSAGE, normalizeVersionCodes, policyPayload, versionLabel } from '../../appClients/model.js';
+import { createRequestGate, DEFAULT_APP_POLICY, DEFAULT_APP_REMINDER, DEFAULT_APP_REMINDER_MESSAGE, exactCount, MAX_UPDATE_MESSAGE, normalizeVersionCodes, policyPayload, reminderPayload, versionLabel } from '../../appClients/model.js';
 import AdminLayout from './layout';
 import { Card, Empty, ErrorBox, FormField, Loading, Pagination, Pill, StatCard } from './ui';
 import { fmtFull } from './util';
@@ -33,6 +33,71 @@ function useResource(key, fetcher) {
 
 function RetryError({ error, retry }) {
   return error ? <div className="ac-app-feedback"><ErrorBox msg={error} /><button type="button" className="ac-btn" onClick={retry}>重新加载</button></div> : null;
+}
+
+const reminderForm = reminder => ({ ...reminder, versionText: reminder.version_codes.join('\n'), message: reminder.message === DEFAULT_APP_REMINDER_MESSAGE ? '' : reminder.message });
+
+function ReminderEditor() {
+  const [revision, setRevision] = useState(0);
+  const resource = useResource(String(revision), signal => adminAPI.appClientReminder({ signal }));
+  const [form, setForm] = useState(() => reminderForm(DEFAULT_APP_REMINDER));
+  const [saved, setSaved] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const saveGate = useRef(createRequestGate());
+  const saveController = useRef(null);
+  useEffect(() => () => { saveGate.current.invalidate(); saveController.current?.abort(); }, []);
+  useEffect(() => {
+    if (!resource.data) return;
+    setSaved(resource.data); setForm(reminderForm(resource.data));
+    setError(''); setNotice('');
+  }, [resource.data]);
+  const change = patch => { setForm(value => ({ ...value, ...patch })); setError(''); setNotice(''); };
+  let preview = [];
+  try { preview = normalizeVersionCodes(form.versionText, '提醒'); } catch { /* 保存时显示校验错误。 */ }
+  const save = async event => {
+    event.preventDefault();
+    if (saveController.current || saving || resource.loading || resource.error || !resource.data) return;
+    let payload;
+    try { payload = reminderPayload(form); } catch (e) { setError(e.message); return; }
+    const current = saveGate.current.begin();
+    const controller = new AbortController();
+    saveController.current = controller;
+    setSaving(true); setError(''); setNotice('');
+    try {
+      const reminder = await adminAPI.saveAppClientReminder(payload, { signal: controller.signal });
+      if (!current()) return;
+      setSaved(reminder); setForm(reminderForm(reminder));
+      setNotice('App 更新提醒已保存；真实帖子与分页保留，网页访问不受影响。');
+    } catch (e) {
+      if (current()) setError(`保存失败：${e.message || '请重试'}。当前输入已保留；若响应中断，请重新加载确认服务器状态。`);
+    } finally {
+      if (current()) { saveController.current = null; setSaving(false); }
+    }
+  };
+  return <Card title="App 更新提醒（不屏蔽真实帖子）" description="默认关闭。独立保存提醒配置，仅影响指定内部版本的原生 App 时间线；网页不受影响。" icon="fa-bell">
+    <p className="ac-app-note">提醒：首次加载且有真实帖子的时间线首位注入更新提示假帖；翻页、补拉与空结束页不重复插入，保留真实帖子与分页。版本废弃：只返回假帖，不返回真实帖子。同一版本同时命中两项时，版本废弃优先，不叠加提醒。</p>
+    {resource.loading ? <Loading text="正在读取 App 更新提醒…" /> : resource.error ? <RetryError error={resource.error} retry={() => setRevision(value => value + 1)} /> : <form onSubmit={save}>
+      <fieldset className="ac-app-fieldset" disabled={saving}>
+        <legend className="ac-app-visually-hidden">App 更新提醒配置</legend>
+        <div className="ac-app-policy-status"><Pill tone={saved?.enabled ? 'green' : 'slate'}>{saved?.enabled ? '已保存提醒：启用' : '已保存提醒：关闭'}</Pill><span>已保存版本：{saved?.version_codes.length ? saved.version_codes.join('、') : '未指定'}；已保存文案：{saved?.message === DEFAULT_APP_REMINDER_MESSAGE ? '默认' : '自定义'}；关闭时保留版本与文案。</span></div>
+        <label className="ac-check-row"><input id="app-reminder-enabled" type="checkbox" role="switch" checked={form.enabled} onChange={e => change({ enabled: e.target.checked })} /><span>启用 App 更新提醒（不屏蔽真实帖子）</span></label>
+        <FormField label="提醒的内部版本号（versionCode）" htmlFor="app-reminder-versions" hint="仅匹配明确列出的内部版本号，不是展示版本名或最低版本门槛；未上报版本不匹配。支持换行、空格或中英文逗号分隔，自动去重、排序。范围 1–2147483647，最多 200 个不同版本。">
+          <textarea id="app-reminder-versions" className="ac-textarea" rows={4} value={form.versionText} onChange={e => change({ versionText: e.target.value })} placeholder={'例如：101\n103, 105'} aria-describedby="app-reminder-version-preview" />
+          <p id="app-reminder-version-preview" className="ac-section-note">规范化预览：{preview.length ? preview.join('、') : form.versionText.trim() ? '输入无效，保存前请检查' : '未指定任何提醒版本'}</p>
+        </FormField>
+        <FormField label="提醒内容（可选）" htmlFor="app-reminder-message" hint="纯文本，最多 2000 个字符；留空保存使用默认文案。填写版本或恢复默认文案不会自动启用提醒。">
+          <textarea id="app-reminder-message" className="ac-textarea" rows={3} maxLength={MAX_UPDATE_MESSAGE} value={form.message} onChange={e => change({ message: e.target.value })} placeholder={DEFAULT_APP_REMINDER_MESSAGE} />
+          <button type="button" className="ac-btn" onClick={() => change({ message: '' })}>恢复默认提醒文案</button>
+        </FormField>
+        <div><h3 className="ac-app-subtitle">提醒内容预览（纯文本，尚未保存）</h3><p id="app-reminder-message-preview" className="ac-app-note ac-app-plaintext">{form.message.trim() || DEFAULT_APP_REMINDER_MESSAGE}</p></div>
+        <ErrorBox msg={error} />
+        <p role="status" aria-live="polite" className="ac-section-note">{notice}</p>
+        <div className="ac-action-group"><button type="submit" className="ac-btn primary" disabled={saving}>{saving ? '正在保存提醒…' : '保存 App 更新提醒'}</button><button type="button" className="ac-btn" disabled={saving} onClick={() => { setError(''); setNotice(''); setRevision(value => value + 1); }}>重新加载已保存提醒</button></div>
+      </fieldset>
+    </form>}
+  </Card>;
 }
 
 function PolicyEditor() {
@@ -70,7 +135,7 @@ function PolicyEditor() {
     } catch (e) { if (mounted.current) setError(`保存失败：${e.message || '请重试'}。当前输入已保留；若响应中断，请重新加载确认服务器状态。`); }
     finally { if (mounted.current) setSaving(false); }
   };
-  return <Card title="App 版本访问策略" description="默认关闭。仅影响后端识别的原生 App 请求，不限制网页访问；保存为一份完整策略。" icon="fa-mobile-screen">
+  return <Card title="App 版本废弃（只返回假帖）" description="默认关闭。命中的原生 App 时间线只返回更新提示假帖，不返回真实帖子；优先于更新提醒，网页不受影响。完整四字段策略独立保存。" icon="fa-mobile-screen">
     {resource.loading ? <Loading text="正在读取 App 策略…" /> : resource.error ? <RetryError error={resource.error} retry={() => setRevision(value => value + 1)} /> : <form onSubmit={save}>
       <fieldset className="ac-app-fieldset" disabled={saving}>
         <legend className="ac-app-visually-hidden">App 版本访问策略配置</legend>
@@ -106,6 +171,7 @@ function AppClientsContent() {
   const versionOptions = stats.data?.available ? stats.data.versions.filter(row => row.version_code !== null).map(row => row.version_code).sort((a, b) => b - a) : [];
   if (filters.version_code !== 'all' && filters.version_code !== 'missing' && !versionOptions.includes(Number(filters.version_code))) versionOptions.push(Number(filters.version_code));
   return <div className="ac-page-stack ac-app-clients">
+    <ReminderEditor />
     <PolicyEditor />
     <Card title="原生 App 请求观测统计" icon="fa-chart-column" description="统计已认证的原生时间线请求，不是安装量、设备数、下载量，也不覆盖 App 的所有活动。" action={<button type="button" className="ac-btn" disabled={stats.loading} onClick={() => setRevision(value => value + 1)}>刷新观测数据</button>}>
       <p className="ac-app-note">「未上报版本号」包括未上报有效版本号及格式无效的请求，不代表未安装。仅从数据库迁移开始观测，不回填历史数据。账号总数按账号去重；同一账号可使用多个版本，也可先未上报再升级，所以「曾上报」与「曾未上报」可能重叠，不能相加当作总账号数。</p>

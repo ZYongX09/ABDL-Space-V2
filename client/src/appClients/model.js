@@ -1,5 +1,9 @@
 // App 管理的纯数据规则；不能用旧 has_app 推断安装或版本。
 export const APP_POLICY_SETTING_KEY = 'app_client_policy';
+export const APP_REMINDER_SETTING_KEY = 'app_client_reminder';
+export const DEFAULT_APP_REMINDER_MESSAGE = '已有新版本 App，建议更新以获得更好的体验。';
+export const DEFAULT_APP_REMINDER = Object.freeze({ enabled: false, version_codes: [], message: DEFAULT_APP_REMINDER_MESSAGE });
+export const isReservedAppClientSetting = key => [APP_POLICY_SETTING_KEY, APP_REMINDER_SETTING_KEY].includes(String(key).trim());
 export const DEFAULT_APP_POLICY = Object.freeze({ enabled: false, deprecated_version_codes: [], block_unversioned: false, update_message: '当前 App 版本已停止支持，请更新到最新版本后继续使用。' });
 export const TOTAL_KEYS = ['observed_users', 'versioned_users', 'unversioned_users', 'active_1d', 'active_7d', 'active_30d'];
 export const VERSION_KEYS = ['observed_users', 'latest_users', 'active_1d', 'active_7d', 'active_30d'];
@@ -13,16 +17,16 @@ const count = value => Number.isSafeInteger(value) && value >= 0;
 const validVersion = value => value === null || versionInteger(value);
 const invalid = subject => { throw new Error(`${subject}响应格式异常，请重试或联系后端管理员`); };
 
-export function normalizeVersionCodes(input) {
+export function normalizeVersionCodes(input, subject = '废弃') {
   const tokens = Array.isArray(input) ? input : String(input ?? '').trim().split(/[\s,，;；、]+/).filter(Boolean);
   const values = tokens.map(token => {
-    if (typeof token !== 'number' && !/^\d+$/.test(String(token))) throw new Error(`废弃版本号「${token}」无效：只能填写正整数内部版本号`);
+    if (typeof token !== 'number' && !/^\d+$/.test(String(token))) throw new Error(`${subject}版本号「${token}」无效：只能填写正整数内部版本号`);
     const value = Number(token);
-    if (!versionInteger(value)) throw new Error(`废弃版本号「${token}」无效：必须是 1 至 ${MAX_VERSION_CODE} 的正整数`);
+    if (!versionInteger(value)) throw new Error(`${subject}版本号「${token}」无效：必须是 1 至 ${MAX_VERSION_CODE} 的正整数`);
     return value;
   });
   const normalized = [...new Set(values)].sort((a, b) => a - b);
-  if (normalized.length > MAX_DEPRECATED_CODES) throw new Error(`最多填写 ${MAX_DEPRECATED_CODES} 个不同的废弃版本号`);
+  if (normalized.length > MAX_DEPRECATED_CODES) throw new Error(`最多填写 ${MAX_DEPRECATED_CODES} 个不同的${subject}版本号`);
   return normalized;
 }
 
@@ -40,6 +44,20 @@ export function policyPayload(form) {
 export function readPolicy(data) {
   if (!data || typeof data.enabled !== 'boolean' || typeof data.block_unversioned !== 'boolean' || typeof data.update_message !== 'string' || !Array.isArray(data.deprecated_version_codes) || !data.deprecated_version_codes.every(versionInteger)) invalid('App 策略');
   return policyPayload(data);
+}
+
+// 留空 PUT 由后端选择默认文案，不把版本废弃的字段带入提醒配置。
+export function reminderPayload(form) {
+  if (typeof form?.enabled !== 'boolean' || typeof form?.message !== 'string') throw new Error('提醒字段无效');
+  const message = form.message.trim();
+  if (message.length > MAX_UPDATE_MESSAGE) throw new Error(`提醒内容最多 ${MAX_UPDATE_MESSAGE} 个字符`);
+  return { enabled: form.enabled, version_codes: normalizeVersionCodes(form.versionText ?? form.version_codes, '提醒'), message };
+}
+
+export function readReminder(data) {
+  if (!data || typeof data.enabled !== 'boolean' || typeof data.message !== 'string' || !Array.isArray(data.version_codes) || !data.version_codes.every(versionInteger)) invalid('App 提醒');
+  const reminder = reminderPayload(data);
+  return { ...reminder, message: reminder.message || DEFAULT_APP_REMINDER_MESSAGE };
 }
 
 export function readStats(data) {
