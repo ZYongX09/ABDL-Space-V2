@@ -113,6 +113,29 @@ test('共享控件与赞助控件不再硬编码浅色表面/文本/边框', () 
   }
 });
 
+test('更新提醒位于废弃策略之前，纯文本预览与两项通用配置保护接入实际 adminAPI', async () => {
+  const page = source('../src/pages/admin/appClients.jsx');
+  assert.ok(page.indexOf('<ReminderEditor />') < page.indexOf('<PolicyEditor />'));
+  assert.match(page, /App 更新提醒（不屏蔽真实帖子）/);
+  assert.match(page, /App 版本废弃（只返回假帖）/);
+  assert.match(page, /版本废弃优先/);
+  assert.match(page, /id="app-reminder-enabled"[^>]+role="switch"/);
+  assert.match(page, /saveGate\.current\.invalidate\(\); saveController\.current\?\.abort\(\)/);
+  assert.match(page, /AppClientsContent key=\{`\$\{user.id\}:\$\{token\}`\}/);
+  assert.match(page, /className="ac-app-note ac-app-plaintext">\{form.message.trim\(\) \|\| DEFAULT_APP_REMINDER_MESSAGE\}/);
+  assert.doesNotMatch(page, /dangerouslySetInnerHTML|RichContent/);
+  const settings = source('../src/pages/admin/settings.jsx');
+  assert.match(settings, /isReservedAppClientSetting\(saveKey.key\)/);
+  assert.match(settings, /isReservedAppClientSetting\(setting.key\) \? <Link/);
+  const server = await createServer({ configFile: false, root: new URL('../', import.meta.url).pathname, server: { middlewareMode: true, hmr: false }, appType: 'custom' });
+  try {
+    const { adminAPI } = await server.ssrLoadModule('/src/api.js');
+    assert.equal(typeof adminAPI.appClientReminder, 'function');
+    assert.equal(typeof adminAPI.saveAppClientReminder, 'function');
+    for (const key of ['app_client_policy', 'app_client_reminder']) await assert.rejects(adminAPI.saveSetting(` ${key} `, '{}'), /保留配置/);
+  } finally { await server.close(); }
+});
+
 test('QQ 身份组件实际渲染三态，未知不提供解绑、不声称无身份', async () => {
   const server = await createServer({ configFile: false, root: new URL('../', import.meta.url).pathname, esbuild: { jsx: 'automatic' }, server: { middlewareMode: true, hmr: false }, appType: 'custom' });
   try {

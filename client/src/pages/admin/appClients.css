@@ -7,6 +7,7 @@
 .ac-app-clients .ac-check-row input { flex-shrink: 0; }
 .ac-app-clients .ac-app-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 16px 0; }
 .ac-app-clients .ac-app-subtitle { font-size: 14px; font-weight: 650; margin: 16px 0 8px; }
+.ac-app-clients .ac-app-plaintext { white-space: pre-wrap; overflow-wrap: anywhere; }
 .ac-app-clients .ac-table-wrap { margin: 12px 0; }
 .ac-app-clients .ac-table tbody th { font-weight: 500; }
 .ac-app-clients :is(.ac-pill.slate, .ac-pill.amber) { white-space: normal; }

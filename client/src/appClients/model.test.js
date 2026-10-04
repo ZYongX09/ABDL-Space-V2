@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAppClientsAPI } from './api.js';
 import { createAppClientsFixture } from './fixture.js';
-import { APP_POLICY_SETTING_KEY, createRequestGate, DEFAULT_APP_POLICY, exactCount, normalizeVersionCodes, policyPayload, readPolicy, readStats, readUsers, usersQuery } from './model.js';
+import { APP_POLICY_SETTING_KEY, APP_REMINDER_SETTING_KEY, createRequestGate, DEFAULT_APP_POLICY, DEFAULT_APP_REMINDER, DEFAULT_APP_REMINDER_MESSAGE, exactCount, isReservedAppClientSetting, normalizeVersionCodes, policyPayload, readPolicy, readReminder, readStats, readUsers, reminderPayload, usersQuery } from './model.js';
 
 test('策略默认关闭，独立未知版本开关与明确废弃列表归一化', () => {
   assert.equal(APP_POLICY_SETTING_KEY, 'app_client_policy');
@@ -91,6 +91,103 @@ test('最后请求赢，旧成功/失败、卸载和账户切换的反馈失效'
   finishOld(); await completion;
   assert.deepEqual(visible, ['新响应']);
   gate.invalidate(); assert.equal(fresh(), false);
+});
+
+test('提醒默认关闭、版本边界与纯文本校验；空白 PUT 选择默认文案', () => {
+  assert.equal(APP_REMINDER_SETTING_KEY, 'app_client_reminder');
+  assert.deepEqual(DEFAULT_APP_REMINDER, { enabled: false, version_codes: [], message: '已有新版本 App，建议更新以获得更好的体验。' });
+  const custom = '<img src=x onerror=alert(1)>\n第二行';
+  assert.deepEqual(reminderPayload({ ...DEFAULT_APP_REMINDER, versionText: '003, 1，3\n2', message: ` ${custom} ` }), { enabled: false, version_codes: [1, 2, 3], message: custom });
+  assert.deepEqual(reminderPayload({ ...DEFAULT_APP_REMINDER, enabled: true, versionText: '', message: ' \n ' }), { enabled: true, version_codes: [], message: '' });
+  assert.equal(readReminder({ enabled: false, version_codes: [], message: '' }).message, DEFAULT_APP_REMINDER_MESSAGE);
+  assert.equal(reminderPayload({ ...DEFAULT_APP_REMINDER, message: '字'.repeat(2000) }).message.length, 2000);
+  assert.throws(() => reminderPayload({ ...DEFAULT_APP_REMINDER, message: '字'.repeat(2001) }), /2000/);
+  assert.deepEqual(reminderPayload({ ...DEFAULT_APP_REMINDER, versionText: '2147483647,1,2147483647' }).version_codes, [1, 2147483647]);
+  assert.equal(reminderPayload({ ...DEFAULT_APP_REMINDER, version_codes: Array.from({ length: 200 }, (_, i) => i + 1) }).version_codes.length, 200);
+  assert.throws(() => reminderPayload({ ...DEFAULT_APP_REMINDER, version_codes: Array.from({ length: 201 }, (_, i) => i + 1) }), /200.*提醒/);
+  assert.equal(reminderPayload({ ...DEFAULT_APP_REMINDER, version_codes: Array(201).fill(1) }).version_codes.length, 1);
+  for (const versionText of ['0', '-1', '1.5', '1e2', 'v100', '2147483648', '+3']) assert.throws(() => reminderPayload({ ...DEFAULT_APP_REMINDER, versionText }), /提醒版本号/);
+  for (const bad of [null, {}, { ...DEFAULT_APP_REMINDER, enabled: 1 }, { ...DEFAULT_APP_REMINDER, message: null }, { ...DEFAULT_APP_REMINDER, version_codes: ['1'] }, { ...DEFAULT_APP_REMINDER, version_codes: [2147483648] }]) assert.throws(() => readReminder(bad));
+  assert.throws(() => reminderPayload({ ...DEFAULT_APP_REMINDER, enabled: 'false' }));
+  assert.throws(() => reminderPayload({ ...DEFAULT_APP_REMINDER, message: 1 }));
+});
+
+test('提醒 API 独立 GET/PUT、只传三字段、取消信号与 no-store；配置不自动启用', async () => {
+  const fixture = createAppClientsFixture();
+  const calls = [];
+  const api = createAppClientsAPI(async (path, options) => {
+    calls.push({ path, options });
+    return fixture.respond(path, options.method || 'GET', new URLSearchParams(), options.body ? JSON.parse(options.body) : null).data;
+  });
+  const signal = new AbortController().signal;
+  assert.equal((await api.appClientReminder({ signal, cache: 'force-cache' })).enabled, false);
+  const saved = await api.saveAppClientReminder({ ...DEFAULT_APP_REMINDER, ...DEFAULT_APP_POLICY, versionText: '200,100,200', message: '  ' }, { signal, cache: 'force-cache' });
+  assert.deepEqual(saved, { enabled: false, version_codes: [100, 200], message: DEFAULT_APP_REMINDER_MESSAGE });
+  assert.deepEqual(JSON.parse(calls[1].options.body), { enabled: false, version_codes: [100, 200], message: '' });
+  assert.deepEqual(Object.keys(JSON.parse(calls[1].options.body)).sort(), ['enabled', 'message', 'version_codes']);
+  for (const call of calls) {
+    assert.equal(call.path, '/api/admin/app-clients/reminder');
+    assert.equal(call.options.cache, 'no-store'); assert.equal(call.options.signal, signal);
+  }
+  assert.equal(calls[1].options.method, 'PUT');
+  await api.appClientReminder(); await api.appClientReminder();
+  assert.equal(calls.length, 4, 'GET 不使用内存缓存');
+  const before = calls.length;
+  await assert.rejects(api.saveAppClientReminder({ ...DEFAULT_APP_REMINDER, versionText: '0' }));
+  assert.equal(calls.length, before, '非法输入不发送请求');
+});
+
+test('提醒与废弃 fixture 状态独立，关闭仍保留配置；失败不伪造成功', () => {
+  const fixture = createAppClientsFixture();
+  const request = (path, method = 'GET', body) => fixture.respond(`/api/admin/app-clients/${path}`, method, new URLSearchParams(), body);
+  const policyBefore = request('policy').data;
+  const custom = { enabled: true, version_codes: [200, 100, 200], message: '<b>纯文本</b>' };
+  assert.deepEqual(request('reminder', 'PUT', custom).data, { ...custom, version_codes: [100, 200] });
+  assert.deepEqual(request('policy').data, policyBefore);
+  request('policy', 'PUT', { ...DEFAULT_APP_POLICY, enabled: true, block_unversioned: true });
+  assert.equal(request('reminder').data.message, custom.message);
+  request('reminder', 'PUT', { ...custom, enabled: false });
+  assert.deepEqual(request('reminder').data.version_codes, [100, 200]);
+  const retained = request('reminder').data;
+  retained.version_codes.push(999);
+  assert.deepEqual(request('reminder').data.version_codes, [100, 200], '返回副本不会改变存储');
+  for (const scenario of ['unavailable', 'errors']) {
+    fixture.setScenario(scenario);
+    assert.equal(request('reminder').status, 503); assert.equal(request('reminder', 'PUT', custom).status, 503);
+  }
+  fixture.setScenario('save-error');
+  assert.equal(request('reminder').status, 200);
+  assert.equal(request('reminder', 'PUT', { ...custom, message: '失败写入' }).status, 500);
+  assert.equal(request('reminder').data.message, custom.message);
+  fixture.setScenario('normal');
+  assert.equal(request('reminder', 'PUT', { ...custom, version_codes: [0] }).status, 400);
+  assert.equal(request('reminder', 'PUT', { ...custom, message: '\n  ' }).data.message, DEFAULT_APP_REMINDER_MESSAGE);
+  fixture.setScenario('slow');
+  assert.equal(fixture.delay('/api/admin/app-clients/reminder', new URLSearchParams()), 1500);
+});
+
+test('两项 App 配置键都保留，通用设置的手动新增也不能绕过', () => {
+  const fixture = createAppClientsFixture();
+  for (const key of [APP_POLICY_SETTING_KEY, APP_REMINDER_SETTING_KEY]) {
+    assert.equal(isReservedAppClientSetting(` ${key} `), true);
+    assert.equal(fixture.respond('/api/admin/settings', 'PUT', new URLSearchParams(), { key: ` ${key} `, value: '{}' }).status, 400);
+  }
+  assert.equal(isReservedAppClientSetting('site_name'), false);
+  const keys = fixture.respond('/api/admin/settings', 'GET').data.settings.map(row => row.key);
+  assert.ok(keys.includes(APP_REMINDER_SETTING_KEY));
+});
+
+test('提醒 API 网络、取消与响应格式错误原样上抛，不回退默认成功', async () => {
+  for (const method of ['appClientReminder', 'saveAppClientReminder']) {
+    const network = new Error('本地模拟 503');
+    const api = createAppClientsAPI(async () => { throw network; });
+    await assert.rejects(api[method](DEFAULT_APP_REMINDER), error => error === network);
+    const controller = new AbortController(); controller.abort();
+    const cancelled = createAppClientsAPI(async (_path, options) => { options.signal.throwIfAborted(); });
+    await assert.rejects(method === 'appClientReminder' ? cancelled[method]({ signal: controller.signal }) : cancelled[method](DEFAULT_APP_REMINDER, { signal: controller.signal }), { name: 'AbortError' });
+    const invalidAPI = createAppClientsAPI(async () => ({}));
+    await assert.rejects(invalidAPI[method](DEFAULT_APP_REMINDER), /响应格式异常/);
+  }
 });
 
 test('API 网络错误不吞掉，不会产生空列表', async () => {
