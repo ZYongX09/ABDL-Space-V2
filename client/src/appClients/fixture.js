@@ -47,7 +47,10 @@ export function createAppClientsFixture(initialScenario = 'normal') {
           if (scenario === 'save-error') return { status: 500, data: { error: '本地模拟：提醒保存失败' } };
           try { reminder = readReminder(reminderPayload(body)); } catch (error) { return { status: 400, data: { error: error.message } }; }
         }
-        return { status: 200, data: structuredClone(reminder) };
+        const data = structuredClone(reminder);
+        // 模拟旧 GET 三字段响应；保存响应仍使用新四字段，便于验证升级兼容。
+        if (scenario === 'legacy-reminder' && method === 'GET') delete data.include_unversioned;
+        return { status: 200, data };
       }
       if (path.endsWith('/policy')) {
         if (scenario === 'unavailable') return { status: 503, data: { error: '本地模拟：App 策略存储不可用，未确认已保存策略' } };
