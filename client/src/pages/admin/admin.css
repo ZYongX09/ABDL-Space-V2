@@ -3,30 +3,58 @@
    前缀 ac- 避免与前台和 Tailwind 冲突
    ============================================================ */
 
-/* 在主题根解析站点变量，避免后台兼容别名形成循环；所有页面和确认层共享。 */
-:root {
-  --app-admin-canvas: var(--bg);
-  --app-admin-surface: var(--bg-card);
-  --app-admin-soft: var(--input-bg);
-  --app-admin-border: var(--border);
-  --app-admin-text: var(--text);
-  --app-admin-secondary: color-mix(in srgb, var(--text) 80%, var(--bg-card));
-  --app-admin-action: color-mix(in srgb, var(--post) 60%, var(--text));
-  --app-admin-success: color-mix(in srgb, var(--invite) 65%, var(--text));
-  --app-admin-danger: color-mix(in srgb, var(--spend) 65%, var(--text));
-  --app-admin-warning: color-mix(in srgb, var(--exp) 55%, var(--text));
-  --app-admin-violet: color-mix(in srgb, var(--rating) 65%, var(--text));
-  --app-admin-pink: color-mix(in srgb, var(--like) 65%, var(--text));
-  --app-admin-comment: color-mix(in srgb, var(--comment) 65%, var(--text));
-  --app-admin-on: var(--points-on);
+/* 独立深浅调色板：不读取前台 --bg 等变量，避免多彩渗透与兼容别名循环。 */
+:root[data-admin-theme="light"],
+:root:not([data-admin-theme]) {
+  --app-admin-canvas: #F5F8FC;
+  --app-admin-surface: #FFFFFF;
+  --app-admin-soft: #F5F8FC;
+  --app-admin-border: #DCE4EE;
+  --app-admin-text: #2C3E50;
+  --app-admin-post: #3B82F6;
+  --app-admin-invite: #059669;
+  --app-admin-spend: #EF4444;
+  --app-admin-exp: #D97706;
+  --app-admin-rating: #8B5CF6;
+  --app-admin-like: #EC4899;
+  --app-admin-comment-base: #06B6D4;
+  --app-admin-novel: #6366F1;
+  --app-admin-on: #FFFFFF;
   --app-admin-scheme: light;
 }
-[data-theme="dark"] { --app-admin-scheme: dark; }
-[data-theme="colorful"] { --app-admin-canvas: var(--hero-bg); }
+:root[data-admin-theme="dark"] {
+  --app-admin-canvas: #1A1D23;
+  --app-admin-surface: #252830;
+  --app-admin-soft: #2A2E35;
+  --app-admin-border: #383C44;
+  --app-admin-text: #E0E4EA;
+  --app-admin-post: #60A5FA;
+  --app-admin-invite: #10B981;
+  --app-admin-spend: #F87171;
+  --app-admin-exp: #F59E0B;
+  --app-admin-rating: #A78BFA;
+  --app-admin-like: #F472B6;
+  --app-admin-comment-base: #22D3EE;
+  --app-admin-novel: #818CF8;
+  --app-admin-on: #1A1D23;
+  --app-admin-scheme: dark;
+}
+:root {
+  --app-admin-secondary: color-mix(in srgb, var(--app-admin-text) 80%, var(--app-admin-surface));
+  --app-admin-action: color-mix(in srgb, var(--app-admin-post) 60%, var(--app-admin-text));
+  --app-admin-success: color-mix(in srgb, var(--app-admin-invite) 65%, var(--app-admin-text));
+  --app-admin-danger: color-mix(in srgb, var(--app-admin-spend) 65%, var(--app-admin-text));
+  --app-admin-warning: color-mix(in srgb, var(--app-admin-exp) 55%, var(--app-admin-text));
+  --app-admin-violet: color-mix(in srgb, var(--app-admin-rating) 65%, var(--app-admin-text));
+  --app-admin-pink: color-mix(in srgb, var(--app-admin-like) 65%, var(--app-admin-text));
+  --app-admin-comment: color-mix(in srgb, var(--app-admin-comment-base) 65%, var(--app-admin-text));
+}
 
-body.admin-mode {
+:root[data-admin-theme] body.admin-mode {
   overflow: hidden;
   background: var(--app-admin-canvas);
+  background-image: none;
+  animation: none;
 }
 
 .admin-console,
@@ -42,23 +70,23 @@ body.admin-mode {
   --ac-text-muted: var(--app-admin-secondary);
   --ac-action: var(--app-admin-action);
   --ac-action-hover: var(--ac-action);
-  --ac-action-soft: var(--post-soft);
+  --ac-action-soft: color-mix(in srgb, var(--app-admin-post) 12%, var(--ac-surface));
   --ac-focus: var(--ac-action);
   --ac-on-action: var(--app-admin-on);
   --ac-danger: var(--app-admin-danger);
   --ac-danger-hover: var(--ac-danger);
-  --ac-danger-soft: color-mix(in srgb, var(--spend) 12%, var(--ac-surface));
+  --ac-danger-soft: color-mix(in srgb, var(--app-admin-spend) 12%, var(--ac-surface));
   --ac-success: var(--app-admin-success);
-  --ac-success-soft: var(--invite-soft);
+  --ac-success-soft: color-mix(in srgb, var(--app-admin-invite) 12%, var(--ac-surface));
   --ac-warning: var(--app-admin-warning);
-  --ac-warning-soft: var(--exp-soft);
+  --ac-warning-soft: color-mix(in srgb, var(--app-admin-exp) 12%, var(--ac-surface));
   --ac-info-soft: var(--ac-action-soft);
   --ac-violet: var(--app-admin-violet);
-  --ac-violet-soft: var(--rating-soft);
+  --ac-violet-soft: color-mix(in srgb, var(--app-admin-rating) 12%, var(--ac-surface));
   --ac-pink: var(--app-admin-pink);
-  --ac-pink-soft: var(--like-soft);
+  --ac-pink-soft: color-mix(in srgb, var(--app-admin-like) 12%, var(--ac-surface));
   --ac-comment: var(--app-admin-comment);
-  --ac-series-novel: var(--makeup);
+  --ac-series-novel: var(--app-admin-novel);
   --ac-sidebar: var(--ac-surface);
   --ac-sidebar-hover: var(--ac-surface-soft);
   --ac-sidebar-active: var(--ac-action-soft);
@@ -84,6 +112,12 @@ body.admin-mode {
   --success: var(--ac-success);
   --danger: var(--ac-danger);
   --warning: var(--ac-warning);
+  --bg-sidebar: var(--ac-surface);
+  --hero-bg: var(--ac-surface);
+  --shadow: var(--ac-shadow-card);
+  --shadow-hover: var(--ac-shadow-overlay);
+  --skeleton-base: var(--ac-surface-soft);
+  --skeleton-shine: var(--ac-surface);
   color-scheme: var(--app-admin-scheme);
 }
 
@@ -696,7 +730,16 @@ body.admin-mode {
 }
 
 @media (max-width: 767px) {
-  .ac-topbar { min-height: 58px; flex-basis: 58px; padding-inline: 12px; }
+  .ac-topbar { min-height: calc(58px + env(safe-area-inset-top)); flex-basis: calc(58px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 12px 0; }
+  .ac-side-head, .ac-drawer-head { padding-top: max(12px, env(safe-area-inset-top)); }
+  .ac-user-detail-head { flex-wrap: wrap; }
+  .ac-user-detail-head > .ac-flex { width: 100%; flex-wrap: wrap; }
+  .ac-user-detail-name, .ac-user-detail-head .ac-cell-muted { overflow-wrap: anywhere; }
+  .ac-table-actions { flex-wrap: wrap; min-width: 150px; }
+  .ac-topbar-right { gap: 6px; }
+  .ac-actor-role { font-size: 10px; padding-inline: 5px; }
+  .ac-drawer { width: 100vw; }
+  .ac-drawer-body { padding: 14px 14px max(24px, env(safe-area-inset-bottom)); }
   .ac-topbar-title { font-size: 13px; }
   .ac-topbar-link span, .ac-topbar-divider, .ac-topbar-username { display: none; }
   .ac-topbar-link { width: 38px; height: 38px; justify-content: center; border: 1px solid var(--ac-border); border-radius: 8px; }
@@ -757,3 +800,32 @@ body.admin-mode {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* 嵌入的前台卡片、原生 dialog 也不接受多彩背景；图表/徽章业务色不受影响。 */
+:root[data-admin-theme] :is(.admin-console, .ac-admin-theme) .glass-card {
+  background: var(--ac-surface);
+  background-image: none;
+  border-color: var(--ac-border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+:root[data-admin-theme] :is(.admin-console, .ac-admin-theme) dialog {
+  color: var(--ac-text);
+  background: var(--ac-surface);
+  background-image: none;
+  color-scheme: var(--app-admin-scheme);
+}
+.ac-user-actions { display: grid; gap: 8px; }
+.ac-table-governance-note { max-width: 230px; white-space: normal; font-size: 11px; }
+
+/* ToastProvider 位于 App 外，仍保留必要反馈，但只使用后台深浅表面。 */
+:root[data-admin-theme] body.admin-mode :is(.toast, .toast-popup-item) {
+  background: var(--app-admin-surface);
+  background-image: none;
+  color: var(--app-admin-text);
+  border: 1px solid var(--app-admin-border);
+  color-scheme: var(--app-admin-scheme);
+}
+:root[data-admin-theme] body.admin-mode .toast button { color: var(--app-admin-text) !important; }
+:root[data-admin-theme] body.admin-mode :is(.toast-popup-title, .toast-popup-close) { color: var(--app-admin-text); }
+:root[data-admin-theme] body.admin-mode .toast-popup-msg { color: var(--app-admin-secondary); }
