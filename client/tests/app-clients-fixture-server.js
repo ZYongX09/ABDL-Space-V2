@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { createAppClientsFixture } from '../src/appClients/fixture.js';
 
-const scenarios = ['normal', 'empty', 'unavailable', 'errors', 'save-error', 'slow'];
+const scenarios = ['normal', 'legacy-reminder', 'empty', 'unavailable', 'errors', 'save-error', 'slow'];
 const fixture = createAppClientsFixture(process.env.APP_FIXTURE_SCENARIO || 'normal');
 const port = Number(process.env.APP_FIXTURE_PORT || 8791);
 const server = createServer(async (req, res) => {

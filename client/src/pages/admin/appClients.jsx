@@ -76,14 +76,16 @@ function ReminderEditor() {
       if (current()) { saveController.current = null; setSaving(false); }
     }
   };
-  return <Card title="App 更新提醒（不屏蔽真实帖子）" description="默认关闭。独立保存提醒配置，仅影响指定内部版本的原生 App 时间线；网页不受影响。" icon="fa-bell">
+  return <Card title="App 更新提醒（不屏蔽真实帖子）" description="总开关默认关闭。独立保存提醒配置，仅影响已识别为原生 App 的时间线；指定版本与未上报有效版本号的选项独立，网页不受影响。" icon="fa-bell">
     <p className="ac-app-note">提醒：首次加载且有真实帖子的时间线首位注入更新提示假帖；翻页、补拉与空结束页不重复插入，保留真实帖子与分页。版本废弃：只返回假帖，不返回真实帖子。同一版本同时命中两项时，版本废弃优先，不叠加提醒。</p>
     {resource.loading ? <Loading text="正在读取 App 更新提醒…" /> : resource.error ? <RetryError error={resource.error} retry={() => setRevision(value => value + 1)} /> : <form onSubmit={save}>
       <fieldset className="ac-app-fieldset" disabled={saving}>
         <legend className="ac-app-visually-hidden">App 更新提醒配置</legend>
-        <div className="ac-app-policy-status"><Pill tone={saved?.enabled ? 'green' : 'slate'}>{saved?.enabled ? '已保存提醒：启用' : '已保存提醒：关闭'}</Pill><span>已保存版本：{saved?.version_codes.length ? saved.version_codes.join('、') : '未指定'}；已保存文案：{saved?.message === DEFAULT_APP_REMINDER_MESSAGE ? '默认' : '自定义'}；关闭时保留版本与文案。</span></div>
+        <div id="app-reminder-saved-summary" className="ac-app-policy-status"><Pill tone={saved?.enabled ? 'green' : 'slate'}>{saved?.enabled ? '已保存提醒：启用' : '已保存提醒：关闭'}</Pill><span>已保存版本：{saved?.version_codes.length ? saved.version_codes.join('、') : '未指定'}；已保存包含未上报有效版本号的 App：{saved?.include_unversioned ? '是' : '否'}；已保存文案：{saved?.message === DEFAULT_APP_REMINDER_MESSAGE ? '默认' : '自定义'}；总开关关闭时不提醒，但保留版本、未上报选项与文案。</span></div>
         <label className="ac-check-row"><input id="app-reminder-enabled" type="checkbox" role="switch" checked={form.enabled} onChange={e => change({ enabled: e.target.checked })} /><span>启用 App 更新提醒（不屏蔽真实帖子）</span></label>
-        <FormField label="提醒的内部版本号（versionCode）" htmlFor="app-reminder-versions" hint="仅匹配明确列出的内部版本号，不是展示版本名或最低版本门槛；未上报版本不匹配。支持换行、空格或中英文逗号分隔，自动去重、排序。范围 1–2147483647，最多 200 个不同版本。">
+        <label className="ac-check-row"><input id="app-reminder-include-unversioned" type="checkbox" checked={form.include_unversioned} aria-describedby="app-reminder-unversioned-note" onChange={e => change({ include_unversioned: e.target.checked })} /><span>包含未上报有效版本号的 App</span></label>
+        <p id="app-reminder-unversioned-note" className="ac-section-note">默认勾选，包含版本号缺失或格式无效的请求，但仅限已经识别为原生 App 的请求，网页不受影响。总开关启用时，即使版本列表为空，勾选此项仍会提醒这些 App；取消勾选不影响已知版本的列表匹配。总开关关闭时均不提醒，配置仍保留。</p>
+        <FormField label="提醒的内部版本号（versionCode）" htmlFor="app-reminder-versions" hint="已知有效版本仅匹配明确列出的内部版本号，不是展示版本名或最低版本门槛；未上报有效版本号由上方独立选项控制。支持换行、空格或中英文逗号分隔，自动去重、排序。范围 1–2147483647，最多 200 个不同版本。">
           <textarea id="app-reminder-versions" className="ac-textarea" rows={4} value={form.versionText} onChange={e => change({ versionText: e.target.value })} placeholder={'例如：101\n103, 105'} aria-describedby="app-reminder-version-preview" />
           <p id="app-reminder-version-preview" className="ac-section-note">规范化预览：{preview.length ? preview.join('、') : form.versionText.trim() ? '输入无效，保存前请检查' : '未指定任何提醒版本'}</p>
         </FormField>

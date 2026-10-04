@@ -120,6 +120,13 @@ test('更新提醒位于废弃策略之前，纯文本预览与两项通用配�
   assert.match(page, /App 版本废弃（只返回假帖）/);
   assert.match(page, /版本废弃优先/);
   assert.match(page, /id="app-reminder-enabled"[^>]+role="switch"/);
+  assert.match(page, /id="app-reminder-include-unversioned"[^>]+checked=\{form.include_unversioned\}[^>]+aria-describedby="app-reminder-unversioned-note"/);
+  assert.match(page, /包含未上报有效版本号的 App/);
+  assert.match(page, /id="app-reminder-saved-summary"/);
+  assert.match(page, /saved\?\.include_unversioned \? '是' : '否'/);
+  assert.match(page, /版本号缺失或格式无效/);
+  assert.match(page, /即使版本列表为空/);
+  assert.doesNotMatch(page, /未上报版本不匹配/);
   assert.match(page, /saveGate\.current\.invalidate\(\); saveController\.current\?\.abort\(\)/);
   assert.match(page, /AppClientsContent key=\{`\$\{user.id\}:\$\{token\}`\}/);
   assert.match(page, /className="ac-app-note ac-app-plaintext">\{form.message.trim\(\) \|\| DEFAULT_APP_REMINDER_MESSAGE\}/);

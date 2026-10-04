@@ -1,6 +1,6 @@
 # ABDL Space V2 — 项目档案
 
-> 最后更新：2026-05-28（收工更新）
+> 最后更新：2026-10-04（App 更新提醒兼容未上报有效版本号）
 > 维护目的：防止上下文丢失后无法快速恢复项目理解
 
 ---
@@ -297,9 +297,9 @@ abdl-space-v2/
 - 页面：`/admin/app-clients`，管理导航「系统 → App 管理」。仪表盘链接读取专用观测统计，不回退到旧 `has_app` 标记。旧用户详情标签改为「历史客户端标记（非精确统计）」；它可能来自网页 OAuth，不能证明安装或原生使用。
 - API：`GET/PUT /api/admin/app-clients/policy`、`GET /api/admin/app-clients/stats`、`GET /api/admin/app-clients/users`，均通过 `client/src/api.js` 的 `adminAPI`，不缓存管理员观测结果，不静默生成离线数据。
 - 策略默认关闭；仅明确列出的内部 `versionCode` 被废弃，不是显示版本名或最低版本门槛。总开关关闭时所有版本拦截失效，但列表和独立 `block_unversioned` 配置保留。版本号范围 1–2147483647，自动去重、排序，最多 200 个；更新提示非空、最多 2000 字符。保存提交完整四字段 JSON。网页访问不受该策略影响。
-- 独立的「App 更新提醒（不屏蔽真实帖子）」卡片位于版本废弃之前，使用 `GET/PUT /api/admin/app-clients/reminder`，严格提交三字段 `{ enabled, version_codes, message }`，不混入旧策略的四字段。默认关闭；仅匹配列出的有效内部版本号，未上报版本不匹配。版本号范围 1–2147483647、最多 200 个不同版本，输入去重并排序；填写版本或文案不会自动启用。
+- 独立的「App 更新提醒（不屏蔽真实帖子）」卡片位于版本废弃之前，使用 `GET/PUT /api/admin/app-clients/reminder`，保存始终提交四字段 `{ enabled: boolean, version_codes: number[], message: string, include_unversioned: boolean }`，不混入旧版本废弃策略的四字段。`include_unversioned` 默认 `true`，总开关 `enabled` 默认 `false`，关闭时任何提醒都不生效且保留其余配置。兼容旧三字段响应/配置：仅缺少新字段时归一化为 `true`，显式 `false` 保留；`null`、字符串、数字及其他非布尔值（包括显式 `undefined`）拒绝，不强制转换。已知有效版本只匹配列表；「包含未上报有效版本号的 App」始终独立可见，包括版本号缺失或格式无效，但仅限已经识别为原生 App 的请求，网页不受影响。总开关启用且该项勾选时，空版本列表仍可提醒未上报有效版本号的 App；取消勾选不影响已知版本列表匹配。版本号范围 1–2147483647、最多 200 个不同版本，输入去重并排序；填写版本、选项或文案不会自动启用。
 - 提醒的后端契约：首次加载且有真实帖子的原生时间线首位注入提示假帖；翻页、补拉与空结束页不重复插入，真实帖子与分页保留。不保证带游标的刷新再次插入；Web 不受影响。版本废弃只返回假帖；同时命中时废弃优先，不叠加提醒。此仓库仅实现管理员前端配置，原生时间线插入及分页终止行为由后端/Android 验证，未修改网页 feed、代理或移动端。
-- 提醒内容是最多 2000 字符的纯文本，不执行 HTML；留空/全空白 PUT 发送空字符串，由后端选择默认「已有新版本 App，建议更新以获得更好的体验。」。可选文本框以该默认文案作 placeholder，「恢复默认提醒文案」只清空草稿，不保存、不启用。纯文本预览支持换行；已保存状态独立展示开关、版本与默认/自定义文案，保存失败保留输入、不自动重试。加载失败不可保存，卸载/管理员会话变化令旧读取、保存成功/失败反馈失效。
+- 提醒内容是最多 2000 字符的纯文本，不执行 HTML；留空/全空白 PUT 发送空字符串，由后端选择默认「已有新版本 App，建议更新以获得更好的体验。」。可选文本框以该默认文案作 placeholder，「恢复默认提醒文案」只清空草稿，不保存、不启用。纯文本预览支持换行；已保存状态独立展示开关、版本、是否包含未上报有效版本号与默认/自定义文案；恢复默认文案不改变其他字段，关闭总开关或保存后重载也保留未上报选项（包括显式 false）、版本和文案，保存失败保留输入、不自动重试。加载失败不可保存，卸载/管理员会话变化令旧读取、保存成功/失败反馈失效。
 - 保留键 `app_client_policy` 与 `app_client_reminder` 必须使用各自专用端点整体保存。通用站点配置只提供 App 管理链接；手动新增这两个键也不能绕过 UI 与 `adminAPI.saveSetting` 的检查。
 - 观测只记录认证原生时间线请求，从迁移开始，不回填历史。不是安装量、下载量、设备数，也不是 App 全活动。`available:false` 表示数据库迁移缺失或观测数据读取失败，不展示为 0；HTTP/响应错误独立显示并可重试。数值显示精确整数。
 - 总账号数按账号去重；`versioned_users` / `unversioned_users` 是「曾上报」/「曾未上报有效版本」，可能重叠。版本行 `observed_users` 是历史账号×版本配对，同账号升级后跨行重叠；`latest_users` 按最近观测唯一归属。各行 1/7/30 天活跃同样可能重叠，不可直接相加。未上报组包含缺失或无效版本号，不代表未安装。
@@ -321,6 +321,7 @@ VITE_API_BASE=http://127.0.0.1:8791 npm --prefix /home/ZYongX/projects/ABDL-Spac
 | 场景 | 验证目标 |
 |---|---|
 | `normal` | 46 个去重账号；42 曾上报、6 曾未上报（有重叠）；版本 100 有 26 条历史配对与 2 页；账号升级导致历史版本与最近版本不同 |
+| `legacy-reminder` | 仅提醒 GET 省略 `include_unversioned`，验证旧三字段响应默认勾选且总开关不变；PUT 响应仍为四字段，切回 normal 验证保存 false 后重载 |
 | `empty` | 迁移可用但全部为真实 0；搜索无匹配也是成功的空列表 |
 | `unavailable` | 策略与提醒存储模拟 503（不把安全默认值当已保存配置）；统计迁移缺失，明确不可用而非 0；版本明细/用户列表不伪造为空 |
 | `errors` | 提醒/策略/统计/列表模拟 503，显示错误与重试；不显示假成功或假 0 |
@@ -329,7 +330,7 @@ VITE_API_BASE=http://127.0.0.1:8791 npm --prefix /home/ZYongX/projects/ABDL-Spac
 
 也可启动时设置 `APP_FIXTURE_SCENARIO`、`APP_FIXTURE_PORT`（改端口需同步 `VITE_API_BASE`）。提醒和废弃策略使用独立内存状态，场景切换不重置保存值，服务器重启才恢复默认关闭；fixture 仅模拟管理员端点，不模拟原生时间线。建议 GUI 检查提醒保存后重载、两卡片配置互不覆盖、关闭仍保留版本/内容、默认文案恢复、非法/重复版本、含 HTML 字面文本、保存失败、搜索/分页、浅色/深色/多彩与窄屏。
 
-GUI 定位：`/admin/app-clients` 顶部标题「App 更新提醒（不屏蔽真实帖子）」；开关 `#app-reminder-enabled`（role=switch，标签「启用 App 更新提醒（不屏蔽真实帖子）」），版本文本框 `#app-reminder-versions`，可选内容 `#app-reminder-message`，纯文本预览 `#app-reminder-message-preview`。按钮「恢复默认提醒文案」「保存 App 更新提醒」「重新加载已保存提醒」，已保存状态「已保存提醒：关闭/启用」。下方标题「App 版本废弃（只返回假帖）」和原按钮「保存 App 策略」保持独立。`http://127.0.0.1:5173/admin/settings` 中两个保留键行均只有「专用 App 管理（保留配置）」链接；新增配置 modal 的 `#setting-key` 手动填写任一保留键后「保存配置」须拒绝。主题沿用全站设置；本地重载的存储键为 `abdl_theme`。
+GUI 定位：`/admin/app-clients` 顶部标题「App 更新提醒（不屏蔽真实帖子）」；开关 `#app-reminder-enabled`（role=switch，标签「启用 App 更新提醒（不屏蔽真实帖子）」），独立复选框 `#app-reminder-include-unversioned`（标签「包含未上报有效版本号的 App」，默认勾选、总开关关闭时仍可编辑），说明 `#app-reminder-unversioned-note`，已保存摘要 `#app-reminder-saved-summary`（包含未上报有效版本号的 App：是/否），版本文本框 `#app-reminder-versions`，可选内容 `#app-reminder-message`，纯文本预览 `#app-reminder-message-preview`。按钮「恢复默认提醒文案」「保存 App 更新提醒」「重新加载已保存提醒」，已保存状态「已保存提醒：关闭/启用」。下方标题「App 版本废弃（只返回假帖）」和原按钮「保存 App 策略」保持独立。`http://127.0.0.1:5173/admin/settings` 中两个保留键行均只有「专用 App 管理（保留配置）」链接；新增配置 modal 的 `#setting-key` 手动填写任一保留键后「保存配置」须拒绝。主题沿用全站设置；本地重载的存储键为 `abdl_theme`。
 
 ```bash
 npm --prefix /home/ZYongX/projects/ABDL-Space-V2/client test
@@ -337,7 +338,7 @@ npm --prefix /home/ZYongX/projects/ABDL-Space-V2/client run build
 node --test /home/ZYongX/projects/ABDL-Space-V2/client/src/appClients/model.test.js
 ```
 
-新增纯 helper/API/fixture 测试覆盖版本归一化与边界、策略完整 payload、URL 编码、取消信号、去重/重叠、最近与历史列表、分页和晚到请求门控。客户端部署代理及 OAuth 版本头透传由主协调任务负责，不在 App 管理实现中修改。
+新增纯 helper/API/fixture 测试覆盖版本归一化与边界、策略完整 payload、URL 编码、取消信号、去重/重叠、最近与历史列表、分页和晚到请求门控。2026-10-04 未上报提醒前端扩展新增 4 项纯测试，覆盖旧三字段兼容、新四字段 payload、显式非布尔错误、总开关关闭、include_unversioned=false、空/非空列表独立、默认文案与重载保留，以及旧版本废弃四字段不变；全量 `npm test` 为 **114/114 通过**，随后顺序执行 `npm run build` 成功（已有验证码环境变量缺失与大 chunk 警告）。本次仅修改前端和相关说明，分支 `feat/app-reminder-unversioned`，基线 `main@38ea2fa`，未提交、推送或部署。GUI 留给主会话在测试/构建之后操作，本地 fixture 与 Vite 已启动于 8791/5173；本段不将未执行的 GUI 或后端/Android 时间线验证记为通过。客户端部署代理及 OAuth 版本头透传不在此次 App 提醒扩展中修改。
 
 ## 📋 待办事项
 

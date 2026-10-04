@@ -2,7 +2,7 @@
 export const APP_POLICY_SETTING_KEY = 'app_client_policy';
 export const APP_REMINDER_SETTING_KEY = 'app_client_reminder';
 export const DEFAULT_APP_REMINDER_MESSAGE = '已有新版本 App，建议更新以获得更好的体验。';
-export const DEFAULT_APP_REMINDER = Object.freeze({ enabled: false, version_codes: [], message: DEFAULT_APP_REMINDER_MESSAGE });
+export const DEFAULT_APP_REMINDER = Object.freeze({ enabled: false, version_codes: [], message: DEFAULT_APP_REMINDER_MESSAGE, include_unversioned: true });
 export const isReservedAppClientSetting = key => [APP_POLICY_SETTING_KEY, APP_REMINDER_SETTING_KEY].includes(String(key).trim());
 export const DEFAULT_APP_POLICY = Object.freeze({ enabled: false, deprecated_version_codes: [], block_unversioned: false, update_message: '当前 App 版本已停止支持，请更新到最新版本后继续使用。' });
 export const TOTAL_KEYS = ['observed_users', 'versioned_users', 'unversioned_users', 'active_1d', 'active_7d', 'active_30d'];
@@ -46,16 +46,21 @@ export function readPolicy(data) {
   return policyPayload(data);
 }
 
-// 留空 PUT 由后端选择默认文案，不把版本废弃的字段带入提醒配置。
+// 旧三字段配置仅在缺少新字段时默认包含未上报版本；显式错误类型不能转换。
+const reminderIncludesUnversioned = data => Object.hasOwn(data, 'include_unversioned') ? data.include_unversioned : true;
+
+// 留空 PUT 由后端选择默认文案，始终发送提醒四字段，不带入版本废弃字段。
 export function reminderPayload(form) {
   if (typeof form?.enabled !== 'boolean' || typeof form?.message !== 'string') throw new Error('提醒字段无效');
+  const includeUnversioned = reminderIncludesUnversioned(form);
+  if (typeof includeUnversioned !== 'boolean') throw new Error('包含未上报版本的提醒字段无效：必须是布尔值');
   const message = form.message.trim();
   if (message.length > MAX_UPDATE_MESSAGE) throw new Error(`提醒内容最多 ${MAX_UPDATE_MESSAGE} 个字符`);
-  return { enabled: form.enabled, version_codes: normalizeVersionCodes(form.versionText ?? form.version_codes, '提醒'), message };
+  return { enabled: form.enabled, version_codes: normalizeVersionCodes(form.versionText ?? form.version_codes, '提醒'), message, include_unversioned: includeUnversioned };
 }
 
 export function readReminder(data) {
-  if (!data || typeof data.enabled !== 'boolean' || typeof data.message !== 'string' || !Array.isArray(data.version_codes) || !data.version_codes.every(versionInteger)) invalid('App 提醒');
+  if (!data || typeof data.enabled !== 'boolean' || typeof data.message !== 'string' || !Array.isArray(data.version_codes) || !data.version_codes.every(versionInteger) || typeof reminderIncludesUnversioned(data) !== 'boolean') invalid('App 提醒');
   const reminder = reminderPayload(data);
   return { ...reminder, message: reminder.message || DEFAULT_APP_REMINDER_MESSAGE };
 }
