@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { adminRoleLabel } from './access.js';
 import './admin.css';
 
 const NAV = [
@@ -71,8 +72,7 @@ export default function AdminLayout({ active = 'overview', children }) {
 
   useEffect(() => {
     document.title = `${meta.title} — ABDL Space`;
-    document.body.classList.add('admin-mode');
-    return () => document.body.classList.remove('admin-mode');
+    // 后台主题与 body 生命周期由 route gate 统一管理，包括拒绝和未知路由。
   }, [meta.title]);
 
   useEffect(() => {
@@ -159,7 +159,7 @@ export default function AdminLayout({ active = 'overview', children }) {
         </nav>
         <div className="ac-side-foot">
           <span className="ac-status-dot" aria-hidden="true" />
-          <span>生产环境</span>
+          <span>{import.meta.env.VITE_ADMIN_FIXTURE === '1' ? '本地验收' : '生产环境'}</span>
           <span className="ac-side-version">Web v2</span>
         </div>
       </aside>
@@ -191,6 +191,7 @@ export default function AdminLayout({ active = 'overview', children }) {
                 <span className="ac-avatar ac-avatar-fallback"><i className="fa-solid fa-user" aria-hidden="true" /></span>
               )}
               <span className="ac-topbar-username">{user.username || user.display_name}</span>
+              <span className="ac-pill slate ac-actor-role">{adminRoleLabel(user)}</span>
             </span>
           </div>
         </header>

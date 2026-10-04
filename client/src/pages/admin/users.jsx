@@ -7,6 +7,22 @@ import { useToast } from '../../contexts/ToastContext';
 import AdminLayout from './layout';
 import { Card, Pill, Pagination, Loading, Empty, Drawer, ErrorBox, FormField, Modal, UserCell, useConfirm } from './ui';
 import { fmtDT, fmtFull, fmtNum } from './util';
+import { adminRoleLabel, adminSessionKey, userActionPolicy } from './access.js';
+
+export function UserRoleBadge({ user }) {
+  return user?.role === 'admin' ? <Pill tone="slate"><i className="fa-solid fa-user-shield" aria-hidden="true" /> {adminRoleLabel(user)}</Pill> : <span className="ac-cell-muted">普通用户</span>;
+}
+
+export function UserManagementActions({ actor, target, busy, onDetail, onRole, onBan, onTrack, onDelete }) {
+  const policy = userActionPolicy(actor, target);
+  return <div className="ac-user-actions"><div className="ac-table-actions">
+    {onDetail && <button type="button" className="ac-btn ac-icon-button" aria-label="查看用户详情" title="查看详情" disabled={busy} onClick={() => onDetail(target)}><i className="fa-solid fa-eye" /></button>}
+    <button type="button" className="ac-btn ac-icon-button" aria-label={target.banned ? '解封账号' : '封禁账号'} title={policy.governanceReason || (target.banned ? '解封' : '封禁')} disabled={busy || !policy.canGovern} onClick={() => onBan(target)}><i className={`fa-solid ${target.banned ? 'fa-lock-open' : 'fa-lock'}`} /></button>
+    {policy.canChangeRole && <button type="button" className="ac-btn" aria-label={policy.roleActionLabel} disabled={busy} onClick={() => onRole(target)}><i className="fa-solid fa-user-shield" />{policy.roleActionLabel}</button>}
+    <button type="button" className="ac-btn ac-icon-button" aria-label="追踪并封禁 IP" title={policy.governanceReason || '追踪并封禁 IP'} disabled={busy || !policy.canGovern} onClick={() => onTrack(target)}><i className="fa-solid fa-location-crosshairs" /></button>
+    <button type="button" className="ac-btn ac-icon-button danger" aria-label="删除账号" title={policy.governanceReason || '删除账号'} disabled={busy || !policy.canGovern} onClick={() => onDelete(target)}><i className="fa-solid fa-trash-can" /></button>
+  </div>{policy.governanceReason && <p className="ac-section-note ac-table-governance-note">{policy.governanceReason}</p>}</div>;
+}
 
 const PAGE_SIZE = 20;
 const METHOD_LABELS = { password: '密码', email: '邮箱', nbw: 'NBW', passkey: 'Passkey' };
@@ -87,7 +103,17 @@ export default function AdminUsers() {
   const { user: admin, accounts } = useAuth();
   const session = useRef(null);
   const token = accounts?.find(account => String(account.id) === String(admin?.id))?.token || '';
-  session.current = { id: admin?.id, token };
+  const sessionKey = adminSessionKey(admin, token);
+  session.current = { id: admin?.id, token, key: sessionKey };
+  const listRequest = useRef(0);
+  const detailRequest = useRef(0);
+  const alive = useRef(true);
+  const isCurrent = () => alive.current && session.current?.key === sessionKey;
+  const handleError = (error) => {
+    if (!isCurrent()) return;
+    if (error.status === 401 || error.status === 403) window.dispatchEvent(new CustomEvent('admin-session-rejected', { detail: { sessionKey } }));
+    toast.error(error.message || '操作失败');
+  };
   const identityAPI = useMemo(() => createAdminIdentityAPI({
     base: import.meta.env.VITE_API_BASE ?? '',
     getToken: () => token,
@@ -106,23 +132,38 @@ export default function AdminUsers() {
   const [detail, setDetail] = useState(null);
   const [unbind, setUnbind] = useState(null);
   const [errors, setErrors] = useState('');
+  const detailRef = useRef(detail);
+  detailRef.current = detail;
 
-  useEffect(() => () => { session.current = null; }, []);
+  useEffect(() => {
+    // StrictMode 会 setup → cleanup → setup；第二次 setup 必须恢复同一会话。
+    alive.current = true;
+    session.current = { id: admin?.id, token, key: sessionKey };
+    return () => { alive.current = false; session.current = null; listRequest.current++; detailRequest.current++; };
+  }, [sessionKey]);
 
   const load = useCallback(async (p, query, selectedRole, selectedQQ) => {
+    const request = ++listRequest.current;
+    const current = () => alive.current && session.current?.key === sessionKey && request === listRequest.current;
+    if (!current()) return;
     setLoading(true); setErrors('');
     try {
       const data = await adminAPI.users({ page: p, limit: PAGE_SIZE, q: query || '', role: selectedRole || '', qq_bound: selectedQQ || '' });
+      if (!current()) return;
       setList(data.users || []); setPagination(data.pagination || { page: 1, total: 0, totalPages: 1 });
-    } catch (e) { setErrors(e.message || '加载失败'); }
-    setLoading(false);
-  }, []);
+    } catch (e) { if (current()) { setErrors(e.message || '加载失败'); handleError(e); } }
+    if (current()) setLoading(false);
+  }, [sessionKey]);
 
   useEffect(() => { load(page, q, role, qqBound); }, [page, q, role, qqBound, load]);
 
   const openDetail = async (u) => {
+    if (!isCurrent()) return;
+    const request = ++detailRequest.current;
     setDetail({ userId: u.id, loading: true, info: null, identity: null, error: '', identityError: '' });
     const [infoResult, identityResult] = await Promise.allSettled([adminAPI.userDetail(u.id), identityAPI.detail(u.id)]);
+    if (!isCurrent() || request !== detailRequest.current) return;
+    if (infoResult.status === 'rejected') handleError(infoResult.reason);
     setDetail(current => current?.userId === u.id ? {
       userId: u.id,
       loading: false,
@@ -134,46 +175,65 @@ export default function AdminUsers() {
   };
 
   const refreshOpenDetail = async (userId) => {
-    const [info, identity] = await Promise.all([adminAPI.userDetail(userId), identityAPI.detail(userId)]);
-    setDetail({ userId, loading: false, info, identity, error: '', identityError: '' });
+    // 写入期间关闭或切换抽屉，不允许旧闭包重新打开目标。
+    if (!isCurrent() || detailRef.current?.userId !== userId) return;
+    return openDetail({ id: userId });
+  };
+
+  const guardGovernance = u => {
+    if (!isCurrent()) return false;
+    const policy = userActionPolicy(admin, u);
+    if (!policy.canGovern) toast.error(policy.governanceReason);
+    return policy.canGovern;
   };
 
   const toggleBan = async (u) => {
+    if (!guardGovernance(u) || busyId !== null) return;
     const ok = await confirm({ title: u.banned ? '解封账号' : '封禁账号', message: u.banned ? `确定要解封 @${u.username}（ID ${u.id}）吗？` : `确定要封禁 @${u.username}（ID ${u.id}）吗？封禁后该账号将无法登录。`, okText: u.banned ? '解封' : '封禁', danger: !u.banned });
-    if (!ok) return;
+    if (!ok || !isCurrent()) return;
     setBusyId(u.id);
-    try { await adminAPI.banUser(u.id); toast.success(u.banned ? '已解封' : '已封禁'); load(page, q, role, qqBound); } catch (e) { toast.error(e.message || '操作失败'); }
-    setBusyId(null);
+    try { await adminAPI.banUser(u.id); if (!isCurrent()) return; toast.success(u.banned ? '已解封' : '已封禁'); load(page, q, role, qqBound); } catch (e) { handleError(e); }
+    if (isCurrent()) setBusyId(null);
   };
 
   const doTrackAndBan = async (u) => {
+    if (!guardGovernance(u) || busyId !== null) return;
     const ok = await confirm({ title: '追踪并封禁 IP', message: '将对该账号启用定向追踪，并将其历史登录 IP 加入封禁名单。此操作不可撤销。', okText: '执行', danger: true });
-    if (!ok) return;
+    if (!ok || !isCurrent()) return;
     setBusyId(u.id);
-    try { const r = await adminAPI.trackAndBanUserIp(u.id); toast.success(`已启用追踪，封禁 ${r.banned_ip_count || 0} 个 IP`); } catch (e) { toast.error(e.message || '操作失败'); }
-    setBusyId(null);
+    try { const r = await adminAPI.trackAndBanUserIp(u.id); if (!isCurrent()) return; toast.success(`已启用追踪，封禁 ${r.banned_ip_count || 0} 个 IP`); } catch (e) { handleError(e); }
+    if (isCurrent()) setBusyId(null);
   };
 
-  const promote = async (u) => {
-    const ok = await confirm({ title: '提升为管理员', message: `确认将 @${u.username} 提升为管理员？提升后可访问管理后台。`, okText: '提升' });
-    if (!ok) return;
+  const changeRole = async (u) => {
+    const policy = userActionPolicy(admin, u);
+    if (!isCurrent() || busyId !== null || !policy.canChangeRole) return;
+    const revoke = policy.nextRole === 'user';
+    const ok = await confirm({ title: policy.roleActionLabel, message: revoke ? `确认撤销 @${u.username}（ID ${u.id}）的管理员权限？撤销后将无法访问管理后台，之后才能对其封禁、追踪或删除。` : `确认将 @${u.username}（ID ${u.id}）提升为管理员？提升后可访问管理后台。`, okText: revoke ? '确认撤销' : '确认提升', danger: revoke });
+    if (!ok || !isCurrent()) return;
     setBusyId(u.id);
-    try { await adminAPI.promoteUser(u.id); toast.success('已提升为管理员'); load(page, q, role, qqBound); } catch (e) { toast.error(e.message || '操作失败'); }
-    setBusyId(null);
+    try {
+      await adminAPI.setUserRole(u.id, policy.nextRole);
+      if (!isCurrent()) return;
+      toast.success(revoke ? '已撤销管理员权限' : '已提升为管理员');
+      await Promise.all([load(page, q, role, qqBound), detail?.userId === u.id ? refreshOpenDetail(u.id) : Promise.resolve()]);
+    } catch (e) { handleError(e); }
+    if (isCurrent()) setBusyId(null);
   };
 
   const remove = async (u) => {
+    if (!guardGovernance(u) || busyId !== null) return;
     const thirdParty = qqBindingState(u.qq_bound) === 'bound' ? '并删除其 QQ 绑定资料等第三方身份资料，' : '并删除其全部第三方身份资料，';
     const ok = await confirm({ title: '删除账号', message: `将永久删除 @${u.username}（ID ${u.id}）及其全部内容（帖子、点赞、评论、签到记录、私人小说对象等），${thirdParty}同时注销现有会话。此操作不可恢复！`, okText: '永久删除', danger: true });
-    if (!ok) return;
+    if (!ok || !isCurrent()) return;
     setBusyId(u.id);
-    try { await adminAPI.deleteUser(u.id); toast.success('账号已删除'); if (detail?.info?.user?.id === u.id) setDetail(null); load(page, q, role, qqBound); } catch (e) { toast.error(e.message || '删除失败'); }
-    setBusyId(null);
+    try { await adminAPI.deleteUser(u.id); if (!isCurrent()) return; toast.success('账号已删除'); if (detail?.info?.user?.id === u.id) setDetail(null); load(page, q, role, qqBound); } catch (e) { handleError(e); }
+    if (isCurrent()) setBusyId(null);
   };
 
   const submitUnbind = async () => {
     const target = unbind;
-    if (!target || target.busy) return;
+    if (!isCurrent() || !target || target.busy) return;
     let body;
     try { body = validateUnbindInput({ reason: target.reason, confirmUsername: target.confirmUsername, username: target.username, expectedBindingVersion: target.version }); }
     catch (error) { setUnbind(current => ({ ...current, error: error.message })); return; }
@@ -184,10 +244,14 @@ export default function AdminUsers() {
     setUnbind(current => ({ ...current, busy: true, error: '' }));
     try {
       await identityAPI.unbindQQ(target.userId, { operation_id: operationId, ...body });
+      if (!isCurrent()) return;
       operations.current.done(key);
       await Promise.all([load(page, q, role, qqBound), refreshOpenDetail(target.userId)]);
+      if (!isCurrent()) return;
       setUnbind(null); toast.success('QQ 已解绑，现有会话将由后端注销');
     } catch (error) {
+      if (!isCurrent()) return;
+      handleError(error);
       if (error.definitive) operations.current.done(key);
       setUnbind(current => ({ ...current, busy: false, error: error.message || '解绑失败，请刷新身份状态' }));
     }
@@ -202,15 +266,14 @@ export default function AdminUsers() {
       <select className="ac-select" aria-label="按QQ绑定状态筛选" value={qqBound} onChange={e => { setQqBound(e.target.value); setPage(1); }}><option value="">全部 QQ 状态</option><option value="bound">已绑定 QQ</option><option value="unbound">未绑定 QQ</option></select>
     </div></div>}>
       <ErrorBox msg={errors} /><div className="ac-table-wrap"><table className="ac-table"><thead><tr><th scope="col">用户</th><th scope="col">角色</th><th scope="col">邮箱</th><th scope="col">QQ</th><th scope="col">注册时间</th><th scope="col">帖子</th><th scope="col">评论</th><th scope="col">签到</th><th scope="col">状态</th><th scope="col">操作</th></tr></thead>
-        <tbody>{(list || []).map(u => <tr key={u.id}><td><UserCell name={u.display_name || u.username} avatar={u.avatar} sub={u.id} /></td><td className="ac-cell-nowrap">{u.role === 'admin' ? <Pill tone="violet"><i className="fa-solid fa-user-shield" style={{ fontSize: 10 }} /> 管理员</Pill> : <span className="ac-cell-muted">用户</span>}</td><td className="ac-cell-muted ac-cell-truncate ac-cell-nowrap" title={u.email}>{u.email}</td><td><QQStatus value={u.qq_bound} /></td><td className="ac-cell-muted ac-cell-nowrap">{fmtFull(u.created_at)}</td><td>{u.post_count ?? 0}</td><td>{u.comment_count ?? 0}</td><td>{u.checkin_count ?? 0}</td><td>{u.banned ? <Pill tone="red">封禁</Pill> : <Pill tone="green">正常</Pill>}</td><td><div className="ac-table-actions">
-          <button type="button" className="ac-btn ac-icon-button" aria-label="查看用户详情" title="查看详情" disabled={busyId === u.id} onClick={() => openDetail(u)}><i className="fa-solid fa-eye" /></button><button type="button" className="ac-btn ac-icon-button" aria-label={u.banned ? '解封账号' : '封禁账号'} title={u.banned ? '解封' : '封禁'} disabled={busyId === u.id} onClick={() => toggleBan(u)}><i className={`fa-solid ${u.banned ? 'fa-lock-open' : 'fa-lock'}`} /></button><button type="button" className="ac-btn ac-icon-button" aria-label="提升为管理员" title="提升为管理员" disabled={busyId === u.id || u.role === 'admin'} onClick={() => promote(u)}><i className="fa-solid fa-user-shield" /></button><button type="button" className="ac-btn ac-icon-button" aria-label="追踪并封禁 IP" title="追踪并封禁 IP" disabled={busyId === u.id} onClick={() => doTrackAndBan(u)}><i className="fa-solid fa-location-crosshairs" /></button><button type="button" className="ac-btn ac-icon-button danger" aria-label="删除账号" title="删除账号" disabled={busyId === u.id} onClick={() => remove(u)}><i className="fa-solid fa-trash-can" /></button>
-        </div></td></tr>)}</tbody></table>{!loading && !list?.length && <Empty text="没有匹配的用户" />}{loading && !list && <Loading />}</div><div style={{ marginTop: 12 }}><Pagination page={pagination.page} totalPages={pagination.totalPages} total={pagination.total} onChange={setPage} /></div>
+        <tbody>{(list || []).map(u => <tr key={u.id}><td><UserCell name={u.display_name || u.username} avatar={u.avatar} sub={u.id} /></td><td className="ac-cell-nowrap"><UserRoleBadge user={u} /></td><td className="ac-cell-muted ac-cell-truncate ac-cell-nowrap" title={u.email}>{u.email}</td><td><QQStatus value={u.qq_bound} /></td><td className="ac-cell-muted ac-cell-nowrap">{fmtFull(u.created_at)}</td><td>{u.post_count ?? 0}</td><td>{u.comment_count ?? 0}</td><td>{u.checkin_count ?? 0}</td><td>{u.banned ? <Pill tone="red">封禁</Pill> : <Pill tone="green">正常</Pill>}</td><td><UserManagementActions actor={admin} target={u} busy={busyId !== null} onDetail={openDetail} onRole={changeRole} onBan={toggleBan} onTrack={doTrackAndBan} onDelete={remove} /></td></tr>)}</tbody></table>{!loading && !list?.length && <Empty text="没有匹配的用户" />}{loading && !list && <Loading />}</div><div style={{ marginTop: 12 }}><Pagination page={pagination.page} totalPages={pagination.totalPages} total={pagination.total} onChange={setPage} /></div>
     </Card>
 
-    <Drawer open={!!detail} onClose={() => setDetail(null)} head={info ? `@${info.user.username}` : '用户详情'}>
+    <Drawer open={!!detail} onClose={() => { detailRequest.current++; setDetail(null); }} head={info ? `@${info.user.username}` : '用户详情'}>
       {!detail ? null : detail.loading ? <Loading text="加载用户与身份详情..." /> : detail.error && !info ? <Empty text={detail.error} icon="fa-triangle-exclamation" /> : <div className="ac-page-stack">
         {detail.error && <ErrorBox msg={detail.error} />}
-        <div className="ac-flex ac-user-detail-head"><img src={info?.user?.avatar || ''} alt="" className="ac-user-detail-avatar" onError={e => { e.currentTarget.style.visibility = 'hidden'; }} /><div className="ac-grow"><div className="ac-user-detail-name">{info?.user?.display_name || info?.user?.username}</div><div className="ac-cell-muted">@{info?.user?.username} · ID {info?.user?.id} · {info?.user?.role === 'admin' ? '管理员' : '普通用户'}</div><div className="ac-cell-muted">注册于 {fmtFull(info?.user?.created_at)}</div></div><div className="ac-flex">{info?.user?.banned ? <Pill tone="red">已封禁</Pill> : <Pill tone="green">正常</Pill>}{info?.user?.has_app && <Pill tone="slate" title="旧标记可能来自网页 OAuth，不证明安装或原生 App 使用；精确观测请查看 App 管理">历史客户端标记（非精确统计）</Pill>}</div></div>
+        <div className="ac-flex ac-user-detail-head"><img src={info?.user?.avatar || ''} alt="" className="ac-user-detail-avatar" onError={e => { e.currentTarget.style.visibility = 'hidden'; }} /><div className="ac-grow"><div className="ac-user-detail-name">{info?.user?.display_name || info?.user?.username}</div><div className="ac-cell-muted">@{info?.user?.username} · ID {info?.user?.id} · {adminRoleLabel(info?.user)}</div><div className="ac-cell-muted">注册于 {fmtFull(info?.user?.created_at)}</div></div><div className="ac-flex">{info?.user?.banned ? <Pill tone="red">已封禁</Pill> : <Pill tone="green">正常</Pill>}{info?.user?.has_app && <Pill tone="slate" title="旧标记可能来自网页 OAuth，不证明安装或原生 App 使用；精确观测请查看 App 管理">历史客户端标记（非精确统计）</Pill>}</div></div>
+        {info?.user && <section className="ac-identity-section"><div className="ac-identity-heading"><h3>账户治理与角色</h3><UserRoleBadge user={info.user} /></div><UserManagementActions actor={admin} target={info.user} busy={busyId !== null} onRole={changeRole} onBan={toggleBan} onTrack={doTrackAndBan} onDelete={remove} /></section>}
         {info?.counts && <div className="ac-detail-stat-grid">{[{ label: '帖子', v: info.counts.posts }, { label: '评论', v: info.counts.comments }, { label: '点赞', v: info.counts.likes }, { label: '评分', v: info.counts.ratings }, { label: '打卡', v: info.counts.feelings }, { label: '签到', v: info.counts.checkins }, { label: '金币', v: info.counts.points }].map(c => <div key={c.label} className="ac-detail-stat"><div className="ac-detail-stat-value">{fmtNum(c.v)}</div><div className="ac-stat-label">{c.label}</div></div>)}</div>}
         <UserIdentityDetails identity={detail.identity} identityError={detail.identityError} user={info?.user} onUnbind={qq => setUnbind({ userId: info.user.id, username: info.user.username, version: qqVersion(qq), reason: '', confirmUsername: '', busy: false, error: '' })} />
         <section className="ac-identity-section"><div className="ac-identity-heading"><div><h3>徽章（{info?.badges?.length || 0}）</h3></div></div>{info?.badges?.length ? <div className="ac-flex ac-wrap">{info.badges.map(b => <span key={b.key} className="ac-inline-chip"><span className="ac-badge-swatch" style={{ background: b.color || '#7C4DFF' }} />{b.name || b.key}<span className="ac-cell-muted">{b.created_at ? fmtDT(b.created_at) : ''}</span></span>)}</div> : <Empty text="暂无徽章" icon="fa-medal" />}</section>

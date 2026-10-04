@@ -90,8 +90,12 @@ function ConfirmDialog({ state, onClose }) {
 
 export function ConfirmProvider({ children }) {
   const [state, setState] = useState(null);
+  const pending = useRef(null);
+  useEffect(() => () => { pending.current?.(false); pending.current = null; }, []);
 
   const confirm = useCallback((options = {}) => new Promise((resolve) => {
+    pending.current?.(false);
+    pending.current = resolve;
     setState({
       title: options.title || '确认操作',
       message: options.message || '',
@@ -102,10 +106,9 @@ export function ConfirmProvider({ children }) {
   }), []);
 
   const close = useCallback((value) => {
-    setState(current => {
-      current?.resolve(value);
-      return null;
-    });
+    pending.current?.(value);
+    pending.current = null;
+    setState(null);
   }, []);
 
   return (

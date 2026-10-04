@@ -53,7 +53,11 @@ async function apiFetch(path, options = {}) {
   } catch {
     throw new Error(`服务器响应异常 (${res.status})`);
   }
-  if (!res.ok) throw new Error(data.error || `请求失败 (${res.status})`);
+  if (!res.ok) {
+    const error = new Error(data.error || `请求失败 (${res.status})`);
+    error.status = res.status;
+    throw error;
+  }
   return data;
 }
 
@@ -1007,6 +1011,13 @@ export const adminAPI = {
   promoteUser: async (id) => {
     if (USE_API) return apiFetch('/api/admin/add', { method: 'POST', body: JSON.stringify({ user_ids: [id] }) });
     return { message: '已提升' };
+  },
+
+  setUserRole: async (id, role) => {
+    if (role !== 'admin' && role !== 'user') throw new Error('角色必须为 admin 或 user');
+    if (String(id) === '1' && role === 'user') throw new Error('超级管理员不能被降权');
+    if (USE_API) return apiFetch(`/api/admin/users/${encodeURIComponent(id)}/role`, { method: 'PATCH', body: JSON.stringify({ role }) });
+    throw new Error('角色管理需要连接安全服务端');
   },
 
   resetPassword: async (old_password, new_password) => {

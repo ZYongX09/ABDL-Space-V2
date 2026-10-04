@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 
 const AuthContext = createContext();
 
@@ -44,6 +44,10 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState(getSavedAccounts);
+  const refreshRequest = useRef(0);
+  const currentSession = useRef(null);
+  const activeToken = accounts.find(account => String(account.id) === String(user?.id))?.token || '';
+  currentSession.current = JSON.stringify([user?.id, user?.role, Object.hasOwn(user || {}, 'is_super_admin'), user?.is_super_admin, activeToken]);
 
   // 初始化：用 cookie 恢复登录
   useEffect(() => {
@@ -355,10 +359,15 @@ export function AuthProvider({ children }) {
 
   const refreshUser = useCallback(async () => {
     if (!USE_API) return;
+    const request = ++refreshRequest.current;
+    const session = currentSession.current;
+    const current = () => request === refreshRequest.current && session === currentSession.current;
     try {
       const res = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
+      if (!current()) return;
       if (res.ok) {
         const data = await res.json();
+        if (!current()) return;
         const u = data.user || data;
         setUser(u);
         // 同步更新已保存账户列表（修复 NBW 登录后未出现在账户列表的问题）
@@ -373,6 +382,10 @@ export function AuthProvider({ children }) {
         }
         saveAccounts(updated);
         setAccounts(updated);
+      } else if (res.status === 401 || res.status === 403) {
+        setUser(null);
+        setActiveAccountId(null);
+        if (window.__apiCache) window.__apiCache.clear();
       }
     } catch {}
   }, []);

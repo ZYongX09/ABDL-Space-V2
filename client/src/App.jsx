@@ -20,6 +20,7 @@ import ScrollProgress from './components/ScrollProgress';
 import ErrorBoundary from './components/ErrorBoundary';
 import PushPrompt from './components/PushPrompt';
 import { useExternalLinkInterceptor } from './hooks/useExternalLinkInterceptor';
+import AdminRouteGate, { AdminUnknownRoute } from './pages/admin/gate.jsx';
 
 // 路由级懒加载 — 首屏只加载 HomeV2
 const HomeV2 = lazy(() => import('./pages/HomeV2'));
@@ -245,6 +246,7 @@ export default function App() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { pathname } = useLocation();
+  const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
   useExternalLinkInterceptor();
 
   // 手机端访问 /profile/* 强制跳转 m.abdl-space.top
@@ -274,7 +276,7 @@ export default function App() {
 
   return (
     <MobileHeaderProvider>
-    {!pathname.startsWith('/c/') && <RedirectNotice />}
+    {!isAdminRoute && !pathname.startsWith('/c/') && <RedirectNotice />}
     <div className="app-layout">
       <ScrollToTop />
       <NotificationProvider>
@@ -293,6 +295,7 @@ export default function App() {
                 <Routes>
                   <Route path="/beta-register" element={<BetaRegister />} />
                   <Route path="/c/:token" element={<CertificateVerify />} />
+                  <Route element={<AdminRouteGate />}>
                   <Route path="/admin" element={<AdminOverview />} />
                   <Route path="/admin/users" element={<AdminUsers />} />
                   <Route path="/admin/app-clients" element={<AdminAppClients />} />
@@ -307,6 +310,8 @@ export default function App() {
                   <Route path="/admin/settings" element={<AdminSettings />} />
                   <Route path="/admin/diapers" element={<AdminDiapers />} />
                   <Route path="/admin/notifications" element={<AdminNotifications />} />
+                  <Route path="/admin/*" element={<AdminUnknownRoute />} />
+                  </Route>
                 </Routes>
               </ConfirmProvider>
             </Suspense>
@@ -395,15 +400,15 @@ export default function App() {
       </div>
       </>
       )}
-      {!pathname.startsWith('/c/') && <ToastPopup />}
-      {!pathname.startsWith('/admin') && !pathname.startsWith('/c/') && <PushPrompt />}
+      {!pathname.startsWith('/c/') && <div className={isAdminRoute ? 'ac-admin-theme' : undefined}><ToastPopup /></div>}
+      {!isAdminRoute && !pathname.startsWith('/c/') && <PushPrompt />}
       {pathname !== '/beta-register' && !pathname.startsWith('/admin') && !pathname.startsWith('/c/') && <MobileBottomNav />}
       </NsfwProvider>
       </NotificationProvider>
-      {!pathname.startsWith('/c/') && <AdBlockNotice />}
-      {!pathname.startsWith('/c/') && <CookieConsent />}
-      {!pathname.startsWith('/c/') && <ScrollProgress />}
-      {!pathname.startsWith('/c/') && <BackToTop />}
+      {!isAdminRoute && !pathname.startsWith('/c/') && <AdBlockNotice />}
+      {!isAdminRoute && !pathname.startsWith('/c/') && <CookieConsent />}
+      {!isAdminRoute && !pathname.startsWith('/c/') && <ScrollProgress />}
+      {!isAdminRoute && !pathname.startsWith('/c/') && <BackToTop />}
     </div>
     </MobileHeaderProvider>
   );
