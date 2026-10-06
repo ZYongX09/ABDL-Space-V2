@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import NsfwGuard from './NsfwGuard';
 import { forumAPI } from '../api';
+import { buildMediaPreviewUrl } from '../utils/mediaUrl';
 
 function ImageItem({ url, onClick, overlay, isNsfw, nsfwType }) {
   const [loaded, setLoaded] = useState(false);
@@ -348,12 +349,12 @@ export default function ImageGrid({ images = [], postId }) {
   if (!images.length) return null;
 
   const imageItems = images.map(img => {
-    if (typeof img === 'string') return { url: img, preview: img, isNsfw: undefined, nsfwType: undefined };
+    if (typeof img === 'string') return { url: img, preview: buildMediaPreviewUrl(img), isNsfw: undefined, nsfwType: undefined };
     const src = img?.image_url || img?.src || '';
-    // 网格缩略图优先用小图（preview_url）节省流量，点开大图仍用原图
-    return { url: src, preview: img?.preview_url || src, isNsfw: img?.is_nsfw, nsfwType: img?.nsfw_type };
+    // 统一显示缩略图（后端 preview_url，拿不到按 CDN 规则拼），不请求原图；查看原图功能暂未启用
+    return { url: src, preview: img?.preview_url || buildMediaPreviewUrl(src), isNsfw: img?.is_nsfw, nsfwType: img?.nsfw_type };
   });
-  const urls = imageItems.map(i => i.url);
+  const urls = imageItems.map(i => i.preview);
   const count = Math.min(urls.length, 4);
   // BUG-679: Responsive isMobile using matchMedia
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);

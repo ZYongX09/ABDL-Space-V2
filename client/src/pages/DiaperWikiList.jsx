@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { Spinner } from '../components/Feedback';
 import { diaperWikiAPI } from '../api';
+import { buildMediaPreviewUrl } from '../utils/mediaUrl';
 import { useToast } from '../contexts/ToastContext';
 
 export default function DiaperWikiList() {
@@ -192,7 +193,7 @@ export default function DiaperWikiList() {
                     {/* 封面图 */}
                     <div style={{ aspectRatio: '1/1', background: 'var(--bg-card-soft)', overflow: 'hidden' }}>
                       {p.raw_images?.[0] ? (
-                        <img src={p.raw_images[0]} alt={p.name} className="w-full h-full object-cover"
+                        <img src={buildMediaPreviewUrl(p.raw_images[0])} alt={p.name} className="w-full h-full object-cover"
                           loading="lazy"
                           onError={(e) => { e.currentTarget.style.opacity = '0.3'; }} />
                       ) : (

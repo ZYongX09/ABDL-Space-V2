@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { Spinner } from '../components/Feedback';
 import { diaperWikiAPI } from '../api';
+import { buildMediaPreviewUrl } from '../utils/mediaUrl';
 import { useToast } from '../contexts/ToastContext';
 
 const SPEC_LABEL_CN = {
@@ -168,7 +169,7 @@ export default function DiaperWiki() {
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{ aspectRatio: '1/1', background: 'var(--bg-card-soft)', overflow: 'hidden' }}>
                 <img
-                  src={allImages[0]}
+                  src={buildMediaPreviewUrl(allImages[0])}
                   alt={product.name}
                   className="w-full h-full"
                   style={{ objectFit: 'cover' }}
@@ -362,7 +363,7 @@ export default function DiaperWiki() {
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{ aspectRatio: '1/1', background: 'var(--bg-card-soft)', overflow: 'hidden' }}>
                 <img
-                  src={allImages[activeImage]}
+                  src={buildMediaPreviewUrl(allImages[activeImage])}
                   alt={`${product.name} ${activeImage + 1}`}
                   className="w-full h-full"
                   style={{ objectFit: 'cover' }}
@@ -384,7 +385,7 @@ export default function DiaperWiki() {
                     aspectRatio: '1',
                     background: 'var(--bg-card-soft)',
                   }}>
-                  <img src={img} alt="" loading="lazy" className="w-full h-full object-cover" />
+                  <img src={buildMediaPreviewUrl(img)} alt="" loading="lazy" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>

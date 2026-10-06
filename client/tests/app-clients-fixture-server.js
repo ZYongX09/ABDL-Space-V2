@@ -12,7 +12,26 @@ const initialUsers = () => [
   { id: 4, username: 'fixture_member', display_name: '待提升的普通用户', role: 'user', qq_bound: false },
 ].map(user => ({ ...user, email: `${user.username}@example.invalid`, created_at: '2026-10-01T00:00:00Z', banned: false }));
 
-const landing = `<!doctype html><html lang="zh-CN"><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>本地后台验收</title><style>body{font:16px system-ui;max-width:720px;margin:40px auto;padding:20px;background:#f5f8fc;color:#2c3e50}fieldset{margin:20px 0;padding:16px}button,select{font:inherit;padding:10px;margin:5px}a{display:inline-block;margin:10px}</style><h1>本地后台验收（不生产请求）</h1><p>全部数据和角色修改只在该进程内存。选择账号与前台主题后进入管理页。非必要 Cookie 已拒绝，外部脚本/连接/媒体由本地 CSP 阻止。</p><fieldset><legend>前台主题（后台多彩跟随系统）</legend><select id="theme"><option value="light">明确浅色 light</option><option value="dark">明确深色 dark</option><option value="colorful">多彩 colorful / 后台系统深浅</option><option value="auto">时间自动（保留前台策略）</option></select></fieldset><fieldset><legend>测试身份</legend><button data-id="1">ID 1 超级管理员</button><button data-id="2">ID 2 管理员</button><button data-id="3">普通用户</button><button data-id="0">未登录</button><p><label>协议 <select id="mode"><option value="server">严格 server boolean</option><option value="legacy">旧响应缺失字段</option><option value="false">显式 false（ID1 不回退）</option></select></label><label>身份延迟 <select id="delay"><option value="0">无延迟</option><option value="2500">2500ms 验证中</option></select></label></p></fieldset><a href="/admin/users">用户管理</a><a href="/admin">管理概览</a><a href="/admin/sponsors">赞助管理</a><a href="/admin/unknown">未知路由</a><button id="reset">重置角色数据</button><output id="status"></output><script>if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(registrations=>Promise.all(registrations.map(registration=>registration.unregister())))}if('caches' in window){caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key))))}localStorage.setItem('cookie_consent',JSON.stringify({accepted:false,date:new Date().toISOString()}));document.querySelectorAll('[data-id]').forEach(button=>button.onclick=async()=>{const theme=document.querySelector('#theme').value;localStorage.setItem('abdl_theme',theme==='auto'?'light':theme);localStorage.setItem('abdl_auto_theme',String(theme==='auto'));localStorage.removeItem('abdl_accounts');localStorage.removeItem('abdl_active_account');await fetch('/__fixture/session?id='+button.dataset.id+'&mode='+document.querySelector('#mode').value+'&delay='+document.querySelector('#delay').value);location.href='/admin/users'});document.querySelector('#reset').onclick=async()=>{await fetch('/__fixture/session?reset=1');document.querySelector('#status').textContent='已重置内存角色数据'};</script></html>`;
+const landing = `<!doctype html><html lang="zh-CN"><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>本地后台验收</title><style>body{font:16px system-ui;max-width:720px;margin:40px auto;padding:20px;background:#f5f8fc;color:#2c3e50}fieldset{margin:20px 0;padding:16px}button,select{font:inherit;padding:10px;margin:5px}a{display:inline-block;margin:10px}</style><h1>本地后台验收（不向真实 API 发请求）</h1><p>全部数据与角色修改只保存在进程内存。非必要 Cookie 已排除，外部资源由本地 CSP 禁止。</p><fieldset><legend>前台主题（后台多彩跟随系统）</legend><select id="theme"><option value="light">明确浅色 light</option><option value="dark">明确深色 dark</option><option value="colorful">多彩 colorful / 后台系统深浅</option><option value="auto">时间自动（保留前台策略）</option></select></fieldset><fieldset><legend>测试身份</legend><button data-id="1">ID 1 超级管理员</button><button data-id="2">ID 2 管理员</button><button data-id="3">普通用户</button><button data-id="0">未登录</button><p><label>协议 <select id="mode"><option value="server">严格 server boolean</option><option value="legacy">旧响应缺失字段</option><option value="false">显式 false（ID1 不回退）</option></select></label><label>身份延迟 <select id="delay"><option value="0">无延迟</option><option value="2500">2500ms 验证中</option></select></label></p></fieldset><a href="/admin/users">用户管理</a><a href="/admin">管理概览</a><a href="/admin/sponsors">赞助管理</a><a href="/admin/unknown">未知路由</a><button id="reset">重置角色数据</button><output id="status"></output><script src="/__fixture/landing.js" defer></script></html>`;
+// 该脚本只在 fixture 同源页面加载，仅操作 localStorage 与本地 /__fixture 接口。
+const landingScript = `'use strict';
+if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(registrations => Promise.all(registrations.map(registration => registration.unregister())));
+if ('caches' in window) caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key))));
+localStorage.setItem('cookie_consent', JSON.stringify({ accepted: false, date: new Date().toISOString() }));
+const setSession = (body) => fetch('/__fixture/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(response => {
+  if (!response.ok) throw new Error('session 请求失败');
+});
+const chooseIdentity = (button) => {
+  const theme = document.querySelector('#theme').value;
+  localStorage.setItem('abdl_theme', theme === 'auto' ? 'light' : theme);
+  localStorage.setItem('abdl_auto_theme', String(theme === 'auto'));
+  localStorage.removeItem('abdl_accounts');
+  localStorage.removeItem('abdl_active_account');
+  return setSession({ id: button.dataset.id, mode: document.querySelector('#mode').value, delay: document.querySelector('#delay').value }).then(() => { window.location.href = '/admin/users'; });
+};
+document.querySelectorAll('[data-id]').forEach(button => button.addEventListener('click', () => chooseIdentity(button)));
+document.querySelector('#reset').addEventListener('click', () =>
+  setSession({ reset: 1 }).then(() => { document.querySelector('#status').textContent = '已重置内存角色数据'; }));`;
 // 仅 fixture 响应：不允许生产 API、统计脚本、验证码或外部头像发请求。
 const csp = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; frame-src 'none'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'";
 
@@ -35,12 +54,21 @@ export async function createAdminFixtureServer({ port = 8791, ui = false, scenar
     if (req.method === 'OPTIONS') { res.writeHead(204, headers); res.end(); return; }
     const url = new URL(req.url, 'http://127.0.0.1');
     if (url.pathname === '/__fixture/start') { res.writeHead(200, { ...headers, 'Content-Type': 'text/html; charset=utf-8' }); res.end(landing); return; }
+    if (url.pathname === '/__fixture/landing.js') { res.writeHead(200, { ...headers, 'Content-Type': 'application/javascript; charset=utf-8' }); res.end(landingScript); return; }
     if (url.pathname === '/__fixture/session') {
-      if (url.searchParams.has('reset')) users = initialUsers();
-      if (url.searchParams.has('id')) currentId = Number(url.searchParams.get('id'));
-      if (url.searchParams.has('mode')) superMode = url.searchParams.get('mode');
-      if (url.searchParams.has('delay')) authDelay = Math.min(10000, Math.max(0, Number(url.searchParams.get('delay')) || 0));
-      if (url.searchParams.has('dataDelay')) dataDelay = Math.min(10000, Math.max(0, Number(url.searchParams.get('dataDelay')) || 0));
+      const qs = new URLSearchParams(url.searchParams);
+      if (req.method === 'POST') {
+        let text = '';
+        for await (const chunk of req) { text += chunk; if (text.length > 8192) { res.writeHead(413, headers); res.end(JSON.stringify({ error: '请求过大' })); return; } }
+        let body;
+        try { body = text ? JSON.parse(text) : {}; } catch { res.writeHead(400, headers); res.end(JSON.stringify({ error: '无效请求体' })); return; }
+        for (const [key, value] of Object.entries(body)) qs.set(key, String(value));
+      }
+      if (qs.has('reset')) users = initialUsers();
+      if (qs.has('id')) currentId = Number(qs.get('id'));
+      if (qs.has('mode')) superMode = qs.get('mode');
+      if (qs.has('delay')) authDelay = Math.min(10000, Math.max(0, Number(qs.get('delay')) || 0));
+      if (qs.has('dataDelay')) dataDelay = Math.min(10000, Math.max(0, Number(qs.get('dataDelay')) || 0));
       res.writeHead(200, headers); res.end(JSON.stringify({ currentId, superMode, authDelay, dataDelay })); return;
     }
     if (url.pathname === '/sw.js') {
@@ -56,7 +84,8 @@ export async function createAdminFixtureServer({ port = 8791, ui = false, scenar
     if (url.pathname === '/__fixture') {
       const next = url.searchParams.get('scenario');
       if (next && scenarios.includes(next)) fixture.setScenario(next);
-      res.writeHead(200, headers); res.end(JSON.stringify({ scenario: fixture.getScenario(), scenarios })); return;
+      const safeScenario = scenarios.includes(next) ? next : fixture.getScenario();
+      res.writeHead(200, headers); res.end(JSON.stringify({ scenario: safeScenario, scenarios })); return;
     }
     try {
       let text = '';

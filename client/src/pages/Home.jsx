@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { LoadingSkeleton, EmptyState } from '../components/Feedback';
 import { diapersAPI } from '../api';
+import { buildMediaPreviewUrl } from '../utils/mediaUrl';
 import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { getChineseName } from '../shared/diaperNames';
@@ -106,7 +107,7 @@ export default function Home() {
               {(d.images?.length > 0 || d.image || d.image_url) && (
                 <div className="mb-3 -mx-8 -mt-8 overflow-hidden" style={{ aspectRatio: '1 / 1' }}>
                   <img
-                    src={d.images?.[0] || d.image || d.image_url}
+                    src={buildMediaPreviewUrl(d.images?.[0] || d.image || d.image_url)}
                     alt={`${d.brand} ${d.model}`}
                     className="w-full h-full object-cover"
                     style={{ objectPosition: 'center' }}

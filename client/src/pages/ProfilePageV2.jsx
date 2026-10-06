@@ -16,6 +16,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { forumAPI, followsAPI, authAPI, usersAPI } from '../api';
+import { buildMediaPreviewUrl } from '../utils/mediaUrl';
 import OfficialBadge from '../components/OfficialBadge';
 import BetaBadge from '../components/BetaBadge';
 import NsfwGuard from '../components/NsfwGuard';
@@ -629,8 +630,8 @@ function PostCard({ post, onClick, index = 0 }) {
   // 提取图片（最多 2 张）
   const rawImages = (post.images || []).slice(0, 2);
   const images = rawImages.map(img => {
-    if (typeof img === 'string') return { url: img, isNsfw: false, nsfwType: undefined };
-    return { url: img?.image_url || img?.src || '', isNsfw: !!img?.is_nsfw, nsfwType: img?.nsfw_type };
+    if (typeof img === 'string') return { url: buildMediaPreviewUrl(img), isNsfw: false, nsfwType: undefined };
+    return { url: img?.preview_url || buildMediaPreviewUrl(img?.image_url || img?.src || ''), isNsfw: !!img?.is_nsfw, nsfwType: img?.nsfw_type };
   });
   const timeAgo = (dateStr) => {
     const diff = Date.now() - new Date(dateStr).getTime();
