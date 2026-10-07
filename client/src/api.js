@@ -1219,6 +1219,30 @@ export const adminAPI = {
     if (USE_API) return apiFetch(`/api/friend-request/admin/reports/${id}/dismiss`, { method: 'POST', body: JSON.stringify({ reply }) });
     return { message: '已驳回' };
   },
+
+  // ── 相册举报管理 ─────────────────────────────────
+  // 契约：列表 ?status=open|resolved|all&limit&offset -> { reports, total }
+  //      详情 -> report + photos[{ id, admin_blocked, preview_url, width, height, description }]
+  //      block { photo_ids, operation_id } 幂等全量期望状态 -> { blocked_photo_ids }
+  albumReports: async (status = 'open', limit = 20, offset = 0) => {
+    if (USE_API) return apiFetch(`/api/admin/album-reports?status=${encodeURIComponent(status)}&limit=${limit}&offset=${offset}`);
+    return { reports: [], total: 0 };
+  },
+
+  albumReport: async (id) => {
+    if (USE_API) return apiFetch(`/api/admin/album-reports/${encodeURIComponent(id)}`);
+    return null;
+  },
+
+  blockAlbumPhotos: async (id, photo_ids, operation_id) => {
+    if (USE_API) return apiFetch(`/api/admin/album-reports/${encodeURIComponent(id)}/block`, { method: 'POST', body: JSON.stringify({ photo_ids, operation_id }) });
+    return { blocked_photo_ids: [...photo_ids] };
+  },
+
+  resolveAlbumReport: async (id) => {
+    if (USE_API) return apiFetch(`/api/admin/album-reports/${encodeURIComponent(id)}/resolve`, { method: 'POST', body: JSON.stringify({}) });
+    return { message: '已处理' };
+  },
 };
 
 // =====================================================================
