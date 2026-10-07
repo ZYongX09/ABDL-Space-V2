@@ -829,3 +829,20 @@
 :root[data-admin-theme] body.admin-mode .toast button { color: var(--app-admin-text) !important; }
 :root[data-admin-theme] body.admin-mode :is(.toast-popup-title, .toast-popup-close) { color: var(--app-admin-text); }
 :root[data-admin-theme] body.admin-mode .toast-popup-msg { color: var(--app-admin-secondary); }
+
+/* ── 相册举报（albumReports）────────────────────────────
+   仅使用 --ac-* 主题令牌，浅色/深色后台自动适配。 */
+.ac-photo-grid-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.ac-photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+.ac-photo-tile { min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--ac-border); border-radius: var(--ac-radius); background: var(--ac-surface-soft); }
+.ac-photo-frame { position: relative; display: block; width: 100%; aspect-ratio: 1 / 1; overflow: hidden; border-radius: var(--ac-radius-sm); background: var(--ac-surface-subtle); cursor: pointer; }
+.ac-photo-frame img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.ac-photo-tile.blocked .ac-photo-frame img { filter: saturate(0.55) contrast(0.92); }
+.ac-photo-flag { position: absolute; top: 6px; left: 6px; padding: 2px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700; color: var(--ac-on-action); background: color-mix(in srgb, var(--ac-danger) 88%, transparent); pointer-events: none; }
+.ac-photo-check { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--ac-text); cursor: pointer; }
+.ac-photo-check input { width: 15px; height: 15px; margin: 0; accent-color: var(--ac-danger); cursor: pointer; }
+.ac-photo-check input:focus-visible { outline: 2px solid var(--ac-focus); outline-offset: 2px; }
+.ac-photo-meta { min-width: 0; font-size: 11.5px; color: var(--ac-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-photo-grid-hint { margin: 12px 0 0; font-size: 12.5px; color: var(--ac-text-muted); }
+.ac-photo-grid-hint strong { margin-left: 6px; color: var(--ac-warning); }
+@media (max-width: 720px) { .ac-photo-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); } }

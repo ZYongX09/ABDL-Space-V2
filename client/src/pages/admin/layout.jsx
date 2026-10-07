@@ -32,6 +32,7 @@ const NAV = [
     group: '互动治理',
     items: [
       { key: 'reports', path: '/admin/reports', label: '举报中心', icon: 'fa-flag' },
+      { key: 'album-reports', path: '/admin/album-reports', label: '相册举报', icon: 'fa-images' },
       { key: 'push', path: '/admin/notifications', label: '推送通知', icon: 'fa-bell' },
       { key: 'diapers', path: '/admin/diapers', label: '纸尿裤 / 品牌', icon: 'fa-tags' },
     ],
@@ -56,6 +57,7 @@ const PAGE_META = {
   comments: { title: '评论管理', description: '检索帖子评论并处理违规内容。' },
   novels: { title: '小说作品', description: '审核与管理社区小说作品的发布状态。' },
   reports: { title: '举报中心', description: '集中处理内容举报与交友请求举报。' },
+  'album-reports': { title: '相册举报', description: '处理相册违规举报，预览照片并批量屏蔽或解除屏蔽。' },
   push: { title: '推送通知', description: '向指定平台或用户发送通知并查看投递记录。' },
   diapers: { title: '纸尿裤与品牌', description: '维护产品资料、品牌信息与展示内容。' },
   security: { title: '安全中心', description: '查看安全事件、风险分布与近期日志。' },

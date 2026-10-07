@@ -65,6 +65,7 @@ const AdminNovels = lazy(() => import('./pages/admin/novels'));
 const AdminDiapers = lazy(() => import('./pages/admin/diapers'));
 const AdminBadges = lazy(() => import('./pages/admin/badges'));
 const AdminReports = lazy(() => import('./pages/admin/reports'));
+const AdminAlbumReports = lazy(() => import('./pages/admin/albumReports'));
 const AdminSecurity = lazy(() => import('./pages/admin/security'));
 const AdminSettings = lazy(() => import('./pages/admin/settings'));
 const AdminNotifications = lazy(() => import('./pages/admin/notifications'));
@@ -118,6 +119,7 @@ const ROUTE_TITLES = {
   '/admin/comments': '评论管理 — ABDL Space',
   '/admin/novels': '小说作品 — ABDL Space',
   '/admin/reports': '举报中心 — ABDL Space',
+  '/admin/album-reports': '相册举报 — ABDL Space',
   '/admin/security': '安全中心 — ABDL Space',
   '/admin/settings': '站点设置 — ABDL Space',
   '/admin/diapers': '纸尿裤 / 品牌 — ABDL Space',
@@ -306,6 +308,7 @@ export default function App() {
                   <Route path="/admin/comments" element={<AdminComments />} />
                   <Route path="/admin/novels" element={<AdminNovels />} />
                   <Route path="/admin/reports" element={<AdminReports />} />
+                  <Route path="/admin/album-reports" element={<AdminAlbumReports />} />
                   <Route path="/admin/security" element={<AdminSecurity />} />
                   <Route path="/admin/settings" element={<AdminSettings />} />
                   <Route path="/admin/diapers" element={<AdminDiapers />} />
