@@ -85,7 +85,7 @@ const FollowersPage = lazy(() => import('./pages/FollowersPage'));
 const AppDownload = lazy(() => import('./pages/AppDownload'));
 const NBWBindGuidePage = lazy(() => import('./pages/NBWBindGuidePage'));
 const NBWOneClickRegister = lazy(() => import('./pages/NBWOneClickRegister'));
-const MerchantCenter = lazy(() => import('./pages/MerchantCenter'));
+const MerchantHost = lazy(() => import('./pages/merchant/Host.jsx'));
 
 function PageFallback() {
   return (
@@ -280,6 +280,7 @@ export default function App() {
   const { user } = useAuth();
   const { pathname } = useLocation();
   const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
+  const isMerchantRoute = pathname === '/merchant' || pathname.startsWith('/merchant/');
   useExternalLinkInterceptor();
 
   // 手机端访问 /profile/* 强制跳转 m.abdl-space.top
@@ -309,13 +310,13 @@ export default function App() {
 
   return (
     <MobileHeaderProvider>
-    {!isAdminRoute && !pathname.startsWith('/c/') && <RedirectNotice />}
+      {!isAdminRoute && !isMerchantRoute && !pathname.startsWith('/c/') && <RedirectNotice />}
     <div className="app-layout">
       <ScrollToTop />
       <NotificationProvider>
       <NsfwProvider>
       {/* 独立布局页面 — 无侧边栏/导航/footer（admin 控制台 + 内测注册页） */}
-      {pathname === '/beta-register' || pathname.startsWith('/admin') || pathname.startsWith('/c/') ? (
+      {pathname === '/beta-register' || pathname.startsWith('/admin') || pathname.startsWith('/merchant') || pathname.startsWith('/c/') ? (
         <div
           style={pathname.startsWith('/admin') || pathname.startsWith('/c/')
             ? { flex: 1, width: '100%', minHeight: '100vh', overflowY: 'auto' }
@@ -325,7 +326,7 @@ export default function App() {
           <ErrorBoundary>
             <Suspense fallback={<PageFallback />}>
               <ConfirmProvider>
-                <Routes>
+                {isMerchantRoute ? <MerchantHost /> : <Routes>
                   <Route path="/beta-register" element={<BetaRegister />} />
                   <Route path="/c/:token" element={<CertificateVerify />} />
                   <Route element={<AdminRouteGate />}>
@@ -347,7 +348,7 @@ export default function App() {
                   <Route path="/admin/notifications" element={<AdminNotifications />} />
                   <Route path="/admin/*" element={<AdminUnknownRoute />} />
                   </Route>
-                </Routes>
+                </Routes>}
               </ConfirmProvider>
             </Suspense>
           </ErrorBoundary>
@@ -406,7 +407,6 @@ export default function App() {
                 <Route path="/bugs" element={<BugDashboard />} />
                 <Route path="/points" element={<PointsPage />} />
                 <Route path="/invite" element={<InvitePage />} />
-                <Route path="/merchant" element={<MerchantCenter />} />
                 {/* Mastodon-compatible routes */}
                 <Route path="/@:username" element={<MastodonProfile />} />
                 <Route path="/@:username/:postId" element={<PostDetail />} />
@@ -437,14 +437,14 @@ export default function App() {
       </>
       )}
       {!pathname.startsWith('/c/') && <div className={isAdminRoute ? 'ac-admin-theme' : undefined}><ToastPopup /></div>}
-      {!isAdminRoute && !pathname.startsWith('/c/') && <PushPrompt />}
-      {pathname !== '/beta-register' && !pathname.startsWith('/admin') && !pathname.startsWith('/c/') && <MobileBottomNav />}
+      {!isAdminRoute && !isMerchantRoute && !pathname.startsWith('/c/') && <PushPrompt />}
+      {pathname !== '/beta-register' && !pathname.startsWith('/admin') && !pathname.startsWith('/merchant') && !pathname.startsWith('/c/') && <MobileBottomNav />}
       </NsfwProvider>
       </NotificationProvider>
-      {!isAdminRoute && !pathname.startsWith('/c/') && <AdBlockNotice />}
-      {!isAdminRoute && !pathname.startsWith('/c/') && <CookieConsent />}
-      {!isAdminRoute && !pathname.startsWith('/c/') && <ScrollProgress />}
-      {!isAdminRoute && !pathname.startsWith('/c/') && <BackToTop />}
+      {!isAdminRoute && !isMerchantRoute && !pathname.startsWith('/c/') && <AdBlockNotice />}
+      {!isAdminRoute && !isMerchantRoute && !pathname.startsWith('/c/') && <CookieConsent />}
+      {!isAdminRoute && !isMerchantRoute && !pathname.startsWith('/c/') && <ScrollProgress />}
+      {!isAdminRoute && !isMerchantRoute && !pathname.startsWith('/c/') && <BackToTop />}
     </div>
     </MobileHeaderProvider>
   );

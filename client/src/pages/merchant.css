@@ -85,3 +85,21 @@
 .ad-card-image-button { width: 160px; height: 96px; padding: 0; overflow: hidden; flex: 0 0 auto; border: 0; border-radius: 5px; background: var(--bg); cursor: pointer; }
 .ad-card-image-button img { width: 100%; height: 100%; object-fit: cover; }
 @media (max-width: 600px) { .ad-card-content { align-items: flex-start; flex-direction: column-reverse; } .ad-card-image-button { width: 100%; height: 150px; } }
+
+.merchant-host { min-height: 100vh; background: var(--ac-canvas); color: var(--ac-text); }
+.merchant-host .merchant-shell { min-height: 100vh; max-width: 1440px; margin: 0 auto; padding: 28px clamp(20px, 4vw, 64px) 64px; background: var(--ac-canvas); color: var(--ac-text); }
+.merchant-host .merchant-header { max-width: none; margin: 0 0 22px; border-color: var(--ac-border); }
+.merchant-host .merchant-eyebrow, .merchant-host .merchant-panel-kicker { color: var(--ac-action); }
+.merchant-host .merchant-header p, .merchant-host .merchant-panel p, .merchant-host .merchant-intro-panel p { color: var(--ac-text-secondary); }
+.merchant-host .merchant-intro-panel, .merchant-host .merchant-activation-panel, .merchant-host .merchant-panel, .merchant-host .merchant-login-panel, .merchant-host .merchant-stat { border-color: var(--ac-border); border-radius: 8px; background: var(--ac-surface); box-shadow: 0 2px 8px rgba(15, 23, 42, .04); }
+.merchant-host .merchant-intro-panel { background: var(--ac-surface); }
+.merchant-host .merchant-form input, .merchant-host .merchant-form textarea, .merchant-host .merchant-activation-form input { border-color: var(--ac-border); color: var(--ac-text); background: var(--ac-surface-soft); }
+.merchant-host .merchant-button { border-color: var(--ac-border); color: var(--ac-text); background: var(--ac-surface); }
+.merchant-host .merchant-button.primary { border-color: var(--ac-action); color: var(--ac-on-action); background: var(--ac-action); }
+.merchant-host .merchant-status.active { color: var(--ac-success); background: var(--ac-success-soft); }
+.merchant-host .merchant-status.pending { color: var(--ac-text-secondary); background: var(--ac-surface-soft); }
+.merchant-host-state { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 32px; color: var(--ac-text-secondary); text-align: center; }
+.merchant-host-state i { color: var(--ac-action); font-size: 28px; }
+.merchant-host-state h1 { margin: 0; color: var(--ac-text); font-size: 22px; }
+.merchant-host-state p { margin: 0; }
+.merchant-host-state a { color: var(--ac-action); font-weight: 700; text-decoration: none; }

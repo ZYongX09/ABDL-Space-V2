@@ -79,13 +79,21 @@ export default function MerchantCenter() {
     if (!user) return;
     setLoading(true);
     try {
-      const [profileData, adsData, statsData] = await Promise.all([merchantAPI.profile(), merchantAPI.ads(), merchantAPI.stats()]);
-      const nextProfile = profileData?.profile || profileData?.merchant || profileData;
+      const infoData = await merchantAPI.info();
+      const nextProfile = infoData?.profile || infoData?.merchant || infoData;
       setProfile(nextProfile);
-      setAds(unwrap(adsData, 'ads', []));
-      setStats(statsData?.stats || statsData || {});
+      const active = Boolean(infoData?.authorized || infoData?.active || nextProfile?.status === 'active' || nextProfile?.activated || nextProfile?.is_active || user?.is_super_admin);
+      if (active) {
+        const [profileData, adsData, statsData] = await Promise.all([merchantAPI.profile(), merchantAPI.ads(), merchantAPI.stats()]);
+        const loadedProfile = profileData?.profile || profileData?.merchant || profileData;
+        setProfile(loadedProfile);
+        setAds(unwrap(adsData, 'ads', []));
+        setStats(statsData?.stats || statsData || {});
+      }
       if (nextProfile) setProfileForm(current => ({ ...current, ...nextProfile, name: nextProfile.name || nextProfile.merchant_name || '' }));
-    } catch (error) { toast.error(error.message || '商家数据加载失败'); }
+    } catch (error) {
+      if (error.status !== 404 && error.status !== 401) toast.error(error.message || '商家数据加载失败');
+    }
     finally { setLoading(false); }
   }, [toast, user]);
 
