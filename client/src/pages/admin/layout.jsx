@@ -15,6 +15,7 @@ const NAV = [
     group: '成员',
     items: [
       { key: 'users', path: '/admin/users', label: '用户管理', icon: 'fa-users' },
+      { key: 'advertising', path: '/admin/advertising', label: '广告投放', icon: 'fa-rectangle-ad' },
       { key: 'badges', path: '/admin/badges', label: '徽章体系', icon: 'fa-medal' },
       { key: 'sponsors', path: '/admin/sponsors', label: '赞助者管理', icon: 'fa-heart' },
       { key: 'baby-verifications', path: '/admin/baby-verifications', label: '宝宝认证审核', icon: 'fa-shield-heart' },
@@ -50,6 +51,7 @@ const NAV = [
 const PAGE_META = {
   overview: { title: '仪表盘概览', description: '查看社区核心数据、运营趋势与待处理事项。' },
   users: { title: '用户管理', description: '查询用户、查看账户详情并执行账户治理操作。' },
+  advertising: { title: '广告投放', description: '审核商家广告内容、控制投放状态并查看聚合统计。' },
   sponsors: { title: '赞助者管理', description: '管理赞助方案、用户权益、兑换码与库存。' },
   'baby-verifications': { title: '宝宝认证审核', description: '处理认证申请、敏感照片、证书状态、审计与服务配置。' },
   badges: { title: '徽章体系', description: '维护徽章资料，并管理徽章发放与持有者。' },

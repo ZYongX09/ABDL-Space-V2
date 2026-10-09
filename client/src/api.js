@@ -949,10 +949,94 @@ export const usersAPI = {
 };
 
 // =====================================================================
+// 商家 Merchant（后端 /api/merchant/*）
+// =====================================================================
+export const merchantAPI = {
+  profile: async () => {
+    if (USE_API) return apiFetch('/api/merchant/profile');
+    return { profile: null, activated: false };
+  },
+  info: async () => {
+    if (USE_API) return apiFetch('/api/merchant/info');
+    return { merchant: null, active: false, is_super_admin: false };
+  },
+
+  activate: async (code) => {
+    if (USE_API) return apiFetch('/api/merchant/activate', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+    throw new Error('注册码激活需要连接服务端');
+  },
+
+  updateProfile: async (body) => {
+    if (USE_API) return apiFetch('/api/merchant/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    return { profile: body };
+  },
+
+  ads: async () => {
+    if (USE_API) return apiFetch('/api/merchant/ads');
+    return { items: [] };
+  },
+
+  createAd: async (body) => {
+    if (USE_API) return apiFetch('/api/merchant/ads', {
+      method: 'POST',
+      body: JSON.stringify({ title: body.title || '未命名广告', body: body.content || body.body || '', landing_url: body.url || body.landing_url, image_url: body.image_url || null, status: body.enabled === false ? 'draft' : 'active' }),
+    });
+    throw new Error('广告发布需要连接服务端');
+  },
+
+  updateAd: async (id, body) => {
+    if (USE_API) return apiFetch(`/api/merchant/ads/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ ...(body.title !== undefined ? { title: body.title } : {}), ...(body.content !== undefined ? { body: body.content } : {}), ...(body.url !== undefined ? { landing_url: body.url || null } : {}), ...(body.image_url !== undefined ? { image_url: body.image_url || null } : {}), ...(body.enabled !== undefined ? { status: body.enabled ? 'active' : 'paused' } : {}), ...(body.status !== undefined ? { status: body.status } : {}) }),
+    });
+    throw new Error('广告编辑需要连接服务端');
+  },
+
+  deleteAd: async (id) => {
+    if (USE_API) return apiFetch(`/api/merchant/ads/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    throw new Error('广告删除需要连接服务端');
+  },
+
+  stats: async () => {
+    if (USE_API) return apiFetch('/api/merchant/stats');
+    return { stats: {} };
+  },
+
+  event: async ({ adId, eventType, placement }) => {
+    if (USE_API) return apiFetch(`/api/merchant/ads/${encodeURIComponent(adId)}/events`, {
+      method: 'POST',
+      body: JSON.stringify({ ad_id: adId, event_type: eventType, event_key: `${adId}:${eventType}:${placement || 'feed'}:${crypto.randomUUID()}`, placement }),
+    }).catch(() => null);
+    return null;
+  },
+};
+
+// =====================================================================
 // 管理 Admin（后端 /api/admin/*）
 // =====================================================================
 export const adminAPI = {
   ...createAppClientsAPI(apiFetch),
+  advertising: async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.status) query.set('status', params.status);
+    if (params.merchantId) query.set('merchant_id', params.merchantId);
+    if (USE_API) return apiFetch(`/api/admin/advertising${query.toString() ? `?${query}` : ''}`);
+    return { ads: [], pagination: { total: 0 } };
+  },
+  advertisingAction: async (id, action) => {
+    if (USE_API) return apiFetch(`/api/admin/advertising/ads/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ status: action === 'approve' ? 'active' : 'paused' }) });
+    return { ok: true };
+  },
+  advertisingStats: async () => {
+    if (USE_API) return apiFetch('/api/admin/advertising/stats');
+    return { stats: {} };
+  },
   // ── 统计卡片（简单合计） ──────────────────────────
   stats: async () => {
     if (USE_API) return apiFetch('/api/admin/stats');

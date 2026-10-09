@@ -1,0 +1,87 @@
+.merchant-shell { min-height: 100vh; padding: 32px clamp(18px, 4vw, 64px) 72px; color: var(--text); background: var(--bg); }
+.merchant-header { max-width: 1280px; margin: 0 auto 28px; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--border); padding-bottom: 24px; }
+.merchant-eyebrow, .merchant-panel-kicker { color: var(--primary-dark); font-size: 11px; font-weight: 800; letter-spacing: .12em; }
+.merchant-header h1 { margin: 6px 0 6px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; }
+.merchant-header p, .merchant-panel p, .merchant-intro-panel p { margin: 0; color: var(--text-light); line-height: 1.7; }
+.merchant-account { display: flex; align-items: center; gap: 10px; font-weight: 700; white-space: nowrap; }
+.merchant-avatar { width: 36px; height: 36px; display: grid; place-items: center; overflow: hidden; border-radius: 50%; background: var(--primary-light); color: var(--primary-dark); }
+.merchant-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.merchant-overview-grid, .merchant-content-grid { max-width: 1280px; margin: 0 auto 20px; display: grid; grid-template-columns: 1.2fr .8fr; gap: 20px; }
+.merchant-intro-panel, .merchant-activation-panel, .merchant-panel, .merchant-login-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(30, 65, 100, .05); }
+.merchant-intro-panel { padding: 30px; background: linear-gradient(135deg, var(--bg-card), var(--primary-light)); }
+.merchant-intro-panel h2 { margin: 8px 0 8px; font-size: 26px; letter-spacing: 0; }
+.merchant-trust-list { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 24px; color: var(--text-light); font-size: 13px; }
+.merchant-trust-list i { color: var(--primary-dark); margin-right: 6px; }
+.merchant-activation-panel, .merchant-panel { padding: 24px; }
+.merchant-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.merchant-panel-heading h2 { margin: 4px 0 5px; font-size: 19px; letter-spacing: 0; }
+.merchant-panel-heading p { font-size: 13px; }
+.merchant-status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; white-space: nowrap; font-size: 11px; font-weight: 700; }
+.merchant-status i { font-size: 7px; }
+.merchant-status.active { color: var(--success, #16835b); background: rgba(22, 131, 91, .1); }
+.merchant-status.pending { color: var(--text-light); background: var(--border); }
+.merchant-muted { color: var(--text-muted); font-size: 12px; }
+.merchant-activation-form { display: flex; gap: 10px; margin-top: 28px; }
+.merchant-form { display: flex; flex-direction: column; gap: 16px; }
+.merchant-form label { display: flex; flex-direction: column; gap: 7px; color: var(--text-light); font-size: 13px; font-weight: 650; }
+.merchant-form input, .merchant-form textarea, .merchant-activation-form input { width: 100%; min-height: 42px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 5px; outline: none; color: var(--text); background: var(--bg); font: inherit; font-weight: 400; }
+.merchant-form textarea { resize: vertical; min-height: 96px; }
+.merchant-form input:focus, .merchant-form textarea:focus, .merchant-activation-form input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+.merchant-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.merchant-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 15px; border: 1px solid var(--border); border-radius: 5px; color: var(--text); background: var(--bg-card); font: inherit; font-size: 13px; font-weight: 700; text-decoration: none; cursor: pointer; }
+.merchant-button.primary { color: #fff; border-color: var(--primary); background: var(--primary); }
+.merchant-button:disabled { cursor: wait; opacity: .6; }
+.merchant-form-actions { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
+.merchant-checkbox { flex-direction: row !important; align-items: center; font-weight: 500 !important; }
+.merchant-checkbox input { width: 16px; min-height: 16px; }
+.merchant-stats-grid { max-width: 1280px; margin: 0 auto 20px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.merchant-stat { display: flex; align-items: flex-start; gap: 12px; min-width: 0; padding: 18px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); }
+.merchant-stat-icon { width: 34px; height: 34px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 6px; color: var(--primary-dark); background: var(--primary-light); }
+.merchant-stat-label { color: var(--text-light); font-size: 12px; }
+.merchant-stat strong { display: block; margin-top: 3px; font-size: 23px; line-height: 1.1; }
+.merchant-stat small { display: block; margin-top: 5px; color: var(--text-muted); font-size: 11px; }
+.merchant-event-list { display: flex; flex-direction: column; gap: 12px; }
+.merchant-event-list > div { display: flex; justify-content: space-between; gap: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); color: var(--text-light); font-size: 13px; }
+.merchant-event-list > div:last-child { border-bottom: 0; }
+.merchant-event-list strong { color: var(--text); }
+.merchant-upload-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.merchant-upload-button { display: inline-flex !important; flex-direction: row !important; align-items: center; width: fit-content; padding: 10px 13px; border: 1px dashed var(--primary); border-radius: 5px; color: var(--primary-dark) !important; background: var(--primary-light); cursor: pointer; }
+.merchant-upload-button input { display: none; }
+.merchant-upload-preview { position: relative; width: 120px; height: 72px; overflow: hidden; border-radius: 5px; border: 1px solid var(--border); }
+.merchant-upload-preview img { width: 100%; height: 100%; object-fit: cover; }
+.merchant-icon-button { width: 32px; height: 32px; display: inline-grid; place-items: center; border: 1px solid var(--border); border-radius: 5px; color: var(--text-light); background: transparent; cursor: pointer; }
+.merchant-upload-preview .merchant-icon-button { position: absolute; top: 5px; right: 5px; color: #fff; border-color: rgba(255,255,255,.7); background: rgba(0,0,0,.55); }
+.merchant-icon-button:hover { color: var(--primary-dark); border-color: var(--primary); background: var(--primary-light); }
+.merchant-icon-button.danger:hover { color: var(--danger); border-color: var(--danger); background: rgba(200, 60, 70, .08); }
+.merchant-ads-panel { margin-bottom: 20px; }
+.merchant-shell > .merchant-panel { max-width: 1280px; margin-left: auto; margin-right: auto; margin-bottom: 20px; }
+.merchant-ad-list { display: flex; flex-direction: column; }
+.merchant-ad-row { display: flex; align-items: center; gap: 15px; padding: 14px 0; border-top: 1px solid var(--border); }
+.merchant-ad-thumb { width: 68px; height: 52px; display: grid; place-items: center; flex: 0 0 auto; overflow: hidden; border-radius: 5px; color: var(--text-muted); background: var(--bg); }
+.merchant-ad-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.merchant-ad-copy { min-width: 0; flex: 1; }
+.merchant-ad-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 750; }
+.merchant-ad-copy p, .merchant-ad-copy small { display: block; overflow: hidden; margin: 4px 0 0; color: var(--text-light); white-space: nowrap; text-overflow: ellipsis; }
+.merchant-ad-copy p { font-size: 13px; }
+.merchant-ad-copy small { color: var(--text-muted); font-size: 11px; }
+.merchant-row-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+.merchant-empty { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 120px; color: var(--text-muted); font-size: 13px; }
+.merchant-empty i { font-size: 20px; }
+.merchant-login-panel { max-width: 1280px; margin: 0 auto; display: flex; align-items: center; gap: 16px; padding: 20px 24px; }
+.merchant-login-panel > i { color: var(--primary-dark); font-size: 24px; }
+.merchant-login-panel h2 { margin: 0 0 3px; font-size: 17px; }
+.merchant-login-panel p { margin: 0; color: var(--text-light); font-size: 13px; }
+.merchant-login-panel .merchant-form-actions { margin-left: auto; }
+@media (max-width: 900px) { .merchant-stats-grid { grid-template-columns: repeat(3, 1fr); } .merchant-overview-grid, .merchant-content-grid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .merchant-shell { padding: 22px 14px 60px; } .merchant-header { align-items: flex-start; flex-direction: column; } .merchant-header h1 { font-size: 30px; } .merchant-stats-grid { grid-template-columns: repeat(2, 1fr); } .merchant-stat { padding: 13px; } .merchant-stat strong { font-size: 20px; } .merchant-form-grid { grid-template-columns: 1fr; } .merchant-login-panel { align-items: flex-start; flex-wrap: wrap; padding: 18px; } .merchant-login-panel .merchant-form-actions { width: 100%; margin-left: 40px; } .merchant-activation-form { flex-direction: column; } .merchant-ad-row { align-items: flex-start; flex-wrap: wrap; } .merchant-row-actions { width: 100%; justify-content: flex-end; } }
+
+.ad-card { position: relative; overflow: hidden; padding: 16px !important; border-left: 3px solid var(--primary); background: var(--bg-card); }
+.ad-card-label { margin-bottom: 10px; color: var(--primary-dark); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.ad-card-content { display: flex; align-items: center; gap: 18px; }
+.ad-card-copy { min-width: 0; flex: 1; }
+.ad-card-copy h3 { margin: 0 0 5px; font-size: 16px; }
+.ad-card-copy p { margin: 0; color: var(--text-light); white-space: pre-wrap; word-break: break-word; }
+.ad-card-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; color: var(--primary-dark); font-size: 13px; font-weight: 700; text-decoration: none; }
+.ad-card-image-button { width: 160px; height: 96px; padding: 0; overflow: hidden; flex: 0 0 auto; border: 0; border-radius: 5px; background: var(--bg); cursor: pointer; }
+.ad-card-image-button img { width: 100%; height: 100%; object-fit: cover; }
+@media (max-width: 600px) { .ad-card-content { align-items: flex-start; flex-direction: column-reverse; } .ad-card-image-button { width: 100%; height: 150px; } }

@@ -13,9 +13,11 @@ import { forumAPI, followsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useFollowStatuses } from '../hooks/useFollowStatuses.js';
+import AdvertisementCard from '../components/AdvertisementCard.jsx';
 
 export default function ForumFeed() {
   const [posts, setPosts] = useState([]);
+  const [advertisements, setAdvertisements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
@@ -43,6 +45,8 @@ export default function ForumFeed() {
       });
       // 过滤掉回帖（in_reply_to_id 不为空的帖子）
       const newPosts = (data.posts || []).filter(p => !p.in_reply_to_id);
+      const newAds = append ? [] : (data.advertisements || []).map(ad => ({ ...ad, is_advertisement: true }));
+      if (!append) setAdvertisements(newAds);
       setPosts(prev => append ? [...prev, ...newPosts] : newPosts);
       setHasMore(newPosts.length >= 20);
       setPage(pageNum);
@@ -137,11 +141,14 @@ export default function ForumFeed() {
       <PullToRefresh onRefresh={() => loadPosts(1)}>
       {loading ? (
         <LoadingSkeleton count={4} height={100} />
-      ) : posts.length === 0 ? (
+      ) : posts.length === 0 && advertisements.length === 0 ? (
         <EmptyState icon="fa-comments" title="暂无帖子" description="快来发第一帖吧！" />
       ) : (
         <div className="space-y-4 miui-list-enter">
-          {posts.map((post, i) => (
+          {[...advertisements, ...posts].map((post, i) => (
+            (post.is_advertisement === true || post.is_advertisement === 1 || post.is_advertisement === '1') ? (
+              <AdvertisementCard key={`ad-${post.id || post.ad_id}`} ad={post} placement="feed" />
+            ) : (
             <div key={post.id} className={`card miui-hover-lift ${post.pinned ? 'post-pinned' : ''}`} style={{ padding: '1.25rem' }}>
               {post.pinned && (
                 <div className="post-pinned-tag">
@@ -225,6 +232,7 @@ export default function ForumFeed() {
                 </button>
               </div>
             </div>
+            )
           ))}
         </div>
       )}

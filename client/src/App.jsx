@@ -56,6 +56,7 @@ const AdminOverview = lazy(() => import('./pages/admin/overview'));
 const AdminUsers = lazy(() => import('./pages/admin/users'));
 const AdminAppClients = lazy(() => import('./pages/admin/appClients.jsx'));
 const AdminSponsors = lazy(() => import('./pages/admin/sponsors.jsx'));
+const AdminAdvertising = lazy(() => import('./pages/admin/advertising.jsx'));
 const AdminBabyVerifications = lazy(() => import('./pages/admin/babyVerifications.jsx'));
 const CertificateVerify = lazy(() => import('./pages/CertificateVerify.jsx'));
 const BabyVerificationStatus = lazy(() => import('./pages/BabyVerificationStatus.jsx'));
@@ -83,6 +84,7 @@ const FollowersPage = lazy(() => import('./pages/FollowersPage'));
 const AppDownload = lazy(() => import('./pages/AppDownload'));
 const NBWBindGuidePage = lazy(() => import('./pages/NBWBindGuidePage'));
 const NBWOneClickRegister = lazy(() => import('./pages/NBWOneClickRegister'));
+const MerchantCenter = lazy(() => import('./pages/MerchantCenter'));
 
 function PageFallback() {
   return (
@@ -112,6 +114,7 @@ const ROUTE_TITLES = {
   '/admin/users': '用户管理 — ABDL Space',
   '/admin/app-clients': 'App 管理 — ABDL Space',
   '/admin/sponsors': '赞助者管理 — ABDL Space',
+  '/admin/advertising': '广告投放 — ABDL Space',
   '/admin/baby-verifications': '宝宝认证审核 — ABDL Space',
   '/baby-verification': '宝宝认证 — ABDL Space',
   '/admin/badges': '徽章体系 — ABDL Space',
@@ -143,6 +146,7 @@ const ROUTE_TITLES = {
   '/points': '积分 — ABDL Space',
   '/invite': '邀请码 — ABDL Space',
   '/explore': '探索 — ABDL Space',
+  '/merchant': '商家服务中心 — ABDL Space',
 };
 
 function getTitle(pathname) {
@@ -302,6 +306,7 @@ export default function App() {
                   <Route path="/admin/users" element={<AdminUsers />} />
                   <Route path="/admin/app-clients" element={<AdminAppClients />} />
                   <Route path="/admin/sponsors" element={<AdminSponsors />} />
+                  <Route path="/admin/advertising" element={<AdminAdvertising />} />
                   <Route path="/admin/baby-verifications" element={<AdminBabyVerifications />} />
                   <Route path="/admin/badges" element={<AdminBadges />} />
                   <Route path="/admin/posts" element={<AdminPosts />} />
@@ -374,6 +379,7 @@ export default function App() {
                 <Route path="/bugs" element={<BugDashboard />} />
                 <Route path="/points" element={<PointsPage />} />
                 <Route path="/invite" element={<InvitePage />} />
+                <Route path="/merchant" element={<MerchantCenter />} />
                 {/* Mastodon-compatible routes */}
                 <Route path="/@:username" element={<MastodonProfile />} />
                 <Route path="/@:username/:postId" element={<PostDetail />} />
