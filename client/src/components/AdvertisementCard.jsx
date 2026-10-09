@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { merchantAPI } from '../api';
+import { buildMediaPreviewUrl } from '../utils/mediaUrl';
 
 export default function AdvertisementCard({ ad, placement = 'feed' }) {
   const tracked = useRef(false);
   const adId = ad?.id || ad?.ad_id;
-  const imageUrl = ad?.image_url || ad?.imageUrl;
+  const imageUrl = ad?.images?.[0]?.preview_url || buildMediaPreviewUrl(ad?.image_url || ad?.imageUrl || '');
   const targetUrl = ad?.url || ad?.target_url || ad?.targetUrl;
   const title = ad?.title || '推广内容';
   const body = ad?.content || ad?.text || '';

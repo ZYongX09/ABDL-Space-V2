@@ -4,9 +4,19 @@ import NsfwGuard from './NsfwGuard';
 import { forumAPI } from '../api';
 import { buildMediaPreviewUrl } from '../utils/mediaUrl';
 
-function ImageItem({ url, onClick, overlay, isNsfw, nsfwType }) {
+function ImageItem({ url, fallbackUrl, onClick, overlay, isNsfw, nsfwType }) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
+  // 缩略图取不到（如源站图片处理不可用）时回退原图，避免直接显示破图占位。
+  const [src, setSrc] = useState(url);
+  useEffect(() => { setSrc(url); setLoaded(false); setError(false); }, [url]);
+  const handleError = useCallback(() => {
+    if (fallbackUrl && src !== fallbackUrl) {
+      setSrc(fallbackUrl);
+      return;
+    }
+    setError(true);
+  }, [fallbackUrl, src]);
 
   return (
     <div className="img-grid-item" onClick={onClick}>
@@ -21,14 +31,14 @@ function ImageItem({ url, onClick, overlay, isNsfw, nsfwType }) {
         </div>
       )}
       <NsfwGuard
-        src={url}
+        src={src}
         backendNsfw={isNsfw}
         backendNsfwType={nsfwType}
         alt=""
         loading="lazy"
         style={{ opacity: loaded ? 1 : 0 }}
         onLoad={() => setLoaded(true)}
-        onError={() => setError(true)}
+        onError={handleError}
       />
       {overlay}
     </div>
@@ -387,6 +397,7 @@ export default function ImageGrid({ images = [], postId }) {
           <ImageItem
             key={i}
             url={item.preview}
+            fallbackUrl={item.url}
             isNsfw={item.isNsfw}
             nsfwType={item.nsfwType}
             onClick={() => {
