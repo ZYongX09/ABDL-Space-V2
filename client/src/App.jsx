@@ -1,7 +1,8 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
-import { Routes, Route, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useState, useEffect, useLayoutEffect, lazy, Suspense } from 'react';
+import { Routes, Route, useLocation, useNavigate, useNavigationType, useParams } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { authAPI, usersAPI } from './api';
+import { rememberScroll, restoreScroll } from './utils/navigationState';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -94,6 +95,9 @@ function PageFallback() {
   );
 }
 
+// 测试里会用 renderToString 渲染路由，useLayoutEffect 在服务端渲染会告警；这里退化到 useEffect。
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
 const ROUTE_TITLES = {
   '/': '广场 — ABDL Space',
   '/diapers': '纸尿裤列表 — ABDL Space',
@@ -164,11 +168,34 @@ function getTitle(pathname) {
 }
 
 function ScrollToTop() {
-  const { pathname } = useLocation();
-  useEffect(() => {
+  const location = useLocation();
+  const navType = useNavigationType();
+
+  // 前进/首次进入回到顶部；返回（POP）还原离开该页面时的位置，避免列表被弹回顶部。
+  useIsomorphicLayoutEffect(() => {
+    document.title = getTitle(location.pathname);
+    if (navType === 'POP') {
+      restoreScroll(location.key);
+      return;
+    }
     window.scrollTo({ top: 0, behavior: 'instant' });
-    document.title = getTitle(pathname);
-  }, [pathname]);
+  }, [location.pathname, location.key, navType]);
+
+  // 持续记录当前位置，供返回时还原。
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
+    const key = location.key;
+    let frame = 0;
+    const save = () => { frame = 0; rememberScroll(key); };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(save); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (frame) cancelAnimationFrame(frame);
+      rememberScroll(key);
+    };
+  }, [location.key]);
+
   return null;
 }
 

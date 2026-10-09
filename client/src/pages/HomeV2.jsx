@@ -11,6 +11,7 @@ import PullToRefresh from '../components/PullToRefresh';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useFollowStatuses } from '../hooks/useFollowStatuses.js';
+import { readFeedState, writeFeedState } from '../utils/navigationState';
 
 const TABS = [
   { key: 'latest', label: '最新' },
@@ -21,13 +22,22 @@ export default function HomeV2() {
   const [searchParams] = useSearchParams();
   const search = searchParams.get('search') || '';
 
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   const [activeTab, setActiveTab] = useState('latest');
   const { user } = useAuth();
+  const feedKey = `${activeTab}|${search}|${user?.id ?? 'guest'}`;
+
+  // 进详情再返回时本组件会被卸载；命中缓存就同步恢复，既不重新请求也不闪骨架屏。
+  const [cachedFeed] = useState(() => readFeedState(feedKey));
+
+  const [posts, setPosts] = useState(() => cachedFeed?.posts ?? []);
+  const [loading, setLoading] = useState(() => !cachedFeed);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(() => cachedFeed?.page ?? 1);
+  const [hasMore, setHasMore] = useState(() => cachedFeed?.hasMore ?? true);
+  // 只有成功加载过（或来自缓存）的数据才写回缓存，避免把占位/报错状态固化下来。
+  const [ready, setReady] = useState(() => !!cachedFeed);
+  // 返回列表时列表已经在缓存里，跳过交错入场动画，否则看起来仍像重新加载。
+  const [restored] = useState(() => !!cachedFeed);
   const followTargetIds = posts
     .map(post => post.user?.id)
     .filter(id => id && String(id) !== String(user?.id));
@@ -53,6 +63,7 @@ export default function HomeV2() {
       setPosts(prev => append ? [...prev, ...newPosts] : newPosts);
       setHasMore(newPosts.length >= 20);
       setPage(pageNum);
+      setReady(true);
     } catch (e) {
       if (activeTab === 'following' && !user) {
         setNeedLogin(true);
@@ -66,10 +77,34 @@ export default function HomeV2() {
     }
   }, [activeTab, user, search]);
 
-  // 初始加载 + tab切换重新加载
+  // 只在「列表 key」变化时加载：命中缓存直接恢复，否则拉第一页。
+  // 用 ref 取最新 loadPosts，避免 user 对象换引用导致无谓重拉。
+  const loadPostsRef = useRef(loadPosts);
+  useEffect(() => { loadPostsRef.current = loadPosts; }, [loadPosts]);
+
   useEffect(() => {
-    loadPosts(1);
-  }, [activeTab, loadPosts]);
+    const cached = readFeedState(feedKey);
+    if (cached) {
+      setPosts(cached.posts);
+      setPage(cached.page);
+      setHasMore(cached.hasMore);
+      setLoading(false);
+      setNeedLogin(false);
+      setReady(true);
+      return;
+    }
+    setPosts([]);
+    setPage(1);
+    setHasMore(true);
+    setReady(false);
+    loadPostsRef.current(1);
+  }, [feedKey]);
+
+  // 加载完成后把列表写回缓存；占位/报错状态不写。
+  useEffect(() => {
+    if (!ready || loading) return;
+    writeFeedState(feedKey, { posts, page, hasMore });
+  }, [feedKey, ready, loading, posts, page, hasMore]);
 
   const likingRef = useRef(new Set());
 
@@ -161,7 +196,7 @@ export default function HomeV2() {
                 description={activeTab === 'following' ? '关注一些用户后这里会显示他们的帖子' : '快来发第一帖吧！'}
               />
             ) : (  
-              <div className="space-y-4 miui-list-enter">
+              <div className={`space-y-4 ${restored ? '' : 'miui-list-enter'}`}>
                 {posts.map(post => (
                   <PostCard
                     key={post.id}

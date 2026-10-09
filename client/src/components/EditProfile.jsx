@@ -1,11 +1,56 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNsfw } from '../contexts/NsfwContext';
-import { originalMediaUrl } from '../utils/mediaUrl';
+import { getActiveToken } from '../utils/authHeaders';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
+
+/**
+ * 用头像文件替换头像。
+ *
+ * 必须走 /api/v1/accounts/update_credentials：后端只接受由本站上传流水线产生、
+ * purpose=avatar 的引用，而网页拿不到 COS 直传所需的桶级 CORS，所以由服务端代传。
+ * 该端点会整段覆盖 profile_fields，因此先把现有资料栏原样回传，避免保存头像时清空它们。
+ */
+async function replaceAvatar(file) {
+  const token = getActiveToken();
+  if (!token) throw new Error('登录状态已失效，请重新登录后再试');
+
+  let fields = [];
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/accounts/verify_credentials`, {
+      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+    });
+    if (res.ok) {
+      const account = await res.json();
+      if (Array.isArray(account?.fields)) {
+        fields = account.fields.filter(field => field && (field.name || field.value));
+      }
+    }
+  } catch {
+    // 拿不到资料栏时按空处理：与 App 端未填资料栏时行为一致。
+  }
+
+  const formData = new FormData();
+  formData.append('avatar', file);
+  fields.forEach((field, index) => {
+    formData.append(`fields_attributes[${index}][name]`, field.name || '');
+    formData.append(`fields_attributes[${index}][value]`, field.value || '');
+  });
+
+  const res = await fetch(`${API_BASE}/api/v1/accounts/update_credentials`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include',
+    body: formData,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || '头像上传失败');
+  return data;
+}
 
 export default function EditProfile({ onClose }) {
   const { user, updateProfile } = useAuth();
@@ -14,7 +59,10 @@ export default function EditProfile({ onClose }) {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // user.avatar 已被归一化成预览地址，提交前必须还原成原始地址，否则派生地址会被写进库。
+  // 头像只记录「改了什么」，不再把当前头像地址原样提交：
+  // 后端只接受本站上传流水线产生的引用，回传旧地址会被判为非法上传。
+  // kind: 'existing' | 'new' | 'removed' | 'none'
+  const [avatar, setAvatar] = useState(() => (user?.avatar ? { kind: 'existing' } : { kind: 'none' }));
   const [form, setForm] = useState({
     bio: user?.bio || '',
     region: user?.region || '',
@@ -23,7 +71,6 @@ export default function EditProfile({ onClose }) {
     waist: user?.waist || '',
     hip: user?.hip || '',
     style_preference: user?.style_preference || '',
-    avatar: originalMediaUrl(user?.avatar) || null,
   });
 
   useEffect(() => {
@@ -36,7 +83,6 @@ export default function EditProfile({ onClose }) {
         waist: user.waist || '',
         hip: user.hip || '',
         style_preference: user.style_preference || '',
-        avatar: originalMediaUrl(user.avatar) || null,
       });
     }
   }, [user]);
@@ -48,7 +94,17 @@ export default function EditProfile({ onClose }) {
     return () => { document.body.style.overflow = prev; };
   }, []);
 
+  // 新选文件的本地预览地址需要在关闭弹窗时释放。
+  const objectUrlRef = useRef('');
+  useEffect(() => () => { if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current); }, []);
+
   const update = (key, val) => setForm(f => ({ ...f, [key]: val }));
+
+  const avatarPreview = avatar.kind === 'new'
+    ? avatar.previewUrl
+    : avatar.kind === 'existing'
+      ? user?.avatar
+      : null;
 
   const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -64,18 +120,12 @@ export default function EditProfile({ onClose }) {
       const result = await classifyFile(file);
       if (result && result.level === 'high') {
         toast.error(`头像不允许包含${result.type}`);
-        setAvatarUploading(false);
         return;
       }
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch(`${API_BASE}/api/images/upload?returnFormat=full`, {
-        method: 'POST', credentials: 'include', body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '上传失败');
-      update('avatar', data.url);
-      toast.success('头像已上传');
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+      const previewUrl = URL.createObjectURL(file);
+      objectUrlRef.current = previewUrl;
+      setAvatar({ kind: 'new', file, previewUrl });
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -84,9 +134,16 @@ export default function EditProfile({ onClose }) {
     }
   };
 
+  const removeAvatar = () => {
+    if (objectUrlRef.current) { URL.revokeObjectURL(objectUrlRef.current); objectUrlRef.current = ''; }
+    setAvatar({ kind: 'removed' });
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
+      if (avatar.kind === 'new') await replaceAvatar(avatar.file);
+
       const body = { ...form };
       if (body.age) body.age = Number(body.age); else body.age = null;
       if (body.weight) body.weight = Number(body.weight); else body.weight = null;
@@ -95,7 +152,10 @@ export default function EditProfile({ onClose }) {
       if (!body.style_preference) body.style_preference = null;
       if (!body.bio) body.bio = null;
       if (!body.region) body.region = null;
+      // 只有真正移除头像时才提交 avatar，改头像已由上面那一步落库。
+      if (avatar.kind === 'removed') body.avatar = null;
       await updateProfile(body);
+
       toast.success('资料已更新');
       onClose();
     } catch (e) {
@@ -125,8 +185,8 @@ export default function EditProfile({ onClose }) {
           <section className="ep-section">
             <div className="ep-avatar-row">
               <div className="ep-avatar-wrap">
-                {form.avatar
-                  ? <img src={form.avatar} alt="" className="ep-avatar-img" />
+                {avatarPreview
+                  ? <img src={avatarPreview} alt="" className="ep-avatar-img" />
                   : <div className="ep-avatar-fallback">{user?.username?.[0]?.toUpperCase()}</div>
                 }
                 {avatarUploading && (
@@ -138,11 +198,11 @@ export default function EditProfile({ onClose }) {
               <div className="ep-avatar-actions">
                 <label className="ep-btn ep-btn-outline ep-btn-sm">
                   <i className="fa-solid fa-camera" />
-                  <span>{form.avatar ? '更换' : '上传头像'}</span>
+                  <span>{avatarPreview ? '更换' : '上传头像'}</span>
                   <input type="file" accept="image/*" hidden onChange={handleAvatarUpload} disabled={avatarUploading} />
                 </label>
-                {form.avatar && (
-                  <button className="ep-btn ep-btn-ghost ep-btn-sm ep-btn-danger" onClick={() => update('avatar', null)}>
+                {avatarPreview && (
+                  <button className="ep-btn ep-btn-ghost ep-btn-sm ep-btn-danger" onClick={removeAvatar}>
                     <i className="fa-solid fa-trash-can" />
                   </button>
                 )}
