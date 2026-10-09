@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNsfw } from '../contexts/NsfwContext';
+import { originalMediaUrl } from '../utils/mediaUrl';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
@@ -13,6 +14,7 @@ export default function EditProfile({ onClose }) {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // user.avatar 已被归一化成预览地址，提交前必须还原成原始地址，否则派生地址会被写进库。
   const [form, setForm] = useState({
     bio: user?.bio || '',
     region: user?.region || '',
@@ -21,7 +23,7 @@ export default function EditProfile({ onClose }) {
     waist: user?.waist || '',
     hip: user?.hip || '',
     style_preference: user?.style_preference || '',
-    avatar: user?.avatar || null,
+    avatar: originalMediaUrl(user?.avatar) || null,
   });
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export default function EditProfile({ onClose }) {
         waist: user.waist || '',
         hip: user.hip || '',
         style_preference: user.style_preference || '',
-        avatar: user.avatar || null,
+        avatar: originalMediaUrl(user.avatar) || null,
       });
     }
   }, [user]);

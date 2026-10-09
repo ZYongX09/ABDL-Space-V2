@@ -6,6 +6,7 @@
 import { fetchFollowStatuses } from './utils/followStatus.js';
 import { createAppClientsAPI } from './appClients/api.js';
 import { isReservedAppClientSetting } from './appClients/model.js';
+import { withAvatarPreviews } from './utils/mediaUrl.js';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 // 空字符串也是有效值（相对路径），只有显式设为 undefined/null 时才走离线
@@ -58,7 +59,8 @@ async function apiFetch(path, options = {}) {
     error.status = res.status;
     throw error;
   }
-  return data;
+  // 头像字段在这里统一换成 160px 预览地址：帖子、评论、私信、搜索结果等渲染点不必各自改写。
+  return withAvatarPreviews(data);
 }
 
 // ====== 内存缓存层 ======

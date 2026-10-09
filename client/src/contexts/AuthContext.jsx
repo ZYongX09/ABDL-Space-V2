@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { buildAvatarPreviewUrl } from '../utils/mediaUrl';
 
 const AuthContext = createContext();
 
@@ -15,8 +16,10 @@ function lsSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 function lsDel(key) { localStorage.removeItem(key); }
 
 // 保存的账户格式: [{ id, username, token, avatar, role }]
+// 头像在读取时归一化为 160px 预览地址：顶栏、账户切换、账户管理都直接渲染这里的值。
+// 写回的是同一个（已归一化的）地址，而 buildAvatarPreviewUrl 是幂等的，所以反复读写不会叠加。
 function getSavedAccounts() {
-  return lsGet(ACCOUNTS_KEY) || [];
+  return (lsGet(ACCOUNTS_KEY) || []).map(a => (a?.avatar ? { ...a, avatar: buildAvatarPreviewUrl(a.avatar) } : a));
 }
 function saveAccounts(accounts) {
   lsSet(ACCOUNTS_KEY, accounts);
@@ -41,10 +44,18 @@ function getOfflineUsers() { return lsGet('abdl_users') || {}; }
 function getOfflineCurrentUser() { return lsGet('abdl_currentUser'); }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setRawUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState(getSavedAccounts);
   const refreshRequest = useRef(0);
+
+  // 所有登录入口（/me、登录、注册、扫码、资料更新）都经这里归一化头像，省得每个调用点各自改写。
+  const setUser = useCallback((next) => {
+    setRawUser((prev) => {
+      const value = typeof next === 'function' ? next(prev) : next;
+      return value ? { ...value, avatar: value.avatar ? buildAvatarPreviewUrl(value.avatar) : value.avatar } : value;
+    });
+  }, []);
   const currentSession = useRef(null);
   const activeToken = accounts.find(account => String(account.id) === String(user?.id))?.token || '';
   currentSession.current = JSON.stringify([user?.id, user?.role, Object.hasOwn(user || {}, 'is_super_admin'), user?.is_super_admin, activeToken]);
