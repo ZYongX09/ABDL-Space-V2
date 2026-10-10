@@ -308,6 +308,9 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [navigate]);
 
+  // 商家控制台独立挂载，不进入前台 provider / Sidebar / 导航 / footer / Toast。
+  if (isMerchantRoute) return <Suspense fallback={<PageFallback />}><MerchantHost /></Suspense>;
+
   return (
     <MobileHeaderProvider>
       {!isAdminRoute && !isMerchantRoute && !pathname.startsWith('/c/') && <RedirectNotice />}
@@ -326,7 +329,7 @@ export default function App() {
           <ErrorBoundary>
             <Suspense fallback={<PageFallback />}>
               <ConfirmProvider>
-                {isMerchantRoute ? <MerchantHost /> : <Routes>
+                <Routes>
                   <Route path="/beta-register" element={<BetaRegister />} />
                   <Route path="/c/:token" element={<CertificateVerify />} />
                   <Route element={<AdminRouteGate />}>
@@ -348,7 +351,7 @@ export default function App() {
                   <Route path="/admin/notifications" element={<AdminNotifications />} />
                   <Route path="/admin/*" element={<AdminUnknownRoute />} />
                   </Route>
-                </Routes>}
+                </Routes>
               </ConfirmProvider>
             </Suspense>
           </ErrorBoundary>
