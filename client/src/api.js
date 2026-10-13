@@ -1039,6 +1039,14 @@ export const adminAPI = {
     if (USE_API) return apiFetch('/api/admin/advertising/stats');
     return { stats: {} };
   },
+  advertisingPolicy: async () => {
+    if (USE_API) return apiFetch('/api/admin/advertising/policy');
+    return { enabled: 0, max_per_timeline: 1, min_interval_seconds: 8, ad_probability: 20, fallback_probability: 5 };
+  },
+  updateAdvertisingPolicy: async (policy) => {
+    if (USE_API) return apiFetch('/api/admin/advertising/policy', { method: 'PUT', body: JSON.stringify(policy) });
+    return { ok: true };
+  },
   // ── 统计卡片（简单合计） ──────────────────────────
   stats: async () => {
     if (USE_API) return apiFetch('/api/admin/stats');
