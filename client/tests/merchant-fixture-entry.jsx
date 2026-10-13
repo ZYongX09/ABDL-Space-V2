@@ -6,12 +6,21 @@ import { createMerchantAPI } from '../src/merchant/api.js';
 import { watchAdminTheme } from '../src/pages/admin/theme.js';
 
 const scenarios = ['ordinary', 'super', 'missing', 'error', 'inactive', 'anonymous'];
-const selected = new URLSearchParams(window.location.search).get('fixture');
-const scenario = scenarios.includes(selected) ? selected : sessionStorage.getItem('merchant-fixture-scenario') || 'ordinary';
+const injected = window.__MERCHANT_FIXTURE_SCENARIO__;
+const stored = sessionStorage.getItem('merchant-fixture-scenario');
+const scenario = scenarios.includes(injected) ? injected : scenarios.includes(stored) ? stored : 'ordinary';
 sessionStorage.setItem('merchant-fixture-scenario', scenario);
 const dark = new URLSearchParams(window.location.search).get('theme') === 'dark';
+
+// 场景头只供本机同源 fixture 代理识别；显式限制同源，避免该入口被当作任意地址请求器。
+function fixtureFetch(input, init) {
+  const target = new URL(input, window.location.origin);
+  if (target.origin !== window.location.origin) throw new Error('fixture 仅允许同源请求。');
+  return fetch(target.toString(), { ...init, headers: { ...init?.headers, 'X-Merchant-Fixture': scenario } });
+}
+
 function Fixture() {
-  const api = useMemo(() => createMerchantAPI({ base: '', getToken: () => `fixture-${scenario}`, fetcher: (url, options) => fetch(url, { ...options, headers: { ...options.headers, 'X-Merchant-Fixture': scenario } }) }), []);
+  const api = useMemo(() => createMerchantAPI({ base: '', getToken: () => `fixture-${scenario}`, fetcher: fixtureFetch }), []);
   useEffect(() => {
     document.body.classList.add('merchant-mode');
     const cleanup = watchAdminTheme(dark ? 'dark' : 'light');

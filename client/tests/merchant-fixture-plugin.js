@@ -1,6 +1,7 @@
 import { COUNTERS } from '../src/merchant/model.js';
 
 export const isLoopback = host => ['127.0.0.1', 'localhost', '::1', '[::1]', '::ffff:127.0.0.1'].includes(host);
+export const fixtureScenarios = ['ordinary', 'super', 'missing', 'error', 'inactive', 'anonymous'];
 const svg = kind => `<svg xmlns="http://www.w3.org/2000/svg" width="${kind === 'ad' ? 800 : 160}" height="${kind === 'ad' ? 420 : 160}" viewBox="${kind === 'ad' ? '0 0 800 420' : '0 0 160 160'}"><rect width="100%" height="100%" fill="#e8eef5"/><rect x="${kind === 'ad' ? 48 : 22}" y="${kind === 'ad' ? 48 : 22}" width="${kind === 'ad' ? 704 : 116}" height="${kind === 'ad' ? 324 : 116}" rx="12" fill="#ffffff" stroke="#64748b"/><text x="50%" y="52%" text-anchor="middle" fill="#334155" font-family="sans-serif" font-size="${kind === 'ad' ? 36 : 26}">${kind === 'ad' ? '本机测试广告素材' : '企业'}</text></svg>`;
 const media = kind => `https://merchant-fixture.invalid/media/${kind}.svg`;
 const counterKeys = [...COUNTERS.map(([key]) => key), 'ad_count', 'active_ads'];
@@ -26,7 +27,7 @@ export function merchantFixturePlugin() {
       if (config.command !== 'serve' || !isLoopback(config.server.host)) throw new Error('merchant-fixture 仅允许 Vite serve 且只可绑定 loopback；禁止构建或公开访问。');
       if (config.server.proxy && Object.keys(config.server.proxy).length) throw new Error('merchant-fixture 不允许生产代理。');
     },
-    transformIndexHtml: { order: 'pre', handler() { return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>商家后台本机验收</title><style>body{margin:0;font-family:system-ui,sans-serif}button,input,textarea,select{font:inherit}</style></head><body><div id="root"></div><script type="module" src="/tests/merchant-fixture-entry.jsx"></script></body></html>'; } },
+    transformIndexHtml: { order: 'pre', handler(_html, ctx) { const requested = new URL(ctx?.originalUrl ?? '/', 'http://127.0.0.1').searchParams.get('fixture'); const scenario = fixtureScenarios.includes(requested) ? requested : null; const bootstrap = scenario ? `<script>window.__MERCHANT_FIXTURE_SCENARIO__=${JSON.stringify(scenario)}</script>` : ''; return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>商家后台本机验收</title><style>body{margin:0;font-family:system-ui,sans-serif}button,input,textarea,select{font:inherit}</style></head><body><div id="root"></div>${bootstrap}<script type="module" src="/tests/merchant-fixture-entry.jsx"></script></body></html>`; } },
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const host = new URL(`http://${req.headers.host || 'invalid'}`).hostname;
@@ -38,7 +39,7 @@ export function merchantFixturePlugin() {
         if (path === '/__merchant-fixture/requests') return json({ requests });
         if (path === '/__merchant-fixture/reset' && req.method === 'POST') { states.clear(); requests.length = 0; return json({ ok: true }); }
         if (!path.startsWith('/api/')) return next();
-        const scenario = ['ordinary', 'super', 'missing', 'error', 'inactive', 'anonymous'].includes(req.headers['x-merchant-fixture']) ? req.headers['x-merchant-fixture'] : 'ordinary';
+        const scenario = fixtureScenarios.includes(req.headers['x-merchant-fixture']) ? req.headers['x-merchant-fixture'] : 'ordinary';
         const state = getState(scenario); requests.push({ scenario, method: req.method, path: `${path}${url.search}` });
         if (requests.length > 500) requests.shift();
         if (scenario === 'anonymous') return json({ error: '请先登录。' }, 401);
