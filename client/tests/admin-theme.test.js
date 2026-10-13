@@ -277,7 +277,7 @@ test('后台宿主不挂载前台推广层，必要全局toast使用独立后台
   const app = source('../src/App.jsx');
   assert.match(app, /const isAdminRoute = pathname === '\/admin' \|\| pathname.startsWith\('\/admin\/'\)/);
   for (const component of ['RedirectNotice', 'AdBlockNotice', 'CookieConsent', 'PushPrompt', 'ScrollProgress', 'BackToTop']) {
-    assert.match(app, new RegExp(`!isAdminRoute && !pathname\\.startsWith\\('\\/c\\/'\\) && <${component} \\/>`), `${component} 必须仅前台挂载`);
+    assert.match(app, new RegExp(`!isAdminRoute && !isMerchantRoute && !pathname\\.startsWith\\('\\/c\\/'\\) && <${component} \\/>`), `${component} 必须仅前台挂载`);
   }
   assert.doesNotMatch(app, /<AppDownloadBanner\b/); // 主站未挂载；移动宿主须独立检查。
   assert.match(app, /className=\{isAdminRoute \? 'ac-admin-theme' : undefined\}><ToastPopup \/>/);
