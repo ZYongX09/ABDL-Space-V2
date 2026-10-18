@@ -47,16 +47,19 @@ async function apiFetch(path, options = {}) {
   } catch {}
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: 'include' });
   if (res.status === 204) return null;
-  const text = await res.text();
+  const text = await res.text(); // AbortError 原样向上传递，不转成解析失败或自动重试。
   let data;
+  let validJSON = true;
   try {
     data = JSON.parse(text);
   } catch {
-    throw new Error(`服务器响应异常 (${res.status})`);
+    validJSON = false;
   }
-  if (!res.ok) {
-    const error = new Error(data.error || `请求失败 (${res.status})`);
+  if (!res.ok || !validJSON) {
+    const error = new Error(data?.error || (validJSON ? `请求失败 (${res.status})` : `服务器响应异常 (${res.status})`));
     error.status = res.status;
+    error.code = data?.code ?? (validJSON || !res.ok ? `HTTP_${res.status}` : 'INVALID_RESPONSE');
+    error.retryAfter = res.headers.get('Retry-After') ?? data?.retryAfter ?? null;
     throw error;
   }
   // 头像字段在这里统一换成 160px 预览地址：帖子、评论、私信、搜索结果等渲染点不必各自改写。
@@ -797,15 +800,17 @@ export const wikiAPI = {
 // =====================================================================
 export const messagesAPI = {
   // 获取会话列表
-  conversations: async () => {
-    if (USE_API) return apiFetch('/api/messages/conversations');
+  conversations: async ({ signal } = {}) => {
+    signal?.throwIfAborted();
+    if (USE_API) return apiFetch('/api/messages/conversations', { signal });
     const conversations = LS.get('conversations') || [];
     return { conversations };
   },
 
   // 获取与某用户的消息
-  getMessages: async (userId) => {
-    if (USE_API) return apiFetch(`/api/messages/${userId}`);
+  getMessages: async (userId, { signal } = {}) => {
+    signal?.throwIfAborted();
+    if (USE_API) return apiFetch(`/api/messages/${userId}`, { signal });
     const msgs = LS.get('messages') || {};
     const key = Object.keys(msgs).find(k => k.includes(String(userId)));
     const allMsgs = key ? msgs[key] : [];
@@ -817,8 +822,9 @@ export const messagesAPI = {
   },
 
   // 发送消息
-  send: async (receiverId, content) => {
-    if (USE_API) return apiFetch('/api/messages', { method: 'POST', body: JSON.stringify({ receiver_id: receiverId, content }) });
+  send: async (receiverId, content, { signal } = {}) => {
+    signal?.throwIfAborted();
+    if (USE_API) return apiFetch('/api/messages', { method: 'POST', body: JSON.stringify({ receiver_id: receiverId, content }), signal });
     const user = LS.get('currentUser');
     if (!user) throw new Error('请先登录');
     const msgs = LS.get('messages') || {};
@@ -842,8 +848,9 @@ export const messagesAPI = {
   },
 
   // 标记已读
-  markRead: async (userId) => {
-    if (USE_API) return apiFetch(`/api/messages/${userId}/read`, { method: 'POST' });
+  markRead: async (userId, { signal } = {}) => {
+    signal?.throwIfAborted();
+    if (USE_API) return apiFetch(`/api/messages/${userId}/read`, { method: 'POST', signal });
     const convos = LS.get('conversations') || [];
     const convo = convos.find(c => c.user_id === userId);
     if (convo) convo.unread = 0;
@@ -884,8 +891,9 @@ export const imagesAPI = {
 };
 
 export const notificationsAPI = {
-  list: async () => {
-    if (USE_API) return apiFetch('/api/notifications');
+  list: async ({ signal } = {}) => {
+    signal?.throwIfAborted();
+    if (USE_API) return apiFetch('/api/notifications', { signal });
     return { notifications: [], unread_count: 0 };
   },
 

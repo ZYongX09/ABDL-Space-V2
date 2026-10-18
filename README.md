@@ -97,6 +97,17 @@ npm run preview       # 预览构建产物，默认 http://localhost:4173
 
 ### 3. 不连接生产服务的页面验收
 
+通知/私信请求预算有独立入口（无新增依赖）：
+
+```bash
+npm run test:d1                # node:test 纯调度 + Vite/API/SSR 合同，已纳入 npm test
+npm run test:d1-fixture -- 8795 # http://127.0.0.1:8795/messages?user=2
+```
+
+SSR 仅检查合同，不执行 React effects，不能算运行时验收。fixture 独立禁用生产 config/env/proxy、第三方脚本/字体、SW 与推送；真实 StrictMode 挂载 Provider/Toast/MessagesPage，点「查看请求计数」查看本地合成 API 记录。可切成功、429（Retry-After=3600 秒）、401、慢响应（20 秒）、消息失败、send-slow、load-send-error，结合账号 A/B/注销、同账号资料刷新、toast、隐藏/恢复和卸载验证。场景切换后用新 session 触发首拉；验证 429 冷却时不要切账号。send-slow 下发送后隐藏/恢复须解除 sending，且写请求不重放；load-send-error 下加载中发送失败须解除旧 loading。所有请求只打本机。
+
+调度按每个资源**完成后** 30 秒执行，同资源 singleflight、错误 30/60/120/300 秒退避；429 尊重更长的秒数或 HTTP-date Retry-After，手动/可见恢复也不能绕过。401 暂停当前账号/凭据 session；隐藏、卸载、注销和 A-B-A 会 abort 并作废旧代。读取/聊天总时限 15 秒；会话 snapshot 由 Provider 共享，已读成功取消在途旧 snapshot 并保留当前本地已读。聊天不新增周期、发送/已读只写一次。跨域后端必须 `Access-Control-Expose-Headers: Retry-After`。现有 API_BASE 相对路径和 localStorage 分支语义保持不变。
+
 商家控制台有独立的本机 fixture：
 
 ```bash
