@@ -10,6 +10,7 @@ import { isPushSupported, isPushSubscribed, subscribePush as doSubscribePush, un
 import { isPWA, isWebAuthnReallyAvailable, registerPasskey, getMyCredentials, deleteCredential } from '../utils/webauthn';
 
 const MENU = [
+  { id: 'section-sponsors', label: '赞助支持', icon: 'fa-heart' },
   { id: 'section-theme', label: '主题', icon: 'fa-palette' },
   { id: 'section-safety', label: '内容安全', icon: 'fa-shield-halved' },
   { id: 'section-anim', label: '加载动画', icon: 'fa-wand-magic-sparkles' },
@@ -117,6 +118,18 @@ export default function Settings() {
     <>
     <PageLayout hero={{ icon: 'fa-gear', title: '设置', subtitle: '自定义你的体验' }}>
       <SettingsLayout menu={MENU}>
+        <div id="section-sponsors" className="card mb-5">
+          <Link to="/sponsors" className="flex items-center justify-between gap-4 py-2">
+            <div className="flex items-center gap-3">
+              <i className="fa-solid fa-heart" aria-hidden="true" style={{ color: 'var(--primary-dark)', width: '20px', textAlign: 'center' }} />
+              <div>
+                <div className="font-semibold" style={{ color: 'var(--text)' }}>赞助者中心</div>
+                <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>赞助方案、购买与兑换、权益和兑换记录</div>
+              </div>
+            </div>
+            <i className="fa-solid fa-chevron-right text-xs" aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
+          </Link>
+        </div>
         {/* 主题设置 */}
         <div id="section-theme" className="card mb-5">
           <h3 className="font-bold mb-4" style={{ color: 'var(--text)' }}>

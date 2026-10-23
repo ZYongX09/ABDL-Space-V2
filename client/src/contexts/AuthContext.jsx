@@ -374,7 +374,11 @@ export function AuthProvider({ children }) {
     const session = currentSession.current;
     const current = () => request === refreshRequest.current && session === currentSession.current;
     try {
-      const res = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
+      const token = JSON.parse(session)[4];
+      const res = await fetch(`${API_BASE}/api/auth/me`, {
+        credentials: 'include', cache: 'no-store',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!current()) return;
       if (res.ok) {
         const data = await res.json();

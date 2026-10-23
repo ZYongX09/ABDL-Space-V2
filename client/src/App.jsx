@@ -46,6 +46,7 @@ const Register = lazy(() => import('./pages/Register'));
 const NBWCallback = lazy(() => import('./pages/NBWCallback'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Settings = lazy(() => import('./pages/Settings'));
+const SponsorCenter = lazy(() => import('./sponsors/SponsorCenter'));
 
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
@@ -138,6 +139,7 @@ const ROUTE_TITLES = {
   '/privacy': '隐私政策 — ABDL Space',
   '/cookies': 'Cookie 政策 — ABDL Space',
   '/settings': '设置 — ABDL Space',
+  '/sponsors': '赞助者中心 — ABDL Space',
   '/create-post': '发帖 — ABDL Space',
   '/bugs': 'Bug 追踪面板 — ABDL Space',
   '/captcha-api': 'Captcha API — ABDL Space',
@@ -391,6 +393,7 @@ export default function App() {
                 <Route path="/profile" element={<ProfilePageV2 />} />
                 <Route path="/profile/:id" element={<ProfilePageV2 />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/sponsors" element={<SponsorCenter />} />
                 <Route path="/user/:id" element={<ProfilePageV2 />} />
                 <Route path="/user/:id/followers" element={<FollowersPage />} />
                 <Route path="/user/:id/following" element={<FollowersPage />} />

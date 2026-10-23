@@ -1,4 +1,4 @@
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 
 const TRUSTED_DOMAINS = [
@@ -36,6 +36,7 @@ export default function ExternalLink() {
   const url = resolveUrl(rawUrl);
   const domain = getDomain(rawUrl);
   const trusted = isTrusted(rawUrl);
+  const sponsorPurchase = domain === 'ifdian.net' && new URL(url).pathname === '/order/create' && new URL(url).searchParams.get('product_type') === '1';
 
   if (!url || !domain) {
     return (
@@ -77,6 +78,12 @@ export default function ExternalLink() {
           {url}
         </p>
 
+        {sponsorPurchase && (
+          <div className="mb-5 text-sm" style={{ color: 'var(--text-light)' }}>
+            <p className="mb-3">付款后请点击爱发电的私信按钮获取兑换码。返回本站不表示权益已激活，请回赞助者中心兑换。</p>
+            <Link to="/sponsors" className="btn btn-outline">返回赞助者中心兑换</Link>
+          </div>
+        )}
         <div className="flex items-center justify-center gap-3">
           <button className="btn btn-outline" onClick={() => navigate('/')}>
             <i className="fa-solid fa-arrow-left" /> 返回首页

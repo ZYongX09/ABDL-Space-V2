@@ -309,19 +309,23 @@ test('Auth refresh 旧成功/失败不覆盖新会话，当前401清身份且保
   const body = /const refreshUser = useCallback\(async \(\) => \{([\s\S]*?)\n  \}, \[\]\);/.exec(text)?.[1];
   assert.ok(body);
   let reply, user = 'unchanged', saved = [];
+  const requests = [];
+  const session = token => JSON.stringify([2, 'admin', false, null, token]);
   const context = {
-    USE_API: true, API_BASE: '', refreshRequest: { current: 0 }, currentSession: { current: 'A' },
-    fetch: () => new Promise(resolve => { reply = resolve; }), setUser: value => { user = value; },
+    USE_API: true, API_BASE: '', refreshRequest: { current: 0 }, currentSession: { current: session('A') },
+    fetch: (_url, options) => { requests.push(options); return new Promise(resolve => { reply = resolve; }); }, setUser: value => { user = value; },
     setActiveAccountId() {}, getSavedAccounts: () => [], saveAccounts: value => { saved = value; }, setAccounts() {}, window: {},
   };
   const refresh = () => runInNewContext(`(async () => {${body}})()`, context);
-  const old = refresh(); context.currentSession.current = 'B'; reply({ ok: true, json: async () => superUser }); await old;
+  const old = refresh(); context.currentSession.current = session('B'); reply({ ok: true, json: async () => superUser }); await old;
   assert.equal(user, 'unchanged'); assert.equal(saved.length, 0);
-  const deniedOld = refresh(); context.currentSession.current = 'C'; reply({ ok: false, status: 401 }); await deniedOld;
+  const deniedOld = refresh(); context.currentSession.current = session('C'); reply({ ok: false, status: 401 }); await deniedOld;
   assert.equal(user, 'unchanged');
   const current = refresh(); reply({ ok: true, json: async () => regularAdmin }); await current;
   assert.equal(user.id, 2); assert.equal(saved[0].role, 'admin');
   const denied = refresh(); reply({ ok: false, status: 401 }); await denied; assert.equal(user, null);
+  assert.deepEqual(requests.map(options => options.headers.Authorization), ['Bearer A', 'Bearer B', 'Bearer C', 'Bearer C']);
+  assert.ok(requests.every(options => options.credentials === 'include' && options.cache === 'no-store'));
 });
 
 test('adminAPI 角色专项：PATCH精准body/token，旧POST保留，无降级、无错误伪成功', async () => {

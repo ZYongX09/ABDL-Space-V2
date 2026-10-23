@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { externalLinkUrl } from '../utils/externalLink';
 import { useAuth } from '../contexts/AuthContext';
@@ -369,7 +370,7 @@ export default function About() {
           支持我们
         </h3>
         <p className="text-sm mb-3" style={{ color: 'var(--text-light)' }}>
-          如果你觉得 ABDL Space 对你有帮助，欢迎捐赠我们哦~ 🍼
+          感谢支持 ABDL Space。请前往赞助者中心查看当前方案与权益，按购买指引获取兑换码后激活。
         </p>
         {/* 爱发电官方认证提示 */}
         <div
@@ -390,52 +391,10 @@ export default function About() {
             ，谨防仿冒
           </p>
         </div>
-        <div className="space-y-3">
-          {/* 捐赠选择1 */}
-          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--input-bg)' }}>
-            <div className="flex-1">
-              <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
-                给开发者买<span style={{ color: 'var(--primary-dark)', fontWeight: 800 }}>一片</span>裤裤
-              </div>
-              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>哇~好舒服的裤裤</div>
-            </div>
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <div className="text-lg font-bold" style={{ color: 'var(--primary-dark)' }}>￥5</div>
-              <a href={externalLinkUrl('https://ifdian.net/order/create?plan_id=a9a8a704508c11f1be9a52540025c377&product_type=0')}>
-                <img width="120" src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png" alt="赞助" style={{ borderRadius: '0.5rem' }} />
-              </a>
-            </div>
-          </div>
-          {/* 捐赠选择2 */}
-          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--input-bg)' }}>
-            <div className="flex-1">
-              <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
-                给开发者买<span style={{ color: 'var(--accent)', fontWeight: 800 }}>一包</span>裤裤
-              </div>
-              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>哇哦~好多好多裤裤呀~</div>
-            </div>
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <div className="text-lg font-bold" style={{ color: 'var(--accent)' }}>￥20</div>
-              <a href={externalLinkUrl('https://ifdian.net/order/create?plan_id=bde9dab2508c11f1b80752540025c377&product_type=0')}>
-                <img width="120" src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png" alt="赞助" style={{ borderRadius: '0.5rem' }} />
-              </a>
-            </div>
-          </div>
-          {/* 捐赠选择3 */}
-          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--input-bg)' }}>
-            <div className="flex-1">
-              <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
-                自定义捐赠
-              </div>
-              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>大老板~嘿嘿</div>
-            </div>
-            <div className="flex-shrink-0">
-              <a href={externalLinkUrl('https://ifdian.net/order/create?user_id=399f44cc508c11f18b7752540025c377')}>
-                <img width="120" src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.png" alt="赞助" style={{ borderRadius: '0.5rem' }} />
-              </a>
-            </div>
-          </div>
-        </div>
+        <Link to="/sponsors" className="btn btn-primary" style={{ position: 'relative' }}>
+          <i className="fa-solid fa-heart" aria-hidden="true" /> 前往赞助者中心
+        </Link>
+        <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>方案、价格和权益以赞助者中心实时信息为准。返回购买页不代表权益已激活。</p>
       </div>
 
       {/* 更新日志 */}

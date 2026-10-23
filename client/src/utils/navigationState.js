@@ -24,6 +24,10 @@ export function writeFeedState(key, state) {
   feedStates.set(key, state);
 }
 
+export function clearRouteListCache() {
+  feedStates.clear();
+}
+
 let scrollStore = null;
 
 function loadScrollStore() {
