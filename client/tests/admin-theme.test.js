@@ -166,8 +166,126 @@ test('更新提醒位于废弃策略之前，纯文本预览与两项通用配�
     const { adminAPI } = await server.ssrLoadModule('/src/api.js');
     assert.equal(typeof adminAPI.appClientReminder, 'function');
     assert.equal(typeof adminAPI.saveAppClientReminder, 'function');
-    for (const key of ['app_client_policy', 'app_client_reminder']) await assert.rejects(adminAPI.saveSetting(` ${key} `, '{}'), /保留配置/);
+    for (const key of ['app_client_policy', 'app_client_reminder', 'app_client_nbw_local_only']) await assert.rejects(adminAPI.saveSetting(` ${key} `, '{}'), /保留配置/);
   } finally { await server.close(); }
+});
+
+test('仅本站卡片独立接入原 App 管理，保留三主题控件、已保存状态与失败重试', () => {
+  const page = source('../src/pages/admin/appClients.jsx');
+  const editor = page.slice(page.indexOf('function NbwLocalOnlyEditor()'), page.indexOf('function AppClientsContent()'));
+  assert.match(page, /<ReminderEditor \/>[\s\S]*<PolicyEditor \/>[\s\S]*<NbwLocalOnlyEditor \/>/);
+  assert.match(editor, /title="指定版本仅本站模式（关闭NBW）"/);
+  assert.match(editor, /nbwLocalOnlyForm\(DEFAULT_APP_NBW_LOCAL_ONLY\)/);
+  assert.match(editor, /adminAPI\.appClientNbwLocalOnly\(\{ signal \}\)/);
+  assert.match(editor, /adminAPI\.saveAppClientNbwLocalOnly\(payload, \{ signal: controller.signal \}\)/);
+  assert.match(editor, /resource.loading \? <Loading[\s\S]*resource.error \? <RetryError error=\{resource.error\} retry=\{reload\}/);
+  assert.match(editor, /saved && <div id="app-nbw-local-only-saved-summary"/);
+  assert.match(editor, /id="app-nbw-local-only-enabled"[^>]+role="switch"[^>]+checked=\{form.enabled\}/);
+  assert.match(editor, /id="app-nbw-local-only-include-unversioned"[^>]+checked=\{form.include_unversioned\}/);
+  assert.match(editor, /aria-invalid=\{!!previewError\}/);
+  assert.match(editor, /id="app-nbw-local-only-version-preview"[^>]+aria-live="polite"/);
+  assert.match(editor, /表单有未保存更改/);
+  assert.match(editor, /当前输入已保留，可再次保存重试/);
+  assert.match(editor, /saveGate.current.invalidate\(\); saveController.current\?\.abort\(\)/);
+  assert.match(editor, /if \(!current\(\)\) return/);
+  assert.match(editor, /<fieldset className="ac-app-fieldset" disabled=\{saving\}/);
+  for (const text of ['默认关闭，不预选任何版本', '网页与未命中的新版 App 不受影响', '不会强制停用整个 App', 'NBW 专栏为空', '保留本站帖子', '不再双发 NBW', '不会修改账号真实的 NBW 绑定', '同步选项仍可能在旧界面中可见', 'code31 的回复本地缺陷不能由后端修复', '列表为空且此项未勾选时，不命中任何 App']) assert.ok(editor.includes(text), text);
+  assert.doesNotMatch(editor, /saveAppClientReminder|saveAppClientPolicy|localStorage|revision|dangerouslySetInnerHTML/);
+  const settings = source('../src/pages/admin/settings.jsx');
+  assert.match(settings, /APP_NBW_LOCAL_ONLY_SETTING_KEY/);
+  assert.match(settings, /isReservedAppClientSetting\(saveKey.key\)/);
+  const css = postcss.parse(source('../src/pages/admin/appClients.css'));
+  css.walkDecls(decl => {
+    if (/^(color|background(-color)?|border(-.*)?)$/.test(decl.prop)) assert.doesNotMatch(decl.value, /#[\da-f]{3,8}\b|\b(?:white|black)\b/i);
+  });
+});
+
+test('实际 adminAPI 仅本站三字段、cookie/token、no-store 与错误原样传播；保留键不发请求', async () => {
+  const server = await createServer({ configFile: false, envFile: false, root: new URL('../', import.meta.url).pathname, server: { middlewareMode: true, hmr: false }, appType: 'custom', define: { 'import.meta.env.VITE_API_BASE': JSON.stringify('') } });
+  const oldFetch = globalThis.fetch;
+  const oldStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  const calls = [];
+  const config = { enabled: false, version_codes: [], include_unversioned: false };
+  try {
+    Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: key => key === 'abdl_accounts' ? JSON.stringify([{ id: 1, token: 'fixture-1' }]) : '1' } });
+    globalThis.fetch = async (url, options) => { calls.push({ url, options }); return Response.json(options.body ? JSON.parse(options.body) : config); };
+    const { adminAPI } = await server.ssrLoadModule('/src/api.js');
+    const signal = new AbortController().signal;
+    assert.deepEqual(await adminAPI.appClientNbwLocalOnly({ signal, cache: 'force-cache' }), config);
+    const saved = await adminAPI.saveAppClientNbwLocalOnly({ ...config, enabled: true, versionText: '34,31,34', message: '不能带入', revision: 99 }, { signal, cache: 'force-cache' });
+    assert.deepEqual(saved, { enabled: true, version_codes: [31, 34], include_unversioned: false });
+    assert.deepEqual(JSON.parse(calls[1].options.body), saved);
+    assert.equal(calls[1].options.method, 'PUT');
+    for (const { url, options } of calls) {
+      assert.equal(url, '/api/admin/app-clients/nbw-local-only');
+      assert.equal(options.cache, 'no-store'); assert.equal(options.signal, signal);
+      assert.equal(options.credentials, 'include'); assert.equal(options.headers.Authorization, 'Bearer fixture-1');
+      assert.equal(options.headers['Content-Type'], 'application/json');
+    }
+    const before = calls.length;
+    for (const key of ['app_client_policy', 'app_client_reminder', 'app_client_nbw_local_only']) await assert.rejects(adminAPI.saveSetting(` ${key} `, '{}'), /保留配置/);
+    await assert.rejects(adminAPI.saveAppClientNbwLocalOnly({ ...config, versionText: '0' }));
+    assert.equal(calls.length, before);
+    for (const status of [401, 403, 500, 503]) {
+      globalThis.fetch = async () => Response.json({ error: `本地仅本站 ${status}` }, { status });
+      await assert.rejects(adminAPI.appClientNbwLocalOnly(), error => error.status === status && /本地仅本站/.test(error.message));
+      await assert.rejects(adminAPI.saveAppClientNbwLocalOnly(config), error => error.status === status);
+    }
+    for (const data of [{}, { ...config, revision: 1 }, { ...config, include_unversioned: 'false' }]) {
+      globalThis.fetch = async () => Response.json(data);
+      await assert.rejects(adminAPI.appClientNbwLocalOnly(), /响应格式异常/);
+      await assert.rejects(adminAPI.saveAppClientNbwLocalOnly(config), /响应格式异常/);
+    }
+    globalThis.fetch = async () => { throw new Error('本地断网'); };
+    await assert.rejects(adminAPI.appClientNbwLocalOnly(), /本地断网/);
+    globalThis.fetch = async (_url, options) => { options.signal.throwIfAborted(); };
+    const controller = new AbortController(); controller.abort();
+    await assert.rejects(adminAPI.appClientNbwLocalOnly({ signal: controller.signal }), { name: 'AbortError' });
+    await assert.rejects(adminAPI.saveAppClientNbwLocalOnly(config, { signal: controller.signal }), { name: 'AbortError' });
+  } finally {
+    globalThis.fetch = oldFetch;
+    if (oldStorage) Object.defineProperty(globalThis, 'localStorage', oldStorage); else delete globalThis.localStorage;
+    await server.close();
+  }
+});
+
+test('仅本站本地 fixture HTTP 支持默认/保存/关闭、隔离、503/格式错误与恢复，不访问业务后端', async () => {
+  const fixture = await createAdminFixtureServer({ quiet: true });
+  await new Promise(resolve => fixture.server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${fixture.server.address().port}`;
+  const path = '/api/admin/app-clients/nbw-local-only';
+  const request = async (url, method = 'GET', body) => {
+    const response = await fetch(base + url, { method, headers: { 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) });
+    return { status: response.status, data: await response.json(), headers: response.headers };
+  };
+  try {
+    const defaults = { enabled: false, version_codes: [], include_unversioned: false };
+    const initial = await request(path);
+    assert.equal(initial.status, 200); assert.deepEqual(initial.data, defaults);
+    assert.equal(initial.headers.get('cache-control'), 'no-store');
+    const policy = (await request('/api/admin/app-clients/policy')).data;
+    const reminder = (await request('/api/admin/app-clients/reminder')).data;
+    const custom = { enabled: true, version_codes: [31, 34], include_unversioned: true };
+    assert.deepEqual((await request(path, 'PUT', custom)).data, custom);
+    assert.deepEqual((await request('/api/admin/app-clients/policy')).data, policy);
+    assert.deepEqual((await request('/api/admin/app-clients/reminder')).data, reminder);
+    assert.equal((await request('/api/admin/settings', 'PUT', { key: ' app_client_nbw_local_only ', value: '{}' })).status, 400);
+    for (const body of [{ ...custom, revision: 1 }, { ...custom, version_codes: [31, 31] }, { ...custom, include_unversioned: 'true' }]) assert.equal((await request(path, 'PUT', body)).status, 400);
+    await request('/__fixture?scenario=nbw-unavailable');
+    assert.equal((await request(path)).status, 503); assert.equal((await request(path, 'PUT', defaults)).status, 503);
+    assert.equal((await request('/api/admin/app-clients/reminder')).status, 200);
+    await request('/__fixture?scenario=save-error');
+    assert.equal((await request(path, 'PUT', defaults)).status, 500);
+    assert.deepEqual((await request(path)).data, custom);
+    await request('/__fixture?scenario=nbw-invalid');
+    assert.equal(Object.hasOwn((await request(path)).data, 'include_unversioned'), false);
+    await request('/__fixture?scenario=normal');
+    assert.deepEqual((await request(path)).data, custom);
+    assert.deepEqual((await request(path, 'PUT', { ...custom, enabled: false })).data, { ...custom, enabled: false });
+    assert.deepEqual((await request(path, 'PUT', { ...custom, version_codes: [] })).data, { ...custom, version_codes: [] });
+    await request('/__fixture/session?id=3'); assert.equal((await request(path)).status, 403);
+    await request('/__fixture/session?id=0'); assert.equal((await request(path)).status, 401);
+  } finally { await fixture.close(); }
 });
 
 test('QQ 身份组件实际渲染三态，未知不提供解绑、不声称无身份', async () => {

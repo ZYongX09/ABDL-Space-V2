@@ -1,5 +1,18 @@
 # App 版本策略与统计管理验收
 
+## 2026-10-24：指定版本仅本站模式（关闭 NBW）前端交付
+
+- `/admin/app-clients` 新增独立卡片，复用原 Card、表单、状态提示和三主题管理样式；不改原提醒/废弃表单。默认 `{ enabled: false, version_codes: [], include_unversioned: false }`，无预选版本。仅显式开关和保存才更新配置；关闭保留列表及独立未上报选项。
+- `adminAPI.appClientNbwLocalOnly` / `saveAppClientNbwLocalOnly` 使用专用 GET/PUT `/api/admin/app-clients/nbw-local-only`，请求与响应严格三字段，无 revision；整数范围 1–2147483647、最多 200 个唯一版本。草稿文本可分隔、去重、排序；损坏响应、网络、取消、401/403/500/503 均不回退默认成功。
+- 有独立读取/保存/重试、规范化预览、未保存更改与已保存快照。说明仅影响命中的原生 App，网页/未命中新版不变；NBW 专栏空、首页移除外站源并保留本站帖、发帖仅本站不双发，不改真实 NBW 绑定。明确旧同步控件可能仍可见、code31 回复本地缺陷不能后端修复，不强停整个 App。
+- `app_client_nbw_local_only` 加入通用设置保留键，连同原 policy/reminder 继续在 API、表单和 fixture 阻止通用 JSON 写入。
+- 定向命令：在 `client/` 执行 `node --test src/appClients/model.test.js tests/admin-theme.test.js`，**43/43** 通过；`npm test` **253/253** 通过；`npm run build` 通过，保留既有 `%VITE_CAPTCHA_KEY%` 缺失与大 chunk 警告。
+- 输出：`/home/ZYongX/projects/nbw-local-only-evidence-20261024/frontend-main-focused.log`、`frontend-main-full-tests.log`、`frontend-main-build.log`（同目录）。新增模型、实际 adminAPI、页面接线/主题和本地 HTTP fixture 回归均纳入全量测试。
+- 初次浏览器初始化超时，恢复后主代理已在内存fixture完成1280×720默认状态、版本乱序去重、启用保存、重载一致及33x非法输入保留验证；移动390×844输入与布局另验。已查看截图在仓外证据目录gui-main-{input,save,reload,invalid}.png与gui-mobile-input.png；未验真实账号/旧APK、浅色多彩逐态或全部错误GUI。可在 `client/` 执行 `ADMIN_FIXTURE_UI=1 APP_FIXTURE_PORT=8791 npm run test:app-fixture`，打开 `http://127.0.0.1:8791/__fixture/start` 的 App 管理链接。全部数据仅内存、无真实 API 转发；`/__fixture?scenario=nbw-unavailable` / `nbw-invalid` / `save-error` / `slow` / `normal` 可分别准备仅本站读取 503、损坏响应、保存失败、延迟和恢复场景。
+- 仅前端与本地 fixture/文档改动；未修改真实配置/凭据、根后端包，未提交、推送、切分支或部署；后端集成与最终提交由主代理负责。
+
+## 历史验收（2026-10-03）
+
 日期：2026-10-03。
 
 ## 实现与自动化验证

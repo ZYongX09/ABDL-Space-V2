@@ -1,5 +1,5 @@
 // 仅供 Node 本地测试服务器导入，不接入生产入口或鉴权代码。
-import { APP_POLICY_SETTING_KEY, APP_REMINDER_SETTING_KEY, DEFAULT_APP_POLICY, DEFAULT_APP_REMINDER, isReservedAppClientSetting, policyPayload, readReminder, reminderPayload } from './model.js';
+import { APP_NBW_LOCAL_ONLY_SETTING_KEY, APP_POLICY_SETTING_KEY, APP_REMINDER_SETTING_KEY, DEFAULT_APP_NBW_LOCAL_ONLY, DEFAULT_APP_POLICY, DEFAULT_APP_REMINDER, isReservedAppClientSetting, policyPayload, readNbwLocalOnly, readReminder, reminderPayload } from './model.js';
 
 const START = '2026-10-01T00:00:00Z';
 const NOW = Date.parse('2026-10-03T12:00:00Z');
@@ -21,12 +21,13 @@ export function createAppClientsFixture(initialScenario = 'normal') {
   let scenario = initialScenario;
   let policy = { ...DEFAULT_APP_POLICY, deprecated_version_codes: [100] };
   let reminder = { ...DEFAULT_APP_REMINDER, version_codes: [] };
+  let nbwLocalOnly = { ...DEFAULT_APP_NBW_LOCAL_ONLY, version_codes: [] };
   return {
     setScenario(value) { scenario = value; },
     getScenario() { return scenario; },
     delay(path, query) {
       if (scenario !== 'slow') return 0;
-      if (path.endsWith('/reminder')) return 1500;
+      if (path.endsWith('/reminder') || path.endsWith('/nbw-local-only')) return 1500;
       return path.endsWith('/users') ? (query.get('version_code') === '100' ? 1500 : 100) : 0;
     },
     respond(path, method, query = new URLSearchParams(), body = null) {
@@ -34,13 +35,23 @@ export function createAppClientsFixture(initialScenario = 'normal') {
       if (path === '/api/admin/beta-mode') return { status: 200, data: { enabled: false, allowedRoutes: [], message: '' } };
       if (path === '/api/admin/settings') {
         if (method === 'PUT' && isReservedAppClientSetting(body?.key)) return { status: 400, data: { error: '保留配置必须使用 App 管理专用接口' } };
-        return { status: 200, data: { settings: [{ key: APP_POLICY_SETTING_KEY, value: JSON.stringify(policy), updated_at: START }, { key: APP_REMINDER_SETTING_KEY, value: JSON.stringify(reminder), updated_at: START }, { key: 'site_name', value: '本地测试站点', updated_at: START }] } };
+        return { status: 200, data: { settings: [{ key: APP_POLICY_SETTING_KEY, value: JSON.stringify(policy), updated_at: START }, { key: APP_REMINDER_SETTING_KEY, value: JSON.stringify(reminder), updated_at: START }, { key: APP_NBW_LOCAL_ONLY_SETTING_KEY, value: JSON.stringify(nbwLocalOnly), updated_at: START }, { key: 'site_name', value: '本地测试站点', updated_at: START }] } };
       }
       if (path === '/api/admin/blocked-emails') return { status: 200, data: { emails: [] } };
       if (path === '/api/admin/stats/overview') return { status: 200, data: { totals: { users: 46, appUsers: 46 }, today: {}, yesterday: {}, week: {}, prevWeek: {}, pending: {}, provinces: [], topBadges: [], recentUsers: [], recentPosts: [] } };
       if (path === '/api/admin/stats/trends') return { status: 200, data: { days: Number(query.get('days') || 30), series: {} } };
       if (!path.startsWith('/api/admin/app-clients/')) return { status: 404, data: { error: '本地 fixture 未定义此接口；不会访问真实后端' } };
       if (scenario === 'errors') return { status: 503, data: { error: '本地模拟：接口暂时不可用' } };
+      if (path === '/api/admin/app-clients/nbw-local-only') {
+        if (!['GET', 'PUT'].includes(method)) return { status: 405, data: { error: '仅支持 GET/PUT' } };
+        if (scenario === 'unavailable' || scenario === 'nbw-unavailable') return { status: 503, data: { error: '本地模拟：仅本站模式存储不可用，未确认已保存配置' } };
+        if (method === 'PUT') {
+          if (scenario === 'save-error') return { status: 500, data: { error: '本地模拟：仅本站模式保存失败' } };
+          try { nbwLocalOnly = readNbwLocalOnly(body); } catch (error) { return { status: 400, data: { error: error.message } }; }
+        }
+        if (scenario === 'nbw-invalid') return { status: 200, data: { enabled: false, version_codes: [] } };
+        return { status: 200, data: structuredClone(nbwLocalOnly) };
+      }
       if (path.endsWith('/reminder')) {
         if (scenario === 'unavailable') return { status: 503, data: { error: '本地模拟：App 提醒存储不可用，未确认已保存提醒' } };
         if (method === 'PUT') {

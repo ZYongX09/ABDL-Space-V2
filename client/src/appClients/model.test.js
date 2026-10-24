@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAppClientsAPI } from './api.js';
 import { createAppClientsFixture } from './fixture.js';
-import { APP_POLICY_SETTING_KEY, APP_REMINDER_SETTING_KEY, createRequestGate, DEFAULT_APP_POLICY, DEFAULT_APP_REMINDER, DEFAULT_APP_REMINDER_MESSAGE, exactCount, isReservedAppClientSetting, normalizeVersionCodes, policyPayload, readPolicy, readReminder, readStats, readUsers, reminderPayload, usersQuery } from './model.js';
+import { APP_NBW_LOCAL_ONLY_SETTING_KEY, APP_POLICY_SETTING_KEY, APP_REMINDER_SETTING_KEY, createRequestGate, DEFAULT_APP_NBW_LOCAL_ONLY, DEFAULT_APP_POLICY, DEFAULT_APP_REMINDER, DEFAULT_APP_REMINDER_MESSAGE, exactCount, isReservedAppClientSetting, nbwLocalOnlyPayload, normalizeVersionCodes, policyPayload, readNbwLocalOnly, readPolicy, readReminder, readStats, readUsers, reminderPayload, usersQuery } from './model.js';
 
 test('策略默认关闭，独立未知版本开关与明确废弃列表归一化', () => {
   assert.equal(APP_POLICY_SETTING_KEY, 'app_client_policy');
@@ -227,9 +227,9 @@ test('提醒与废弃 fixture 状态独立，关闭仍保留配置；失败不�
   assert.equal(fixture.delay('/api/admin/app-clients/reminder', new URLSearchParams()), 1500);
 });
 
-test('两项 App 配置键都保留，通用设置的手动新增也不能绕过', () => {
+test('三项 App 配置键都保留，通用设置的手动新增也不能绕过', () => {
   const fixture = createAppClientsFixture();
-  for (const key of [APP_POLICY_SETTING_KEY, APP_REMINDER_SETTING_KEY]) {
+  for (const key of [APP_POLICY_SETTING_KEY, APP_REMINDER_SETTING_KEY, APP_NBW_LOCAL_ONLY_SETTING_KEY]) {
     assert.equal(isReservedAppClientSetting(` ${key} `), true);
     assert.equal(fixture.respond('/api/admin/settings', 'PUT', new URLSearchParams(), { key: ` ${key} `, value: '{}' }).status, 400);
   }
@@ -248,6 +248,120 @@ test('提醒 API 网络、取消与响应格式错误原样上抛，不回退默
     await assert.rejects(method === 'appClientReminder' ? cancelled[method]({ signal: controller.signal }) : cancelled[method](DEFAULT_APP_REMINDER, { signal: controller.signal }), { name: 'AbortError' });
     const invalidAPI = createAppClientsAPI(async () => ({}));
     await assert.rejects(invalidAPI[method](DEFAULT_APP_REMINDER), /响应格式异常/);
+  }
+});
+
+test('仅本站默认三字段全关闭，无预选版本；文本归一化及整数/数量边界', () => {
+  assert.equal(APP_NBW_LOCAL_ONLY_SETTING_KEY, 'app_client_nbw_local_only');
+  assert.deepEqual(DEFAULT_APP_NBW_LOCAL_ONLY, { enabled: false, version_codes: [], include_unversioned: false });
+  assert.deepEqual(nbwLocalOnlyPayload({ ...DEFAULT_APP_NBW_LOCAL_ONLY, versionText: '003, 1，3\n2；2147483647' }), { enabled: false, version_codes: [1, 2, 3, 2147483647], include_unversioned: false });
+  assert.deepEqual(nbwLocalOnlyPayload({ ...DEFAULT_APP_NBW_LOCAL_ONLY, ...DEFAULT_APP_POLICY, message: '不携带', revision: 9, versionText: '' }), DEFAULT_APP_NBW_LOCAL_ONLY);
+  assert.equal(nbwLocalOnlyPayload({ ...DEFAULT_APP_NBW_LOCAL_ONLY, version_codes: Array.from({ length: 200 }, (_, i) => i + 1) }).version_codes.length, 200);
+  assert.throws(() => nbwLocalOnlyPayload({ ...DEFAULT_APP_NBW_LOCAL_ONLY, versionText: Array.from({ length: 201 }, (_, i) => i + 1).join(',') }), /200/);
+  assert.deepEqual(nbwLocalOnlyPayload({ ...DEFAULT_APP_NBW_LOCAL_ONLY, versionText: Array(201).fill('1').join(',') }).version_codes, [1]);
+  for (const versionText of ['0', '-1', '1.5', '1e2', '1.0', 'v31', '2147483648', 'NaN', '+3', '<b>31</b>']) assert.throws(() => nbwLocalOnlyPayload({ ...DEFAULT_APP_NBW_LOCAL_ONLY, versionText }), /仅本站版本号/);
+  for (const version_codes of [null, undefined, '31', ['31'], [null], [true], [0], [-1], [1.5], [Infinity], [2147483648], Array(1)]) assert.throws(() => nbwLocalOnlyPayload({ ...DEFAULT_APP_NBW_LOCAL_ONLY, version_codes }));
+  assert.throws(() => nbwLocalOnlyPayload({ ...DEFAULT_APP_NBW_LOCAL_ONLY, versionText: null }));
+});
+
+test('仅本站响应严格三字段，拒绝缺失、重复、错误类型及额外 revision，不回退默认成功', () => {
+  const config = { enabled: true, version_codes: [2147483647, 1], include_unversioned: false };
+  assert.deepEqual(readNbwLocalOnly(config), { ...config, version_codes: [1, 2147483647] });
+  assert.deepEqual(config.version_codes, [2147483647, 1], '读取不修改输入');
+  const invalid = [null, undefined, {}, { ...DEFAULT_APP_NBW_LOCAL_ONLY, revision: 1 }, { ...DEFAULT_APP_NBW_LOCAL_ONLY, message: '' }];
+  for (const key of ['enabled', 'version_codes', 'include_unversioned']) {
+    const missing = { ...DEFAULT_APP_NBW_LOCAL_ONLY }; delete missing[key]; invalid.push(missing);
+  }
+  for (const value of [undefined, null, 0, 1, 'true', 'false', '', [], {}]) {
+    invalid.push({ ...DEFAULT_APP_NBW_LOCAL_ONLY, enabled: value }, { ...DEFAULT_APP_NBW_LOCAL_ONLY, include_unversioned: value });
+    assert.throws(() => nbwLocalOnlyPayload({ ...DEFAULT_APP_NBW_LOCAL_ONLY, enabled: value }), /布尔值/);
+    assert.throws(() => nbwLocalOnlyPayload({ ...DEFAULT_APP_NBW_LOCAL_ONLY, include_unversioned: value }), /布尔值/);
+  }
+  for (const version_codes of [null, '31', ['31'], [0], [2147483648], [31, 31], Array(1), Array.from({ length: 201 }, (_, i) => i + 1)]) invalid.push({ ...DEFAULT_APP_NBW_LOCAL_ONLY, version_codes });
+  for (const data of invalid) assert.throws(() => readNbwLocalOnly(data), /响应格式异常/);
+});
+
+test('仅本站总开关、已知版本和未上报选项独立，关闭及清空列表不重置其他字段', () => {
+  for (const enabled of [false, true]) for (const include_unversioned of [false, true]) for (const version_codes of [[], [31, 34]]) {
+    const config = { enabled, version_codes, include_unversioned };
+    assert.deepEqual(readNbwLocalOnly(config), config);
+    assert.deepEqual(nbwLocalOnlyPayload(config), config);
+    assert.deepEqual(nbwLocalOnlyPayload({ ...config, enabled: false }), { ...config, enabled: false });
+    assert.deepEqual(nbwLocalOnlyPayload({ ...config, versionText: '' }), { ...config, version_codes: [] });
+  }
+});
+
+test('仅本站 API 独立 GET/PUT 仅三字段，no-store/取消信号及校验先于请求', async () => {
+  const fixture = createAppClientsFixture();
+  const calls = [];
+  const api = createAppClientsAPI(async (path, options) => {
+    calls.push({ path, options });
+    const response = fixture.respond(path, options.method || 'GET', new URLSearchParams(), options.body ? JSON.parse(options.body) : null);
+    if (response.status !== 200) throw new Error(response.data.error);
+    return response.data;
+  });
+  const signal = new AbortController().signal;
+  assert.deepEqual(await api.appClientNbwLocalOnly({ signal, cache: 'force-cache' }), DEFAULT_APP_NBW_LOCAL_ONLY);
+  const saved = await api.saveAppClientNbwLocalOnly({ ...DEFAULT_APP_NBW_LOCAL_ONLY, ...DEFAULT_APP_POLICY, message: '不携带', revision: 2, versionText: '34,31,34' }, { signal, cache: 'force-cache' });
+  assert.deepEqual(saved, { enabled: false, version_codes: [31, 34], include_unversioned: false });
+  assert.deepEqual(JSON.parse(calls[1].options.body), saved);
+  assert.deepEqual(Object.keys(saved).sort(), ['enabled', 'include_unversioned', 'version_codes']);
+  assert.equal(calls[1].options.method, 'PUT');
+  await api.appClientNbwLocalOnly({ signal }); await api.appClientNbwLocalOnly({ signal });
+  assert.equal(calls.length, 4, '重复 GET 不缓存');
+  for (const call of calls) {
+    assert.equal(call.path, '/api/admin/app-clients/nbw-local-only');
+    assert.equal(call.options.signal, signal); assert.equal(call.options.cache, 'no-store');
+  }
+  const before = calls.length;
+  for (const form of [{ ...DEFAULT_APP_NBW_LOCAL_ONLY, versionText: '0' }, { ...DEFAULT_APP_NBW_LOCAL_ONLY, include_unversioned: 'false' }, { enabled: false, include_unversioned: false }]) await assert.rejects(api.saveAppClientNbwLocalOnly(form));
+  assert.equal(calls.length, before, '非法表单不发请求');
+});
+
+test('仅本站 fixture 保存隔离，原提醒/废弃保持不变，错误不更新存储且可重试', () => {
+  const fixture = createAppClientsFixture();
+  const request = (name, method = 'GET', body) => fixture.respond(`/api/admin/app-clients/${name}`, method, new URLSearchParams(), body);
+  const policy = request('policy').data, reminder = request('reminder').data;
+  const custom = { enabled: true, version_codes: [31, 34], include_unversioned: true };
+  assert.deepEqual(request('nbw-local-only').data, DEFAULT_APP_NBW_LOCAL_ONLY);
+  assert.deepEqual(request('nbw-local-only', 'PUT', custom).data, custom);
+  assert.deepEqual(request('policy').data, policy); assert.deepEqual(request('reminder').data, reminder);
+  request('policy', 'PUT', { ...DEFAULT_APP_POLICY, enabled: true });
+  request('reminder', 'PUT', { ...DEFAULT_APP_REMINDER, enabled: true });
+  assert.deepEqual(request('nbw-local-only').data, custom);
+  const copy = request('nbw-local-only').data; copy.version_codes.push(999);
+  assert.deepEqual(request('nbw-local-only').data, custom);
+  for (const scenario of ['unavailable', 'nbw-unavailable', 'errors']) {
+    fixture.setScenario(scenario);
+    assert.equal(request('nbw-local-only').status, 503); assert.equal(request('nbw-local-only', 'PUT', DEFAULT_APP_NBW_LOCAL_ONLY).status, 503);
+  }
+  fixture.setScenario('nbw-unavailable');
+  assert.equal(request('policy').status, 200); assert.equal(request('reminder').status, 200);
+  fixture.setScenario('save-error');
+  assert.equal(request('nbw-local-only', 'PUT', DEFAULT_APP_NBW_LOCAL_ONLY).status, 500);
+  assert.deepEqual(request('nbw-local-only').data, custom);
+  fixture.setScenario('normal');
+  for (const body of [{ ...custom, revision: 1 }, { ...custom, version_codes: [31, 31] }, { ...custom, version_codes: [0] }, { enabled: false, version_codes: [] }]) assert.equal(request('nbw-local-only', 'PUT', body).status, 400);
+  assert.deepEqual(request('nbw-local-only', 'PUT', { ...custom, enabled: false }).data, { ...custom, enabled: false });
+  assert.equal(request('nbw-local-only', 'POST', custom).status, 405);
+  fixture.setScenario('nbw-invalid'); assert.throws(() => readNbwLocalOnly(request('nbw-local-only').data), /响应格式异常/);
+  fixture.setScenario('slow'); assert.equal(fixture.delay('/api/admin/app-clients/nbw-local-only', new URLSearchParams()), 1500);
+});
+
+test('仅本站 API 的网络、503、取消及损坏响应不会被吞掉或回退默认', async () => {
+  for (const method of ['appClientNbwLocalOnly', 'saveAppClientNbwLocalOnly']) {
+    for (const status of [401, 403, 500, 503]) {
+      const error = Object.assign(new Error(`本地模拟 ${status}`), { status });
+      const api = createAppClientsAPI(async () => { throw error; });
+      await assert.rejects(api[method](DEFAULT_APP_NBW_LOCAL_ONLY), actual => actual === error);
+    }
+    const controller = new AbortController(); controller.abort();
+    const cancelled = createAppClientsAPI(async (_path, options) => { options.signal.throwIfAborted(); });
+    await assert.rejects(method === 'appClientNbwLocalOnly' ? cancelled[method]({ signal: controller.signal }) : cancelled[method](DEFAULT_APP_NBW_LOCAL_ONLY, { signal: controller.signal }), { name: 'AbortError' });
+    for (const data of [{}, { ...DEFAULT_APP_NBW_LOCAL_ONLY, include_unversioned: 'false' }, { ...DEFAULT_APP_NBW_LOCAL_ONLY, revision: 1 }]) {
+      const invalidAPI = createAppClientsAPI(async () => data);
+      await assert.rejects(invalidAPI[method](DEFAULT_APP_NBW_LOCAL_ONLY), /响应格式异常/);
+    }
   }
 });
 

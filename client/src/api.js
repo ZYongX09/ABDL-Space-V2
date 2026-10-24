@@ -1257,7 +1257,7 @@ export const adminAPI = {
     return { settings: [] };
   },
   saveSetting: async (key, value) => {
-    if (isReservedAppClientSetting(key)) throw new Error('App 提醒与版本废弃策略为保留配置，请前往 App 管理使用专用表单保存');
+    if (isReservedAppClientSetting(key)) throw new Error('App 提醒、版本废弃与仅本站模式为保留配置，请前往 App 管理使用专用表单保存');
     if (USE_API) return apiFetch('/api/admin/settings', { method: 'PUT', body: JSON.stringify({ key, value }) });
     return { ok: true };
   },

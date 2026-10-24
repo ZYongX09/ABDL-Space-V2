@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { adminAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
-import { createRequestGate, DEFAULT_APP_POLICY, DEFAULT_APP_REMINDER, DEFAULT_APP_REMINDER_MESSAGE, exactCount, MAX_UPDATE_MESSAGE, normalizeVersionCodes, policyPayload, reminderPayload, versionLabel } from '../../appClients/model.js';
+import { createRequestGate, DEFAULT_APP_NBW_LOCAL_ONLY, DEFAULT_APP_POLICY, DEFAULT_APP_REMINDER, DEFAULT_APP_REMINDER_MESSAGE, exactCount, MAX_UPDATE_MESSAGE, nbwLocalOnlyPayload, normalizeVersionCodes, policyPayload, reminderPayload, versionLabel } from '../../appClients/model.js';
 import AdminLayout from './layout';
 import { Card, Empty, ErrorBox, FormField, Loading, Pagination, Pill, StatCard } from './ui';
 import { fmtFull } from './util';
@@ -160,6 +160,71 @@ function PolicyEditor() {
   </Card>;
 }
 
+const nbwLocalOnlyForm = config => ({ ...config, versionText: config.version_codes.join('\n') });
+
+function NbwLocalOnlyEditor() {
+  const [loadKey, setLoadKey] = useState(0);
+  const resource = useResource(String(loadKey), signal => adminAPI.appClientNbwLocalOnly({ signal }));
+  const [form, setForm] = useState(() => nbwLocalOnlyForm(DEFAULT_APP_NBW_LOCAL_ONLY));
+  const [saved, setSaved] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const saveGate = useRef(createRequestGate());
+  const saveController = useRef(null);
+  useEffect(() => () => { saveGate.current.invalidate(); saveController.current?.abort(); }, []);
+  useEffect(() => {
+    if (!resource.data) return;
+    setSaved(resource.data); setForm(nbwLocalOnlyForm(resource.data));
+    setError(''); setNotice('');
+  }, [resource.data]);
+  const change = patch => { setForm(value => ({ ...value, ...patch })); setError(''); setNotice(''); };
+  const reload = () => { setError(''); setNotice(''); setLoadKey(value => value + 1); };
+  let preview = [], previewError = '';
+  try { preview = normalizeVersionCodes(form.versionText, '仅本站'); } catch (e) { previewError = e.message; }
+  const dirty = saved && (previewError || form.enabled !== saved.enabled || form.include_unversioned !== saved.include_unversioned || preview.join(',') !== saved.version_codes.join(','));
+  const save = async event => {
+    event.preventDefault();
+    if (saveController.current || saving || resource.loading || resource.error || !resource.data) return;
+    let payload;
+    try { payload = nbwLocalOnlyPayload(form); } catch (e) { setError(e.message); return; }
+    const current = saveGate.current.begin();
+    const controller = new AbortController();
+    saveController.current = controller;
+    setSaving(true); setError(''); setNotice('');
+    try {
+      const config = await adminAPI.saveAppClientNbwLocalOnly(payload, { signal: controller.signal });
+      if (!current()) return;
+      setSaved(config); setForm(nbwLocalOnlyForm(config));
+      setNotice('仅本站模式已保存；仅影响命中的原生 App，不修改真实 NBW 绑定。');
+    } catch (e) {
+      if (current()) setError(`保存失败：${e.message || '请重试'}。当前输入已保留，可再次保存重试；若响应中断，请重新加载确认服务器状态。`);
+    } finally {
+      if (current()) { saveController.current = null; setSaving(false); }
+    }
+  };
+  return <Card title="指定版本仅本站模式（关闭NBW）" description="默认关闭，不预选任何版本，未上报选项默认不勾选。仅影响命中的原生 App；网页与未命中的新版 App 不受影响，不会强制停用整个 App。此卡片独立保存，不更改更新提醒或版本废弃策略。" icon="fa-house">
+    <p id="app-nbw-local-only-effects" className="ac-app-note">命中后：NBW 专栏为空；首页只移除 NBW 外站来源，保留本站帖子；发帖仅发布到本站，不再双发 NBW。不会修改账号真实的 NBW 绑定，也不会解绑或清除凭据。关闭总开关后不再应用此模式，但保留版本列表与未上报选项。</p>
+    <p className="ac-app-note">旧版 App 的同步选项仍可能在旧界面中可见，后端不能远程隐藏旧控件。内部版本号 code31 的回复本地缺陷不能由后端修复，仍需升级 App；本模式不是该缺陷的修复方案。</p>
+    {resource.loading ? <Loading text="正在读取仅本站模式…" /> : resource.error ? <RetryError error={resource.error} retry={reload} /> : <form id="app-nbw-local-only-form" onSubmit={save} aria-describedby="app-nbw-local-only-effects">
+      <fieldset className="ac-app-fieldset" disabled={saving}>
+        <legend className="ac-app-visually-hidden">指定版本仅本站模式配置</legend>
+        {saved && <div id="app-nbw-local-only-saved-summary" className="ac-app-policy-status"><Pill tone={saved.enabled ? 'amber' : 'slate'}>{saved.enabled ? '已保存仅本站模式：启用' : '已保存仅本站模式：关闭'}</Pill><span>已保存版本：{saved.version_codes.length ? saved.version_codes.join('、') : '未指定'}；已保存包含未上报有效版本号的 App：{saved.include_unversioned ? '是' : '否'}。</span></div>}
+        <label className="ac-check-row"><input id="app-nbw-local-only-enabled" type="checkbox" role="switch" checked={form.enabled} onChange={e => change({ enabled: e.target.checked })} /><span>启用指定版本仅本站模式（关闭 NBW）</span></label>
+        <FormField label="仅本站的内部版本号（versionCode）" htmlFor="app-nbw-local-only-versions" hint="仅匹配明确列出的有效内部版本号，不是展示版本名、最低版本门槛或全部旧版本。支持换行、空格或中英文逗号分隔，自动去重、排序。范围 1–2147483647，最多 200 个不同版本；填写版本不会自动启用。">
+          <textarea id="app-nbw-local-only-versions" className="ac-textarea" rows={4} value={form.versionText} onChange={e => change({ versionText: e.target.value })} placeholder="未指定任何版本" aria-invalid={!!previewError} aria-describedby="app-nbw-local-only-version-preview" />
+          <p id="app-nbw-local-only-version-preview" className="ac-section-note ac-app-plaintext" aria-live="polite">规范化预览（尚未保存）：{previewError || (preview.length ? preview.join('、') : '未指定任何版本')}</p>
+        </FormField>
+        <label className="ac-check-row"><input id="app-nbw-local-only-include-unversioned" type="checkbox" checked={form.include_unversioned} aria-describedby="app-nbw-local-only-unversioned-note" onChange={e => change({ include_unversioned: e.target.checked })} /><span>独立包含未上报有效版本号的原生 App</span></label>
+        <p id="app-nbw-local-only-unversioned-note" className="ac-section-note">默认不勾选。仅针对已识别为原生 App 但版本号缺失或格式无效的请求，不包含网页。此项与已知版本列表独立：总开关启用时，勾选后即使列表为空也会命中这些 App；取消勾选不影响列表匹配。列表为空且此项未勾选时，不命中任何 App。</p>
+        <ErrorBox msg={error} />
+        <p id="app-nbw-local-only-form-status" role="status" aria-live="polite" className="ac-section-note">{notice || (saved ? dirty ? '表单有未保存更改，尚未生效。' : '当前表单与已保存配置一致。' : '')}</p>
+        <div className="ac-action-group"><button type="submit" className="ac-btn primary" disabled={saving}>{saving ? '正在保存仅本站模式…' : '保存仅本站模式'}</button><button type="button" className="ac-btn" disabled={saving} onClick={reload}>重新加载已保存仅本站模式</button></div>
+      </fieldset>
+    </form>}
+  </Card>;
+}
+
 function AppClientsContent() {
   const [revision, setRevision] = useState(0);
   const stats = useResource(`stats:${revision}`, signal => adminAPI.appClientStats({ signal }));
@@ -175,6 +240,7 @@ function AppClientsContent() {
   return <div className="ac-page-stack ac-app-clients">
     <ReminderEditor />
     <PolicyEditor />
+    <NbwLocalOnlyEditor />
     <Card title="原生 App 请求观测统计" icon="fa-chart-column" description="统计已认证的原生时间线请求，不是安装量、设备数、下载量，也不覆盖 App 的所有活动。" action={<button type="button" className="ac-btn" disabled={stats.loading} onClick={() => setRevision(value => value + 1)}>刷新观测数据</button>}>
       <p className="ac-app-note">「未上报版本号」包括未上报有效版本号及格式无效的请求，不代表未安装。仅从数据库迁移开始观测，不回填历史数据。账号总数按账号去重；同一账号可使用多个版本，也可先未上报再升级，所以「曾上报」与「曾未上报」可能重叠，不能相加当作总账号数。</p>
       {stats.loading ? <Loading text="正在读取观测统计…" /> : stats.error ? <RetryError error={stats.error} retry={() => setRevision(value => value + 1)} /> : stats.data?.available === false ? <div className="ac-app-note" role="status">统计不可用：后端尚未完成 App 观测数据库迁移，或观测数据读取失败。这不是 0 个用户；版本明细和用户列表暂不可用。</div> : stats.data && <>

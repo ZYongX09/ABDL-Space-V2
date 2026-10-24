@@ -1,9 +1,11 @@
 // App 管理的纯数据规则；不能用旧 has_app 推断安装或版本。
 export const APP_POLICY_SETTING_KEY = 'app_client_policy';
 export const APP_REMINDER_SETTING_KEY = 'app_client_reminder';
+export const APP_NBW_LOCAL_ONLY_SETTING_KEY = 'app_client_nbw_local_only';
+export const DEFAULT_APP_NBW_LOCAL_ONLY = Object.freeze({ enabled: false, version_codes: Object.freeze([]), include_unversioned: false });
 export const DEFAULT_APP_REMINDER_MESSAGE = '已有新版本 App，建议更新以获得更好的体验。';
 export const DEFAULT_APP_REMINDER = Object.freeze({ enabled: false, version_codes: [], message: DEFAULT_APP_REMINDER_MESSAGE, include_unversioned: true });
-export const isReservedAppClientSetting = key => [APP_POLICY_SETTING_KEY, APP_REMINDER_SETTING_KEY].includes(String(key).trim());
+export const isReservedAppClientSetting = key => [APP_POLICY_SETTING_KEY, APP_REMINDER_SETTING_KEY, APP_NBW_LOCAL_ONLY_SETTING_KEY].includes(String(key).trim());
 export const DEFAULT_APP_POLICY = Object.freeze({ enabled: false, deprecated_version_codes: [], block_unversioned: false, update_message: '当前 App 版本已停止支持，请更新到最新版本后继续使用。' });
 export const TOTAL_KEYS = ['observed_users', 'versioned_users', 'unversioned_users', 'active_1d', 'active_7d', 'active_30d'];
 export const VERSION_KEYS = ['observed_users', 'latest_users', 'active_1d', 'active_7d', 'active_30d'];
@@ -63,6 +65,25 @@ export function readReminder(data) {
   if (!data || typeof data.enabled !== 'boolean' || typeof data.message !== 'string' || !Array.isArray(data.version_codes) || !data.version_codes.every(versionInteger) || typeof reminderIncludesUnversioned(data) !== 'boolean') invalid('App 提醒');
   const reminder = reminderPayload(data);
   return { ...reminder, message: reminder.message || DEFAULT_APP_REMINDER_MESSAGE };
+}
+
+// 表单文本可归一化，但请求始终仅含独立的三个字段，不继承提醒/废弃配置。
+export function nbwLocalOnlyPayload(form) {
+  if (typeof form?.enabled !== 'boolean' || typeof form?.include_unversioned !== 'boolean') throw new Error('仅本站模式的开关必须是布尔值');
+  const hasText = Object.hasOwn(form, 'versionText');
+  if (hasText ? typeof form.versionText !== 'string' : !Array.isArray(form.version_codes) || !Array.from(form.version_codes).every(versionInteger)) throw new Error('仅本站版本号无效：请填写内部版本号正整数列表');
+  return {
+    enabled: form.enabled,
+    version_codes: normalizeVersionCodes(hasText ? form.versionText : form.version_codes, '仅本站'),
+    include_unversioned: form.include_unversioned,
+  };
+}
+
+// 缺省配置由后端返回完整三字段；读取失败/缺字段/额外字段不能伪装成默认已保存。
+export function readNbwLocalOnly(data) {
+  const fields = ['enabled', 'version_codes', 'include_unversioned'];
+  if (!data || Object.keys(data).length !== fields.length || !fields.every(key => Object.hasOwn(data, key)) || typeof data.enabled !== 'boolean' || typeof data.include_unversioned !== 'boolean' || !Array.isArray(data.version_codes) || data.version_codes.length > MAX_DEPRECATED_CODES || !Array.from(data.version_codes).every(versionInteger) || new Set(data.version_codes).size !== data.version_codes.length) invalid('App 仅本站模式');
+  return nbwLocalOnlyPayload(data);
 }
 
 export function readStats(data) {
