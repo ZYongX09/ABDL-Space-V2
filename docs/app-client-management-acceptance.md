@@ -1,6 +1,10 @@
 # App 版本策略与统计管理验收
 
-## 2026-10-24：指定版本仅本站模式（关闭 NBW）前端交付
+## 2026-10-24：生产发布补充
+
+用户授权后，main固定`fdc919d4e146c7bfb44384d157dcf99c05113503`已快进推送，Git集成Pages生产部署`67913866-488f-4d79-8f7c-70753602fd45`成功；正式域名入口及appClients-Czr6GF5N.js已核对新卡片/专用接口标识。发布前重新npm test/build均exit0，原253项通过。浏览器正式管理入口匿名显示管理员登录门禁，未用真实会话启用/保存；后台Worker759也已100%生效，生产策略记录仍为空、保持默认关闭。无DDL/无APK/无V2实施。完整证据`~/.local/share/abdl-space-release/20261024-nbw-local-only/`；本段只在develop维护，不为文档重复推main部署。
+
+## 2026-10-24：指定版本仅本站模式（关闭 NBW）开发交付
 
 - `/admin/app-clients` 新增独立卡片，复用原 Card、表单、状态提示和三主题管理样式；不改原提醒/废弃表单。默认 `{ enabled: false, version_codes: [], include_unversioned: false }`，无预选版本。仅显式开关和保存才更新配置；关闭保留列表及独立未上报选项。
 - `adminAPI.appClientNbwLocalOnly` / `saveAppClientNbwLocalOnly` 使用专用 GET/PUT `/api/admin/app-clients/nbw-local-only`，请求与响应严格三字段，无 revision；整数范围 1–2147483647、最多 200 个唯一版本。草稿文本可分隔、去重、排序；损坏响应、网络、取消、401/403/500/503 均不回退默认成功。
