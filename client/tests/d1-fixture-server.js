@@ -9,7 +9,7 @@ import react from '@vitejs/plugin-react';
 // 独立于生产 vite.config/index/main，永远不加载代理、env、SW、统计、NSFW或推送。
 export async function createD1FixtureServer({ port = 8795, quiet = false } = {}) {
   const cacheDir = await mkdtemp(join(tmpdir(), 'd1-browser-fixture-'));
-  const state = { scenario: 'success', retryAfter: '3600', delay: 20_000, calls: {}, events: [], unread: { A: 3, B: 5 } };
+  const state = { scenario: 'success', delay: 20_000, calls: {}, events: [], unread: { A: 3, B: 5 } };
   const html = '<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>D1 本地 effects 验收</title></head><body><div id="root"></div><script type="module" src="/tests/d1-fixture-entry.jsx"></script></body></html>';
   const csp = `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws://127.0.0.1:${port + 100} ws://localhost:${port + 100}; img-src 'self' data:; font-src 'self'; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'`;
   const vite = await createViteServer({ configFile: false, envFile: false, cacheDir,
@@ -38,7 +38,6 @@ export async function createD1FixtureServer({ port = 8795, quiet = false } = {})
       let data;
       try { data = JSON.parse(text); } catch { json(400, {}); return; }
       if (['success', '429', '401', 'slow', 'messages-error', 'send-slow', 'load-send-error'].includes(data.scenario)) state.scenario = data.scenario;
-      if (data.retryAfter !== undefined) state.retryAfter = String(data.retryAfter);
       if (data.reset) { state.calls = {}; state.events = []; state.unread = { A: 3, B: 5 }; }
       json(200, state); return;
     }
@@ -57,10 +56,13 @@ export async function createD1FixtureServer({ port = 8795, quiet = false } = {})
       const scenario = state.scenario;
       if ((scenario === 'slow' && req.method === 'GET') || (scenario === 'send-slow' && url.pathname === '/api/messages' && req.method === 'POST') || (scenario === 'load-send-error' && /^\/api\/messages\/\d+$/.test(url.pathname))) await new Promise(resolve => setTimeout(resolve, state.delay));
       if (scenario === 'load-send-error' && url.pathname === '/api/messages' && req.method === 'POST') { json(503, { error: '本地发送失败（打断旧 load 后不能卡住 loading）' }); return; }
-      if (scenario === '429' || scenario === '401') {
-        const status = Number(scenario);
-        // 特意用非 JSON 覆盖 apiFetch 错误 metadata 分支。
-        if (!res.destroyed) { res.writeHead(status, { 'Content-Type': 'text/plain', ...(status === 429 ? { 'Retry-After': state.retryAfter } : {}) }); res.end(`fixture ${status}`); }
+      if (scenario === '429') {
+        // 手动验收用：故意以 text/plain 返回，覆盖 apiFetch 非 JSON 错误 metadata 分支。
+        json(429, { error: 'fixture 429' }, { 'Content-Type': 'text/plain' });
+        return;
+      }
+      if (scenario === '401') {
+        json(401, { error: 'fixture 401' }, { 'Content-Type': 'text/plain' });
         return;
       }
       if (scenario === 'messages-error' && /^\/api\/messages\/\d+$/.test(url.pathname)) { json(503, { error: '本地消息失败，不应由 toast 重渲染重拉', code: 'FIXTURE_MESSAGE_ERROR' }); return; }

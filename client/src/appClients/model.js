@@ -86,6 +86,19 @@ export function readNbwLocalOnly(data) {
   return nbwLocalOnlyPayload(data);
 }
 
+// 宝宝新天地 V2 全局模式：严格单字段；只对带协议头的新版 App 生效，与旧版本开关独立取更严格者。
+export const NBW_V2_POLICY_MODES = Object.freeze(['local_only', 'read_only', 'full']);
+export const DEFAULT_NBW_V2_POLICY = Object.freeze({ mode: 'local_only' });
+const nbwV2Mode = value => typeof value === 'string' && NBW_V2_POLICY_MODES.includes(value);
+export function nbwV2PolicyPayload(form) {
+  if (!form || typeof form !== 'object' || Array.isArray(form) || Object.keys(form).length !== 1 || !nbwV2Mode(form.mode)) throw new Error('宝宝新天地 V2 模式无效：只能选择 仅本站 / 只读 / 完整');
+  return { mode: form.mode };
+}
+export function readNbwV2Policy(data) {
+  if (!data || Object.keys(data).length !== 1 || !nbwV2Mode(data.mode)) invalid('宝宝新天地 V2 模式');
+  return { mode: data.mode };
+}
+
 export function readStats(data) {
   if (typeof data?.available !== 'boolean') invalid('App 统计');
   if (!data.available) return { available: false, measurement_started_at: data.measurement_started_at ?? null };

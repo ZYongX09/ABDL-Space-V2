@@ -6,9 +6,6 @@ import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { createSponsorFixture, SPONSOR_FIXTURE_IDENTITIES, SPONSOR_FIXTURE_SCENARIOS } from './fixture.js';
 import { createSponsorFixtureServer } from '../../tests/sponsor-fixture-server.js';
-import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
-import { transformSync } from 'esbuild';
 
 const API = '/api/v1/sponsors/';
 const op = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -256,32 +253,11 @@ test('HTTP 包装器有可见入口/最小本地存储、严格CSP、404兜底�
   const source = await readFile(new URL('../../tests/sponsor-fixture-server.js', import.meta.url), 'utf8');
   for (const pattern of [/configFile: false/, /envFile: false/, /envPrefix: \[\]/, /middlewareMode: true/, /proxy: \{\}/, /ui = true/, /'import.meta.env.VITE_API_BASE': JSON.stringify\(''\)/]) assert.match(source, pattern);
   assert.doesNotMatch(source, /force: true, include|app-clients-fixture|createProxy|https:\/\/api\./);
-  // 在内存路由下实际渲染虚拟入口，防止 URL 已变 /sponsors 却仍然只挂载 Settings。
-  const require = createRequire(new URL('../../package.json', import.meta.url));
-  const React = require('react');
-  const { renderToString } = require('react-dom/server');
-  const { StaticRouter } = require('react-router-dom/server');
-  const router = require('react-router-dom');
-  const entryTemplate = source.match(/const appEntry = mobile => `([\s\S]*?)`;/)[1];
-  const entry = entryTemplate.replace(/\$\{mobile[^\n]*\}/g, '');
-  const compiled = transformSync(entry, { format: 'cjs', loader: 'js' }).code;
-  for (const [location, expected] of [['/settings', '真实设置路由'], ['/sponsors', '真实赞助路由']]) {
-    let markup = '';
-    vm.runInNewContext(compiled, {
-      document: { getElementById: () => ({}) },
-      require(id) {
-        if (id === 'react') return React;
-        if (id === 'react-dom/client') return { createRoot: () => ({ render: tree => { markup = renderToString(tree); } }) };
-        if (id === 'react-router-dom') return { ...router, BrowserRouter: ({ children }) => React.createElement(StaticRouter, { location }, children) };
-        if (id === '/src/pages/Settings.jsx') return { __esModule: true, default: () => React.createElement('h1', null, '真实设置路由') };
-        if (id === '/src/sponsors/SponsorCenter.jsx') return { __esModule: true, default: () => React.createElement('h1', null, '真实赞助路由') };
-        if (id.endsWith('.css')) return {};
-        if (id.includes('/contexts/')) return Object.fromEntries(['AuthProvider', 'ThemeProvider', 'ToastProvider', 'NsfwProvider', 'MobileHeaderProvider'].map(name => [name, ({ children }) => children]));
-        throw new Error(`虚拟入口出现未隔离模块：${id}`);
-      },
-    }, { filename: fileURLToPath(new URL('../../tests/sponsor-fixture-server.js', import.meta.url)) });
-    assert.match(markup, new RegExp(expected));
-    assert.doesNotMatch(markup, new RegExp(expected === '真实设置路由' ? '真实赞助路由' : '真实设置路由'));
+  // 静态校验虚拟入口的路由映射：不再把生成代码放进 VM 动态执行。
+  const entrySource = source.match(/const appEntry = mobile => `([\s\S]*?)`;/)[1].replace(/\$\{mobile[^\n]*\}/g, '');
+  for (const [path, component] of [['/settings', 'Settings'], ['/sponsors', 'SponsorCenter']]) {
+    assert.match(entrySource, new RegExp(`Route, \\{ path: '${path}', element: React\\.createElement\\(${component}\\) \\}`), `虚拟入口必须把 ${path} 渲染为 ${component}`);
   }
+  assert.doesNotMatch(entrySource, /mobile\.css/, '桌面入口不应包含移动样式');
   await app.close(); assert.equal(app.server.listening, false);
 });

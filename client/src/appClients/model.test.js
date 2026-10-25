@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAppClientsAPI } from './api.js';
 import { createAppClientsFixture } from './fixture.js';
-import { APP_NBW_LOCAL_ONLY_SETTING_KEY, APP_POLICY_SETTING_KEY, APP_REMINDER_SETTING_KEY, createRequestGate, DEFAULT_APP_NBW_LOCAL_ONLY, DEFAULT_APP_POLICY, DEFAULT_APP_REMINDER, DEFAULT_APP_REMINDER_MESSAGE, exactCount, isReservedAppClientSetting, nbwLocalOnlyPayload, normalizeVersionCodes, policyPayload, readNbwLocalOnly, readPolicy, readReminder, readStats, readUsers, reminderPayload, usersQuery } from './model.js';
+import { APP_NBW_LOCAL_ONLY_SETTING_KEY, APP_POLICY_SETTING_KEY, APP_REMINDER_SETTING_KEY, createRequestGate, DEFAULT_APP_NBW_LOCAL_ONLY, DEFAULT_APP_POLICY, DEFAULT_APP_REMINDER, DEFAULT_APP_REMINDER_MESSAGE, DEFAULT_NBW_V2_POLICY, exactCount, isReservedAppClientSetting, nbwLocalOnlyPayload, nbwV2PolicyPayload, normalizeVersionCodes, policyPayload, readNbwLocalOnly, readNbwV2Policy, readPolicy, readReminder, readStats, readUsers, reminderPayload, usersQuery } from './model.js';
 
 test('策略默认关闭，独立未知版本开关与明确废弃列表归一化', () => {
   assert.equal(APP_POLICY_SETTING_KEY, 'app_client_policy');
@@ -369,4 +369,27 @@ test('API 网络错误不吞掉，不会产生空列表', async () => {
   const api = createAppClientsAPI(async () => { throw new Error('本地模拟 503'); });
   await assert.rejects(api.appClientStats(), /503/);
   await assert.rejects(api.appClientUsers(), /503/);
+});
+
+test('宝宝新天地 V2 模式只接受严格单字段三值，错误不吞掉', async () => {
+  assert.deepEqual(DEFAULT_NBW_V2_POLICY, { mode: 'local_only' });
+  assert.deepEqual(nbwV2PolicyPayload({ mode: 'full' }), { mode: 'full' });
+  for (const bad of [undefined, null, {}, { mode: 'FULL' }, { mode: 'read-only' }, { mode: 'full', extra: 1 }]) {
+    assert.throws(() => nbwV2PolicyPayload(bad), /V2 模式无效/);
+  }
+  assert.deepEqual(readNbwV2Policy({ mode: 'read_only' }), { mode: 'read_only' });
+  for (const bad of [null, {}, [], { mode: 'local_only', reason: 'x' }, { mode: 'disabled' }, { mode: 1 }]) {
+    assert.throws(() => readNbwV2Policy(bad), /响应格式异常/);
+  }
+  const api = createAppClientsAPI(async () => ({ mode: 'full' }));
+  assert.deepEqual(await api.nbwV2Policy(), { mode: 'full' });
+  const saved = createAppClientsAPI(async (_path, options) => {
+    assert.equal(options.method, 'PUT');
+    assert.deepEqual(JSON.parse(options.body), { mode: 'local_only' });
+    return { mode: 'local_only' };
+  });
+  assert.deepEqual(await saved.saveNbwV2Policy({ mode: 'local_only' }), { mode: 'local_only' });
+  const failing = createAppClientsAPI(async () => { throw Object.assign(new Error('本地模拟 503'), { status: 503 }); });
+  await assert.rejects(failing.nbwV2Policy(), /503/);
+  await assert.rejects(failing.saveNbwV2Policy({ mode: 'full' }), /503/);
 });

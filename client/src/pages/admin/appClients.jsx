@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { adminAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
-import { createRequestGate, DEFAULT_APP_NBW_LOCAL_ONLY, DEFAULT_APP_POLICY, DEFAULT_APP_REMINDER, DEFAULT_APP_REMINDER_MESSAGE, exactCount, MAX_UPDATE_MESSAGE, nbwLocalOnlyPayload, normalizeVersionCodes, policyPayload, reminderPayload, versionLabel } from '../../appClients/model.js';
+import { createRequestGate, DEFAULT_APP_NBW_LOCAL_ONLY, DEFAULT_APP_POLICY, DEFAULT_APP_REMINDER, DEFAULT_APP_REMINDER_MESSAGE, DEFAULT_NBW_V2_POLICY, exactCount, MAX_UPDATE_MESSAGE, nbwLocalOnlyPayload, nbwV2PolicyPayload, NBW_V2_POLICY_MODES, normalizeVersionCodes, policyPayload, reminderPayload, versionLabel } from '../../appClients/model.js';
 import AdminLayout from './layout';
 import { Card, Empty, ErrorBox, FormField, Loading, Pagination, Pill, StatCard } from './ui';
 import { fmtFull } from './util';
@@ -225,6 +225,68 @@ function NbwLocalOnlyEditor() {
   </Card>;
 }
 
+const NBW_V2_MODE_LABELS = { local_only: '仅本站（完全关闭远端）', read_only: '只读（可浏览外站内容）', full: '完整（自动同步与外站互动）' };
+
+function NbwV2PolicyEditor() {
+  const [loadKey, setLoadKey] = useState(0);
+  const resource = useResource(String(loadKey), signal => adminAPI.nbwV2Policy({ signal }));
+  const [form, setForm] = useState(DEFAULT_NBW_V2_POLICY);
+  const [saved, setSaved] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const saveGate = useRef(createRequestGate());
+  const saveController = useRef(null);
+  useEffect(() => () => { saveGate.current.invalidate(); saveController.current?.abort(); }, []);
+  useEffect(() => {
+    if (!resource.data) return;
+    setSaved(resource.data); setForm(resource.data);
+    setError(''); setNotice('');
+  }, [resource.data]);
+  const change = mode => { setForm({ mode }); setError(''); setNotice(''); };
+  const reload = () => { setError(''); setNotice(''); setLoadKey(value => value + 1); };
+  const dirty = saved && form.mode !== saved.mode;
+  const save = async event => {
+    event.preventDefault();
+    if (saveController.current || saving || resource.loading || resource.error || !resource.data) return;
+    let payload;
+    try { payload = nbwV2PolicyPayload(form); } catch (e) { setError(e.message); return; }
+    const current = saveGate.current.begin();
+    const controller = new AbortController();
+    saveController.current = controller;
+    setSaving(true); setError(''); setNotice('');
+    try {
+      const config = await adminAPI.saveNbwV2Policy(payload, { signal: controller.signal });
+      if (!current()) return;
+      setSaved(config); setForm(config);
+      setNotice('宝宝新天地 V2 模式已保存，对后续请求立即生效。');
+    } catch (e) {
+      if (current()) setError(`保存失败：${e.message || '请重试'}。若响应中断，请重新加载确认服务器状态。`);
+    } finally {
+      if (current()) { saveController.current = null; setSaving(false); }
+    }
+  };
+  return <Card title="宝宝新天地 V2 模式（新版 App）" description="控制带新版协议头 App 的外站能力：仅本站完全关闭远端；只读仅可浏览；完整启用公开内容自动同步与外站互动。与「指定版本仅本站模式」独立生效，对同一请求取更严格者；旧版 App 的 V1 行为不受本卡片影响。" icon="fa-right-left">
+    <p className="ac-app-note">完整模式下，新版 App 的公开帖子在本站提交成功后由服务器自动尝试同步到宝宝新天地；同步失败静默，不阻塞发帖、不弹错、不回滚本站内容。本卡片不修改任何用户的真实 NBW 绑定或授权，用户仍可在 App 内自行连接或撤销。</p>
+    {resource.loading ? <Loading text="正在读取宝宝新天地 V2 模式…" /> : resource.error ? <RetryError error={resource.error} retry={reload} /> : <form onSubmit={save}>
+      <fieldset className="ac-app-fieldset" disabled={saving}>
+        <legend className="ac-app-visually-hidden">宝宝新天地 V2 模式配置</legend>
+        {saved && <div className="ac-app-policy-status"><Pill tone={saved.mode === 'full' ? 'amber' : 'slate'}>已保存模式：{NBW_V2_MODE_LABELS[saved.mode]}</Pill><span>保存后对后续请求立即生效，无需重启。</span></div>}
+        {NBW_V2_POLICY_MODES.map(mode => (
+          <label key={mode} className="ac-check-row">
+            <input type="radio" name="nbw-v2-mode" value={mode} checked={form.mode === mode} onChange={() => change(mode)} />
+            <span>{NBW_V2_MODE_LABELS[mode]}</span>
+          </label>
+        ))}
+        <p className="ac-section-note">仅本站：新版 App 看不到外站内容也不能互动，本站发帖完全正常。只读：可浏览外站帖子与资料，所有外站写入不出站。完整：公开内容自动同步、外站点赞收藏开放；AI 分类失败仅在用户同意过默认板块时回退，不影响本站。</p>
+        <ErrorBox msg={error} />
+        <p role="status" aria-live="polite" className="ac-section-note">{notice || (saved ? dirty ? '表单有未保存更改，尚未生效。' : '当前表单与已保存配置一致。' : '')}</p>
+        <div className="ac-action-group"><button type="submit" className="ac-btn primary" disabled={saving}>{saving ? '正在保存 V2 模式…' : '保存 V2 模式'}</button><button type="button" className="ac-btn" disabled={saving} onClick={reload}>重新加载已保存模式</button></div>
+      </fieldset>
+    </form>}
+  </Card>;
+}
+
 function AppClientsContent() {
   const [revision, setRevision] = useState(0);
   const stats = useResource(`stats:${revision}`, signal => adminAPI.appClientStats({ signal }));
@@ -241,6 +303,7 @@ function AppClientsContent() {
     <ReminderEditor />
     <PolicyEditor />
     <NbwLocalOnlyEditor />
+    <NbwV2PolicyEditor />
     <Card title="原生 App 请求观测统计" icon="fa-chart-column" description="统计已认证的原生时间线请求，不是安装量、设备数、下载量，也不覆盖 App 的所有活动。" action={<button type="button" className="ac-btn" disabled={stats.loading} onClick={() => setRevision(value => value + 1)}>刷新观测数据</button>}>
       <p className="ac-app-note">「未上报版本号」包括未上报有效版本号及格式无效的请求，不代表未安装。仅从数据库迁移开始观测，不回填历史数据。账号总数按账号去重；同一账号可使用多个版本，也可先未上报再升级，所以「曾上报」与「曾未上报」可能重叠，不能相加当作总账号数。</p>
       {stats.loading ? <Loading text="正在读取观测统计…" /> : stats.error ? <RetryError error={stats.error} retry={() => setRevision(value => value + 1)} /> : stats.data?.available === false ? <div className="ac-app-note" role="status">统计不可用：后端尚未完成 App 观测数据库迁移，或观测数据读取失败。这不是 0 个用户；版本明细和用户列表暂不可用。</div> : stats.data && <>
