@@ -20,3 +20,9 @@
 - `npm test` 全量 **315/315 通过**（含 `src/appAI/model.test.js` 新增用例），`npm run build` 成功。
 - 未改路由代理、广告、赞助等其他管理卡片；`.mimosa` 目录不提交。
 - 仅本地验证与构建；生产 Pages/Vercel 部署需用户另行指示。
+
+## 2026-10-27 推送门禁误报处理
+
+用户授权对低风险告警做定点风险接受、实际高风险修复。逐项复核发现六条 SSRF high 均是项目图将测试夹具 `tests/registration-guard-fixture.js` 的同名 `fetch` 方法错误关联为生产浏览器/固定上游代理的全局 fetch。单文件直接扫描零发现，项目上下文扫描明确指向该 fixture，不能将其当成已证实生产漏洞。
+
+只将内存夹具方法改为 `handleFixtureRequest`，同步三处测试调用；生产 AuthContext、两份 API 代理和 OAuth 代理未改，未知路径拒绝、测试隔离与断言保持。相同项目上下文复扫中 AuthContext 告警6→0、API代理3→0；完整测试315/315复测通过。未禁用Hook、未添加抑制注释或改写安全账本；不据此声称全项目安全。证据在仓外 `app-ai-controls-production-20261027/`。本轮两站只推 develop，用户明确授权上线的仅后端。

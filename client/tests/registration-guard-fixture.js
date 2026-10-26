@@ -16,7 +16,7 @@ export function createRegistrationGuardFixture({ now = Date.now } = {}) {
       codes.set(`${email}:${type}`, entry);
       return entry;
     },
-    async fetch(url, options = {}) {
+    async handleFixtureRequest(url, options = {}) {
       const path = new URL(url, 'http://fixture.invalid').pathname;
       if (path !== '/api/admin/security/test-verification-code') throw new Error('fixture 阻止未知网络请求');
       options.signal?.throwIfAborted();

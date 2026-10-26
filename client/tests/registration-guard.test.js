@@ -38,7 +38,7 @@ test('响应必须精确匹配请求，六位随机码与 Unix 秒到期时间�
 test('非超管、显式false与离线禁止发请求；cookie/Bearer/no-store且不读写存储', async () => {
   const oldFetch = globalThis.fetch, storage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
   const fixture = createRegistrationGuardFixture(); fixture.seed(query.email, query.type);
-  globalThis.fetch = fixture.fetch;
+  globalThis.fetch = fixture.handleFixtureRequest;
   Object.defineProperty(globalThis, 'localStorage', { configurable: true, get() { throw new Error('敏感请求不能访问存储'); } });
   try {
     for (const user of [null, { id: 2, role: 'admin', is_super_admin: true }, { id: 1, role: 'user', is_super_admin: true }, ...[false, null, undefined, 1, 'true'].map(value => ({ id: 1, role: 'admin', is_super_admin: value }))]) await assert.rejects(requestTestVerificationCode('', query, { user }), error => error.status === 403);
@@ -187,7 +187,7 @@ test('真实后端错误由实际controller抹码并文本展示，输入403不�
 test('内存验证码fixture服务端拒绝未获取/已过期的测试码', async () => {
   let time = Date.now();
   const fixture = createRegistrationGuardFixture({ now: () => time });
-  const request = () => fixture.fetch('/api/admin/security/test-verification-code', { method: 'POST', headers: { Authorization: 'Bearer fixture-super' }, body: JSON.stringify(query) });
+  const request = () => fixture.handleFixtureRequest('/api/admin/security/test-verification-code', { method: 'POST', headers: { Authorization: 'Bearer fixture-super' }, body: JSON.stringify(query) });
   const missing = await request(); assert.equal(missing.status, 400); assert.equal((await missing.json()).code, 'VERIFICATION_NOT_FOUND');
   fixture.seed(query.email, query.type, 1);
   assert.equal((await request()).status, 200); time += 1000;
@@ -270,7 +270,7 @@ test('实际adminAPI不走公共缓存，普通管理员渲染无卡片且不发
   const server = await createServer({ configFile: false, envFile: false, root: new URL('../', import.meta.url).pathname, esbuild: { jsx: 'automatic' }, server: { middlewareMode: true, hmr: false }, appType: 'custom', define: { 'import.meta.env.VITE_API_BASE': JSON.stringify('') } });
   const oldFetch = globalThis.fetch, storage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
   const fixture = createRegistrationGuardFixture(); const seeded = fixture.seed(query.email, query.type);
-  globalThis.fetch = fixture.fetch;
+  globalThis.fetch = fixture.handleFixtureRequest;
   Object.defineProperty(globalThis, 'localStorage', { configurable: true, get() { throw new Error('验证码请求不得访问localStorage或缓存'); } });
   try {
     const { adminAPI } = await server.ssrLoadModule('/src/api.js');
