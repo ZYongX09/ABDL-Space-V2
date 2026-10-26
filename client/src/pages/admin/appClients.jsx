@@ -3,6 +3,7 @@ import { adminAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { createRequestGate, DEFAULT_APP_NBW_LOCAL_ONLY, DEFAULT_APP_POLICY, DEFAULT_APP_REMINDER, DEFAULT_APP_REMINDER_MESSAGE, DEFAULT_NBW_V2_POLICY, exactCount, MAX_UPDATE_MESSAGE, nbwLocalOnlyPayload, nbwV2PolicyPayload, NBW_V2_POLICY_MODES, normalizeVersionCodes, policyPayload, reminderPayload, versionLabel } from '../../appClients/model.js';
 import AdminLayout from './layout';
+import AppAIProviderCard from './AppAIProviderCard';
 import { Card, Empty, ErrorBox, FormField, Loading, Pagination, Pill, StatCard } from './ui';
 import { fmtFull } from './util';
 import './appClients.css';
@@ -304,6 +305,7 @@ function AppClientsContent() {
     <PolicyEditor />
     <NbwLocalOnlyEditor />
     <NbwV2PolicyEditor />
+    <AppAIProviderCard />
     <Card title="原生 App 请求观测统计" icon="fa-chart-column" description="统计已认证的原生时间线请求，不是安装量、设备数、下载量，也不覆盖 App 的所有活动。" action={<button type="button" className="ac-btn" disabled={stats.loading} onClick={() => setRevision(value => value + 1)}>刷新观测数据</button>}>
       <p className="ac-app-note">「未上报版本号」包括未上报有效版本号及格式无效的请求，不代表未安装。仅从数据库迁移开始观测，不回填历史数据。账号总数按账号去重；同一账号可使用多个版本，也可先未上报再升级，所以「曾上报」与「曾未上报」可能重叠，不能相加当作总账号数。</p>
       {stats.loading ? <Loading text="正在读取观测统计…" /> : stats.error ? <RetryError error={stats.error} retry={() => setRevision(value => value + 1)} /> : stats.data?.available === false ? <div className="ac-app-note" role="status">统计不可用：后端尚未完成 App 观测数据库迁移，或观测数据读取失败。这不是 0 个用户；版本明细和用户列表暂不可用。</div> : stats.data && <>

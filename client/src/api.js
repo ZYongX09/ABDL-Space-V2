@@ -5,6 +5,7 @@
  */
 import { fetchFollowStatuses } from './utils/followStatus.js';
 import { createAppClientsAPI } from './appClients/api.js';
+import { createAppAIAPI } from './appAI/api.js';
 import { isReservedAppClientSetting } from './appClients/model.js';
 import { withAvatarPreviews } from './utils/mediaUrl.js';
 import { requestTestVerificationCode } from './pages/admin/testVerificationCode.js';
@@ -1033,6 +1034,7 @@ export const merchantAPI = {
 // =====================================================================
 export const adminAPI = {
   ...createAppClientsAPI(apiFetch),
+  ...createAppAIAPI(apiFetch),
   advertising: async (params = {}) => {
     const query = new URLSearchParams();
     if (params.status) query.set('status', params.status);

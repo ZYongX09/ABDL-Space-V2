@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { createServer as createViteServer } from 'vite';
 import react from '@vitejs/plugin-react';
 import { createAppClientsFixture } from '../src/appClients/fixture.js';
+import { APP_AI_FIXTURE_CONTROL_PATH, APP_AI_PROVIDER_PATH, createAppAIFixture } from '../src/appAI/fixture.js';
 
 const scenarios = ['normal', 'legacy-reminder', 'empty', 'unavailable', 'nbw-unavailable', 'nbw-invalid', 'errors', 'save-error', 'slow'];
 const initialUsers = () => [
@@ -39,6 +40,7 @@ const csp = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'
 
 export async function createAdminFixtureServer({ port = 8791, ui = false, scenario = 'normal', quiet = false, now = Date.now } = {}) {
   const fixture = createAppClientsFixture(scenario);
+  const appAI = createAppAIFixture();
   const testCodes = new Map();
   const seedTestCode = (email, type, ttl = 300) => {
     const query = testVerificationQuery({ email, type });
@@ -124,6 +126,8 @@ export async function createAdminFixtureServer({ port = 8791, ui = false, scenar
       else if (path === '/api/auth/logout' && req.method === 'POST') { currentId = 0; result = ok({}); }
       else if (path.startsWith('/api/admin/') && !actor) result = reject('未登录', 401);
       else if (path.startsWith('/api/admin/') && actor.role !== 'admin') result = reject('仅管理员可访问');
+      else if (path === APP_AI_PROVIDER_PATH) result = appAI.respond(path, req.method, url.searchParams, body);
+      else if (path === APP_AI_FIXTURE_CONTROL_PATH) result = !actor ? reject('未登录', 401) : actor.role !== 'admin' ? reject('仅管理员可访问') : appAI.control(req.method, body);
       else if (path === '/api/admin/security/test-verification-code' && req.method === 'POST') {
         if (!superActor || superMode === 'false') result = reject('仅超级管理员可查询测试验证码');
         else {
@@ -160,11 +164,11 @@ export async function createAdminFixtureServer({ port = 8791, ui = false, scenar
       else result = fixture.respond(path, req.method, url.searchParams, body);
       // 延迟前快照响应，真正模拟旧请求晚到，而不是读取新身份。
       result = structuredClone(result);
-      const delay = path === '/api/auth/me' ? authDelay : Math.max(dataDelay, fixture.delay(path, url.searchParams));
+      const delay = path === '/api/auth/me' ? authDelay : Math.max(dataDelay, fixture.delay(path, url.searchParams), appAI.delay(path));
       if (delay) await new Promise(resolve => setTimeout(resolve, delay));
       res.writeHead(result.status, headers); res.end(JSON.stringify(result.data));
-      if (!quiet) console.log(`${req.method} ${path}${url.search} -> ${result.status}${delay ? ` (${delay}ms)` : ''}`);
-    } catch (error) { res.writeHead(400, headers); res.end(JSON.stringify({ error: error.message })); }
+      if (!quiet) console.log(`${req.method} ${path}${path === APP_AI_PROVIDER_PATH || path === APP_AI_FIXTURE_CONTROL_PATH ? '' : url.search} -> ${result.status}${delay ? ` (${delay}ms)` : ''}`);
+    } catch (error) { res.writeHead(400, headers); res.end(JSON.stringify({ error: url.pathname === APP_AI_PROVIDER_PATH || url.pathname === APP_AI_FIXTURE_CONTROL_PATH ? '无效本地 App AI 请求' : error.message })); }
   });
   return { server, async close() { server.closeAllConnections(); if (server.listening) await new Promise(resolve => server.close(resolve)); await vite?.close(); } };
 }
