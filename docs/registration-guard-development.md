@@ -1,8 +1,8 @@
-# 后端无感注册防护与管理端随机测试码（开发线）
+# 后端无感注册防护与管理端随机测试码（2026-10-26已上线）
 
 ## 当前范围与发布状态
 
-- 2026-10-26：仅保留后端无感防护的服务端代理配套与超级管理员查询功能。验证后合回并推送 `develop`；不推 `main`、不部署、不正式发布。
+- 2026-10-26：仅保留后端无感防护的服务端代理配套与超级管理员查询功能。用户后续授权上线，已由develop非squash快进main，固定代码b75d783；Pages production部署b6744f23-9daa-4d52-a01f-8a08f1a0c0a5成功。Android及普通注册协议不动。
 - 普通注册页面完整恢复各自 `HEAD`；`AuthContext.register` 与 `authAPI.register` 的实现也恢复各自 `HEAD`。不新增注册必填字段、客户端协议、校验或重试逻辑，原有注册、Captcha 与 NBW 行为不变。兼容旧 API 的防重逻辑由后端负责，本仓验证不代表后端已上线。
 - `AuthContext` 只额外保留管理端清码使用的 `auth-session-changing` 通知，在退出、退出全部、切换账户或移除当前账户前同步触发。
 - 保留 Pages 服务端签名代理及其相关测试和脚本；全部 `functions/` 由主代理独占，本次收敛不修改。未改 Android，也不修改 `AGENTS.md` 及既有权限规则。
@@ -30,3 +30,10 @@
 - 非阻断构建警告：本地未配置 Captcha 站点 key（主站另缺 Turnstile 站点 key）、部分 chunk 超过 500 kB，主站另有 admin/ui 静态与动态导入混用提示；未为消除这些警告扩大改动。
 - 普通注册页面及两处 register 实现已与各自 HEAD 逐字比较通过；AuthContext 的差异仅通知函数及四个清码触发点，api.js 的差异仅管理 helper 导入与查询入口。`git diff --check` 通过，既有测试命令保留，管理卡片/helper/error、HTTP fixture、代理测试、`functions/`、`AGENTS.md` 的收敛前后 SHA-256 一致；`main` 与 `origin/main` 本地引用未变。
 - 删除前已核实注册 helper 是 HEAD 不存在的本轮新增文件，并连同被收敛文件归档于仓外 `/tmp/registration-web-scope-20261026-xkr06s6a`。新测试及 fixture 只删客户端注册新协议部分，管理用例保留。未启动浏览器/UI fixture，未提交、推送、合并或发布。
+
+## 生产发布收尾（覆盖上述开发阶段未发布边界）
+
+- 上线前补齐双层Worker→Pages→API签名验证，三份helper一致，真实CF客户端或有效上游HMAC方可重签，synthetic无证明不签；不信X-Real-Client-IP/XFF。两站最新完整295/295、304/304与串行构建全过；只改服务端代理，不加App字段。
+- 生产正式域index/安全中心chunk已核验新卡片，浏览器匿名管理入口显示“请先登录管理员账号”。临时test.top send-code→错误计数→正确验证返回原action/email→重放拒绝、冷却429和匿名查询401均在两站正式链路通过；测试未发送真实邮件、未创建账号，challenge/escrow已精确清理。
+- 后端固定acc09b1、Worker779/4fedead6承100%，0092/0093已单次执行，独立proxy/test密钥配置且0600备份。真实超管查询、真实邮件、第三方OAuth与完整建号未代测，不能称全部功能闭环。
+- 本轮收尾记录进入develop；生产代码固定为b75d783，部署b6744f23-9daa-4d52-a01f-8a08f1a0c0a5。不为文档更新重复触发正式部署，main保持已验代码；develop继续包含main。生产证据位于仓外/home/ZYongX/.local/share/abdl-registration-production/20261026/。
