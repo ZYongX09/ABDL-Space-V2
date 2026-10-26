@@ -16,7 +16,7 @@ cd client && npm run build
 cd client && npm run preview
 ```
 
-No lint, typecheck, or test scripts exist. No CI workflows.
+Tests: `cd client && npm test` runs the full Node test suite; `cd client && npm run test:registration` runs the registration guard regressions. No lint or typecheck scripts exist. No CI workflows.
 
 ## Architecture
 

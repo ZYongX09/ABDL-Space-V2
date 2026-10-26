@@ -1,6 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { buildAvatarPreviewUrl } from '../utils/mediaUrl';
 
+function notifySessionChanging() {
+  window.dispatchEvent(new Event('auth-session-changing'));
+}
+
 const AuthContext = createContext();
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
@@ -228,6 +232,7 @@ export function AuthProvider({ children }) {
 
     // 如果移除的是当前账户，需要退出登录
     if (user?.id === accountId) {
+      notifySessionChanging();
       fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {}).finally(() => {
         if (window.__apiCache) window.__apiCache.clear();
         setUser(null);
@@ -244,6 +249,7 @@ export function AuthProvider({ children }) {
 
   // 切换账户（用保存的 token 恢复会话）
   const switchAccount = useCallback(async (accountId) => {
+    notifySessionChanging();
     const saved = getSavedAccounts();
     const target = saved.find(a => a.id === accountId);
     if (!target) throw new Error('账户不存在');
@@ -273,6 +279,7 @@ export function AuthProvider({ children }) {
 
   // 退出当前账户（不删除保存的账户）
   const logout = useCallback(async () => {
+    notifySessionChanging();
     // 清除后端 cookie（确保请求完成）
     try {
       await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' });
@@ -291,6 +298,7 @@ export function AuthProvider({ children }) {
 
   // 退出所有账户
   const logoutAll = useCallback(async () => {
+    notifySessionChanging();
     try {
       await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' });
     } catch {}

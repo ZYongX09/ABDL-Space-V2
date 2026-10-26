@@ -7,6 +7,7 @@ import { fetchFollowStatuses } from './utils/followStatus.js';
 import { createAppClientsAPI } from './appClients/api.js';
 import { isReservedAppClientSetting } from './appClients/model.js';
 import { withAvatarPreviews } from './utils/mediaUrl.js';
+import { requestTestVerificationCode } from './pages/admin/testVerificationCode.js';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 // 空字符串也是有效值（相对路径），只有显式设为 undefined/null 时才走离线
@@ -1296,6 +1297,8 @@ export const adminAPI = {
   },
 
   // ── 安全中心 ─────────────────────────────────────
+  getTestVerificationCode: (input, options) => requestTestVerificationCode(API_BASE, input, { ...options, enabled: USE_API }),
+
   getSecurityLogs: async (page = 1, limit = 50, type = '') => {
     if (USE_API) return apiFetch(`/api/admin/security/logs?page=${page}&limit=${limit}&type=${type}`);
     return { logs: [], total: 0, page, limit };

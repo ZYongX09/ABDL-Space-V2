@@ -1,4 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { adminSessionKey, isSuperAdmin } from './access.js';
+import { createTestVerificationLookup } from './testVerificationCode.js';
 import { adminAPI } from '../../api';
 import { useToast } from '../../contexts/ToastContext';
 import AdminLayout from './layout';
@@ -22,8 +25,80 @@ function scoreTone(score) {
   return 'green';
 }
 
+export function TestVerificationCodeError({ error }) {
+  if (!error) return null;
+  return <p className="ac-field-error" role="alert">{error.message}{error.retryAfter ? `；请在 ${error.retryAfter} 秒后重试` : ''}</p>;
+}
+
+export function TestVerificationCodeCard({ user, token = '', request = adminAPI.getTestVerificationCode }) {
+  const [email, setEmail] = useState('');
+  const [purpose, setPurpose] = useState('register');
+  const [state, setState] = useState({ pending: false, result: null, error: null });
+  const sessionKey = adminSessionKey(user, token);
+  const session = useRef({ user, token });
+  session.current = { user, token };
+  const lookup = useRef(null);
+  useEffect(() => {
+    const instance = createTestVerificationLookup({
+      request, getSession: () => session.current,
+      onChange: next => setState({ ...next, sessionKey }),
+      onRejected: (_error, key) => window.dispatchEvent(new CustomEvent('admin-session-rejected', { detail: { sessionKey: key } })),
+    });
+    lookup.current = instance;
+    const block = () => instance.block();
+    const rejected = event => { if (event.detail?.sessionKey === sessionKey) block(); };
+    const storage = event => { if (!event.key || ['abdl_accounts', 'abdl_active_account', 'abdl_currentUser'].includes(event.key)) block(); };
+    const expire = () => instance.expire();
+    window.addEventListener('auth-session-changing', block);
+    window.addEventListener('admin-session-rejected', rejected);
+    window.addEventListener('storage', storage);
+    window.addEventListener('pagehide', block);
+    window.addEventListener('focus', expire);
+    document.addEventListener('visibilitychange', expire);
+    return () => {
+      instance.dispose(); lookup.current = null;
+      window.removeEventListener('auth-session-changing', block);
+      window.removeEventListener('admin-session-rejected', rejected);
+      window.removeEventListener('storage', storage);
+      window.removeEventListener('pagehide', block);
+      window.removeEventListener('focus', expire);
+      document.removeEventListener('visibilitychange', expire);
+    };
+  }, [sessionKey, request]);
+  if (!isSuperAdmin(user) || state.blocked) return null;
+  const result = state.sessionKey === sessionKey && state.result?.expires_at * 1000 > Date.now() ? state.result : null;
+  return (
+    <Card title="随机测试验证码查询" description="仅超级管理员可查，仅限 @test.top；需先在对应流程获取验证码，不提供固定万能码。" icon="fa-key">
+      <form className="ac-form-grid" autoComplete="off" onSubmit={event => { event.preventDefault(); lookup.current?.query({ email, type: purpose }); }}>
+        <div className="ac-form-grid ac-form-grid-2">
+          <label className="ac-form-field">
+            <span className="ac-field-label">精确测试邮箱</span>
+            <input className="ac-input" type="email" required maxLength={73} placeholder="完整邮箱，例如 tester@test.top" value={email} onChange={event => { lookup.current?.clear(); setEmail(event.target.value); }} autoComplete="off" spellCheck={false} />
+          </label>
+          <label className="ac-form-field">
+            <span className="ac-field-label">验证码用途</span>
+            <select className="ac-select" value={purpose} onChange={event => { lookup.current?.clear(); setPurpose(event.target.value); }}>
+              <option value="register">注册（register）</option><option value="reset">重置密码（reset）</option><option value="bind">绑定邮箱（bind）</option>
+            </select>
+          </label>
+        </div>
+        <p className="ac-field-hint">必须显式查询，不支持通配或批量查询。验证码到期、退出、切换账号或开始新查询时立即清空；不会保存到本地存储。</p>
+        <div><button type="submit" className="ac-btn primary">{state.pending ? '重新查询（取消上次请求）' : '查询测试验证码'}</button></div>
+        <TestVerificationCodeError error={state.error} />
+        {result && <div role="status" className="ac-form-grid">
+          <p>邮箱：{result.email}；用途：{result.type}</p>
+          <p>随机验证码：<strong><code>{result.code}</code></strong></p>
+          <p>到期时间：<time dateTime={new Date(result.expires_at * 1000).toISOString()}>{fmtFull(result.expires_at)}</time></p>
+        </div>}
+      </form>
+    </Card>
+  );
+}
+
 export default function AdminSecurity() {
   const toast = useToast();
+  const { user, accounts, loading: authLoading } = useAuth();
+  const token = accounts?.find(account => String(account.id) === String(user?.id))?.token || '';
   const [stats, setStats] = useState(null);
   const [logs, setLogs] = useState(null);
   const [total, setTotal] = useState(0);
@@ -68,6 +143,7 @@ export default function AdminSecurity() {
   return (
     <AdminLayout active="security">
       <div className="ac-page-stack">
+        {!authLoading && isSuperAdmin(user) && <TestVerificationCodeCard key={adminSessionKey(user, token)} user={user} token={token} />}
         <div className="ac-stat-grid">
           <StatCard label="24 小时安全事件" value={fmtNum(stats?.dayCount)} icon="fa-triangle-exclamation" tone="red" meta="近期风险活动" />
           <StatCard label="7 天安全事件" value={fmtNum(stats?.weekCount)} icon="fa-clock-rotate-left" tone="amber" meta="短期风险趋势" />

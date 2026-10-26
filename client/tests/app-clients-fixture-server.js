@@ -1,4 +1,6 @@
 import { createServer } from 'node:http';
+import { randomInt } from 'node:crypto';
+import { testVerificationQuery } from '../src/pages/admin/testVerificationCode.js';
 import { pathToFileURL } from 'node:url';
 import { createServer as createViteServer } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -35,8 +37,16 @@ document.querySelector('#reset').addEventListener('click', () =>
 // 仅 fixture 响应：不允许生产 API、统计脚本、验证码或外部头像发请求。
 const csp = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; frame-src 'none'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'";
 
-export async function createAdminFixtureServer({ port = 8791, ui = false, scenario = 'normal', quiet = false } = {}) {
+export async function createAdminFixtureServer({ port = 8791, ui = false, scenario = 'normal', quiet = false, now = Date.now } = {}) {
   const fixture = createAppClientsFixture(scenario);
+  const testCodes = new Map();
+  const seedTestCode = (email, type, ttl = 300) => {
+    const query = testVerificationQuery({ email, type });
+    const value = { ...query, code: String(randomInt(100000, 1000000)), expires_at: Math.floor(now() / 1000) + ttl };
+    testCodes.set(`${query.email}:${query.type}`, value);
+    return value;
+  };
+  for (const type of ['register', 'reset', 'bind']) seedTestCode('tester@test.top', type);
   // 同源 Vite，API 永不送入 proxy；独立配置和预构建目录避免npm test并发污染dev依赖。
   const policy = csp.replace("connect-src 'self'", `connect-src 'self' ws://127.0.0.1:${port + 100} ws://localhost:${port + 100}`);
   const diagnostics = `<script>window.addEventListener('error',function(e){var panel=document.getElementById('fixture-error');if(!panel){panel=document.createElement('pre');panel.id='fixture-error';panel.style.cssText='position:fixed;inset:auto 10px 10px;z-index:999999;background:white;color:#900;padding:16px;white-space:pre-wrap';document.body.appendChild(panel)}panel.textContent+='本地入口错误：'+e.message+' '+(e.filename||'')+'\\n'});window.addEventListener('unhandledrejection',function(e){var panel=document.createElement('pre');panel.style.cssText='position:fixed;inset:auto 10px 10px;z-index:999999;background:white;color:#900;padding:16px';panel.textContent='本地未处理错误：'+String(e.reason);document.body.appendChild(panel)});</script>`;
@@ -55,6 +65,16 @@ export async function createAdminFixtureServer({ port = 8791, ui = false, scenar
     const url = new URL(req.url, 'http://127.0.0.1');
     if (url.pathname === '/__fixture/start') { res.writeHead(200, { ...headers, 'Content-Type': 'text/html; charset=utf-8' }); res.end(landing); return; }
     if (url.pathname === '/__fixture/landing.js') { res.writeHead(200, { ...headers, 'Content-Type': 'application/javascript; charset=utf-8' }); res.end(landingScript); return; }
+    if (url.pathname === '/__fixture/test-code') {
+      try {
+        const email = url.searchParams.get('email') || 'tester@test.top';
+        const type = url.searchParams.get('type') || 'register';
+        const ttl = Math.min(300, Math.max(1, Number(url.searchParams.get('ttl')) || 300));
+        const value = seedTestCode(email, type, ttl);
+        res.writeHead(200, headers); res.end(JSON.stringify({ email: value.email, type: value.type, expires_at: value.expires_at }));
+      } catch { res.writeHead(400, headers); res.end(JSON.stringify({ error: '无效测试邮箱或用途' })); }
+      return;
+    }
     if (url.pathname === '/__fixture/session') {
       const qs = new URLSearchParams(url.searchParams);
       if (req.method === 'POST') {
@@ -101,8 +121,22 @@ export async function createAdminFixtureServer({ port = 8791, ui = false, scenar
       const reject = (error, status = 403) => ({ status, data: { error } });
       const superActor = actor?.id === 1 && actor.role === 'admin';
       if (path === '/api/auth/me') result = actor ? ok(present(actor)) : reject('未登录', 401);
+      else if (path === '/api/auth/logout' && req.method === 'POST') { currentId = 0; result = ok({}); }
       else if (path.startsWith('/api/admin/') && !actor) result = reject('未登录', 401);
       else if (path.startsWith('/api/admin/') && actor.role !== 'admin') result = reject('仅管理员可访问');
+      else if (path === '/api/admin/security/test-verification-code' && req.method === 'POST') {
+        if (!superActor || superMode === 'false') result = reject('仅超级管理员可查询测试验证码');
+        else {
+          const query = testVerificationQuery(body);
+          const key = `${query.email}:${query.type}`;
+          const value = testCodes.get(key);
+          if (!value || value.expires_at * 1000 <= now()) {
+            testCodes.delete(key);
+            result = { status: 400, data: { error: '本地测试验证码不存在或已过期', code: 'VERIFICATION_NOT_FOUND' } };
+          } else result = ok(value);
+        }
+      } else if (path === '/api/admin/security/stats') result = ok({ dayCount: 0, weekCount: 0, typeStats: [], scoreDistribution: [], trend: [] });
+      else if (path === '/api/admin/security/logs') result = ok({ logs: [], total: 0 });
       else if (path === '/api/admin/users' && req.method === 'GET') {
         const q = url.searchParams.get('q') || '', role = url.searchParams.get('role'), qq = url.searchParams.get('qq_bound');
         const rows = users.filter(user => (!role || user.role === role) && `${user.username} ${user.email}`.includes(q) && (!qq || (qq === 'bound' ? user.qq_bound === true : user.qq_bound === false))).map(present);
