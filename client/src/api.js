@@ -7,6 +7,7 @@ import { fetchFollowStatuses } from './utils/followStatus.js';
 import { createAppClientsAPI } from './appClients/api.js';
 import { createAppAIAPI } from './appAI/api.js';
 import { createAppHumanCheckAPI } from './appHumanCheck/api.js';
+import { createNovelReviewAPI } from './novelReview/api.js';
 import { isReservedAppClientSetting } from './appClients/model.js';
 import { withAvatarPreviews } from './utils/mediaUrl.js';
 import { requestTestVerificationCode } from './pages/admin/testVerificationCode.js';
@@ -1179,17 +1180,11 @@ export const adminAPI = {
     return { message: '已删除' };
   },
 
-  // ── 小说管理 ──────────────────────────────────────
-  novels: async ({ page = 1, limit = 20, q = '', status = 'all' } = {}) => {
-    const params = new URLSearchParams({ page, limit, q, status });
-    if (USE_API) return apiFetch(`/api/admin/novels?${params}`);
-    return { novels: [], statusCounts: {}, pagination: { page: 1, limit, total: 0, totalPages: 0 } };
-  },
+  // ── 小说管理：完整快照审核，不再允许旧入口直接发布或离线假成功 ──
+  get novelReview() { return createNovelReviewAPI(apiFetch); },
+  novels: (params, options) => adminAPI.novelReview.works(params, options),
+  novelStatus: async () => { throw new Error('旧小说状态直改已停用，请在完整候选审核中认领并填写理由后提交人工决定。'); },
 
-  novelStatus: async (id, status) => {
-    if (USE_API) return apiFetch(`/api/admin/novels/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) });
-    return { ok: true, status };
-  },
 
   // ── 纸尿裤 / 品牌管理 ────────────────────────────
   listDiapers: async () => {
