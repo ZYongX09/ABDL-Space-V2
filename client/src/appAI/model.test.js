@@ -327,6 +327,23 @@ test('测试已知状态/reason 使用固定安全文案，未知错误、HTML�
   }
 });
 
+test('后端 503 timeout 与 fixture 502 timeout 均映射固定超时文案，不保存且不自动重试', async () => {
+  for (const status of [503, 502]) {
+    let tests = 0, saves = 0;
+    const unsafe = Object.assign(new Error(FAKE_TOKEN), { status, code: 'timeout', cause: FAKE_TOKEN, body: FAKE_TOKEN });
+    const safe = sanitizeProviderTestError(unsafe);
+    assert.equal(safe.code, 'TEST_TIMEOUT'); assert.equal(safe.status, status); assert.match(safe.message, /不保证.*不计费/);
+    assert.ok(!JSON.stringify(safe).includes(FAKE_TOKEN)); assert.equal(safe.cause, undefined); assert.equal(safe.body, undefined);
+    const api = createAppAIAPI(async () => { tests += 1; throw unsafe; });
+    const harness = editorFixture({ appAIProvider: async () => configuredMetadata(), testAppAIProvider: api.testAppAIProvider, saveAppAIProvider: async () => { saves += 1; return configuredMetadata(); } });
+    await harness.editor.load(); harness.editor.change({ model_id: 'timeout-draft', token_action: 'replace' }); harness.setToken(FAKE_TOKEN);
+    const before = harness.editor.getState(); assert.equal(await harness.editor.test(harness.getToken()), false);
+    const after = harness.editor.getState(); assert.equal(after.testError, safe.message); assert.equal(after.testResult, null); assert.equal(after.testing, false); assert.equal(after.needsReload, false);
+    assert.equal(after.saved, before.saved); assert.equal(after.draft, before.draft); assert.equal(harness.getToken(), FAKE_TOKEN); assert.equal(tests, 1); assert.equal(saves, 0);
+    assert.ok(!JSON.stringify(harness.changes).includes(FAKE_TOKEN));
+  }
+});
+
 test('测试当前 replace 草稿不保存、不刷新元数据/版本、不重置编辑值和密码，也不存储秘密', async () => {
   const fixture = createAppAIFixture(); const harness = editorFixture(fixtureAPI(fixture)); await harness.editor.load();
   harness.editor.change({ base_url: 'https://new-provider.example.com/v1', model_id: 'draft-only', token_action: 'replace' }); harness.setToken(FAKE_TOKEN);
