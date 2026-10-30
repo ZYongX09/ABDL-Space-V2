@@ -2,6 +2,16 @@
 
 日期：2026-10-26。分支 `feat/app-ai-forum-controls-20261026`（基于 main `d720d22` 之后的 develop 线）。本轮为主站管理后台新增 App AI 上游配置卡片，对应后端 `GET/PUT /api/admin/app-ai/provider`（见后端仓 `docs/nbw-v2-app-ai-forum-controls-2026-10-26.md`）。**本轮仅交付 develop 分支代码，不部署生产。**
 
+## 2026-10-29 自定义主机与测试按钮（开发线，未上线）
+
+本轮按用户要求移除固定供应商主机白名单，允许符合规则的自定义公网 HTTPS Base URL；仍拒绝本机/内网/IP、凭据、非默认端口、query/fragment 与重定向，出站由后端公共 DNS 预检。此预检不是连接 IP pinning，管理员仍须信任自己选择的供应商，不宣称解决所有 DNS rebinding。
+
+卡片明确显示 **OpenAI 兼容 Chat Completions 协议**：后端向填写的 Base URL 追加 `/chat/completions`，不自动加 `/v1`，不是 Responses API `/responses`。新增“测试当前草稿（不保存）”按钮，使用当前 base/model/token动作和已保存 revision，不必先保存，也不把成功测试当作配置已生效。
+
+测试通过同源、鉴权的 `POST /api/admin/app-ai/provider/test` 完成，浏览器不直接访问供应商；后端固定短提示、一次模型请求、最多16输出token、总10秒/4KiB，可能计费且无自动重试。返回协议/请求模型/耗时与固定“收到有效文本”状态，不回上游任意正文或错误体；token只在replace请求发送，不进入状态/日志。keep跨origin仍要求更换token，clear或无有效token不发测试。
+
+测试独立loading/result/error，前端20秒截止；任何字段、密码输入、会话变更、加载或取消使旧结果失效，不改saved/draft/revision。取消只停止等待，不能承诺撤回上游请求或退款。GET与保存本身不触发供应商调用，下文“只配置/无测试调用”为历史实现。本轮只交付develop，不部署生产、不更改真实配置或密钥，不改Android/V4。最终测试/构建与界面证据在本节收尾补充。
+
 ## 范围
 
 - `client/src/appAI/`：`model.js`（表单校验与 revision CAS 状态机）、`api.js`（对接 admin API，token 永不落入本地状态）、`fixture.js`、`model.test.js`。
