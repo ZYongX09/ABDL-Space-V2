@@ -80,6 +80,13 @@
 > 每次对项目进行修改后，由 AI 助手自动更新此文件
 > 记录格式：日期时间、版本、修改内容、涉及文件、原因/背景
 
+## 2026-10-31 — Pages WebSocket 透明转发（仅本地验证，未发布）
+
+- `client/functions/api/[[path]].js` 重建响应时保留上游 `webSocket`，避免已成功的 101 升级变成 500；根目录未部署副本同步。不改请求、鉴权、IP 签名、CORS 或普通 HTTP 流式策略。
+- 新增并注册 `client/tests/api-proxy.test.js`；修复前缺失 socket 的回归失败，修复后代理及签名专项 34/34、完整 `npm test` 398/398 通过，随后 `npm run build` 成功。构建仅有既有环境变量、混合导入及大 chunk 警告。
+- 仓外真实 Miniflare/workerd 回归两站共 16/16 通过：网络 101、双向文本/二进制帧及关闭、cookie/Bearer、401/502、流式/headers/CORS、预检/重定向和注册双层签名。修复前同一 harness 两站升级均复现 500；证据与命令入口在 `/home/ZYongX/.local/share/abdl-diagnostics/d1-2026-10-31/proxy-runtime/`。
+- 隔离 worktree 开发验证完成，按开发流程提交到 develop；main/正式站点不变，未部署或探测生产账号，未修改后端、Android、路由、DNS、配置或 CDN。
+
 ## 2026-06-07
 
 ### 23:15 — v2.22.0 电脑端全站布局重构
