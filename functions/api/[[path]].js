@@ -93,5 +93,7 @@ export async function onRequest(context) {
     status: response.status,
     statusText: response.statusText,
     headers: responseHeaders,
+    // 101 必须连同 WebSocket 一起转发，不能只复制状态、headers 和 body。
+    webSocket: response.webSocket,
   });
 }
