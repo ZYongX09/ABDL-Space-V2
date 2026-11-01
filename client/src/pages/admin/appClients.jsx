@@ -5,6 +5,7 @@ import { createRequestGate, DEFAULT_APP_NBW_LOCAL_ONLY, DEFAULT_APP_POLICY, DEFA
 import AdminLayout from './layout';
 import AppAIProviderCard from './AppAIProviderCard';
 import AppHumanCheckPolicyCard from './AppHumanCheckPolicyCard';
+import AppNBWUpstreamCard from './AppNBWUpstreamCard';
 import { Card, Empty, ErrorBox, FormField, Loading, Pagination, Pill, StatCard } from './ui';
 import { fmtFull } from './util';
 import './appClients.css';
@@ -306,6 +307,7 @@ function AppClientsContent() {
     <PolicyEditor />
     <NbwLocalOnlyEditor />
     <NbwV2PolicyEditor />
+    <AppNBWUpstreamCard />
     <AppAIProviderCard />
     <AppHumanCheckPolicyCard />
     <Card title="原生 App 请求观测统计" icon="fa-chart-column" description="统计已认证的原生时间线请求，不是安装量、设备数、下载量，也不覆盖 App 的所有活动。" action={<button type="button" className="ac-btn" disabled={stats.loading} onClick={() => setRevision(value => value + 1)}>刷新观测数据</button>}>

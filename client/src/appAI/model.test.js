@@ -207,7 +207,7 @@ test('本地 fixture 仅内存元数据与 CAS，无令牌读回/真调用；重
 
 test('卡片接在 V2 模式之后，非受控空密码、父级身份边界与三主题响应布局不持久化秘密', () => {
   const card = source('../pages/admin/AppAIProviderCard.jsx'); const page = source('../pages/admin/appClients.jsx');
-  assert.match(page, /<NbwV2PolicyEditor \/>\s*<AppAIProviderCard \/>/); assert.match(page, /AppClientsContent key=\{`\$\{user.id\}:\$\{token\}`\}/);
+  assert.match(page, /<NbwV2PolicyEditor \/>\s*<AppNBWUpstreamCard \/>\s*<AppAIProviderCard \/>/); assert.match(page, /AppClientsContent key=\{`\$\{user\.id\}:\$\{token\}`\}/);
   assert.match(card, /type="password" defaultValue=""/); assert.match(card, /autoComplete="new-password"/); assert.doesNotMatch(card, /type="password"[^>]*\bvalue=|localStorage|sessionStorage|console\.|dangerouslySetInnerHTML/);
   for (const text of ['X-ABDL-App-AI:1', '旧版 App 或网页 AI', '本站发帖正常', '已同意默认板块', 'DNS 公网解析', '取消当前请求', 'originNeedsToken', 'auth-session-changing', 'current.dispose()']) assert.ok(card.includes(text), text);
   assert.match(card, /<Card /); assert.match(card, /<FormField /); assert.match(card, /minWidth: 0, overflowWrap: 'anywhere'/); assert.match(card, /maxWidth: '100%', whiteSpace: 'normal'/);
@@ -218,7 +218,7 @@ test('实际 api.js 注入继续使用 cookie/账号 token/no-store，仅 PUT bo
   const text = source('../api.js');
   assert.match(text, /import \{ createAppAIAPI \} from '.\/appAI\/api.js'/); assert.match(text, /\.\.\.createAppClientsAPI\(apiFetch\),\s*\.\.\.createAppAIAPI\(apiFetch\)/); assert.doesNotMatch(text, /export.*(?:function|\{)\s*apiFetch/);
   const calls = []; let failure;
-  const context = { createAppAIAPI, createAppClientsAPI: () => ({}), createAppHumanCheckAPI: () => ({}), createNovelReviewAPI: () => ({}), withAvatarPreviews: data => data, localStorage: { getItem: key => key === 'abdl_accounts' ? JSON.stringify([{ id: 2, token: 'fixture-2' }]) : '2' },
+  const context = { createAppAIAPI, createAppClientsAPI: () => ({}), createAppHumanCheckAPI: () => ({}), createNBWUpstreamAPI: () => ({}), createNovelReviewAPI: () => ({}), withAvatarPreviews: data => data, localStorage: { getItem: key => key === 'abdl_accounts' ? JSON.stringify([{ id: 2, token: 'fixture-2' }]) : '2' },
     fetch: async (url, options) => { calls.push({ url, options }); return failure ? Response.json({ error: FAKE_TOKEN, code: FAKE_TOKEN }, { status: failure }) : Response.json(DEFAULT_APP_AI_PROVIDER); } };
   const executable = text.replace(/^import .+;\r?$/gm, '').replace(/import\.meta\.env/g, '({})').replace(/\bexport\s+(?=const|async function|function)/g, '');
   runInNewContext(`${executable}\nglobalThis.actualAdminAPI = adminAPI;`, context);
