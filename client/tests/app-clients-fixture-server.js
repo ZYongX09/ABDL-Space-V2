@@ -7,6 +7,7 @@ import react from '@vitejs/plugin-react';
 import { createAppClientsFixture } from '../src/appClients/fixture.js';
 import { APP_AI_FIXTURE_CONTROL_PATH, APP_AI_PROVIDER_PATH, APP_AI_PROVIDER_TEST_PATH, createAppAIFixture } from '../src/appAI/fixture.js';
 import { APP_HUMAN_CHECK_FIXTURE_CONTROL_PATH, APP_HUMAN_CHECK_POLICY_PATH, createAppHumanCheckFixture } from '../src/appHumanCheck/fixture.js';
+import { TRANSLATION_POLICY_FIXTURE_CONTROL_PATH, TRANSLATION_POLICY_PATH, createTranslationPolicyFixture } from '../src/translationPolicy/fixture.js';
 import { NBW_UPSTREAM_FIXTURE_CONTROL_PATH, NBW_UPSTREAM_HOST_PATH, createNBWUpstreamFixture } from '../src/nbwUpstream/fixture.js';
 
 const scenarios = ['normal', 'legacy-reminder', 'empty', 'unavailable', 'nbw-unavailable', 'nbw-invalid', 'errors', 'save-error', 'slow'];
@@ -44,6 +45,7 @@ export async function createAdminFixtureServer({ port = 8791, ui = false, scenar
   const fixture = createAppClientsFixture(scenario);
   const appAI = createAppAIFixture();
   const humanPolicy = createAppHumanCheckFixture();
+  const translationPolicy = createTranslationPolicyFixture();
   const nbwUpstream = createNBWUpstreamFixture();
   const testCodes = new Map();
   const seedTestCode = (email, type, ttl = 300) => {
@@ -130,6 +132,8 @@ export async function createAdminFixtureServer({ port = 8791, ui = false, scenar
       else if (path === '/api/auth/logout' && req.method === 'POST') { currentId = 0; result = ok({}); }
       else if (path.startsWith('/api/admin/') && !actor) result = reject('未登录', 401);
       else if (path.startsWith('/api/admin/') && actor.role !== 'admin') result = reject('仅管理员可访问');
+      else if (path === TRANSLATION_POLICY_PATH) result = translationPolicy.respond(path, req.method, url.searchParams, body);
+      else if (path === TRANSLATION_POLICY_FIXTURE_CONTROL_PATH) result = !actor ? reject('未登录', 401) : actor.role !== 'admin' ? reject('仅管理员可访问') : translationPolicy.control(req.method, body);
       else if (path === APP_HUMAN_CHECK_POLICY_PATH) result = humanPolicy.respond(path, req.method, url.searchParams, body);
       else if (path === APP_HUMAN_CHECK_FIXTURE_CONTROL_PATH) result = !actor ? reject('未登录', 401) : actor.role !== 'admin' ? reject('仅管理员可访问') : humanPolicy.control(req.method, body);
       else if (path === NBW_UPSTREAM_HOST_PATH) result = nbwUpstream.respond(path, req.method, url.searchParams, body);
@@ -172,11 +176,11 @@ export async function createAdminFixtureServer({ port = 8791, ui = false, scenar
       else result = fixture.respond(path, req.method, url.searchParams, body);
       // 延迟前快照响应，真正模拟旧请求晚到，而不是读取新身份。
       result = structuredClone(result);
-      const delay = path === '/api/auth/me' ? authDelay : Math.max(dataDelay, fixture.delay(path, url.searchParams), appAI.delay(path), humanPolicy.delay(path), nbwUpstream.delay(path));
+      const delay = path === '/api/auth/me' ? authDelay : Math.max(dataDelay, fixture.delay(path, url.searchParams), appAI.delay(path), humanPolicy.delay(path), translationPolicy.delay(path), nbwUpstream.delay(path));
       if (delay) await new Promise(resolve => setTimeout(resolve, delay));
       res.writeHead(result.status, headers); res.end(JSON.stringify(result.data));
-      if (!quiet) console.log(`${req.method} ${path}${[APP_AI_PROVIDER_PATH, APP_AI_PROVIDER_TEST_PATH, APP_AI_FIXTURE_CONTROL_PATH, APP_HUMAN_CHECK_POLICY_PATH, APP_HUMAN_CHECK_FIXTURE_CONTROL_PATH, NBW_UPSTREAM_HOST_PATH, NBW_UPSTREAM_FIXTURE_CONTROL_PATH].includes(path) ? '' : url.search} -> ${result.status}${delay ? ` (${delay}ms)` : ''}`);
-    } catch (error) { res.writeHead(400, headers); res.end(JSON.stringify({ error: [APP_AI_PROVIDER_PATH, APP_AI_PROVIDER_TEST_PATH, APP_AI_FIXTURE_CONTROL_PATH, APP_HUMAN_CHECK_POLICY_PATH, APP_HUMAN_CHECK_FIXTURE_CONTROL_PATH, NBW_UPSTREAM_HOST_PATH, NBW_UPSTREAM_FIXTURE_CONTROL_PATH].includes(url.pathname) ? '无效本地 App 配置请求' : error.message })); }
+      if (!quiet) console.log(`${req.method} ${path}${[APP_AI_PROVIDER_PATH, APP_AI_PROVIDER_TEST_PATH, APP_AI_FIXTURE_CONTROL_PATH, APP_HUMAN_CHECK_POLICY_PATH, APP_HUMAN_CHECK_FIXTURE_CONTROL_PATH, TRANSLATION_POLICY_PATH, TRANSLATION_POLICY_FIXTURE_CONTROL_PATH, NBW_UPSTREAM_HOST_PATH, NBW_UPSTREAM_FIXTURE_CONTROL_PATH].includes(path) ? '' : url.search} -> ${result.status}${delay ? ` (${delay}ms)` : ''}`);
+    } catch (error) { res.writeHead(400, headers); res.end(JSON.stringify({ error: [APP_AI_PROVIDER_PATH, APP_AI_PROVIDER_TEST_PATH, APP_AI_FIXTURE_CONTROL_PATH, APP_HUMAN_CHECK_POLICY_PATH, APP_HUMAN_CHECK_FIXTURE_CONTROL_PATH, TRANSLATION_POLICY_PATH, TRANSLATION_POLICY_FIXTURE_CONTROL_PATH, NBW_UPSTREAM_HOST_PATH, NBW_UPSTREAM_FIXTURE_CONTROL_PATH].includes(url.pathname) ? '无效本地 App 配置请求' : error.message })); }
   });
   return { server, async close() { server.closeAllConnections(); if (server.listening) await new Promise(resolve => server.close(resolve)); await vite?.close(); } };
 }
