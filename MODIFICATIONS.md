@@ -80,6 +80,13 @@
 > 每次对项目进行修改后，由 AI 助手自动更新此文件
 > 记录格式：日期时间、版本、修改内容、涉及文件、原因/背景
 
+## 2026-11-02 — AI / NBW / D1 联合上线
+
+- 用户授权与指定会话增量一起发布：主站main固定 `d59893d0`，Pages production `545fa7a0` 于03:44:50UTC成功；后端Worker812/`0df46f0b`、移动站Pages3ad11f41已同步生效。新增AI自定义公网主机/当前草稿不保存测试与Chat Completions说明、NBW固定主备切换卡片，保留此前D1/WebSocket修复。
+- 固定主站完整418/418、生产构建通过、源码指纹稳定。初次本地构建资源拥挤超时后串行重建成功；正式appClients模块仅静态import构建哈希差异，业务代码匹配验证构建，新按钮/卡片及共享API标记存在。浏览器正式管理页登录门禁通过；三条链34/34探针通过。
+- 不配置真实AI、不产生测试计费、不切NBW现有local_only/默认primary，不改Android/CDN/密钥。另一会话帖子翻译策略 `2b36697` 保留在develop未上线，文档在最新开发基线隔离提交，未覆盖其代码。
+- 0102只补唯一ledger id23（02:19:05UTC），未重跑索引。原始证据 `/home/ZYongX/.local/share/abdl-release/20261102-combined/`；真实管理员保存/测试/切换与账号闭环未代验。
+
 ## 2026-10-31 — Pages WebSocket 透明转发（已发布）
 
 - `client/functions/api/[[path]].js` 重建响应时保留上游 `webSocket`，避免已成功的 101 升级变成 500；根目录未部署副本同步。不改请求、鉴权、IP 签名、CORS 或普通 HTTP 流式策略。

@@ -2,7 +2,9 @@
 
 日期：2026-10-26。分支 `feat/app-ai-forum-controls-20261026`（基于 main `d720d22` 之后的 develop 线）。本轮为主站管理后台新增 App AI 上游配置卡片，对应后端 `GET/PUT /api/admin/app-ai/provider`（见后端仓 `docs/nbw-v2-app-ai-forum-controls-2026-10-26.md`）。**本轮仅交付 develop 分支代码，不部署生产。**
 
-## 2026-10-29 自定义主机与测试按钮（开发线，未上线）
+## 2026-10-29自定义主机与测试按钮（2026-11-02已上线）
+
+当前主站main `d59893d0` / Pages545fa7a0 production已成功，后端Worker812/`0df46f0b`及移动站同步生效。418/418与build通过，正式资源中的测试按钮和NBW卡片已核验；保留AI未配置、NBW local_only/默认primary，不代真实供应商测试或保存。下文保留原开发验收时点，发布证据在 `~/.local/share/abdl-release/20261102-combined/`，最新状态见MODIFICATIONS联合上线节。
 
 本轮按用户要求移除固定供应商主机白名单，允许符合规则的自定义公网 HTTPS Base URL；仍拒绝本机/内网/IP、凭据、非默认端口、query/fragment 与重定向，出站由后端公共 DNS 预检。此预检不是连接 IP pinning，管理员仍须信任自己选择的供应商，不宣称解决所有 DNS rebinding。
 
