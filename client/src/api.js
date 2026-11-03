@@ -8,6 +8,7 @@ import { createAppClientsAPI } from './appClients/api.js';
 import { createAppAIAPI } from './appAI/api.js';
 import { createAppHumanCheckAPI } from './appHumanCheck/api.js';
 import { createTranslationPolicyAPI } from './translationPolicy/api.js';
+import { createTranslationGlossaryAPI } from './translationGlossary/api.js';
 import { createNBWUpstreamAPI } from './nbwUpstream/api.js';
 import { createNovelReviewAPI } from './novelReview/api.js';
 import { isReservedAppClientSetting } from './appClients/model.js';
@@ -1042,6 +1043,7 @@ export const adminAPI = {
   ...createAppHumanCheckAPI(apiFetch),
   ...createNBWUpstreamAPI(apiFetch),
   ...createTranslationPolicyAPI(apiFetch),
+  ...createTranslationGlossaryAPI(apiFetch),
   advertising: async (params = {}) => {
     const query = new URLSearchParams();
     if (params.status) query.set('status', params.status);

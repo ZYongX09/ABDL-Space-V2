@@ -8,6 +8,7 @@ import { createAppClientsFixture } from '../src/appClients/fixture.js';
 import { APP_AI_FIXTURE_CONTROL_PATH, APP_AI_PROVIDER_PATH, APP_AI_PROVIDER_TEST_PATH, createAppAIFixture } from '../src/appAI/fixture.js';
 import { APP_HUMAN_CHECK_FIXTURE_CONTROL_PATH, APP_HUMAN_CHECK_POLICY_PATH, createAppHumanCheckFixture } from '../src/appHumanCheck/fixture.js';
 import { TRANSLATION_POLICY_FIXTURE_CONTROL_PATH, TRANSLATION_POLICY_PATH, createTranslationPolicyFixture } from '../src/translationPolicy/fixture.js';
+import { TRANSLATION_GLOSSARY_FIXTURE_CONTROL_PATH, TRANSLATION_GLOSSARY_PATH, createTranslationGlossaryFixture, parseTranslationGlossaryFixtureJSON } from '../src/translationGlossary/fixture.js';
 import { NBW_UPSTREAM_FIXTURE_CONTROL_PATH, NBW_UPSTREAM_HOST_PATH, createNBWUpstreamFixture } from '../src/nbwUpstream/fixture.js';
 
 const scenarios = ['normal', 'legacy-reminder', 'empty', 'unavailable', 'nbw-unavailable', 'nbw-invalid', 'errors', 'save-error', 'slow'];
@@ -46,6 +47,7 @@ export async function createAdminFixtureServer({ port = 8791, ui = false, scenar
   const appAI = createAppAIFixture();
   const humanPolicy = createAppHumanCheckFixture();
   const translationPolicy = createTranslationPolicyFixture();
+  const translationGlossary = createTranslationGlossaryFixture({ onSaved: () => translationPolicy.advanceCacheEpoch() });
   const nbwUpstream = createNBWUpstreamFixture();
   const testCodes = new Map();
   const seedTestCode = (email, type, ttl = 300) => {
@@ -114,6 +116,33 @@ export async function createAdminFixtureServer({ port = 8791, ui = false, scenar
       if (next && scenarios.includes(next)) fixture.setScenario(next);
       const safeScenario = scenarios.includes(next) ? next : fixture.getScenario();
       res.writeHead(200, headers); res.end(JSON.stringify({ scenario: safeScenario, scenarios })); return;
+    }
+    // 词库单独有界读取；认证/管理员判断先于 JSON 解析，错误仅返回安全 {error,code}。
+    if ([TRANSLATION_GLOSSARY_PATH, TRANSLATION_GLOSSARY_FIXTURE_CONTROL_PATH].includes(url.pathname)) {
+      const glossaryHeaders = { ...headers, Vary: 'Cookie, Authorization, Origin' };
+      const authorization = req.headers.authorization;
+      const tokenId = /^Bearer fixture-(\d+)$/.exec(authorization || '')?.[1];
+      const actor = authorization ? users.find(user => String(user.id) === tokenId) : users.find(user => user.id === currentId);
+      const finish = (status, data) => { res.writeHead(status, glossaryHeaders); res.end(JSON.stringify(data)); };
+      if (!actor) { finish(401, { error: '未登录', code: 'unauthorized' }); return; }
+      if (actor.role !== 'admin') { finish(403, { error: '仅管理员可访问', code: 'forbidden' }); return; }
+      try {
+        const writing = ['PUT', 'POST'].includes(req.method);
+        if (writing && !/^application\/json(?:\s*;|$)/i.test(req.headers['content-type'] || '')) { finish(415, { error: '仅支持 JSON', code: 'glossary_invalid' }); return; }
+        const chunks = []; let bytes = 0;
+        for await (const chunk of req) {
+          bytes += chunk.length;
+          if (bytes > 96 * 1024) { finish(413, { error: '请求过大', code: 'glossary_invalid' }); return; }
+          chunks.push(chunk);
+        }
+        const text = Buffer.concat(chunks).toString('utf8');
+        const body = text ? parseTranslationGlossaryFixtureJSON(text) : null;
+        const result = url.pathname === TRANSLATION_GLOSSARY_PATH ? translationGlossary.respond(url.pathname, req.method, url.searchParams, body) : translationGlossary.control(req.method, body);
+        const snapshot = structuredClone(result), delay = translationGlossary.delay(url.pathname);
+        if (delay) await new Promise(resolve => setTimeout(resolve, delay));
+        finish(snapshot.status, snapshot.data);
+      } catch (error) { finish(error.status === 413 ? 413 : 422, { error: '无效词库请求', code: 'glossary_invalid' }); }
+      return;
     }
     try {
       let text = '';

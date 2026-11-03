@@ -11,6 +11,11 @@ export function createTranslationPolicyFixture() {
   const snapshot = () => ({ ...metadata });
   return {
     delay(path) { return path === TRANSLATION_POLICY_PATH && scenario === 'slow' ? 1500 : 0; },
+    advanceCacheEpoch() {
+      if (metadata.cache_epoch >= Number.MAX_SAFE_INTEGER) return false;
+      metadata = { ...metadata, cache_epoch: metadata.cache_epoch + 1, revision: randomUUID() };
+      return true;
+    },
     control(method, body) {
       if (!['GET', 'POST'].includes(method)) return failure(405, '本地翻译策略控制只支持 GET/POST');
       if (method === 'POST') {
@@ -35,6 +40,7 @@ export function createTranslationPolicyFixture() {
         return failure(409, '本地模拟：翻译策略已被其他管理员更新');
       }
       if (payload.revision !== metadata.revision) return failure(409, '本地模拟：翻译策略版本冲突');
+      if (payload.cache_epoch < metadata.cache_epoch) return failure(422, '本地模拟：缓存世代不能倒退');
       metadata = { ...payload, revision: randomUUID(), timezone: TRANSLATION_TIMEZONE };
       return { status: 200, data: scenario === 'invalid-save' ? { enabled: metadata.enabled } : snapshot() };
     },

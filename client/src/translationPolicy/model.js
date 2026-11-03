@@ -6,7 +6,7 @@ export const TRANSLATION_POLICY_LIMITS = Object.freeze({ daily_limit: Object.fre
 export const DEFAULT_TRANSLATION_POLICY = Object.freeze({ enabled: true, daily_limit: 5, english_daily_limit: 10, sponsor_daily_limit: 100, sponsor_auto_allowed: true, cache_epoch: 1, revision: '00000000-0000-4000-8000-000000000001', timezone: TRANSLATION_TIMEZONE });
 const MESSAGES = Object.freeze({
   INVALID_RESPONSE: '翻译策略响应异常，请重新加载或联系服务器管理员；未使用默认值替代服务器状态。',
-  INVALID_BODY: '翻译策略字段无效：三档每日额度必须是 0–10000 的整数，缓存世代必须是大于等于 1 的安全整数。',
+  INVALID_BODY: '翻译策略字段无效：三档每日额度必须是 0–10000 的整数，缓存世代必须是大于等于 1 的安全整数，且不能低于当前已加载的缓存世代。',
   UNAUTHORIZED: '管理员会话已失效，请重新登录后加载翻译策略。',
   FORBIDDEN: '当前账号无权管理翻译策略，请确认管理员身份。',
   CONFLICT: '翻译策略已被其他管理员更新；草稿没有覆盖服务器，必须重新加载后再保存，不会自动重放。',
@@ -58,7 +58,7 @@ export function isTranslationPolicyDirty(saved, draft) {
     || Object.keys(TRANSLATION_POLICY_LIMITS).some(key => String(saved[key]) !== draft[key]));
 }
 
-export const initialTranslationPolicyState = () => Object.freeze({ saved: null, draft: translationPolicyDraft(null), loading: true, saving: false, needsReload: true, error: '', notice: '' });
+export const initialTranslationPolicyState = () => Object.freeze({ saved: null, draft: translationPolicyDraft(null), loading: true, saving: false, needsReload: true, confirmReload: false, error: '', notice: '' });
 
 // 每个挂载、StrictMode setup 与账号会话都有独立代次；取消并不承诺撤回服务端写入。
 export function createTranslationPolicyEditor(api, { onChange = () => {} } = {}) {
@@ -74,7 +74,7 @@ export function createTranslationPolicyEditor(api, { onChange = () => {} } = {})
   };
   const accept = value => {
     const saved = readTranslationPolicy(value);
-    publish({ saved, draft: translationPolicyDraft(saved), loading: false, saving: false, needsReload: false, error: '', notice: '' });
+    publish({ saved, draft: translationPolicyDraft(saved), loading: false, saving: false, needsReload: false, confirmReload: false, error: '', notice: '' });
   };
   return {
     getState: () => state,
@@ -91,21 +91,47 @@ export function createTranslationPolicyEditor(api, { onChange = () => {} } = {})
         return false;
       } finally { if (request.current()) controller = null; }
     },
+    requestReload() {
+      if (disposed || state.loading || state.saving) return;
+      if (isTranslationPolicyDirty(state.saved, state.draft)) publish({ confirmReload: true });
+      else void this.load();
+    },
+    confirmReload() { if (!disposed && state.confirmReload) { publish({ confirmReload: false }); return this.load(); } return Promise.resolve(false); },
+    cancelReload() { if (!disposed) publish({ confirmReload: false }); },
+    async refreshMetadata() {
+      if (disposed) return false;
+      if (!state.saved) return this.load();
+      const request = begin();
+      publish({ loading: true, saving: false, needsReload: true, error: '', notice: '词库已保存，正在确认翻译策略缓存世代和版本；策略草稿不会被覆盖。' });
+      try {
+        const result = await api.translationPolicy({ signal: request.signal });
+        if (!request.current()) return false;
+        const saved = readTranslationPolicy(result);
+        // 读取期间编辑被冻结；已脏草稿只能显式重载，不能把旧世代/旧额度当新版本保存。
+        if (isTranslationPolicyDirty(state.saved, state.draft)) publish({ saved, loading: false, needsReload: true, notice: '词库更新后的策略版本及缓存世代已刷新；未保存策略草稿已保留。请重新加载确认后手动编辑保存，不能盲覆盖。' });
+        else { accept(saved); publish({ notice: '词库更新后的翻译策略缓存世代与版本已刷新；未调用 AI。' }); }
+        return true;
+      } catch (error) {
+        if (request.current()) publish({ loading: false, error: sanitizeTranslationPolicyError(error, request.signal).message });
+        return false;
+      } finally { if (request.current()) controller = null; }
+    },
     change(patch) {
-      if (disposed || state.loading || state.saving || state.needsReload || !patch || typeof patch !== 'object') return;
+      if (disposed || state.loading || state.saving || state.needsReload || state.confirmReload || !patch || typeof patch !== 'object') return;
       const draft = { ...state.draft };
       for (const key of ['enabled', 'sponsor_auto_allowed']) if (typeof patch[key] === 'boolean') draft[key] = patch[key];
       for (const key of Object.keys(TRANSLATION_POLICY_LIMITS)) if (typeof patch[key] === 'string') draft[key] = patch[key];
       publish({ draft: Object.freeze(draft), error: '', notice: '' });
     },
     async save() {
-      if (disposed || !state.saved || state.loading || state.saving || state.needsReload) return false;
+      if (disposed || !state.saved || state.loading || state.saving || state.needsReload || state.confirmReload) return false;
       let payload;
       try {
         const numbers = Object.fromEntries(Object.keys(TRANSLATION_POLICY_LIMITS).map(key => {
           if (!/^\d{1,16}$/.test(state.draft[key])) throw new TranslationPolicyError('INVALID_BODY');
           return [key, Number(state.draft[key])];
         }));
+        if (numbers.cache_epoch < state.saved.cache_epoch) throw new TranslationPolicyError('INVALID_BODY');
         payload = translationPolicyPayload({ enabled: state.draft.enabled, sponsor_auto_allowed: state.draft.sponsor_auto_allowed, ...numbers, revision: state.saved.revision });
       } catch (error) { publish({ error: sanitizeTranslationPolicyError(error).message, notice: '' }); return false; }
       const request = begin();

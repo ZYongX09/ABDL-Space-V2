@@ -1,0 +1,18 @@
+.ac-translation-glossary-card { min-width: 0; overflow-wrap: anywhere; }
+.ac-translation-glossary-card :is(.ac-card-heading, .ac-card-heading > div, .ac-card-body, form, fieldset, .ac-form-field, .ac-glossary-content) { min-width: 0; max-width: 100%; }
+.ac-translation-glossary-card :is(.ac-btn, .ac-pill) { max-width: 100%; height: auto; white-space: normal; overflow-wrap: anywhere; }
+.ac-translation-glossary-card :is(.ac-input, .ac-textarea) { width: 100%; min-width: 0; max-width: 100%; font-size: 1rem; }
+.ac-translation-glossary-card textarea { white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+.ac-translation-glossary-card .ac-app-fieldset { display: grid; gap: 0.875rem; min-width: 0; margin: 0; padding: 0; border: 0; }
+.ac-translation-glossary-card .ac-glossary-list { display: grid; gap: 1rem; margin: 1rem 0; padding: 0; list-style: none; }
+.ac-translation-glossary-card .ac-glossary-entry { min-width: 0; padding: 1rem; border: 1px solid var(--ac-border); border-radius: var(--ac-radius-sm); background: var(--ac-surface-soft); color: var(--ac-text); }
+.ac-translation-glossary-card .ac-glossary-languages { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.ac-translation-glossary-card .ac-glossary-confirm { min-width: 0; margin-block: 1rem; padding: 1rem; border: 1px solid var(--ac-action); border-radius: var(--ac-radius-sm); background: var(--ac-action-soft); color: var(--ac-text); }
+.ac-translation-glossary-card .ac-glossary-confirm h3 { font-size: 1rem; margin: 0 0 0.75rem; }
+.ac-translation-glossary-card .ac-glossary-confirm p { margin-bottom: 0.875rem; }
+.ac-translation-glossary-card .ac-glossary-actions { margin-top: 1rem; }
+@media (max-width: 40rem) {
+  .ac-translation-glossary-card .ac-glossary-languages { grid-template-columns: minmax(0, 1fr); }
+  .ac-translation-glossary-card .ac-glossary-entry { padding: 0.75rem; }
+  .ac-translation-glossary-card .ac-action-group { flex-wrap: wrap; }
+}

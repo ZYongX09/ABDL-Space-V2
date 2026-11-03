@@ -2,19 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import { adminAPI } from '../api';
 import { Card, ErrorBox, FormField, Loading, Pill } from '../pages/admin/ui';
 import { createTranslationPolicyEditor, initialTranslationPolicyState, isTranslationPolicyDirty, TRANSLATION_POLICY_LIMITS } from './model.js';
+import { TRANSLATION_GLOSSARY_SAVED_EVENT } from '../translationGlossary/model.js';
 
 const NUMERIC_FIELDS = [
   ['daily_limit', '普通账号每日额度', '默认 5 次；0–10000 的整数。'],
   ['english_daily_limit', '英文阅读普通账号每日额度', '默认 10 次；使用账号同步的英文阅读偏好，不按单次翻译目标授予额度。'],
   ['sponsor_daily_limit', '当前有效赞助账号每日额度', '默认 100 次；赞助资格由服务器实时判断。三档额度不叠加。'],
-  ['cache_epoch', '翻译缓存世代（cache_epoch）', '大于等于 1 的安全整数。变更后后续请求使用对应缓存命名空间；不会清空或重置当日已用、预留额度。'],
+  ['cache_epoch', '翻译缓存世代（cache_epoch）', '大于等于当前已加载世代的安全整数，只能保持或增加，不能倒退复活旧译文。变更后后续请求使用对应缓存命名空间；不会清空或重置当日已用、预留额度。词库保存会同步增加世代和策略版本。'],
 ];
 
 // 生产组件与 SSR 共用同一视图；既有管理主题变量与响应式表单原语覆盖三种主题。
-export function TranslationPolicyCardView({ state, onChange, onSave, onReload, onCancel }) {
+export function TranslationPolicyCardView({ state, onChange, onSave, onReload, onCancel, onConfirmReload, onCancelReload }) {
   const { saved, draft, loading, saving, needsReload, error, notice } = state;
   const dirty = isTranslationPolicyDirty(saved, draft);
-  const disabled = loading || saving || needsReload;
+  const disabled = loading || saving || needsReload || state.confirmReload;
   return <Card title="App 帖子 AI 翻译策略" icon="fa-language" className="ac-translation-policy-card" description="管理帖子翻译总开关、三档每日额度、赞助自动翻译与缓存世代；复用统一 App AI 服务，不新增密钥。">
     <div style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
       <p id="translation-policy-scope" className="ac-app-note">三档额度分别为普通账号、英文阅读普通账号和当前有效赞助账号，不叠加。每天按 Asia/Shanghai（上海时区）结算；切换语言、赞助档位、翻译目标或本策略均不清空同一账号当天的已用与预留额度。</p>
@@ -33,7 +34,7 @@ export function TranslationPolicyCardView({ state, onChange, onSave, onReload, o
           <legend className="ac-app-visually-hidden">App 帖子 AI 翻译策略配置</legend>
           <label className="ac-check-row"><input id="translation-policy-enabled" type="checkbox" role="switch" checked={draft.enabled} onChange={event => onChange?.({ enabled: event.target.checked })} /><span>启用帖子翻译（总开关）</span></label>
           {NUMERIC_FIELDS.map(([key, label, hint]) => <FormField key={key} label={label} htmlFor={`translation-policy-${key}`} hint={hint}>
-            <input id={`translation-policy-${key}`} className="ac-input" type="number" inputMode="numeric" step="1" min={TRANSLATION_POLICY_LIMITS[key][0]} max={TRANSLATION_POLICY_LIMITS[key][1]} required value={draft[key]} onChange={event => onChange?.({ [key]: event.target.value })} />
+            <input id={`translation-policy-${key}`} className="ac-input" type="number" inputMode="numeric" step="1" min={key === 'cache_epoch' ? saved.cache_epoch : TRANSLATION_POLICY_LIMITS[key][0]} max={TRANSLATION_POLICY_LIMITS[key][1]} required value={draft[key]} onChange={event => onChange?.({ [key]: event.target.value })} />
           </FormField>)}
           <label className="ac-check-row"><input id="translation-policy-sponsor-auto" type="checkbox" role="switch" checked={draft.sponsor_auto_allowed} aria-describedby="translation-policy-auto-note" onChange={event => onChange?.({ sponsor_auto_allowed: event.target.checked })} /><span>允许当前有效赞助账号使用自动翻译</span></label>
           <FormField label="每日额度结算时区（只读）" htmlFor="translation-policy-timezone" hint="固定上海时区，不随管理员浏览器时区变化，不能在此修改。">
@@ -43,6 +44,7 @@ export function TranslationPolicyCardView({ state, onChange, onSave, onReload, o
         </fieldset>
       </form>}
       <p id="translation-policy-form-status" role="status" aria-live="polite" className="ac-section-note">{notice || (saving ? '正在保存翻译策略…' : needsReload ? '必须成功重新加载后才能保存；不会自动重放或覆盖冲突。重新加载成功会以服务器状态替换当前草稿。' : dirty ? '表单有未保存更改，尚未生效；重新加载成功会以服务器状态替换当前草稿。' : saved ? '当前表单与已保存翻译策略一致。' : '')}</p>
+      {state.confirmReload && <div className="ac-app-note" role="group" aria-label="确认替换翻译策略草稿"><p>重新加载成功会丢弃未保存策略草稿，以最新缓存世代和版本替换；失败仍保留草稿。确认继续？</p><div className="ac-action-group"><button type="button" className="ac-btn" onClick={onCancelReload}>取消，保留策略草稿</button><button type="button" className="ac-btn" onClick={onConfirmReload}>确认丢弃策略草稿并加载</button></div></div>}
       <div className="ac-action-group" style={{ marginTop: 14, minWidth: 0 }}>
         <button type="button" className="ac-btn" style={{ maxWidth: '100%', whiteSpace: 'normal' }} disabled={loading || saving} onClick={onReload}>重新加载已保存翻译策略</button>
         {(loading || saving) && <button type="button" className="ac-btn" onClick={onCancel}>取消当前请求</button>}
@@ -58,17 +60,22 @@ export default function TranslationPolicyCard() {
   useEffect(() => {
     const current = createTranslationPolicyEditor(adminAPI, { onChange: setState });
     editor.current = current;
+    const glossarySaved = () => { void current.refreshMetadata(); };
     const sessionChanging = () => {
+      window.removeEventListener('auth-session-changing', sessionChanging);
+      window.removeEventListener(TRANSLATION_GLOSSARY_SAVED_EVENT, glossarySaved);
       current.dispose();
       setState({ ...initialTranslationPolicyState(), loading: false, error: '管理员会话已变更，请在当前账号下重新打开管理页面。' });
     };
+    window.addEventListener(TRANSLATION_GLOSSARY_SAVED_EVENT, glossarySaved);
     window.addEventListener('auth-session-changing', sessionChanging);
     void current.load();
     return () => {
       window.removeEventListener('auth-session-changing', sessionChanging);
+      window.removeEventListener(TRANSLATION_GLOSSARY_SAVED_EVENT, glossarySaved);
       current.dispose();
       if (editor.current === current) editor.current = null;
     };
   }, []);
-  return <TranslationPolicyCardView state={state} onChange={patch => editor.current?.change(patch)} onSave={() => void editor.current?.save()} onReload={() => void editor.current?.load()} onCancel={() => editor.current?.cancel()} />;
+  return <TranslationPolicyCardView state={state} onChange={patch => editor.current?.change(patch)} onSave={() => void editor.current?.save()} onReload={() => editor.current?.requestReload()} onConfirmReload={() => void editor.current?.confirmReload()} onCancelReload={() => editor.current?.cancelReload()} onCancel={() => editor.current?.cancel()} />;
 }
