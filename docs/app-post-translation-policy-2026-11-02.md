@@ -1,6 +1,6 @@
 # App 帖子 AI 翻译策略卡
 
-本轮仅开发交付。修改位于 `client/src/translationPolicy/`，挂载于管理端 App 客户端页面；没有部署主站、修改生产策略或发送真实 AI 请求。
+本记录保留最初开发验证。修改位于 `client/src/translationPolicy/`，挂载于管理端App页面；用户随后授权词库前端上线，2026-11-03已随词库发布主站main `0b7b7e1`、Pages production `e14449c5`。未修改生产策略或发送真实AI，详见[生产记录](translation-glossary-web-production-2026-11-03.md)。
 
 ## 配置与接口
 
@@ -24,4 +24,4 @@ PUT 精确发送七个字段：`enabled/daily_limit/english_daily_limit/sponsor_
 - 本地内存 HTTP fixture 浏览器实际验证：普通额度 5→8 保存；下一草稿 9 遇 409 后保留并禁写；重新加载恢复已保存 8。1280px 浅色、390px 深色及 colorful 模式无横向溢出，截图留存仓外。
 - Vite 环境变量、旧 Browserslist、既有大 chunk 告警仍在；构建并非无告警。
 
-证据：`~/.local/share/abdl-post-translation-20261102/web-final-summary.json` 及其逐轮原始日志。没有更改依赖锁、既有 provider/human 策略或生产配置。后端须另获授权上线并完成新迁移后，生产页面才能使用新端点；本次推送 develop 不等于上线。
+证据：`~/.local/share/abdl-post-translation-20261102/web-final-summary.json` 及其逐轮原始日志。没有更改依赖锁、既有 provider/human 策略或生产配置。本记录开发阶段的develop推送不等于上线；后续后端已独立发布Worker819/0104唯一id25，本卡2026-11-03已随词库前端授权发布，不需要重复迁移。

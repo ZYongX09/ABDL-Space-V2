@@ -14,7 +14,7 @@
 
 不把词库或真实凭据存入localStorage；保存词库不调用AI、不修改统一provider配置。后端只将中英双向新生成中的相关术语作为不可信JSON参考，不执行备注指令，原实体/输出与成本护栏保持。
 
-基于主站develop `437de543`，独立feature实施。只合回并推送develop，不推进main或部署；本轮后端0104仅本地验证，旧0103已生产id24不得重放。线上管理端在另获发布授权前不会出现本轮新词库能力，不以本地fixture成功冒充真实管理员/供应商闭环。
+开发阶段基于主站develop `437de543`，独立feature实施并先合回develop。用户随后单独要求词库前端上线，2026-11-03主站main固定`0b7b7e1`已部署Pages production `e14449c5`成功，移动`0103718`/`c58afa16`同步上线；入口`/admin/app-clients`。后端此前已上线Worker819且0104唯一id25，**禁止重放0104/0103或全量apply**。本次不改后端、配置或App，不以本地fixture成功冒充真实管理员/供应商闭环，见[前端生产记录](translation-glossary-web-production-2026-11-03.md)。
 
 ## 验证
 
