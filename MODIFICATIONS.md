@@ -1,3 +1,8 @@
+**NBW全链路主备联动网页上线（2026-11-04）**
+- 用户授权后主站main `b8bb02e` / Pages `d1c65ffd`、移动main `122b08c` / Pages `8979c5ae`已生产成功，正式域canonical、关键模块/CSP及14项同源代理核验。完整测试508/508、515/515，双build与业务源码指纹保持。
+- GitHub推送内部错误和Pages Git webhook未入队已留证；确认不存在目标部署后，各以官方branch-only API触发一次原Git源构建，不是本地资产直传，不改build/source/env/bindings。
+- 本次不再部署后端Worker822/迁移0105id26，不切NBW或AI配置、不真实授权或发帖。主站本地/云端压缩产物不同如实记录，不称全字节相同；实际浏览器登录页/管理登录门禁已验。[生产记录](docs/nbw-web-production-2026-11-04.md)。
+
 **翻译词库与策略管理上线（2026-11-03）**
 - 用户授权后主站main固定`0b7b7e1`自动部署Pages production `e14449c5`成功；移动`0103718`/`c58afa16`同步上线，`/admin/app-clients`新增中英词库及依赖翻译策略卡。
 - 完整主站474/474、移动483/483、双build及源码指纹一致。正式appClients/CSS/API接线、两站同源health/匿名管理门禁与实际浏览器登录门禁核验；主站模块仅静态import路径归一后相同，移动逐字节相同。首轮移动传输失败留证后完整复验通过。
