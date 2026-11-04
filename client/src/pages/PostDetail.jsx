@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { Spinner } from '../components/Feedback';
 import ImageGrid from '../components/ImageGrid';
+import NBWImage from '../components/NBWImage.jsx';
 import ImageUploader from '../components/ImageUploader';
 import { forumAPI, adminAPI, followsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
@@ -344,7 +345,7 @@ export default function PostDetail() {
                 style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}
               >
                 {post.repost.user?.avatar
-                  ? <img src={post.repost.user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                  ? <NBWImage src={post.repost.user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
                   : post.repost.user?.username?.[0]?.toUpperCase() || '?'
                 }
               </div>

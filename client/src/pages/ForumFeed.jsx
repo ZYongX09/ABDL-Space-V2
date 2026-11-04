@@ -4,6 +4,7 @@ import PageLayout from '../components/PageLayout';
 import { useMobileHeaderActions } from '../contexts/MobileHeaderContext';
 import { LoadingSkeleton, EmptyState } from '../components/Feedback';
 import ImageGrid from '../components/ImageGrid';
+import NBWImage from '../components/NBWImage.jsx';
 import PullToRefresh from '../components/PullToRefresh';
 import RichContent from '../components/RichContent';
 import OfficialBadge from '../components/OfficialBadge';
@@ -162,7 +163,7 @@ export default function ForumFeed() {
                   style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}
                 >
                   {post.user?.avatar
-                    ? <img src={post.user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                    ? <NBWImage src={post.user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
                     : post.user?.username?.[0]?.toUpperCase() || '?'
                   }
                 </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
+import NBWImage from '../components/NBWImage.jsx';
 import OfficialBadge from '../components/OfficialBadge';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -275,7 +276,7 @@ export default function Profile() {
           <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold"
             style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
             {displayUser.avatar
-              ? <img src={displayUser.avatar} alt={displayUser.username} className="w-full h-full rounded-full object-cover" />
+              ? <NBWImage src={displayUser.avatar} alt={displayUser.username} className="w-full h-full rounded-full object-cover" />
               : displayUser.username?.[0]?.toUpperCase()
             }
           </div>

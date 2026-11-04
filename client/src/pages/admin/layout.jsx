@@ -1,3 +1,4 @@
+import NBWImage from '../../components/NBWImage.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -190,7 +191,7 @@ export default function AdminLayout({ active = 'overview', children }) {
             <div className="ac-topbar-divider" aria-hidden="true" />
             <span className="ac-topbar-user">
               {user.avatar ? (
-                <img className="ac-avatar" src={user.avatar} alt="" onError={event => { event.currentTarget.style.display = 'none'; }} />
+                <NBWImage className="ac-avatar" src={user.avatar} alt="" onError={event => { event.currentTarget.style.display = 'none'; }} />
               ) : (
                 <span className="ac-avatar ac-avatar-fallback"><i className="fa-solid fa-user" aria-hidden="true" /></span>
               )}

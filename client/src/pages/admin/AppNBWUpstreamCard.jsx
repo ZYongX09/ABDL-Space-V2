@@ -8,14 +8,14 @@ export function AppNBWUpstreamView({ state, onChange, onSave, onReload, onCancel
   const { saved, draft, loading, saving, needsReload, error, notice } = state;
   const dirty = isNBWUpstreamDirty(saved, draft);
   const disabled = loading || saving || needsReload;
-  return <Card title="NBW 上游域名（备用切换）" icon="fa-tower-broadcast" className="ac-app-nbw-upstream-card" description="宝宝新天地服务器上游在两个固定域名之间切换：主域名与备用域名。切换只影响服务器侧调用，App 内用户看到的 NBW 域名不变。">
+  return <Card title="NBW 上游域名（备用切换）" icon="fa-tower-broadcast" className="ac-app-nbw-upstream-card" description="宝宝新天地全链路在主、备两个固定域名之间联动：服务器调用、新版 App 与双网页授权、公开链接和图片。">
     <div style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
-      <p id="nbw-upstream-scope" className="ac-app-note">两个域名固定，不可自填。切换只影响服务器对宝宝新天地接口的调用（同步发布、读取、OAuth 交换），立即对后续调用生效，不会重试已失败的请求。App 内打开的 NBW 授权/登录页与帖子中的 NBW 链接、账号域名始终使用主域名。</p>
-      <p id="nbw-upstream-recovery" className="ac-section-note">主域名故障时切换到备用域名可恢复同步；主域名恢复后请切回主域名。本卡片不修改用户真实的 NBW 绑定或授权，也不删除或验证任何账号凭据。</p>
+      <p id="nbw-upstream-scope" className="ac-app-note">两个域名固定，不可自填。服务器的同步发布、读取、OAuth 交换及新版客户端的授权/登录页、NBW 公开链接与图片随主备切换；稳定账号身份与原正文不变。网页配置最多缓存 30 秒，回到前台和发起授权前刷新，不是全球即时推送；不会重试已失败的请求。</p>
+      <p id="nbw-upstream-recovery" className="ac-section-note">主域名故障时切换到备用域名可恢复同步；主域名恢复后请切回主域名。本卡片不修改用户真实的 NBW 绑定或授权，也不删除或验证任何账号凭据。旧 App/旧网页可能仍硬编码主域名，需更新才能完整跟随；进行中的授权固定原域名完成，失败需用户重新发起，不跨域重发授权码。仅本站/只读能力门禁不因切换而放开。</p>
       <p id="nbw-upstream-hosts" className="ac-section-note">固定主域名：{NBW_PRIMARY_HOST}；固定备用域名：{NBW_BACKUP_HOST}。两个域名由服务器下发，本卡片不接受自填或其他域名。</p>
       {saved && <div id="nbw-upstream-saved-summary" className="ac-app-policy-status" role="status" aria-live="polite">
         <Pill tone={saved.mode === 'primary' ? 'green' : 'amber'}>当前上游：{NBW_UPSTREAM_MODES[saved.mode]}</Pill>
-        <span>主域名：{NBW_PRIMARY_HOST}；备用域名：{NBW_BACKUP_HOST}。保存后对后续调用立即生效，无需重启。</span>
+        <span>主域名：{NBW_PRIMARY_HOST}；备用域名：{NBW_BACKUP_HOST}。服务器后续调用生效；新版客户端刷新配置后联动，无需重启。</span>
       </div>}
       {loading && <Loading text="正在读取 NBW 上游域名…" />}
       <ErrorBox msg={error} />

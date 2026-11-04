@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import BetaBadge from './BetaBadge';
+import NBWImage from './NBWImage.jsx';
 
 export default function AccountSwitcher({ collapsed = false }) {
   const { user, accounts, switchAccount, removeAccount, logout, logoutAll } = useAuth();
@@ -59,7 +60,7 @@ export default function AccountSwitcher({ collapsed = false }) {
         <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 overflow-hidden"
           style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
           {user.avatar
-            ? <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+            ? <NBWImage src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
             : user.username?.[0]?.toUpperCase()
           }
         </div>
@@ -114,7 +115,7 @@ export default function AccountSwitcher({ collapsed = false }) {
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 overflow-hidden"
                     style={{ background: acc.id === user.id ? 'var(--primary)' : 'var(--primary-light)', color: acc.id === user.id ? 'white' : 'var(--primary-dark)' }}>
                     {acc.avatar
-                      ? <img src={acc.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                      ? <NBWImage src={acc.avatar} alt="" className="w-full h-full rounded-full object-cover" />
                       : acc.username?.[0]?.toUpperCase() || '?'
                     }
                   </div>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import PostCard from '../components/PostCard';
+import NBWImage from '../components/NBWImage.jsx';
 import { LoadingSkeleton, EmptyState } from '../components/Feedback';
 import OfficialBadge from '../components/OfficialBadge';
 import { forumAPI, usersAPI, followsAPI } from '../api';
@@ -292,7 +293,7 @@ function UserSearchCard({ user, currentUser, following, onFollow }) {
         style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}
       >
         {user.avatar
-          ? <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+          ? <NBWImage src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
           : user.username?.[0]?.toUpperCase() || '?'
         }
       </div>

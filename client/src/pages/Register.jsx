@@ -5,7 +5,7 @@ import VerificationInput from '../components/VerificationInput';
 import { authAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { isNBWConfigured } from '../utils/nbwOAuth';
+import { nbwRegistrationFields } from '../utils/nbwOAuth';
 import { useInlineVerify } from '../components/useInlineVerify';
 
 export default function Register() {
@@ -88,7 +88,7 @@ export default function Register() {
         username: username.trim(), email: email.trim(), password, code,
         captchaToken: regTokenRef.current || undefined,
         inviteCode: inviteCode.trim() || undefined,
-        ...(nbwState ? { nbw_token: nbwState.nbw_token } : {}),
+        ...(nbwState ? nbwRegistrationFields(nbwState) : {}),
       });
       saveConsent({ privacy: true, terms: true, userId: result?.user?.id });
       toast.success('注册成功');

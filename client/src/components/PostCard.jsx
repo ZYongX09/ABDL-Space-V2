@@ -1,6 +1,7 @@
 import { memo, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ImageGrid from './ImageGrid';
+import NBWImage from './NBWImage.jsx';
 import RichContent from './RichContent';
 import OfficialBadge from './OfficialBadge';
 import BetaBadge from './BetaBadge';
@@ -104,7 +105,7 @@ function PostCardInner({ post, onLike, onFollow, followMap, compact = false }) {
                 style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}
               >
                 {repostUser.avatar
-                  ? <img src={repostUser.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                  ? <NBWImage src={repostUser.avatar} alt="" className="w-full h-full rounded-full object-cover" />
                   : repostUser.username?.[0]?.toUpperCase() || '?'
                 }
               </div>
@@ -239,7 +240,7 @@ function PostContent({ post, compact, followMap, onFollow, mini = false, onInner
           style={{ width: avatarSize, height: avatarSize, background: 'var(--primary-light)', color: 'var(--primary-dark)', fontSize: mini ? '10px' : '14px' }}
         >
           {post.user?.avatar
-            ? <img src={post.user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+            ? <NBWImage src={post.user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
             : post.user?.username?.[0]?.toUpperCase() || '?'
           }
         </div>

@@ -1,3 +1,4 @@
+import NBWImage from '../components/NBWImage.jsx';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
@@ -8,7 +9,7 @@ import VerificationInput from '../components/VerificationInput';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { authAPI } from '../api';
-import { isNBWConfigured, whenNBWReady, startNBWBind } from '../utils/nbwOAuth';
+import { useNBWOAuth } from '../utils/useNBWEndpoints.js';
 
 const NBW_LOGO = 'https://img.abdl-space.top/file/nbwlogo.png';
 
@@ -63,7 +64,7 @@ export default function AccountPrivacy() {
                 <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold overflow-hidden"
                   style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
                   {user.avatar
-                    ? <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                    ? <NBWImage src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
                     : user.username?.[0]?.toUpperCase()
                   }
                 </div>
@@ -159,7 +160,7 @@ export default function AccountPrivacy() {
                       }}
                     >
                       <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
-                        {a.avatar ? <img src={a.avatar} alt="" className="w-full h-full rounded-full object-cover" /> : a.username?.[0]?.toUpperCase()}
+                        {a.avatar ? <NBWImage src={a.avatar} alt="" className="w-full h-full rounded-full object-cover" /> : a.username?.[0]?.toUpperCase()}
                       </div>
                       <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{a.username}</span>
                     </button>
@@ -333,14 +334,10 @@ function EmailSection({ user, toast }) {
 function NBWBindSection({ user, toast, onUserChange }) {
   const [binding, setBinding] = useState(false);
   const [unbinding, setUnbinding] = useState(false);
-  const [nbwReady, setNbwReady] = useState(isNBWConfigured());
+  const { available: nbwReady } = useNBWOAuth();
   const isBound = !!user?.nbw_uid;
   const nbwUsername = user?.nbw_username;
   const navigate = useNavigate();
-
-  useEffect(() => {
-    whenNBWReady().then(() => setNbwReady(isNBWConfigured())).catch(() => {});
-  }, []);
 
   const handleUnbind = async () => {
     if (!confirm(`确定解绑「宝宝新天地」账户${nbwUsername ? `（@${nbwUsername}）` : ''}？\n\n解绑后将无法使用该账户登录。`)) return;

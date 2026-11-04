@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { nbwRegistrationFields } from '../utils/nbwOAuth.js';
 import { buildAvatarPreviewUrl } from '../utils/mediaUrl';
 
 function notifySessionChanging() {
@@ -163,13 +164,13 @@ export function AuthProvider({ children }) {
   }, []);
 
   // 注册
-  const register = useCallback(async ({ username, email, password, code, captchaToken, inviteCode }) => {
+  const register = useCallback(async ({ username, email, password, code, captchaToken, inviteCode, ...nbw }) => {
     const headers = { 'Content-Type': 'application/json' };
     if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
     const res = await fetch(`${API_BASE}/api/auth/register`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ email, password, username, code, invite_code: inviteCode }),
+      body: JSON.stringify({ email, password, username, code, invite_code: inviteCode, ...nbwRegistrationFields(nbw) }),
       credentials: 'include',
     });
     const data = await res.json();

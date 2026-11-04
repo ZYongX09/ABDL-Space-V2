@@ -1,8 +1,10 @@
+import NBWImage from '../components/NBWImage.jsx';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { isNBWConfigured, startNBWOAuth } from '../utils/nbwOAuth';
+import { startNBWOAuth } from '../utils/nbwOAuth';
+import { useNBWOAuth } from '../utils/useNBWEndpoints.js';
 import AnimatedCharacters from '../components/AnimatedCharacters/AnimatedCharacters';
 import { useInlineVerify } from '../components/useInlineVerify';
 import QRLoginMode from '../components/QRLoginMode';
@@ -39,7 +41,7 @@ export default function Login() {
   const canSubmit = !loading && (!needCaptcha || verified) && consented && minorConsented;
   const isPasswordPlain = passwordRevealed && password.length > 0;
   const isTyping = emailFocused && login.length > 0;
-  const nbwConfigured = isNBWConfigured();
+  const { available: nbwConfigured, error: nbwError } = useNBWOAuth();
 
   const isPWA = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
   // PWA 模式下始终显示安全识别选项
@@ -208,7 +210,7 @@ export default function Login() {
           <>
             <button className="login-nbw-btn login-nbw-btn--disabled" disabled>
               <img src={NBW_LOGO} alt="" style={{ width: 20, height: 20, objectFit: 'contain', opacity: 0.5 }} />
-              <span>宝宝新天地（暂未开放）</span>
+              <span>{nbwError || '宝宝新天地（暂未开放）'}</span>
             </button>
             <div className="login-divider">
               <div className="login-divider-line" />
@@ -237,7 +239,7 @@ export default function Login() {
                 <button className="btn btn-primary btn-sm" onClick={async () => {
                   try { saveConsent({ privacy: true, minor: true }); } catch {}
                   if (user) await logout();
-                  startNBWOAuth();
+                  try { await startNBWOAuth(); } catch (error) { toast.error(error.message); setShowNBWConsent(false); }
                 }}>同意并继续</button>
               </div>
             </div>
@@ -402,7 +404,7 @@ export default function Login() {
                     overflow: 'hidden', flexShrink: 0,
                   }}>
                     {acc.avatar ? (
-                      <img src={acc.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <NBWImage src={acc.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
                       acc.username?.[0]?.toUpperCase()
                     )}

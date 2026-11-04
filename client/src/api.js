@@ -13,7 +13,9 @@ import { createNBWUpstreamAPI } from './nbwUpstream/api.js';
 import { createNovelReviewAPI } from './novelReview/api.js';
 import { isReservedAppClientSetting } from './appClients/model.js';
 import { withAvatarPreviews } from './utils/mediaUrl.js';
+import { NBWError, getNBWEndpointState, hasNBWDisplayData, markNBWAcquisition } from './utils/nbwEndpoints.js';
 import { requestTestVerificationCode } from './pages/admin/testVerificationCode.js';
+import { nbwRegistrationFields } from './utils/nbwOAuth.js';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 // 空字符串也是有效值（相对路径），只有显式设为 undefined/null 时才走离线
@@ -44,6 +46,7 @@ function weightedScore(rating, isBaby) {
 
 // ====== 通用 fetch ======
 async function apiFetch(path, options = {}) {
+  const nbwEpoch = getNBWEndpointState().epoch;
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   // 自动附加 Authorization header（从 localStorage 读取 token）
   try {
@@ -69,6 +72,8 @@ async function apiFetch(path, options = {}) {
     error.retryAfter = res.headers.get('Retry-After') ?? data?.retryAfter ?? null;
     throw error;
   }
+  if ((path === '/api/posts' || path.startsWith('/api/posts?') || path.startsWith('/api/posts/'))
+    && (!options.method || options.method === 'GET') && nbwEpoch !== getNBWEndpointState().epoch && hasNBWDisplayData(data)) throw new NBWError('NBW_ENDPOINT_CHANGED');
   // 头像字段在这里统一换成 160px 预览地址：帖子、评论、私信、搜索结果等渲染点不必各自改写。
   return withAvatarPreviews(data);
 }
@@ -85,17 +90,19 @@ const CACHE_TTL = {
 function cacheGet(key) {
   const entry = _cache.get(key);
   if (!entry) return null;
-  if (Date.now() > entry.expireAt) { _cache.delete(key); return null; }
+  if (Date.now() > entry.expireAt || (entry.nbwEpoch !== null && entry.nbwEpoch !== getNBWEndpointState().epoch)) { _cache.delete(key); return null; }
   return entry.data;
 }
 
-function cacheSet(key, data, ttl = CACHE_TTL.short) {
+function cacheSet(key, data, ttl = CACHE_TTL.short, nbwEpoch = getNBWEndpointState().epoch) {
+  const remote = /^(feed:|post:)/.test(key) && hasNBWDisplayData(data);
+  if (remote && nbwEpoch !== getNBWEndpointState().epoch) throw new NBWError('NBW_ENDPOINT_CHANGED');
   // 缓存大小限制：超过 100 条时驱逐最早的
   if (_cache.size > 100) {
     const firstKey = _cache.keys().next().value;
     if (firstKey) _cache.delete(firstKey);
   }
-  _cache.set(key, { data, expireAt: Date.now() + ttl });
+  _cache.set(key, { data, expireAt: Date.now() + ttl, nbwEpoch: remote ? nbwEpoch : null });
 }
 
 function cacheInvalidate(pattern) {
@@ -104,17 +111,35 @@ function cacheInvalidate(pattern) {
   }
 }
 
+// 只读 NBW 帖子事务可在观察到代次变化后整笔重取一次；租约涵盖 fetch 与 cacheSet。
+// 首次 discovery 0→1 同样恢复；第二次又变则终止。不用于 POST/写操作或不明派送。
+async function readNBWPosts(fetchFn, accept = () => {}) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const lease = getNBWEndpointState().epoch;
+    try {
+      const data = await fetchFn();
+      if (hasNBWDisplayData(data) && lease !== getNBWEndpointState().epoch) throw new NBWError('NBW_ENDPOINT_CHANGED');
+      accept(data, lease);
+      markNBWAcquisition(data, lease);
+      return data;
+    } catch (error) {
+      if (attempt || error?.code !== 'NBW_ENDPOINT_CHANGED' || !getNBWEndpointState().endpoints) throw error;
+    }
+  }
+}
+
 // 带缓存的 fetch：先返回缓存，后台刷新
 async function cachedFetch(key, fetchFn, ttl = CACHE_TTL.short) {
+  const fresh = () => /^(feed:|post:)/.test(key)
+    ? readNBWPosts(fetchFn, (data, lease) => cacheSet(key, data, ttl, lease))
+    : fetchFn().then(data => { cacheSet(key, data, ttl); return data; });
   const cached = cacheGet(key);
   if (cached) {
-    // 后台静默刷新（stale-while-revalidate）
-    fetchFn().then(data => cacheSet(key, data, ttl)).catch(e => { console.warn('[cache] refresh failed:', key, e); });
+    // 只丢弃 NBW 旧代次数据；非 NBW 的本站缓存保持原 SWR 行为。
+    void fresh().catch(() => {});
     return cached;
   }
-  const data = await fetchFn();
-  cacheSet(key, data, ttl);
-  return data;
+  return fresh();
 }
 
 // ====== localStorage 工具 ======
@@ -148,12 +173,12 @@ export async function loadData() {
 // 认证 Auth
 // =====================================================================
 export const authAPI = {
-  register: async ({ username, password, email, code, captchaToken, inviteCode }) => {
+  register: async ({ username, password, email, code, captchaToken, inviteCode, ...nbw }) => {
     const headers = {};
     if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
     return apiFetch('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, password, username, code, invite_code: inviteCode }),
+      body: JSON.stringify({ email, password, username, code, invite_code: inviteCode, ...nbwRegistrationFields(nbw) }),
       headers,
     });
   },
@@ -486,7 +511,7 @@ export const forumAPI = {
       if (excludeNsfw) qs.set('exclude_nsfw', '1');
       if (filter) qs.set('filter', filter);
       const cacheKey = `feed:${qs}`;
-      if (search || filter) return apiFetch(`/api/posts?${qs}`);
+      if (search || filter) return readNBWPosts(() => apiFetch(`/api/posts?${qs}`));
       return cachedFetch(cacheKey, () => apiFetch(`/api/posts?${qs}`), CACHE_TTL.short);
     }
     let posts = LS.get('posts') || [];

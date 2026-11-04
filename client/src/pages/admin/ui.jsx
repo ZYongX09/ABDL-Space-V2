@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
+import NBWImage from '../../components/NBWImage.jsx';
 
 /** 管理控制台共享 UI 原语。 */
 const ConfirmCtx = createContext(null);
@@ -261,7 +262,7 @@ export function Avatar({ src, size = 30, alt = '' }) {
   return (
     <span className="ac-avatar-shell" style={{ '--ac-avatar-size': `${size}px` }}>
       {src ? (
-        <img src={src} alt={alt} className="ac-avatar" onError={event => { event.currentTarget.style.display = 'none'; }} />
+        <NBWImage src={src} alt={alt} className="ac-avatar" onError={event => { event.currentTarget.style.display = 'none'; }} />
       ) : null}
       <i className="fa-solid fa-user" aria-hidden="true" />
     </span>

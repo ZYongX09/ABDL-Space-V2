@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import RichContent from './RichContent';
+import NBWImage from './NBWImage.jsx';
 
 /** 引用转发弹窗 */
 export default function RepostModal({ post, onRepost, onClose }) {
@@ -59,7 +60,7 @@ export default function RepostModal({ post, onRepost, onClose }) {
               style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}
             >
               {post.user?.avatar
-                ? <img src={post.user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                ? <NBWImage src={post.user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
                 : post.user?.username?.[0]?.toUpperCase() || '?'
               }
             </div>

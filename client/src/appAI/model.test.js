@@ -218,7 +218,10 @@ test('实际 api.js 注入继续使用 cookie/账号 token/no-store，仅 PUT bo
   const text = source('../api.js');
   assert.match(text, /import \{ createAppAIAPI \} from '.\/appAI\/api.js'/); assert.match(text, /\.\.\.createAppClientsAPI\(apiFetch\),\s*\.\.\.createAppAIAPI\(apiFetch\)/); assert.doesNotMatch(text, /export.*(?:function|\{)\s*apiFetch/);
   const calls = []; let failure;
-  const context = { createAppAIAPI, createAppClientsAPI: () => ({}), createAppHumanCheckAPI: () => ({}), createTranslationPolicyAPI: () => ({}), createTranslationGlossaryAPI: () => ({}), createNBWUpstreamAPI: () => ({}), createNovelReviewAPI: () => ({}), withAvatarPreviews: data => data, localStorage: { getItem: key => key === 'abdl_accounts' ? JSON.stringify([{ id: 2, token: 'fixture-2' }]) : '2' },
+  // 依赖桩补齐未导出模块的真实导出名；NBW 无快照时不参与判定，旧断言（cookie/token/no-store/脱敏）原样保留。
+  const context = { createAppAIAPI, createAppClientsAPI: () => ({}), createAppHumanCheckAPI: () => ({}), createTranslationPolicyAPI: () => ({}), createTranslationGlossaryAPI: () => ({}), createNBWUpstreamAPI: () => ({}), createNovelReviewAPI: () => ({}), withAvatarPreviews: data => data,
+    NBWError: class NBWError extends Error { constructor(code) { super(code); this.code = code; } }, getNBWEndpointState: () => ({ epoch: 0, endpoints: null }), hasNBWDisplayData: () => false, markNBWAcquisition: () => {}, nbwRegistrationFields: data => ({ data }),
+    localStorage: { getItem: key => key === 'abdl_accounts' ? JSON.stringify([{ id: 2, token: 'fixture-2' }]) : '2' },
     fetch: async (url, options) => { calls.push({ url, options }); return failure ? Response.json({ error: FAKE_TOKEN, code: FAKE_TOKEN }, { status: failure }) : Response.json(DEFAULT_APP_AI_PROVIDER); } };
   const executable = text.replace(/^import .+;\r?$/gm, '').replace(/import\.meta\.env/g, '({})').replace(/\bexport\s+(?=const|async function|function)/g, '');
   runInNewContext(`${executable}\nglobalThis.actualAdminAPI = adminAPI;`, context);

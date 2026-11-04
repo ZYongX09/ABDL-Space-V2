@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { NBWError, fetchNBWJSON, getNBWEndpointState, nbwEndpointKey, refreshNBWEndpoints, registrationNBWURL } from '../utils/nbwEndpoints.js';
+import { useNBWEndpoints } from '../utils/useNBWEndpoints.js';
 
 const NBW_LOGO = 'https://img.abdl-space.top/file/nbwlogo.png';
-const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 /**
  * NBWOneClickRegister — 一键注册 NBW 新账号页面
@@ -26,82 +27,97 @@ export default function NBWOneClickRegister() {
   const [iframeLoading, setIframeLoading] = useState(true);
   const timerRef = useRef(null);
   const phase3StartRef = useRef(null);
+  const snapshotRef = useRef(null);
+  const registrationRequest = useRef(null);
+  const checkingRef = useRef(false);
+  const mountedRef = useRef(false);
+  const sessionGeneration = useRef(0);
+  const identityRef = useRef('');
+  const phaseRef = useRef(phase);
+  identityRef.current = `${user?.id ?? ''}:${user?.email ?? ''}`;
+  phaseRef.current = phase;
+  const acquire = () => {
+    const identity = identityRef.current, session = sessionGeneration.current, step = phaseRef.current;
+    return () => mountedRef.current && identity === identityRef.current && session === sessionGeneration.current && step === phaseRef.current;
+  };
+  useEffect(() => {
+    mountedRef.current = true;
+    const invalidate = () => { sessionGeneration.current += 1; setError('当前账户或会话已变更，请重新打开注册页面。'); };
+    window.addEventListener('auth-session-changing', invalidate);
+    return () => { mountedRef.current = false; window.removeEventListener('auth-session-changing', invalidate); };
+  }, []);
+  const { endpoints } = useNBWEndpoints();
+  const snapshotChanged = !!snapshotRef.current && nbwEndpointKey(snapshotRef.current) !== nbwEndpointKey(endpoints);
+  const safeRegisterUrl = !snapshotChanged && registerUrl && endpoints?.remote_mode === 'full' ? registrationNBWURL(registerUrl, endpoints) : '';
+
+  useEffect(() => {
+    if (snapshotChanged) setError('宝宝新天地配置已更新，请返回后重新开始注册。');
+  }, [snapshotChanged]);
+  const ensureSnapshot = async () => {
+    const current = await refreshNBWEndpoints({ force: true });
+    if (!snapshotRef.current || nbwEndpointKey(current) !== nbwEndpointKey(snapshotRef.current)) throw new NBWError('NBW_ENDPOINT_CHANGED');
+    if (current.remote_mode !== 'full') throw new NBWError('NBW_REMOTE_DISABLED');
+  };
 
   const checkRegisterStatus = useCallback(async () => {
-    if (checking) return;
-    setChecking(true);
+    if (checkingRef.current || !snapshotRef.current || error) return;
+    checkingRef.current = true; setChecking(true);
+    const current = acquire();
     try {
-      const res = await fetch(`${API_BASE}/api/auth/nbw/check-register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('abdl_token') || ''}`,
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email: user?.email }),
+      await ensureSnapshot();
+      if (!current()) return;
+      const key = nbwEndpointKey(snapshotRef.current);
+      const data = await fetchNBWJSON('/api/auth/nbw/check-register', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: user?.email }),
       });
-      const data = await res.json();
+      if (!current()) return;
+      if (key !== nbwEndpointKey(getNBWEndpointState().endpoints)) throw new NBWError('NBW_ENDPOINT_CHANGED');
       if (data.registered) {
-        // 注册成功，直接绑定
-        const bindRes = await fetch(`${API_BASE}/api/auth/nbw/bind-by-email`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('abdl_token') || ''}`,
-          },
-          credentials: 'include',
-          body: JSON.stringify({ email: user?.email }),
+        await ensureSnapshot();
+        if (!current()) return;
+        await fetchNBWJSON('/api/auth/nbw/bind-by-email', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: user?.email }),
         });
-        const bindData = await bindRes.json();
-        if (bindRes.ok) {
-          toast.success('绑定成功！');
-          navigate('/');
-        } else {
-          toast.error(bindData.error || '绑定失败');
-        }
+        if (!current()) return;
+        if (key !== nbwEndpointKey(getNBWEndpointState().endpoints)) throw new NBWError('NBW_ENDPOINT_CHANGED');
+        toast.success('绑定成功！'); navigate('/');
       }
-    } catch (e) {
-      console.error('Check register status failed:', e);
-    } finally {
-      setChecking(false);
-    }
-  }, [user, navigate, toast, checking]);
+    } catch (e) { if (current()) setError(e.message); }
+    finally { checkingRef.current = false; if (current()) setChecking(false); }
+  }, [user?.email, navigate, toast, error]);
 
   // 阶段1：获取注册链接
   useEffect(() => {
     if (phase !== 1 || !user?.email) return;
-
+    let active = true;
     const fetchRegisterUrl = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/auth/nbw/get-register-url`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('abdl_token') || ''}`,
-          },
-          credentials: 'include',
-          body: JSON.stringify({ email: user.email }),
-        });
-        const data = await res.json();
-        if (data.code === 200 && data.data?.register_url) {
-          setRegisterUrl(data.data.register_url);
-          setPhase(2);
-        } else {
-          setError(data.msg || '获取注册链接失败');
-        }
-      } catch (e) {
-        setError('网络错误: ' + e.message);
-      } finally {
-        setLoading(false);
-      }
+        // StrictMode 的第二次 setup 只观察这次有限请求，不重复注册写入。
+        const lease = acquire();
+        const transaction = registrationRequest.current || (registrationRequest.current = (async () => {
+          const current = await refreshNBWEndpoints({ force: true });
+          if (!lease()) throw new NBWError('NBW_ENDPOINT_CHANGED');
+          if (current.remote_mode !== 'full') throw new NBWError('NBW_REMOTE_DISABLED');
+          snapshotRef.current = current;
+          const data = await fetchNBWJSON('/api/auth/nbw/get-register-url', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: user.email }),
+          });
+          if (!lease() || nbwEndpointKey(current) !== nbwEndpointKey(getNBWEndpointState().endpoints)) throw new NBWError('NBW_ENDPOINT_CHANGED');
+          if (data.code !== 200 || !data.data?.register_url) throw new NBWError('NBW_INVALID_RESPONSE');
+          return registrationNBWURL(data.data.register_url, current);
+        })());
+        const url = await transaction;
+        if (active && lease()) { setRegisterUrl(url); setPhase(2); }
+      } catch (e) { if (active && mountedRef.current) setError(e.message); }
+      finally { if (active && mountedRef.current) setLoading(false); }
     };
-
-    fetchRegisterUrl();
-  }, [phase, user]);
+    void fetchRegisterUrl();
+    return () => { active = false; };
+  }, [phase, user?.email]);
 
   // 阶段3：轮询检测注册状态（渐进加速：0-10s→10s一次，10-20s→5s一次，20s+→3s一次）
   useEffect(() => {
-    if (phase !== 3) return;
+    if (phase !== 3 || error || snapshotChanged) return;
     phase3StartRef.current = Date.now();
 
     const poll = () => {
@@ -119,7 +135,16 @@ export default function NBWOneClickRegister() {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [phase, checkRegisterStatus]);
+  }, [phase, checkRegisterStatus, error, snapshotChanged]);
+
+  if (error && phase !== 1) return (
+    <PageLayout hero={{ icon: 'fa-circle-xmark', title: '注册操作已停止' }}>
+      <div className="card max-w-md mx-auto text-center py-8">
+        <p role="alert">{error}</p>
+        <button className="btn btn-outline mt-3" onClick={() => navigate('/nbw-bind-guide')}>返回后重新开始</button>
+      </div>
+    </PageLayout>
+  );
 
   // 阶段1：加载中
   if (phase === 1) {
@@ -161,7 +186,11 @@ export default function NBWOneClickRegister() {
           </p>
           <button
             className="btn btn-primary w-full"
-            onClick={() => setPhase(3)}
+            disabled={!safeRegisterUrl}
+            onClick={async () => {
+              const current = acquire();
+              try { await ensureSnapshot(); if (current()) setPhase(3); } catch (e) { if (current()) setError(e.message); }
+            }}
           >
             <i className="fa-solid fa-arrow-right mr-2" />
             去宝宝新天地补充信息
@@ -225,7 +254,8 @@ export default function NBWOneClickRegister() {
 
       {/* iframe 主体 */}
       <iframe
-        src={registerUrl}
+        src={safeRegisterUrl || undefined}
+        referrerPolicy="no-referrer"
         style={{ flex: 1, border: 'none', width: '100%', display: iframeLoading ? 'none' : 'block' }}
         title="宝宝新天地 注册"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups"

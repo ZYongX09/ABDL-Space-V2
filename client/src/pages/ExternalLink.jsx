@@ -1,5 +1,7 @@
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
+import { getNBWEndpointState, isNBWSensitiveURL, resolveNBWDisplayURL } from '../utils/nbwEndpoints.js';
+import { useNBWEndpoints } from '../utils/useNBWEndpoints.js';
 
 const TRUSTED_DOMAINS = [
   'github.com',
@@ -33,12 +35,16 @@ export default function ExternalLink() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const rawUrl = params.get('url') || '';
-  const url = resolveUrl(rawUrl);
-  const domain = getDomain(rawUrl);
-  const trusted = isTrusted(rawUrl);
+  const sourceURL = resolveUrl(rawUrl);
+  const { endpoints } = useNBWEndpoints();
+  const sensitive = isNBWSensitiveURL(sourceURL);
+  const url = sensitive ? undefined : resolveNBWDisplayURL(sourceURL, endpoints);
+  const waiting = !url && !!sourceURL;
+  const domain = getDomain(url || sourceURL);
+  const trusted = isTrusted(url || sourceURL);
   const sponsorPurchase = domain === 'ifdian.net' && new URL(url).pathname === '/order/create' && new URL(url).searchParams.get('product_type') === '1';
 
-  if (!url || !domain) {
+  if (!sourceURL || !domain) {
     return (
       <PageLayout hero={{ icon: 'fa-link-slash', title: '无效链接', subtitle: '目标地址不存在' }}>
         <div className="card text-center py-8">
@@ -75,7 +81,7 @@ export default function ExternalLink() {
           {domain}
         </p>
         <p className="text-xs mb-6 break-all" style={{ color: 'var(--text-muted)' }}>
-          {url}
+          {waiting ? sensitive ? '授权链接不能从公开外链页继续，请从当前站点重新发起授权。' : '正在确认宝宝新天地地址，请刷新配置后继续。' : url}
         </p>
 
         {sponsorPurchase && (
@@ -88,7 +94,10 @@ export default function ExternalLink() {
           <button className="btn btn-outline" onClick={() => navigate('/')}>
             <i className="fa-solid fa-arrow-left" /> 返回首页
           </button>
-          <button className="btn btn-primary" onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}>
+          <button className="btn btn-primary" disabled={waiting} onClick={() => {
+            const current = isNBWSensitiveURL(sourceURL) ? undefined : resolveNBWDisplayURL(sourceURL, getNBWEndpointState().endpoints);
+            if (current) window.open(current, '_blank', 'noopener,noreferrer');
+          }}>
             继续访问 <i className="fa-solid fa-arrow-up-right-from-square ml-1" />
           </button>
         </div>

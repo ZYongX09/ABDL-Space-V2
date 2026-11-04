@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import NsfwGuard from './NsfwGuard';
 import { forumAPI } from '../api';
 import { buildMediaPreviewUrl } from '../utils/mediaUrl';
+import { resolveNBWDisplayURL } from '../utils/nbwEndpoints.js';
+import { useNBWEndpoints } from '../utils/useNBWEndpoints.js';
 
 function ImageItem({ url, fallbackUrl, onClick, overlay, isNsfw, nsfwType }) {
   const [loaded, setLoaded] = useState(false);
@@ -356,6 +358,7 @@ function MobileLightbox({ urls, index, onClose, onNavigate }) {
 
 export default function ImageGrid({ images = [], postId }) {
   const [lightbox, setLightbox] = useState(null);
+  const { endpoints } = useNBWEndpoints();
   if (!images.length) return null;
 
   const imageItems = images.map(img => {
@@ -364,6 +367,10 @@ export default function ImageGrid({ images = [], postId }) {
     // 统一显示缩略图（后端 preview_url，拿不到按 CDN 规则拼），不请求原图；查看原图功能暂未启用
     return { url: src, preview: img?.preview_url || buildMediaPreviewUrl(src), isNsfw: img?.is_nsfw, nsfwType: img?.nsfw_type };
   });
+  for (const item of imageItems) {
+    item.url = resolveNBWDisplayURL(item.url, endpoints, 'media');
+    item.preview = resolveNBWDisplayURL(item.preview, endpoints, 'media');
+  }
   const urls = imageItems.map(i => i.preview);
   const count = Math.min(urls.length, 4);
   // BUG-679: Responsive isMobile using matchMedia

@@ -231,7 +231,7 @@ test('真实卡片SSR覆盖加载/已保存/dirty/错误/needsReload；两域名
     const render = state => renderToStaticMarkup(React.createElement(AppNBWUpstreamView, { state }));
     const initial = renderToStaticMarkup(React.createElement(Card));
     assert.match(initial, /正在读取 NBW 上游域名/); assert.doesNotMatch(initial, /id="nbw-upstream-form"/); assert.doesNotMatch(initial, /<input/);
-    for (const text of ['NBW 上游域名（备用切换）', '两个域名固定，不可自填', '同步发布、读取、OAuth 交换', '不会重试已失败的请求', '始终使用主域名', '主域名恢复后请切回主域名', '主域名：www.newbabyworld.top', '备用域名：nbw.abdlcalendar.top']) assert.ok(initial.includes(text), text);
+    for (const text of ['NBW 上游域名（备用切换）', '两个域名固定，不可自填', '同步发布、读取、OAuth 交换', '不会重试已失败的请求', '旧 App/旧网页可能仍硬编码主域名', '最多缓存 30 秒', '稳定账号身份与原正文不变', '主域名恢复后请切回主域名', '主域名：www.newbabyworld.top', '备用域名：nbw.abdlcalendar.top']) assert.ok(initial.includes(text), text);
     const editor = createNBWUpstreamEditor(fixtureAPI(createNBWUpstreamFixture())); await editor.load();
     const primary = render(editor.getState());
     assert.match(primary, /当前上游：主域名/); assert.match(primary, /id="nbw-upstream-form"/);

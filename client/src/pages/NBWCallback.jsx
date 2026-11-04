@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
+import NBWImage from '../components/NBWImage.jsx';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { verifyNBWState, isNBWBindState, isNBWMobileState, exchangeNBWCode, bindNBWAccount } from '../utils/nbwOAuth';
@@ -30,7 +31,7 @@ export default function NBWCallback() {
 
   // 移动端跳转辅助
   const mobileRedirect = (path) => {
-    window.location.href = `https://m.abdl-space.top${path}`;
+    navigate(path, { replace: true });
   };
 
   useEffect(() => {
@@ -65,7 +66,7 @@ export default function NBWCallback() {
     if (isNBWBindState(oauthState)) {
       (async () => {
         try {
-          await bindNBWAccount(code);
+          await bindNBWAccount(code, oauthState);
           sessionStorage.setItem('nbw_just_bound', '1');
           toast.success('绑定成功');
           if (fromMobile) {
@@ -84,7 +85,7 @@ export default function NBWCallback() {
     // 登录/选择流程
     (async () => {
       try {
-        const result = await exchangeNBWCode(code);
+        const result = await exchangeNBWCode(code, oauthState);
         if (result.action === 'login') {
           toast.success('登录成功');
           // 同步前端用户状态（后端已 set cookie）
@@ -143,7 +144,7 @@ export default function NBWCallback() {
       username: nbwUser?.username || '',
     }));
     if (isFromMobile) {
-      window.location.href = `https://m.abdl-space.top/register`;
+      navigate('/register', { replace: true });
     } else {
       navigate('/register', { replace: true });
     }
@@ -170,7 +171,7 @@ export default function NBWCallback() {
         <PageLayout hero={{ icon: 'fa-link', title: '绑定已有账号' }}>
           <div className="card max-w-md mx-auto">
             <div className="flex items-center gap-3 mb-4 p-3 rounded-lg" style={{ background: 'var(--input-bg)' }}>
-              <img src={nbwUser.avatar || NBW_LOGO} alt="" className="w-8 h-8 rounded-full object-cover" />
+              <NBWImage src={nbwUser.avatar || NBW_LOGO} alt="" className="w-8 h-8 rounded-full object-cover" />
               <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 登录后将自动绑定宝宝新天地账号 <strong style={{ color: 'var(--text)' }}>@{nbwUser.username}</strong>
               </div>
@@ -225,7 +226,7 @@ export default function NBWCallback() {
             }}
           />
           <div className="flex items-center gap-3 mb-5 p-3 rounded-lg" style={{ background: 'var(--input-bg)', position: 'relative' }}>
-            <img src={nbwUser.avatar || NBW_LOGO} alt="" className="w-10 h-10 rounded-full object-cover" />
+            <NBWImage src={nbwUser.avatar || NBW_LOGO} alt="" className="w-10 h-10 rounded-full object-cover" />
             <div>
               <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>@{nbwUser.username}</div>
               <div className="text-xs" style={{ color: 'var(--text-muted)' }}>宝宝新天地账号</div>

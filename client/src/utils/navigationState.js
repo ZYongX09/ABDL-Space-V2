@@ -9,6 +9,8 @@
  * 滚动位置落到 sessionStorage，整页刷新后同一个 entry 仍能还原；数据缓存只在内存里，
  * 刷新即失效，不会长期驻留旧列表。
  */
+import { getNBWEndpointState, hasNBWDisplayData } from './nbwEndpoints.js';
+
 const SCROLL_STORE_KEY = 'abdl:scrollPositions';
 const SCROLL_STORE_LIMIT = 40;
 
@@ -16,12 +18,18 @@ const feedStates = new Map();
 
 /** 读取某个列表的缓存数据，没有则返回 null。 */
 export function readFeedState(key) {
-  return feedStates.get(key) ?? null;
+  const entry = feedStates.get(key);
+  if (entry?.nbwEpoch !== null && entry?.nbwEpoch !== getNBWEndpointState().epoch) { feedStates.delete(key); return null; }
+  return entry?.state ?? null;
 }
 
 /** 写入某个列表的缓存数据。 */
-export function writeFeedState(key, state) {
-  feedStates.set(key, state);
+export function writeFeedState(key, state, acquiredEpoch) {
+  const remote = hasNBWDisplayData(state);
+  // 点赞等本地更新不得给旧远端 rows 续租到当前代；来源 epoch 必须由获取响应时固定。
+  if (remote && (!Number.isInteger(acquiredEpoch) || acquiredEpoch !== getNBWEndpointState().epoch)) { feedStates.delete(key); return false; }
+  feedStates.set(key, { state: { ...state, nbwAcquiredEpoch: remote ? acquiredEpoch : null }, nbwEpoch: remote ? acquiredEpoch : null });
+  return true;
 }
 
 export function clearRouteListCache() {

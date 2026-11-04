@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import NBWImage from './NBWImage.jsx';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNsfw } from '../contexts/NsfwContext';
@@ -186,7 +187,7 @@ export default function EditProfile({ onClose }) {
             <div className="ep-avatar-row">
               <div className="ep-avatar-wrap">
                 {avatarPreview
-                  ? <img src={avatarPreview} alt="" className="ep-avatar-img" />
+                  ? <NBWImage src={avatarPreview} alt="" className="ep-avatar-img" />
                   : <div className="ep-avatar-fallback">{user?.username?.[0]?.toUpperCase()}</div>
                 }
                 {avatarUploading && (

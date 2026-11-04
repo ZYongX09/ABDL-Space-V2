@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
+import NBWImage from '../components/NBWImage.jsx';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { exchangeNBWCode } from '../utils/nbwOAuth';
@@ -83,7 +84,7 @@ export default function NBWChoicePage() {
       <PageLayout hero={{ icon: 'fa-right-to-bracket', title: '关联账户', subtitle: '宝宝新天地账号授权' }}>
         <div className="card max-w-md mx-auto">
           <div className="flex items-center gap-3 mb-5 p-3 rounded-lg" style={{ background: 'var(--input-bg)' }}>
-            <img src={nbw_user.avatar || NBW_LOGO} alt="" className="w-10 h-10 rounded-full object-cover" />
+            <NBWImage src={nbw_user.avatar || NBW_LOGO} alt="" className="w-10 h-10 rounded-full object-cover" />
             <div>
               <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>@{nbw_user.username}</div>
               <div className="text-xs" style={{ color: 'var(--text-muted)' }}>宝宝新天地账号</div>
@@ -133,7 +134,7 @@ export default function NBWChoicePage() {
     <PageLayout hero={{ icon: 'fa-link', title: '绑定已有账号' }}>
       <div className="card max-w-md mx-auto">
         <div className="flex items-center gap-3 mb-4 p-3 rounded-lg" style={{ background: 'var(--input-bg)' }}>
-          <img src={nbw_user.avatar || NBW_LOGO} alt="" className="w-8 h-8 rounded-full object-cover" />
+          <NBWImage src={nbw_user.avatar || NBW_LOGO} alt="" className="w-8 h-8 rounded-full object-cover" />
           <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
             登录后将自动绑定宝宝新天地账号 <strong style={{ color: 'var(--text)' }}>@{nbw_user.username}</strong>
           </div>

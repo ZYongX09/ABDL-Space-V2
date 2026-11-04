@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
+import NBWImage from '../components/NBWImage.jsx';
 import { Spinner } from '../components/Feedback';
 import OfficialBadge from '../components/OfficialBadge';
 import BetaBadge from '../components/BetaBadge';
@@ -78,7 +79,7 @@ export default function UserPage() {
           <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold"
             style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
             {user.avatar
-              ? <img src={user.avatar} alt={user.username} className="w-full h-full rounded-full object-cover" />
+              ? <NBWImage src={user.avatar} alt={user.username} className="w-full h-full rounded-full object-cover" />
               : user.username?.[0]?.toUpperCase()
             }
           </div>

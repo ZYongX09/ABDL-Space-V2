@@ -295,7 +295,7 @@ export default function App() {
   }, [pathname]);
 
   // 初始化 NBW OAuth 配置
-  useEffect(() => { initNBWConfig(); }, []);
+  useEffect(() => initNBWConfig(), []);
 
   // 全局键盘快捷键
   useEffect(() => {

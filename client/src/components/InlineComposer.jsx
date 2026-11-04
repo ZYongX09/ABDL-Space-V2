@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { forumAPI } from '../api';
+import NBWImage from './NBWImage.jsx';
 
 const MAX_CHARS = 5000;
 
@@ -96,7 +97,7 @@ export default function InlineComposer({ onPostCreated }) {
       {/* 头像 */}
       <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 overflow-hidden" style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}>
         {user.avatar
-          ? <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+          ? <NBWImage src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
           : user.username?.[0]?.toUpperCase() || '?'
         }
       </div>

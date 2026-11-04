@@ -12,6 +12,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useFollowStatuses } from '../hooks/useFollowStatuses.js';
 import { readFeedState, writeFeedState } from '../utils/navigationState';
+import { getNBWEndpointState, hasNBWDisplayData, nbwAcquisitionEpoch } from '../utils/nbwEndpoints.js';
+import { useNBWEndpoints } from '../utils/useNBWEndpoints.js';
 
 const TABS = [
   { key: 'latest', label: '最新' },
@@ -29,6 +31,9 @@ export default function HomeV2() {
   // 进详情再返回时本组件会被卸载；命中缓存就同步恢复，既不重新请求也不闪骨架屏。
   const [cachedFeed] = useState(() => readFeedState(feedKey));
 
+  const { epoch: endpointEpoch } = useNBWEndpoints();
+  const [acquiredEpoch, setAcquiredEpoch] = useState(() => cachedFeed?.nbwAcquiredEpoch ?? getNBWEndpointState().epoch);
+  const requestGeneration = useRef(0);
   const [posts, setPosts] = useState(() => cachedFeed?.posts ?? []);
   const [loading, setLoading] = useState(() => !cachedFeed);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -48,6 +53,7 @@ export default function HomeV2() {
   const [needLogin, setNeedLogin] = useState(false);
 
   const loadPosts = useCallback(async (pageNum = 1, append = false) => {
+    const ticket = ++requestGeneration.current;
     try {
       if (append) setLoadingMore(true); else setLoading(true);
       setNeedLogin(false);
@@ -58,6 +64,11 @@ export default function HomeV2() {
         search: search || undefined,
         filter,
       });
+      if (ticket !== requestGeneration.current) return;
+      const lease = nbwAcquisitionEpoch(data);
+      if (hasNBWDisplayData(data) && lease !== getNBWEndpointState().epoch) return;
+      setAcquiredEpoch(lease ?? getNBWEndpointState().epoch);
+      // API 已完成一次整笔代次隔离；此处记录最终成功 acquisition lease。
       // 过滤掉回帖（in_reply_to_id 不为空的帖子）
       const newPosts = (data.posts || []).filter(p => !p.in_reply_to_id);
       setPosts(prev => append ? [...prev, ...newPosts] : newPosts);
@@ -65,6 +76,7 @@ export default function HomeV2() {
       setPage(pageNum);
       setReady(true);
     } catch (e) {
+      if (ticket !== requestGeneration.current) return;
       if (activeTab === 'following' && !user) {
         setNeedLogin(true);
         setPosts([]);
@@ -72,8 +84,7 @@ export default function HomeV2() {
         toast.error(e.message);
       }
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (ticket === requestGeneration.current) { setLoading(false); setLoadingMore(false); }
     }
   }, [activeTab, user, search]);
 
@@ -83,8 +94,10 @@ export default function HomeV2() {
   useEffect(() => { loadPostsRef.current = loadPosts; }, [loadPosts]);
 
   useEffect(() => {
+    requestGeneration.current += 1;
     const cached = readFeedState(feedKey);
     if (cached) {
+      setAcquiredEpoch(cached.nbwAcquiredEpoch ?? getNBWEndpointState().epoch);
       setPosts(cached.posts);
       setPage(cached.page);
       setHasMore(cached.hasMore);
@@ -100,11 +113,19 @@ export default function HomeV2() {
     loadPostsRef.current(1);
   }, [feedKey]);
 
-  // 加载完成后把列表写回缓存；占位/报错状态不写。
+  useEffect(() => {
+    if (acquiredEpoch === endpointEpoch || !hasNBWDisplayData({ posts })) return;
+    requestGeneration.current += 1;
+    setPosts(previous => previous.filter(post => !hasNBWDisplayData(post)));
+    setReady(false);
+    void loadPostsRef.current(1);
+  }, [endpointEpoch, acquiredEpoch, posts]);
+
+  // acquisition lease 只由真实成功读取或有效缓存恢复设置，点赞不能给旧 rows 续租。
   useEffect(() => {
     if (!ready || loading) return;
-    writeFeedState(feedKey, { posts, page, hasMore });
-  }, [feedKey, ready, loading, posts, page, hasMore]);
+    writeFeedState(feedKey, { posts, page, hasMore }, acquiredEpoch);
+  }, [feedKey, ready, loading, posts, page, hasMore, acquiredEpoch]);
 
   const likingRef = useRef(new Set());
 

@@ -2,6 +2,8 @@
  * RichContent - 识别文本中的 URL，渲染为带图标的超链接
  */
 import { useMemo } from 'react';
+import { resolveNBWDisplayURL } from '../utils/nbwEndpoints.js';
+import { useNBWEndpoints } from '../utils/useNBWEndpoints.js';
 
 // 常见顶级域名
 const TLDS = 'com|net|org|cn|top|xyz|io|dev|app|co|me|cc|info|edu|gov|mil|club|online|site|tech|store|blog|work|live|video|social|design|shop|icu|ltd|fun|space|host|press|link|click|buzz|pro|vip|wang|ren';
@@ -79,7 +81,8 @@ function normalizeUrl(url) {
 
 function LinkChunk({ url }) {
   const domain = getDomain(url);
-  const href = normalizeUrl(url);
+  const { endpoints } = useNBWEndpoints();
+  const href = resolveNBWDisplayURL(normalizeUrl(url), endpoints);
   return (
     <a
       href={href}

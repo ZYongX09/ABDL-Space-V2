@@ -20,6 +20,7 @@ import { buildMediaPreviewUrl } from '../utils/mediaUrl';
 import OfficialBadge from '../components/OfficialBadge';
 import BetaBadge from '../components/BetaBadge';
 import NsfwGuard from '../components/NsfwGuard';
+import NBWImage from '../components/NBWImage.jsx';
 import { LoadingSkeleton } from '../components/Feedback';
 import LevelBadge from '../components/LevelBadge';
 import CheckInButton from '../components/CheckInButton';
@@ -974,7 +975,7 @@ export default function ProfilePageV2() {
           <div style={S.desktopSidebar}>
             <div style={S.desktopSidebarCard} className="miui-enter">
               <div style={{ position: 'relative', ...(isSelf ? { cursor: 'pointer' } : {}) }} onClick={isSelf ? () => navigate('/account') : undefined}>
-                {displayUser.avatar ? <img src={displayUser.avatar} alt="" style={S.desktopAvatar} /> : <div style={S.desktopAvatarFallback}>{displayUser.username?.[0]?.toUpperCase() || '?'}</div>}
+                {displayUser.avatar ? <NBWImage src={displayUser.avatar} alt="" style={S.desktopAvatar} /> : <div style={S.desktopAvatarFallback}>{displayUser.username?.[0]?.toUpperCase() || '?'}</div>}
                 {isSelf && <div style={{ position: 'absolute', bottom: 2, right: 2, width: '28px', height: '28px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-card)', fontSize: '11px', color: '#fff' }}><i className="fa-solid fa-camera" /></div>}
               </div>
               <div style={{ ...S.desktopUsername, ...(isSelf ? { cursor: 'pointer' } : {}) }} onClick={isSelf ? () => navigate('/account') : undefined}>
@@ -1141,7 +1142,7 @@ export default function ProfilePageV2() {
           onClick={isSelf ? () => navigate('/account') : undefined}
         >
           {displayUser.avatar ? (
-            <img src={displayUser.avatar} alt="" style={S.avatar} />
+            <NBWImage src={displayUser.avatar} alt="" style={S.avatar} />
           ) : (
             <div style={S.avatarFallback}>
               {displayUser.username?.[0]?.toUpperCase() || '?'}

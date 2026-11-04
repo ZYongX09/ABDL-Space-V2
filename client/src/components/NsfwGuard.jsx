@@ -1,7 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNsfw } from '../contexts/NsfwContext';
+import { resolveNBWDisplayURL } from '../utils/nbwEndpoints.js';
+import { useNBWEndpoints } from '../utils/useNBWEndpoints.js';
 
 export default function NsfwGuard({ src, backendNsfw, backendNsfwType, className, style, onClick, onLoad: onLoadProp, onError: onErrorProp, alt, loading }) {
+  const { endpoints } = useNBWEndpoints();
+  src = resolveNBWDisplayURL(src, endpoints, 'media');
   const { classify, loaded: modelReady, blurEnabled } = useNsfw();
   const [result, setResult] = useState(null); // { level, type, score }
   const [checking, setChecking] = useState(false);

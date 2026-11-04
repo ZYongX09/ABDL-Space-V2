@@ -3,6 +3,7 @@ import PageLayout from '../components/PageLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { startNBWBind } from '../utils/nbwOAuth';
+import { useNBWOAuth } from '../utils/useNBWEndpoints.js';
 
 const NBW_LOGO = 'https://img.abdl-space.top/file/nbwlogo.png';
 
@@ -14,6 +15,7 @@ export default function NBWBindGuidePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const toast = useToast();
+  const { available: nbwReady } = useNBWOAuth();
 
   const handleBindExisting = async () => {
     try {
@@ -46,7 +48,7 @@ export default function NBWBindGuidePage() {
           绑定宝宝新天地账户后，您可以在 ABDL Space 发帖并同步到宝宝新天地社区，享受更多互动体验。
         </p>
 
-        <div className="mb-4 p-3 rounded-xl flex items-center gap-2" style={{ background: 'rgba(var(--danger-rgb, 211, 47, 47), 0.08)', border: '1px solid rgba(var(--danger-rgb, 211, 47, 47), 0.2)' }}>
+        <div hidden={!nbwReady} className="mb-4 p-3 rounded-xl flex items-center gap-2" style={{ background: 'rgba(var(--danger-rgb, 211, 47, 47), 0.08)', border: '1px solid rgba(var(--danger-rgb, 211, 47, 47), 0.2)' }}>
           <i className="fa-solid fa-triangle-exclamation" style={{ color: 'var(--danger)' }} />
           <span className="text-xs font-semibold" style={{ color: 'var(--danger)' }}>
             未绑定宝宝新天地账户将无法发帖
@@ -59,6 +61,7 @@ export default function NBWBindGuidePage() {
             className="w-full flex items-center gap-3 p-4 rounded-lg transition-all hover:opacity-80"
             style={{ background: 'var(--primary-light)', border: '1px solid var(--primary)', cursor: 'pointer' }}
             onClick={handleBindExisting}
+            disabled={!nbwReady}
           >
             <i className="fa-solid fa-link text-lg" style={{ color: 'var(--primary-dark)' }} />
             <div className="text-left">
@@ -72,6 +75,7 @@ export default function NBWBindGuidePage() {
             className="w-full flex items-center gap-3 p-4 rounded-lg transition-all hover:opacity-80"
             style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', cursor: 'pointer' }}
             onClick={handleOneClickRegister}
+            disabled={!nbwReady}
           >
             <i className="fa-solid fa-user-plus text-lg" style={{ color: 'var(--text-muted)' }} />
             <div className="text-left">

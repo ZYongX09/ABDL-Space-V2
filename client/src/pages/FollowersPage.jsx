@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
+import NBWImage from '../components/NBWImage.jsx';
 import { LoadingSkeleton, EmptyState } from '../components/Feedback';
 import OfficialBadge from '../components/OfficialBadge';
 import { useToast } from '../contexts/ToastContext';
@@ -107,7 +108,7 @@ export default function FollowersPage() {
                     style={{ background: 'var(--primary-light)', color: 'var(--primary-dark)' }}
                   >
                     {u.avatar
-                      ? <img src={u.avatar} alt={u.username} className="w-full h-full rounded-full object-cover" />
+                      ? <NBWImage src={u.avatar} alt={u.username} className="w-full h-full rounded-full object-cover" />
                       : u.username?.[0]?.toUpperCase()
                     }
                   </div>

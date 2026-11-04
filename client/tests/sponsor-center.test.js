@@ -28,7 +28,8 @@ test('赞助权益更新能清除列表快照，不影响后续写入', () => {
   clearRouteListCache();
   assert.equal(readFeedState('sponsor-before'), null);
   writeFeedState('sponsor-after', { posts: [] });
-  assert.deepEqual(readFeedState('sponsor-after'), { posts: [] });
+  // 非 NBW 快照不带远端代次：nbwAcquiredEpoch 为 null，原 posts 内容原样保留。
+  assert.deepEqual(readFeedState('sponsor-after'), { posts: [], nbwAcquiredEpoch: null });
   clearRouteListCache();
 });
 

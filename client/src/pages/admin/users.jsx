@@ -1,3 +1,4 @@
+import NBWImage from '../../components/NBWImage.jsx';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { adminAPI } from '../../api';
 import { createAdminIdentityAPI } from '../../adminIdentity/api.js';
@@ -58,7 +59,7 @@ export function LoginMethods({ identity, onUnbind }) {
     <div className="ac-qq-card">
       <div className="ac-qq-profile">
         <span className="ac-qq-avatar">
-          {qqAvatar(qq) ? <img src={qqAvatar(qq)} alt="QQ 头像" referrerPolicy="no-referrer" onError={event => { event.currentTarget.style.display = 'none'; }} /> : null}
+          {qqAvatar(qq) ? <NBWImage src={qqAvatar(qq)} alt="QQ 头像" referrerPolicy="no-referrer" onError={event => { event.currentTarget.style.display = 'none'; }} /> : null}
           <i className="fa-brands fa-qq" aria-hidden="true" />
         </span>
         <div className="ac-grow"><div className="ac-qq-title">QQ {qqStatus.label}</div><div className="ac-qq-nickname">{qqNickname(qq) || '未提供 QQ 昵称'}</div></div>
@@ -272,7 +273,7 @@ export default function AdminUsers() {
     <Drawer open={!!detail} onClose={() => { detailRequest.current++; setDetail(null); }} head={info ? `@${info.user.username}` : '用户详情'}>
       {!detail ? null : detail.loading ? <Loading text="加载用户与身份详情..." /> : detail.error && !info ? <Empty text={detail.error} icon="fa-triangle-exclamation" /> : <div className="ac-page-stack">
         {detail.error && <ErrorBox msg={detail.error} />}
-        <div className="ac-flex ac-user-detail-head"><img src={info?.user?.avatar || ''} alt="" className="ac-user-detail-avatar" onError={e => { e.currentTarget.style.visibility = 'hidden'; }} /><div className="ac-grow"><div className="ac-user-detail-name">{info?.user?.display_name || info?.user?.username}</div><div className="ac-cell-muted">@{info?.user?.username} · ID {info?.user?.id} · {adminRoleLabel(info?.user)}</div><div className="ac-cell-muted">注册于 {fmtFull(info?.user?.created_at)}</div></div><div className="ac-flex">{info?.user?.banned ? <Pill tone="red">已封禁</Pill> : <Pill tone="green">正常</Pill>}{info?.user?.has_app && <Pill tone="slate" title="旧标记可能来自网页 OAuth，不证明安装或原生 App 使用；精确观测请查看 App 管理">历史客户端标记（非精确统计）</Pill>}</div></div>
+        <div className="ac-flex ac-user-detail-head"><NBWImage src={info?.user?.avatar || ''} alt="" className="ac-user-detail-avatar" onError={e => { e.currentTarget.style.visibility = 'hidden'; }} /><div className="ac-grow"><div className="ac-user-detail-name">{info?.user?.display_name || info?.user?.username}</div><div className="ac-cell-muted">@{info?.user?.username} · ID {info?.user?.id} · {adminRoleLabel(info?.user)}</div><div className="ac-cell-muted">注册于 {fmtFull(info?.user?.created_at)}</div></div><div className="ac-flex">{info?.user?.banned ? <Pill tone="red">已封禁</Pill> : <Pill tone="green">正常</Pill>}{info?.user?.has_app && <Pill tone="slate" title="旧标记可能来自网页 OAuth，不证明安装或原生 App 使用；精确观测请查看 App 管理">历史客户端标记（非精确统计）</Pill>}</div></div>
         {info?.user && <section className="ac-identity-section"><div className="ac-identity-heading"><h3>账户治理与角色</h3><UserRoleBadge user={info.user} /></div><UserManagementActions actor={admin} target={info.user} busy={busyId !== null} onRole={changeRole} onBan={toggleBan} onTrack={doTrackAndBan} onDelete={remove} /></section>}
         {info?.counts && <div className="ac-detail-stat-grid">{[{ label: '帖子', v: info.counts.posts }, { label: '评论', v: info.counts.comments }, { label: '点赞', v: info.counts.likes }, { label: '评分', v: info.counts.ratings }, { label: '打卡', v: info.counts.feelings }, { label: '签到', v: info.counts.checkins }, { label: '金币', v: info.counts.points }].map(c => <div key={c.label} className="ac-detail-stat"><div className="ac-detail-stat-value">{fmtNum(c.v)}</div><div className="ac-stat-label">{c.label}</div></div>)}</div>}
         <UserIdentityDetails identity={detail.identity} identityError={detail.identityError} user={info?.user} onUnbind={qq => setUnbind({ userId: info.user.id, username: info.user.username, version: qqVersion(qq), reason: '', confirmUsername: '', busy: false, error: '' })} />

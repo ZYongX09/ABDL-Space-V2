@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import NBWImage from '../components/NBWImage.jsx';
 import { useToast } from '../contexts/ToastContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
@@ -203,7 +204,7 @@ export default function OAuthAuthorize() {
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold overflow-hidden"
               style={{ background: 'var(--primary-dark)', color: '#fff' }}>
               {user?.avatar ? (
-                <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                <NBWImage src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
               ) : (
                 user?.username?.[0]?.toUpperCase() || '?'
               )}
