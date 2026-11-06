@@ -11,7 +11,7 @@ const defaultPort = /mobile/i.test(root) ? 8814 : 8813;
 const ENTRY = '/__alipay-policy-fixture/app.js';
 const VIRTUAL_ENTRY = '\0alipay-policy-fixture-app';
 const themes = ['light', 'dark', 'colorful'];
-const labels = { normal: '默认关闭 / 审核中', ready: '人工受限许可 / 样本可购', 'missing-context': '无商家上下文（不可取，不是 0）', 'daily-exhausted': '日额度耗尽', 'monthly-exhausted': '月额度耗尽', stale: '一小时前旧样本', 'unknown-reason': '未来禁用原因', 'missing-api': '接口缺失 404', 'load-error': '读取错误 503', 'invalid-data': '未知 enum / 拒绝响应', 'save-error': '保存错误 503', 'save-unknown': '写入已受理但回包失败', conflict: '另一管理员修改 / CAS 409', 'concurrent-after-save': '保存后又被另一管理员修改', 'slow-save': '保存延迟 2.5 秒 / 双击', unauthorized: '会话过期 401', forbidden: '无权限 403' };
+const labels = { normal: '默认关闭 / 审核中', ready: '人工受限许可 / 样本可购', 'missing-context': '无商家上下文（不可取，不是 0）', 'daily-exhausted': '日额度耗尽', 'monthly-exhausted': '月额度耗尽', stale: '一小时前旧样本', 'unknown-reason': '未来禁用原因', 'missing-api': '接口缺失 404', 'load-error': '读取错误 503', 'invalid-data': '未知 enum / 拒绝响应', 'save-error': '保存错误 503', 'save-unknown': '写入已受理但回包失败', conflict: '另一管理员修改 / CAS 409', 'concurrent-after-save': '保存后又被另一管理员修改', 'slow-save': '保存延迟 2.5 秒 / 双击', unauthorized: '会话过期 401', forbidden: '无权限 403', overview: '概览正常 + 明细分页', 'overview-empty': '概览全 0 / 明细为空', 'records-page': '明细分页含未兑换爱发电', 'refund-failure': '退款失败 503' };
 const selectOptions = (values, selected) => values.map(value => `<option value="${value}"${value === selected ? ' selected' : ''}>${labels[value] || value}</option>`).join('');
 const diagnostics = `window.__alipayFixtureReport = function(error) {
   const panel = document.getElementById('fixture-diagnostics'); panel.hidden = false; panel.textContent += String(error) + '\\n';
@@ -100,14 +100,15 @@ export async function createAlipayPolicyFixtureServer({ port = Number(process.en
       if (url.origin !== `http://${host}`) { req.resume(); send(403, { error: '禁止转发外部地址' }); return; }
       const path = decodeURIComponent(url.pathname);
       if (path === '/api' || path.startsWith('/api/') || ['/__alipay-policy-fixture/setup', '/__alipay-policy-fixture/stats'].includes(path)) {
-        const acceptsBody = (req.method === 'PUT' && path === '/api/admin/sponsors/alipay-policy') || (req.method === 'POST' && path === '/__alipay-policy-fixture/setup');
+        const acceptsBody = (req.method === 'PUT' && path === '/api/admin/sponsors/alipay-policy')
+          || (req.method === 'POST' && (path === '/__alipay-policy-fixture/setup' || /^\/api\/payments\/alipay\/orders\/[^/]+\/refunds$/.test(path)));
         let body = null;
         if (acceptsBody) {
           let text = '', length = 0;
           for await (const chunk of req) { length += chunk.length; if (length > 32768) { send(413, { error: '请求内容过大' }); return; } text += chunk; }
           try { body = text ? JSON.parse(text) : null; } catch { send(400, { error: 'JSON 请求格式不正确' }); return; }
         } else req.resume();
-        const result = fixture.respond(path, req.method, body);
+        const result = fixture.respond(path, req.method, body, url.searchParams);
         if (result.delay) await new Promise(resolve => setTimeout(resolve, result.delay));
         send(result.status, result.data); return;
       }

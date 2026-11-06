@@ -4,6 +4,8 @@ import { createSponsorAdminAPI, downloadCodes } from './adminAPI.js';
 import { expirySeconds, formatTime, formatPrice, parsePrice, identifier, integer, operationKeeper, reasonText, renderTemplate, required, statusText, validateConfig, validatePlan, validateStock } from './adminModel.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import AlipayPolicyPanel from './AlipayPolicyPanel.jsx';
+import SponsorOverviewPanel from './SponsorOverviewPanel.jsx';
+import SponsorLedgerPanel from './SponsorLedgerPanel.jsx';
 import './sponsors.css';
 
 const Api = createContext(null);
@@ -132,8 +134,11 @@ function ConfigTab() {
   const api = useAPI();
   const resource = useResource(() => api.config());
   const actions = useActions();
+  const [ledgerRevision, setLedgerRevision] = useState(0);
   return <><Panel title="配置、提示文案与权益"><Resource resource={resource}>{config => <ConfigForm key={config.version} initial={config} reload={resource.reload} />}</Resource></Panel>
-    <AlipayPolicyPanel api={api} actions={actions} controls={{ Input, Select, Check, Reason, Button, Summary }} /></>;
+    <AlipayPolicyPanel api={api} actions={actions} controls={{ Input, Select, Check, Reason, Button, Summary }} />
+    <SponsorOverviewPanel api={api} revision={ledgerRevision} />
+    <SponsorLedgerPanel api={api} actions={actions} onRefunded={() => setLedgerRevision(value => value + 1)} /></>;
 }
 function ConfigForm({ initial, reload }) {
   const api = useAPI();

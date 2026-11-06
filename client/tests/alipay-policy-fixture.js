@@ -1,8 +1,9 @@
 // 只供 Node 测试与隔离 UI fixture 使用；无真实身份、配置、密钥或任何外部请求。
 import { validateAlipayPolicyUpdate } from '../src/sponsors/alipayPolicyModel.js';
+import { validateAlipayRefundBody, sponsorLedgerQuery } from '../src/sponsors/sponsorLedgerModel.js';
 import { createSponsorFixture } from '../src/sponsors/fixture.js';
 
-export const ALIPAY_FIXTURE_SCENARIOS = ['normal', 'ready', 'missing-context', 'daily-exhausted', 'monthly-exhausted', 'stale', 'unknown-reason', 'missing-api', 'load-error', 'invalid-data', 'save-error', 'save-unknown', 'conflict', 'concurrent-after-save', 'slow-save', 'unauthorized', 'forbidden'];
+export const ALIPAY_FIXTURE_SCENARIOS = ['normal', 'ready', 'missing-context', 'daily-exhausted', 'monthly-exhausted', 'stale', 'unknown-reason', 'missing-api', 'load-error', 'invalid-data', 'save-error', 'save-unknown', 'conflict', 'concurrent-after-save', 'slow-save', 'unauthorized', 'forbidden', 'overview', 'overview-empty', 'records-page', 'refund-failure'];
 const copy = value => structuredClone(value);
 const ok = data => ({ status: 200, data: copy(data) });
 const fail = (status, code, error) => ({ status, data: { code, error } });
@@ -24,6 +25,41 @@ export function alipayPolicyFixtureSample(now = Math.floor(Date.now() / 1000)) {
     updated_at: now, updated_by: 'fixture-admin-A',
   };
 }
+
+export function sponsorLedgerOverviewSample(now = Math.floor(Date.now() / 1000), { empty = false } = {}) {
+  return {
+    schema_version: 1, generated_at: now,
+    channels: {
+      alipay: empty ? { month_income_minor: 0, total_income_minor: 0, total_count: 0, month_count: 0 }
+        : { month_income_minor: 12800, total_income_minor: 96000, total_count: 8, month_count: 3 },
+      afdian: empty ? { month_income_minor: 0, total_income_minor: 0, total_count: 0 }
+        : { month_income_minor: 6000, total_income_minor: 45000, total_count: 15 },
+    },
+  };
+}
+
+export function sponsorLedgerRecordsSample(now = Math.floor(Date.now() / 1000)) {
+  const plans = ['月度赞助', '季度赞助', '永久赞助'], amounts = [1000, 3000, 12800];
+  return Array.from({ length: 23 }, (_, index) => {
+    const paid_at = now - index * 1800, alipay = index % 3 === 0;
+    if (alipay) {
+      return {
+        channel: 'alipay', order_no: `ALI20261106${String(index).padStart(4, '0')}`, paid_at,
+        plan_name: plans[index % 3], amount_minor: amounts[index % 3], username: `alipay_user_${index}`,
+        avatar: index % 2 === 0 ? null : '/avatars/fixture-alipay.png', refundable: index % 6 !== 0,
+      };
+    }
+    const redeemed = index % 4 !== 1;
+    return {
+      channel: 'afdian', order_no: `AFD20261106${String(index).padStart(4, '0')}`, paid_at,
+      plan_name: plans[index % 3], amount_minor: amounts[index % 3],
+      message: index % 5 === 2 ? `第 ${index} 笔本地留言` : null,
+      redeemer: redeemed ? { username: `afdian_user_${index}`, avatar: index % 7 === 0 ? '/avatars/fixture-afdian.png' : null } : null,
+    };
+  });
+}
+
+const ledgerParams = source => source instanceof URLSearchParams ? source : new URLSearchParams(source || '');
 
 export function createAlipayPolicyFixture(initialScenario = 'normal', { now = () => Math.floor(Date.now() / 1000) } = {}) {
   let scenario, sample, conflictSent, afterSave, unknownSent, config;
@@ -68,11 +104,52 @@ export function createAlipayPolicyFixture(initialScenario = 'normal', { now = ()
   }
   return {
     setup, requests,
-    respond(path, method = 'GET', body = null) {
-      requests.push({ path, method }); // 不记录理由、请求体或任何 token。
+    respond(path, method = 'GET', body = null, query = null) {
+      requests.push({ path, method }); // 不记录理由、请求体、查询值或任何 token。
       if (path === '/__alipay-policy-fixture/stats' && method === 'GET') return ok({ scenario, requests, version: sample.version });
       if (path === '/__alipay-policy-fixture/setup' && method === 'POST') {
         try { return ok(setup(body?.scenario)); } catch { return fail(422, 'invalid_request', '未知的 fixture 场景'); }
+      }
+      const ledgerFailure = () => scenario === 'missing-api' ? fail(404, 'fixture_missing', '管理接口未部署（本地模拟）')
+        : scenario === 'load-error' ? fail(503, 'unavailable', '读取失败（本地模拟）')
+          : scenario === 'unauthorized' ? fail(401, 'unauthorized', '本地模拟过期会话')
+            : scenario === 'forbidden' ? fail(403, 'forbidden', '本地模拟无权访问') : null;
+      if (method === 'GET' && path === '/api/admin/sponsors/overview') {
+        const failure = ledgerFailure();
+        if (failure) return failure;
+        const data = sponsorLedgerOverviewSample(now(), { empty: scenario === 'overview-empty' });
+        if (scenario === 'invalid-data') data.channels.alipay.total_count = -1;
+        return ok(data);
+      }
+      if (method === 'GET' && path === '/api/admin/sponsors/payment-records') {
+        const failure = ledgerFailure();
+        if (failure) return failure;
+        const params = ledgerParams(query);
+        let validated;
+        try {
+          validated = sponsorLedgerQuery({
+            channel: params.get('channel') || '', limit: params.get('limit') === null ? undefined : Number(params.get('limit')),
+            offset: params.get('offset') === null ? undefined : Number(params.get('offset')),
+          });
+        } catch { return fail(422, 'invalid_query', '支付明细分页参数无效（本地模拟）'); }
+        if (scenario === 'overview-empty') return ok({ schema_version: 1, items: [], total: 0, limit: validated.limit, offset: validated.offset });
+        const filtered = sponsorLedgerRecordsSample(now()).filter(item => !validated.channel || item.channel === validated.channel);
+        const data = { schema_version: 1, items: filtered.slice(validated.offset, validated.offset + validated.limit), total: filtered.length, limit: validated.limit, offset: validated.offset };
+        if (scenario === 'invalid-data' && data.items.length) data.items[0].channel = 'unknown';
+        return ok(data);
+      }
+      if (method === 'POST' && /^\/api\/payments\/alipay\/orders\/[^/]+\/refunds$/.test(path)) {
+        const failure = ledgerFailure();
+        if (failure) return failure;
+        if (scenario === 'refund-failure') return fail(503, 'refund_unavailable', '退款失败（本地模拟）');
+        const orderNo = decodeURIComponent(path.split('/')[5]);
+        const record = sponsorLedgerRecordsSample(now()).find(item => item.channel === 'alipay' && item.order_no === orderNo);
+        if (!record) return fail(404, 'order_not_found', '订单不存在（本地模拟）');
+        let payload;
+        try { payload = validateAlipayRefundBody(body); } catch { return fail(422, 'invalid_request', '退款金额或原因无效（本地模拟）'); }
+        if (!record.refundable) return fail(409, 'not_refundable', '订单当前不可退款（本地模拟）');
+        if (payload.refund_amount > record.amount_minor) return fail(422, 'invalid_amount', '退款金额超过实付金额（本地模拟）');
+        return ok({ order_no: orderNo, refund_no: `RFI${orderNo.slice(-12)}`, refund_amount_minor: payload.refund_amount, status: 'processing' });
       }
       if (path === '/api/admin/sponsors/alipay-policy') {
         if (scenario === 'missing-api') return fail(404, 'fixture_missing', '管理接口未部署（本地模拟）');
