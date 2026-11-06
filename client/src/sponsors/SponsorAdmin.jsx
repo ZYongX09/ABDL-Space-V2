@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { createSponsorAdminAPI, downloadCodes } from './adminAPI.js';
 import { expirySeconds, formatTime, formatPrice, parsePrice, identifier, integer, operationKeeper, reasonText, renderTemplate, required, statusText, validateConfig, validatePlan, validateStock } from './adminModel.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import AlipayPolicyPanel from './AlipayPolicyPanel.jsx';
 import './sponsors.css';
 
 const Api = createContext(null);
@@ -130,7 +131,9 @@ export default function SponsorAdmin() {
 function ConfigTab() {
   const api = useAPI();
   const resource = useResource(() => api.config());
-  return <Panel title="配置、提示文案与权益"><Resource resource={resource}>{config => <ConfigForm key={config.version} initial={config} reload={resource.reload} />}</Resource></Panel>;
+  const actions = useActions();
+  return <><Panel title="配置、提示文案与权益"><Resource resource={resource}>{config => <ConfigForm key={config.version} initial={config} reload={resource.reload} />}</Resource></Panel>
+    <AlipayPolicyPanel api={api} actions={actions} controls={{ Input, Select, Check, Reason, Button, Summary }} /></>;
 }
 function ConfigForm({ initial, reload }) {
   const api = useAPI();

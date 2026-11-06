@@ -1,3 +1,5 @@
+import { validateAlipayPolicyResponse, validateAlipayPolicyUpdate } from './alipayPolicyModel.js';
+
 // 由现有 AuthContext 注入已登录账户的令牌；cookie 会话沿用 credentials。
 // 不独立读取账户、不回退模拟身份、不进入全站缓存。
 export function createSponsorAdminAPI({ base = '', fetcher = (...args) => fetch(...args), getToken = () => '', isCurrentSession = () => true } = {}) {
@@ -15,12 +17,17 @@ export function createSponsorAdminAPI({ base = '', fetcher = (...args) => fetch(
         signal: controller.signal, ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
       });
       let data;
-      try { data = await response.json(); } catch { throw new Error('服务器响应无法解析，请重新读取状态；写入结果可能尚未确定'); }
+      try { data = await response.json(); } catch {
+        // 门禁接口即使返回 HTML 错误页也保留 HTTP 权限/冲突/缺失语义，不展示原始响应。
+        if (shape === 'alipayPolicy' && !response.ok) data = null;
+        else throw new Error('服务器响应无法解析，请重新读取状态；写入结果可能尚未确定');
+      }
       if (!isCurrentSession()) throw new Error('账户会话已切换，已忽略旧账户响应');
       if (!response.ok) {
         const message = response.status === 401 ? '登录已过期，请重新登录；未确认操作成功。' : response.status === 403 ? '当前账户无管理员权限，或请求来源验证失败。' : response.status === 409
           ? '操作冲突：配置或套餐可能已被修改，或操作标识与请求不一致。请重新读取后核对，不要覆盖他人修改。'
-          : (typeof data?.error === 'string' ? data.error : `请求失败（${response.status}）`);
+          : shape === 'alipayPolicy' ? (response.status === 404 || response.status === 405 ? '支付宝门禁管理接口尚未提供，暂不可用。' : `支付宝门禁请求失败（${response.status}），未确认操作成功。`)
+            : (typeof data?.error === 'string' ? data.error : `请求失败（${response.status}）`);
         const error = new Error(message);
         error.status = response.status;
         error.code = typeof data?.code === 'string' ? data.code : '';
@@ -38,9 +45,11 @@ export function createSponsorAdminAPI({ base = '', fetcher = (...args) => fetch(
         && (shape !== 'export' || (typeof data.id === 'string' && Array.isArray(data.codes) && data.codes.every(code => typeof code === 'string' && code.length > 0 && !/[\r\n]/.test(code))))
         && (shape !== 'stock' || (typeof data.plan_id === 'string' && typeof data.verified === 'boolean'));
       if (!valid) throw new Error('服务器响应与赞助者管理契约不一致，请重新读取并联系维护者；未确认操作成功');
-      return data;
+      return shape === 'alipayPolicy' ? validateAlipayPolicyResponse(data) : data;
     } catch (error) {
-      if (error.name === 'AbortError' || error instanceof TypeError) throw new Error('网络中断或超时。写入可能已受理，请先核查状态；不要重复补货。相同表单重试将沿用操作标识。');
+      if (error.name === 'AbortError' || error instanceof TypeError) throw new Error(shape === 'alipayPolicy'
+        ? '支付宝门禁网络中断或超时，未确认保存成功。请先读取最新设置核查，不会自动重试或回退本地数据。'
+        : '网络中断或超时。写入可能已受理，请先核查状态；不要重复补货。相同表单重试将沿用操作标识。');
       throw error;
     } finally { clearTimeout(timer); }
   }
@@ -53,6 +62,8 @@ export function createSponsorAdminAPI({ base = '', fetcher = (...args) => fetch(
   return {
     config: () => request('/config', 'GET', undefined, 'config'),
     saveConfig: body => request('/config', 'PUT', body, 'config'),
+    alipayPolicy: () => request('/alipay-policy', 'GET', undefined, 'alipayPolicy'),
+    saveAlipayPolicy: body => request('/alipay-policy', 'PUT', validateAlipayPolicyUpdate(body), 'alipayPolicy'),
     plans: () => request('/plans', 'GET', undefined, 'items'),
     createPlan: body => request('/plans', 'POST', body, 'plan'),
     updatePlan: (planId, body) => request(`/plans/${id(planId)}`, 'PUT', body, 'plan'),
