@@ -1301,6 +1301,16 @@ export const adminAPI = {
     return { ok: true };
   },
 
+  // ── 站点可访问范围 ────────────────────────────────
+  siteAccess: async () => {
+    if (USE_API) return apiFetch('/api/admin/site-access');
+    return { web_mode: 'off', web_message: '', web_login_prompt: '', app_mode: 'off', app_message: '', fake_posts: [], revision: '0' };
+  },
+  saveSiteAccess: async (doc) => {
+    if (USE_API) return apiFetch('/api/admin/site-access', { method: 'PUT', body: JSON.stringify(doc) });
+    return doc;
+  },
+
   // ── 邮箱屏蔽名单 ──────────────────────────────────
   blockedEmails: async () => {
     if (USE_API) return apiFetch('/api/admin/blocked-emails');

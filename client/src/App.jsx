@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, lazy, Suspense } from 'react';
-import { Routes, Route, useLocation, useNavigate, useNavigationType, useParams } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate, useNavigationType, useParams, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { authAPI, usersAPI } from './api';
 import { rememberScroll, restoreScroll } from './utils/navigationState';
@@ -22,6 +22,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import PushPrompt from './components/PushPrompt';
 import { useExternalLinkInterceptor } from './hooks/useExternalLinkInterceptor';
 import AdminRouteGate, { AdminUnknownRoute } from './pages/admin/gate.jsx';
+import SiteUnavailablePage from './components/SiteUnavailablePage';
+import { getSiteAccess, isAdminPage, isClosedFor, isRegistrationPath, isStaticPage } from './siteAccess';
 
 // 路由级懒加载 — 首屏只加载 HomeV2
 const HomeV2 = lazy(() => import('./pages/HomeV2'));
@@ -71,6 +73,7 @@ const AdminReports = lazy(() => import('./pages/admin/reports'));
 const AdminAlbumReports = lazy(() => import('./pages/admin/albumReports'));
 const AdminSecurity = lazy(() => import('./pages/admin/security'));
 const AdminSettings = lazy(() => import('./pages/admin/settings'));
+const AdminSiteAccess = lazy(() => import('./pages/admin/siteAccess.jsx'));
 const AdminNotifications = lazy(() => import('./pages/admin/notifications'));
 const ConfirmProvider = lazy(() => import('./pages/admin/ui').then(m => ({ default: m.ConfirmProvider })));
 const CaptchaApiPage = lazy(() => import('./pages/CaptchaApiPage'));
@@ -279,8 +282,8 @@ function isPhone() {
 
 export default function App() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { pathname } = useLocation();
+  const { user, loading } = useAuth();
+  const { pathname, search } = useLocation();
   const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
   const isMerchantRoute = pathname === '/merchant' || pathname.startsWith('/merchant/');
   useExternalLinkInterceptor();
@@ -309,6 +312,19 @@ export default function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [navigate]);
+
+  // 站点可访问性投影：关闭态只保留管理后台与登录入口；登录态未登录时先等会话恢复再判定。
+  const access = getSiteAccess();
+  if (isClosedFor(pathname)) return <SiteUnavailablePage message={access.message} />;
+  if (access.status !== 'ok' && isRegistrationPath(pathname)) {
+    return <Navigate to="/login" replace state={{ notice: access.login_prompt || '当前暂不开放注册' }} />;
+  }
+  if (access.status === 'login' && !isAdminPage(pathname)) {
+    if (loading) return <PageFallback />;
+    if (!user && !isStaticPage(pathname)) {
+      return <Navigate to="/login" replace state={{ from: `${pathname}${search}`, notice: access.login_prompt }} />;
+    }
+  }
 
   // 商家控制台独立挂载，不进入前台 provider / Sidebar / 导航 / footer / Toast。
   if (isMerchantRoute) return <Suspense fallback={<PageFallback />}><MerchantHost /></Suspense>;
@@ -349,6 +365,7 @@ export default function App() {
                   <Route path="/admin/album-reports" element={<AdminAlbumReports />} />
                   <Route path="/admin/security" element={<AdminSecurity />} />
                   <Route path="/admin/settings" element={<AdminSettings />} />
+                  <Route path="/admin/site-access" element={<AdminSiteAccess />} />
                   <Route path="/admin/diapers" element={<AdminDiapers />} />
                   <Route path="/admin/notifications" element={<AdminNotifications />} />
                   <Route path="/admin/*" element={<AdminUnknownRoute />} />

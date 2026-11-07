@@ -11,6 +11,7 @@ import QRLoginMode from '../components/QRLoginMode';
 import LanLoginMode from '../components/LanLoginMode';
 import { isPWA, authenticateWithPasskey, getMyCredentials } from '../utils/webauthn';
 import BiometricPrompt from '../components/BiometricPrompt';
+import { getSiteAccess } from '../siteAccess';
 import './Login.css';
 
 const FAIL_THRESHOLD = 2;
@@ -161,6 +162,10 @@ export default function Login() {
           </button>
         </div>
 
+        {location.state?.notice && (
+          <div className="login-access-notice" role="status">{location.state.notice}</div>
+        )}
+
         {/* QR 二维码登录模式 */}
         {qrMode ? (
           <QRLoginMode onSwitchBack={() => setQrMode(false)} />
@@ -301,8 +306,7 @@ export default function Login() {
         </form>
 
         <p className="login-footer">
-          还没有账号？ <Link to="/register">注册</Link>
-          <span className="login-footer-sep">|</span>
+          {getSiteAccess().status === 'ok' && (<>还没有账号？ <Link to="/register">注册</Link><span className="login-footer-sep">|</span></>)}
           <Link to="/forgot-password">忘记密码？</Link>
         </p>
           </>

@@ -45,6 +45,7 @@ const NAV = [
       { key: 'security', path: '/admin/security', label: '安全中心', icon: 'fa-shield-halved' },
       { key: 'app-clients', path: '/admin/app-clients', label: 'App 管理', icon: 'fa-mobile-screen' },
       { key: 'settings', path: '/admin/settings', label: '站点设置', icon: 'fa-gear' },
+      { key: 'site-access', path: '/admin/site-access', label: '站点状态', icon: 'fa-power-off' },
     ],
   },
 ];
@@ -66,6 +67,7 @@ const PAGE_META = {
   security: { title: '安全中心', description: '查看安全事件、风险分布与近期日志。' },
   'app-clients': { title: 'App 管理', description: '独立配置原生 App 更新提醒与版本废弃策略，查看认证时间线请求的账号与版本观测。' },
   settings: { title: '站点设置', description: '维护运行模式、站点配置、邮箱治理与管理员账号安全。' },
+  'site-access': { title: '站点状态', description: '控制网页端与 App 端当前的开放范围，并维护 App 端展示内容。' },
 };
 
 export default function AdminLayout({ active = 'overview', children }) {
