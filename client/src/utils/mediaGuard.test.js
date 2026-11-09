@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isTencentHost, isTencentMediaUrl, placeholderForTest } from './mediaGuard.js';
+import { isMediaBlocked, isTencentHost, isTencentMediaUrl, placeholderForTest, setMediaGuardEnabled } from './mediaGuard.js';
 
 const preview = (source) => `https://api.abdl-space.top/api/v1/media/preview/v3/${Buffer.from(source, 'utf8').toString('base64url')}`;
 const avatar = (source) => `https://api.abdl-space.top/api/v1/media/avatar/v3/${Buffer.from(source, 'utf8').toString('base64url')}`;
@@ -33,4 +33,13 @@ test('own hosts, relative paths and non-http schemes are never blocked', () => {
 
 test('placeholder is an inline image and therefore cannot reach any host', () => {
   assert.match(placeholderForTest(), /^data:image\/svg\+xml/);
+});
+
+test('runtime toggle disables the guard while the detection stays pure', () => {
+  assert.equal(isMediaBlocked(COS), true);
+  setMediaGuardEnabled(false);
+  assert.equal(isMediaBlocked(COS), false);
+  assert.equal(isTencentMediaUrl(COS), true);
+  setMediaGuardEnabled(true);
+  assert.equal(isMediaBlocked(COS), true);
 });

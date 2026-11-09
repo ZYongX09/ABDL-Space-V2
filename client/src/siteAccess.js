@@ -2,7 +2,7 @@
  * Public access projection loaded once before the app renders.
  * A failed request fails open: a config outage must never take the site down.
  */
-const EMPTY = { status: 'ok', message: '', login_prompt: '', revision: '' }
+const EMPTY = { status: 'ok', message: '', login_prompt: '', download_open: false, revision: '' }
 let state = { ...EMPTY }
 let watching = false
 
@@ -37,6 +37,7 @@ export function isRegistrationPath(pathname) {
 /** True when the current page must be replaced by the unavailable page. */
 export function isClosedFor(pathname) {
   if (state.status !== 'closed') return false
+  if (state.download_open && pathname === '/app') return false
   return !isAdminPage(pathname) && !SIGN_IN_PAGES.includes(pathname)
 }
 
@@ -55,6 +56,7 @@ export async function loadSiteAccess() {
         status: STATUSES.includes(data?.status) ? data.status : 'ok',
         message: typeof data?.message === 'string' ? data.message : '',
         login_prompt: typeof data?.login_prompt === 'string' ? data.login_prompt : '',
+        download_open: data?.download_open === true,
         revision: typeof data?.revision === 'string' ? data.revision : '',
       }
     }

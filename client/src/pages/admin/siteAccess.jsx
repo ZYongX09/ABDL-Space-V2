@@ -35,6 +35,7 @@ export default function AdminSiteAccess() {
         app_mode: result.app_mode || 'off',
         app_message: result.app_message || '',
         fake_posts: Array.isArray(result.fake_posts) ? result.fake_posts.map(post => ({ ...emptyPost(), ...post })) : [],
+        app_download_open: result.app_download_open === true,
         revision: result.revision || '0',
       });
     } catch (error) {
@@ -79,6 +80,7 @@ export default function AdminSiteAccess() {
           author: (post.author || '').trim(),
           created_at: Number.isSafeInteger(post.created_at) ? post.created_at : null,
         })),
+        app_download_open: form.app_download_open === true,
         revision: form.revision,
       });
       setForm(current => ({ ...current, ...saved }));
@@ -138,6 +140,17 @@ export default function AdminSiteAccess() {
                 placeholder="请登录后继续访问。"
               />
             </FormField>
+            <label className="sa-access-choice" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input
+                type="checkbox"
+                checked={form.app_download_open === true}
+                onChange={event => patch('app_download_open', event.target.checked)}
+              />
+              <span>
+                <span className="sa-access-choice-label">暂停服务时放行 App 下载页</span>
+                <span className="sa-access-choice-hint">开启后 /app 仍可访问；仅在「暂停服务」下生效。</span>
+              </span>
+            </label>
           </div>
         </Card>
 

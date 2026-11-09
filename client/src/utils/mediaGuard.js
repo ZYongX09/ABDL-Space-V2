@@ -10,6 +10,21 @@ const PLACEHOLDER = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
 )}`
 
 let installed = false
+let enabled = true
+
+/** The patches stay installed; disabling passes every URL through again. */
+export function setMediaGuardEnabled(value) {
+  enabled = value !== false
+}
+
+function blocked(value) {
+  return enabled && isTencentMediaUrl(value)
+}
+
+/** Effective policy check, including the runtime toggle. */
+export function isMediaBlocked(value) {
+  return blocked(value)
+}
 
 export function isTencentHost(hostname) {
   return typeof hostname === 'string' && TENCENT_HOST.test(hostname)
@@ -52,7 +67,7 @@ export function isTencentMediaUrl(value) {
 
 function scrubSrcset(value) {
   if (typeof value !== 'string' || !value) return value
-  return value.split(',').some((part) => isTencentMediaUrl(part.trim().split(/\s+/)[0])) ? PLACEHOLDER : value
+  return value.split(',').some((part) => blocked(part.trim().split(/\s+/)[0])) ? PLACEHOLDER : value
 }
 
 export function installMediaGuard() {
@@ -66,7 +81,7 @@ export function installMediaGuard() {
       enumerable: descriptor.enumerable,
       get: descriptor.get,
       set(value) {
-        descriptor.set.call(this, isTencentMediaUrl(value) ? PLACEHOLDER : value)
+        descriptor.set.call(this, blocked(value) ? PLACEHOLDER : value)
       },
     })
   }
@@ -74,7 +89,7 @@ export function installMediaGuard() {
   const rawSetAttribute = Element.prototype.setAttribute
   Element.prototype.setAttribute = function setAttribute(name, value) {
     const key = String(name).toLowerCase()
-    if (key === 'src' && isTencentMediaUrl(value)) value = PLACEHOLDER
+    if (key === 'src' && blocked(value)) value = PLACEHOLDER
     else if (key === 'srcset') value = scrubSrcset(value)
     return rawSetAttribute.call(this, name, value)
   }
@@ -83,21 +98,21 @@ export function installMediaGuard() {
   if (rawFetch) {
     window.fetch = function guardedFetch(input, init) {
       const url = typeof input === 'string' ? input : input?.url
-      if (isTencentMediaUrl(url)) return Promise.reject(new TypeError('Blocked media host'))
+      if (blocked(url)) return Promise.reject(new TypeError('Blocked media host'))
       return rawFetch(input, init)
     }
   }
 
   const rawOpen = XMLHttpRequest.prototype.open
   XMLHttpRequest.prototype.open = function guardedOpen(method, url, ...rest) {
-    if (isTencentMediaUrl(String(url))) throw new TypeError('Blocked media host')
+    if (blocked(String(url))) throw new TypeError('Blocked media host')
     return rawOpen.call(this, method, url, ...rest)
   }
 
   if (navigator.sendBeacon) {
     const rawBeacon = navigator.sendBeacon.bind(navigator)
     navigator.sendBeacon = function guardedBeacon(url, data) {
-      return isTencentMediaUrl(String(url)) ? false : rawBeacon(url, data)
+      return blocked(String(url)) ? false : rawBeacon(url, data)
     }
   }
 
@@ -107,7 +122,7 @@ export function installMediaGuard() {
       const target = record.target
       if (!(target instanceof Element)) continue
       if (record.type === 'attributes') {
-        if (record.attributeName === 'src' && isTencentMediaUrl(target.getAttribute('src'))) {
+        if (record.attributeName === 'src' && blocked(target.getAttribute('src'))) {
           rawSetAttribute.call(target, 'src', PLACEHOLDER)
         } else if (record.attributeName === 'srcset') {
           const value = target.getAttribute('srcset')
@@ -116,7 +131,7 @@ export function installMediaGuard() {
         }
       } else {
         for (const image of target.querySelectorAll('img[src], source[srcset]')) {
-          if (isTencentMediaUrl(image.getAttribute('src'))) rawSetAttribute.call(image, 'src', PLACEHOLDER)
+          if (blocked(image.getAttribute('src'))) rawSetAttribute.call(image, 'src', PLACEHOLDER)
           const value = image.getAttribute('srcset')
           const safe = scrubSrcset(value)
           if (safe !== value) rawSetAttribute.call(image, 'srcset', safe)

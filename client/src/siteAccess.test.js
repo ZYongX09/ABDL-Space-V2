@@ -35,7 +35,16 @@ test('closed state keeps only sign-in and admin routes reachable', () => {
   assert.equal(isClosedFor('/'), false);
 });
 
+test('closed state lets the download page through only when the switch is on', () => {
+  setSiteAccessForTests({ status: 'closed', download_open: false });
+  assert.equal(isClosedFor('/app'), true);
+  setSiteAccessForTests({ status: 'closed', download_open: true });
+  assert.equal(isClosedFor('/app'), false);
+  assert.equal(isClosedFor('/'), true);
+  assert.equal(isClosedFor('/admin/site-access'), false);
+});
+
 test('unknown or missing projection values fall back to the open state', () => {
   setSiteAccessForTests({});
-  assert.deepEqual(getSiteAccess(), { status: 'ok', message: '', login_prompt: '', revision: '' });
+  assert.deepEqual(getSiteAccess(), { status: 'ok', message: '', login_prompt: '', download_open: false, revision: '' });
 });

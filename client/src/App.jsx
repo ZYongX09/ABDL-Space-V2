@@ -24,6 +24,7 @@ import { useExternalLinkInterceptor } from './hooks/useExternalLinkInterceptor';
 import AdminRouteGate, { AdminUnknownRoute } from './pages/admin/gate.jsx';
 import SiteUnavailablePage from './components/SiteUnavailablePage';
 import { getSiteAccess, isAdminPage, isClosedFor, isRegistrationPath, isStaticPage } from './siteAccess';
+import { setMediaGuardEnabled } from './utils/mediaGuard';
 
 // 路由级懒加载 — 首屏只加载 HomeV2
 const HomeV2 = lazy(() => import('./pages/HomeV2'));
@@ -312,6 +313,12 @@ export default function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [navigate]);
+
+  // 腾讯云媒体：仅登录状态模式下，只有已通过宝宝认证的登录用户可以加载。
+  useEffect(() => {
+    const access = getSiteAccess();
+    setMediaGuardEnabled(access.status !== 'ok' && !isAdminPage(pathname) && !(access.status === 'login' && user?.baby_verified));
+  }, [pathname, user]);
 
   // 站点可访问性投影：关闭态只保留管理后台与登录入口；登录态未登录时先等会话恢复再判定。
   const access = getSiteAccess();
