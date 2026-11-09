@@ -145,6 +145,21 @@ export default function OAuthAuthorize() {
     );
   }
 
+  /* 第三方 App scheme 流程：非 http(s) 且非本家 Android（abdl-space 走原 JSON+JS 链路）。
+     iOS ASWebAuthenticationSession 不拦截 JS 发起的自定义 scheme 跳转，
+     必须由用户手势的顶层表单提交触发服务端 302。 */
+  const redirectProtocol = (() => {
+    try {
+      return new URL(redirectUri).protocol.replace(':', '').toLowerCase();
+    } catch {
+      return '';
+    }
+  })();
+  const isThirdPartyAppFlow = redirectProtocol !== ''
+    && redirectProtocol !== 'http'
+    && redirectProtocol !== 'https'
+    && redirectProtocol !== 'abdl-space';
+
   if (authLoading || loading) {
     return (
       <div style={wrap}>
@@ -234,14 +249,33 @@ export default function OAuthAuthorize() {
         </div>
 
         {/* 操作按钮 */}
-        <div className="flex gap-3" style={{ marginBottom: '0.5rem' }}>
-          <button className="btn btn-primary flex-1" onClick={() => handleDecision(true)} disabled={submitting}>
-            {submitting ? '处理中...' : <><i className="fa-solid fa-check mr-1.5" />授权</>}
-          </button>
-          <button className="btn btn-outline flex-1" onClick={() => handleDecision(false)} disabled={submitting}>
-            <i className="fa-solid fa-xmark mr-1.5" />拒绝
-          </button>
-        </div>
+        {isThirdPartyAppFlow ? (
+          /* 第三方 App（Ice Cubes 等）：顶层表单提交（用户手势）→ 服务端 302 直达 App scheme。
+             iOS ASWebAuthenticationSession 不拦截 JS 发起的自定义 scheme 跳转，必须走这条链路。 */
+          <form method="post" action="/api/oauth/authorize/decision" className="flex gap-3" style={{ marginBottom: '0.5rem' }}>
+            <input type="hidden" name="client_id" value={clientId} />
+            <input type="hidden" name="redirect_uri" value={redirectUri} />
+            <input type="hidden" name="scope" value={scope} />
+            <input type="hidden" name="state" value={state} />
+            {codeChallenge ? <input type="hidden" name="code_challenge" value={codeChallenge} /> : null}
+            {codeChallengeMethod ? <input type="hidden" name="code_challenge_method" value={codeChallengeMethod} /> : null}
+            <button className="btn btn-primary flex-1" type="submit" name="approved" value="true">
+              <i className="fa-solid fa-check mr-1.5" />授权
+            </button>
+            <button className="btn btn-outline flex-1" type="submit" name="approved" value="false">
+              <i className="fa-solid fa-xmark mr-1.5" />拒绝
+            </button>
+          </form>
+        ) : (
+          <div className="flex gap-3" style={{ marginBottom: '0.5rem' }}>
+            <button className="btn btn-primary flex-1" onClick={() => handleDecision(true)} disabled={submitting}>
+              {submitting ? '处理中...' : <><i className="fa-solid fa-check mr-1.5" />授权</>}
+            </button>
+            <button className="btn btn-outline flex-1" onClick={() => handleDecision(false)} disabled={submitting}>
+              <i className="fa-solid fa-xmark mr-1.5" />拒绝
+            </button>
+          </div>
+        )}
 
         {/* 安全提示 */}
         <div className="text-center">
