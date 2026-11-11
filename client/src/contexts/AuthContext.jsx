@@ -1,8 +1,11 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { nbwRegistrationFields } from '../utils/nbwOAuth.js';
 import { buildAvatarPreviewUrl } from '../utils/mediaUrl';
+import { getSiteAccess } from '../siteAccess.js';
+import { syncSiteMediaAccess } from '../siteMediaAccess.js';
 
 function notifySessionChanging() {
+  syncSiteMediaAccess(null);
   window.dispatchEvent(new Event('auth-session-changing'));
 }
 
@@ -53,26 +56,44 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState(getSavedAccounts);
   const refreshRequest = useRef(0);
+  const sessionVersionRef = useRef(0);
+  const sessionChangingRef = useRef(false);
+  const userRef = useRef(null);
+  const hydrationSessionRef = useRef(null);
 
-  // 所有登录入口（/me、登录、注册、扫码、资料更新）都经这里归一化头像，省得每个调用点各自改写。
+  // 先同步媒体策略，再发布用户；函数式更新读取最新 ref，不在 React updater 中产生副作用。
   const setUser = useCallback((next) => {
-    setRawUser((prev) => {
-      const value = typeof next === 'function' ? next(prev) : next;
-      return value ? { ...value, avatar: value.avatar ? buildAvatarPreviewUrl(value.avatar) : value.avatar } : value;
-    });
+    const value = typeof next === 'function' ? next(userRef.current) : next;
+    const normalized = value ? { ...value, avatar: value.avatar ? buildAvatarPreviewUrl(value.avatar) : value.avatar } : value;
+    syncSiteMediaAccess(normalized);
+    userRef.current = normalized;
+    setRawUser(normalized);
   }, []);
+  const beginSessionChange = useCallback(() => {
+    const version = ++sessionVersionRef.current;
+    refreshRequest.current += 1;
+    sessionChangingRef.current = true;
+    notifySessionChanging();
+    setUser(null);
+    setActiveAccountId(null);
+    return version;
+  }, [setUser]);
   const currentSession = useRef(null);
   const activeToken = accounts.find(account => String(account.id) === String(user?.id))?.token || '';
   currentSession.current = JSON.stringify([user?.id, user?.role, Object.hasOwn(user || {}, 'is_super_admin'), user?.is_super_admin, activeToken]);
 
   // 初始化：用 cookie 恢复登录
   useEffect(() => {
+    const sessionVersion = sessionVersionRef.current;
+    let cancelled = false;
     (async () => {
       try {
         if (USE_API) {
-          const res = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
+          const res = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include', cache: 'no-store' });
+          if (cancelled || sessionVersion !== sessionVersionRef.current) return;
           if (res.ok) {
             const data = await res.json();
+            if (cancelled || sessionVersion !== sessionVersionRef.current) return;
             const u = data.user || data;
             setUser(u);
             setActiveAccountId(u.id);
@@ -98,13 +119,16 @@ export function AuthProvider({ children }) {
           if (u) setUser({ ...u, passwordHash: undefined });
         }
       } catch {} finally {
-        setLoading(false);
+        if (!cancelled && sessionVersion === sessionVersionRef.current) setLoading(false);
       }
     })();
+    return () => { cancelled = true; };
   }, []);
 
   // 登录（添加账户到已保存列表）
   const login = useCallback(async ({ login: loginField, password, captchaToken }) => {
+    const version = beginSessionChange();
+    try {
     if (USE_API) {
       const headers = { 'Content-Type': 'application/json' };
       if (captchaToken) headers['X-Captcha-Token'] = captchaToken;
@@ -116,6 +140,7 @@ export function AuthProvider({ children }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '登录失败');
+      if (version !== sessionVersionRef.current) throw new Error('登录状态已变化，请重试');
 
       const u = data.user;
 
@@ -140,13 +165,22 @@ export function AuthProvider({ children }) {
     if (!u) throw new Error('用户名或密码错误');
     const hash = await hashPassword(password);
     if (u.passwordHash !== hash) throw new Error('用户名或密码错误');
+    if (version !== sessionVersionRef.current) throw new Error('登录状态已变化，请重试');
     lsSet('abdl_currentUser', u);
     setUser({ ...u, passwordHash: undefined });
     return { token: 'local-' + u.id, user: { ...u, passwordHash: undefined } };
-  }, []);
+    } finally {
+      if (version === sessionVersionRef.current) {
+        sessionChangingRef.current = false;
+        setLoading(false);
+      }
+    }
+  }, [beginSessionChange, setUser]);
 
   // Token 登录（用于扫码登录等场景）
   const loginWithToken = useCallback(async ({ token, user: userData }) => {
+    if (!userData || !token) throw new Error('登录响应无效');
+    beginSessionChange();
     // 添加/更新已保存账户
     const saved = getSavedAccounts();
     const exists = saved.findIndex(a => a.id === userData.id);
@@ -160,8 +194,10 @@ export function AuthProvider({ children }) {
     setAccounts(saved);
     setActiveAccountId(userData.id);
     setUser(userData);
+    sessionChangingRef.current = false;
+    setLoading(false);
     return { token, user: userData };
-  }, []);
+  }, [beginSessionChange, setUser]);
 
   // 注册
   const register = useCallback(async ({ username, email, password, code, captchaToken, inviteCode, ...nbw }) => {
@@ -233,8 +269,9 @@ export function AuthProvider({ children }) {
 
     // 如果移除的是当前账户，需要退出登录
     if (user?.id === accountId) {
-      notifySessionChanging();
+      const version = beginSessionChange();
       fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {}).finally(() => {
+        if (version !== sessionVersionRef.current) return;
         if (window.__apiCache) window.__apiCache.clear();
         setUser(null);
         setActiveAccountId(null);
@@ -246,45 +283,52 @@ export function AuthProvider({ children }) {
         window.location.href = '/login';
       });
     }
-  }, [user]);
+  }, [user, beginSessionChange, setUser]);
 
   // 切换账户（用保存的 token 恢复会话）
   const switchAccount = useCallback(async (accountId) => {
-    notifySessionChanging();
     const saved = getSavedAccounts();
     const target = saved.find(a => a.id === accountId);
     if (!target) throw new Error('账户不存在');
     if (!target.token) throw new Error('该账户需要重新登录（无保存的 token）');
-
-    // 用保存的 token 调 /me 端点，后端会同时设置 cookie
-    const res = await fetch(`${API_BASE}/api/auth/me`, {
-      headers: { 'Authorization': `Bearer ${target.token}` },
-      credentials: 'include',
-    });
-    if (!res.ok) {
-      // token 失效，移除该账户
-      removeAccount(accountId);
-      throw new Error('该账户登录已过期，请重新登录');
+    const version = beginSessionChange();
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${target.token}` },
+        credentials: 'include', cache: 'no-store',
+      });
+      if (version !== sessionVersionRef.current) throw new Error('登录状态已变化，请重试');
+      if (!res.ok) {
+        const remaining = saved.filter(a => a.id !== accountId);
+        saveAccounts(remaining);
+        setAccounts(remaining);
+        throw new Error('该账户登录已过期，请重新登录');
+      }
+      const data = await res.json();
+      if (version !== sessionVersionRef.current) throw new Error('登录状态已变化，请重试');
+      const u = data.user || data;
+      setActiveAccountId(u.id);
+      setUser(u);
+      const updated = saved.map(a => a.id === u.id ? { ...a, username: u.username, avatar: u.avatar, role: u.role } : a);
+      saveAccounts(updated);
+      setAccounts(updated);
+    } finally {
+      if (version === sessionVersionRef.current) {
+        sessionChangingRef.current = false;
+        setLoading(false);
+      }
     }
-    const u = await res.json();
-    setActiveAccountId(u.id);
-    setUser(u);
-    // 更新保存的信息（token 保留）
-    const idx = saved.findIndex(a => a.id === u.id);
-    if (idx >= 0) {
-      saved[idx] = { ...saved[idx], id: u.id, username: u.username, avatar: u.avatar, role: u.role };
-      saveAccounts(saved);
-      setAccounts(saved);
-    }
-  }, [removeAccount]);
+  }, [beginSessionChange, setUser]);
 
   // 退出当前账户（不删除保存的账户）
   const logout = useCallback(async () => {
-    notifySessionChanging();
+    const version = beginSessionChange();
     // 清除后端 cookie（确保请求完成）
     try {
       await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' });
     } catch {}
+    if (version !== sessionVersionRef.current) return;
     // 清除内存缓存
     if (window.__apiCache) window.__apiCache.clear();
     const saved = getSavedAccounts().filter(a => a.id !== user?.id);
@@ -295,14 +339,15 @@ export function AuthProvider({ children }) {
     lsDel('abdl_currentUser');
     // 强制刷新确保状态干净
     window.location.href = '/';
-  }, [user]);
+  }, [user, beginSessionChange, setUser]);
 
   // 退出所有账户
   const logoutAll = useCallback(async () => {
-    notifySessionChanging();
+    const version = beginSessionChange();
     try {
       await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' });
     } catch {}
+    if (version !== sessionVersionRef.current) return;
     if (window.__apiCache) window.__apiCache.clear();
     saveAccounts([]);
     setAccounts([]);
@@ -310,7 +355,7 @@ export function AuthProvider({ children }) {
     setUser(null);
     lsDel('abdl_currentUser');
     window.location.href = '/';
-  }, []);
+  }, [beginSessionChange, setUser]);
 
   // 同意状态管理
   const CONSENT_KEY = 'abdl_consent';
@@ -344,6 +389,7 @@ export function AuthProvider({ children }) {
 
   // 更新资料
   const updateProfile = useCallback(async (body) => {
+    const version = sessionVersionRef.current;
     if (USE_API) {
       const res = await fetch(`${API_BASE}/api/users/me`, {
         method: 'PATCH',
@@ -353,6 +399,7 @@ export function AuthProvider({ children }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '更新失败');
+      if (version !== sessionVersionRef.current || sessionChangingRef.current) throw new Error('登录状态已变化，请重试');
       const u = data.user || data;
       setUser(u);
       // 同步更新已保存账户信息
@@ -378,10 +425,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   const refreshUser = useCallback(async () => {
-    if (!USE_API) return;
+    if (!USE_API || sessionChangingRef.current) return;
     const request = ++refreshRequest.current;
     const session = currentSession.current;
-    const current = () => request === refreshRequest.current && session === currentSession.current;
+    const version = sessionVersionRef.current;
+    const current = () => request === refreshRequest.current && session === currentSession.current && version === sessionVersionRef.current && !sessionChangingRef.current;
     try {
       const token = JSON.parse(session)[4];
       const res = await fetch(`${API_BASE}/api/auth/me`, {
@@ -407,12 +455,36 @@ export function AuthProvider({ children }) {
         saveAccounts(updated);
         setAccounts(updated);
       } else if (res.status === 401 || res.status === 403) {
+        sessionVersionRef.current += 1;
         setUser(null);
         setActiveAccountId(null);
         if (window.__apiCache) window.__apiCache.clear();
       }
     } catch {}
   }, []);
+
+  const mediaSessionKey = JSON.stringify([user?.id, activeToken, sessionVersionRef.current]);
+  useEffect(() => {
+    if (!USE_API || loading || user?.id == null || sessionChangingRef.current || getSiteAccess().status !== 'login') return;
+    const version = sessionVersionRef.current;
+    const session = currentSession.current;
+    const refresh = () => {
+      if (version === sessionVersionRef.current && session === currentSession.current && !sessionChangingRef.current
+        && userRef.current?.id != null && getSiteAccess().status === 'login') void refreshUser();
+    };
+    // 缺少证书布尔值的登录响应只补全一次；失败后由定时/可见性刷新重试，不循环请求。
+    if (typeof user.baby_verified !== 'boolean' && hydrationSessionRef.current !== mediaSessionKey) {
+      hydrationSessionRef.current = mediaSessionKey;
+      refresh();
+    }
+    const timer = window.setInterval(refresh, 60_000);
+    const visible = () => { if (document.visibilityState === 'visible') refresh(); };
+    document.addEventListener('visibilitychange', visible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', visible);
+    };
+  }, [mediaSessionKey, loading, refreshUser]);
 
   return (
 

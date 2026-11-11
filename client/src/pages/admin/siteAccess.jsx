@@ -118,7 +118,7 @@ export default function AdminSiteAccess() {
                     onChange={() => patch('web_mode', option.value)}
                   />
                   <span className="sa-access-choice-label">{option.label}</span>
-                  <span className="sa-access-choice-hint">{option.hint}</span>
+                  <span className="sa-access-choice-hint">{option.value === 'closed' && form.app_download_open ? '除管理后台、登录页与 /app 下载页外，所有页面显示下方的提示。' : option.hint}</span>
                 </label>
               ))}
             </fieldset>
@@ -140,17 +140,19 @@ export default function AdminSiteAccess() {
                 placeholder="请登录后继续访问。"
               />
             </FormField>
-            <label className="sa-access-choice" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {form.web_mode === 'closed' && <label className="sa-access-choice" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <input
                 type="checkbox"
+                aria-label="下载 App 开关"
+                aria-describedby="app-download-switch-description"
                 checked={form.app_download_open === true}
                 onChange={event => patch('app_download_open', event.target.checked)}
               />
               <span>
-                <span className="sa-access-choice-label">暂停服务时放行 App 下载页</span>
-                <span className="sa-access-choice-hint">开启后 /app 仍可访问；仅在「暂停服务」下生效。</span>
+                <span className="sa-access-choice-label">下载 App 开关</span>
+                <span id="app-download-switch-description" className="sa-access-choice-hint">开启后仅额外放行 /app 下载页，其他前台页面仍暂停服务。</span>
               </span>
-            </label>
+            </label>}
           </div>
         </Card>
 

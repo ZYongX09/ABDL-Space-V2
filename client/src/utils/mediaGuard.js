@@ -1,33 +1,34 @@
-/**
- * Browser-side guard: when the site is in a restricted state, no request or image
- * may reach a Tencent Cloud host, including the preview endpoints that wrap a
- * Tencent object as their source. Admin pages never install this guard.
- */
+/** Browser-side Tencent media guard; installed once, with an account-scoped runtime policy. */
 const TENCENT_HOST = /(^|\.)(myqcloud\.com|qcloud\.com|tencentcloud\.com|tencentcloudapi\.com)$/i
 const PREVIEW_PATH = /\/api\/v1\/media\/(?:preview|avatar)\/v3\//
+const MEDIA_SELECTOR = 'img[src], img[srcset], source[src], source[srcset], video[src], video[poster], audio[src]'
 const PLACEHOLDER = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 8 8"><rect width="8" height="8" fill="#e6e6e6"/></svg>',
 )}`
 
 let installed = false
 let enabled = true
+let reconcile = () => {}
 
-/** The patches stay installed; disabling passes every URL through again. */
+/** Switch before committing the next session's media, restoring deferred images when allowed. */
 export function setMediaGuardEnabled(value) {
   enabled = value !== false
+  reconcile()
 }
 
 function blocked(value) {
+  const path = typeof window === 'undefined' ? '' : window.location?.pathname || ''
+  if (path === '/admin' || path.startsWith('/admin/')) return false
   return enabled && isTencentMediaUrl(value)
 }
 
-/** Effective policy check, including the runtime toggle. */
+/** Effective policy check, including the current route and runtime toggle. */
 export function isMediaBlocked(value) {
   return blocked(value)
 }
 
 export function isTencentHost(hostname) {
-  return typeof hostname === 'string' && TENCENT_HOST.test(hostname)
+  return typeof hostname === 'string' && TENCENT_HOST.test(hostname.replace(/\.$/, ''))
 }
 
 function decodePreviewSource(path) {
@@ -41,7 +42,7 @@ function decodePreviewSource(path) {
   }
 }
 
-/** True for a direct Tencent URL or a media-preview URL whose embedded source is Tencent. */
+/** True for a direct Tencent URL or a preview whose embedded source is Tencent. */
 export function isTencentMediaUrl(value) {
   if (typeof value !== 'string' || !value) return false
   let url
@@ -65,48 +66,112 @@ export function isTencentMediaUrl(value) {
   return false
 }
 
-function scrubSrcset(value) {
-  if (typeof value !== 'string' || !value) return value
-  return value.split(',').some((part) => blocked(part.trim().split(/\s+/)[0])) ? PLACEHOLDER : value
+function blockedSrcset(value) {
+  return value.split(',').some(part => blocked(part.trim().split(/\s+/)[0]))
 }
 
+/** Install even on an admin entry: the route exemption is evaluated for every request. */
 export function installMediaGuard() {
-  if (installed) return
+  if (installed || typeof window === 'undefined' || typeof document === 'undefined') return
   installed = true
+  const rawSetAttribute = Element.prototype.setAttribute
+  const rawRemoveAttribute = Element.prototype.removeAttribute
+  // Only elements with a deferred attribute are retained; replay or removal releases them.
+  const deferred = new Map()
 
-  const descriptor = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src')
-  if (descriptor?.set) {
-    Object.defineProperty(HTMLImageElement.prototype, 'src', {
-      configurable: true,
-      enumerable: descriptor.enumerable,
-      get: descriptor.get,
-      set(value) {
-        descriptor.set.call(this, blocked(value) ? PLACEHOLDER : value)
-      },
-    })
+  const forget = (element, name) => {
+    const attributes = deferred.get(element)
+    if (!attributes) return
+    attributes.delete(name)
+    if (!attributes.size) deferred.delete(element)
   }
 
-  const rawSetAttribute = Element.prototype.setAttribute
+  const safeAttribute = (element, name, input) => {
+    const value = String(input)
+    const previous = deferred.get(element)?.get(name)
+    // Observer records of our own placeholder must not erase the original URL.
+    const placeholder = name === 'srcset' ? '' : PLACEHOLDER
+    if (previous !== undefined && value === placeholder) return value
+    const denied = name === 'srcset' ? blockedSrcset(value) : blocked(value)
+    if (!denied) {
+      forget(element, name)
+      return value
+    }
+    let attributes = deferred.get(element)
+    if (!attributes) deferred.set(element, attributes = new Map())
+    attributes.set(name, value)
+    return placeholder
+  }
+
+  const scrub = element => {
+    for (const name of ['srcset', 'src', 'poster']) {
+      const value = element.getAttribute(name)
+      if (value === null) continue
+      const next = safeAttribute(element, name, value)
+      if (next !== value) rawSetAttribute.call(element, name, next)
+    }
+  }
+
+  const patchProperty = (prototype, name) => {
+    if (!prototype) return
+    const descriptor = Object.getOwnPropertyDescriptor(prototype, name)
+    if (!descriptor?.set || descriptor.configurable === false) return
+    Object.defineProperty(prototype, name, {
+      ...descriptor,
+      set(value) { descriptor.set.call(this, safeAttribute(this, name, value)) },
+    })
+  }
+  patchProperty(window.HTMLImageElement?.prototype, 'src')
+  patchProperty(window.HTMLImageElement?.prototype, 'srcset')
+  patchProperty(window.HTMLSourceElement?.prototype, 'src')
+  patchProperty(window.HTMLSourceElement?.prototype, 'srcset')
+  patchProperty(window.HTMLMediaElement?.prototype, 'src')
+  patchProperty(window.HTMLVideoElement?.prototype, 'poster')
+
   Element.prototype.setAttribute = function setAttribute(name, value) {
     const key = String(name).toLowerCase()
-    if (key === 'src' && blocked(value)) value = PLACEHOLDER
-    else if (key === 'srcset') value = scrubSrcset(value)
-    return rawSetAttribute.call(this, name, value)
+    return rawSetAttribute.call(this, name, ['src', 'srcset', 'poster'].includes(key) ? safeAttribute(this, key, value) : value)
+  }
+  Element.prototype.removeAttribute = function removeAttribute(name) {
+    forget(this, String(name).toLowerCase())
+    return rawRemoveAttribute.call(this, name)
+  }
+
+  reconcile = () => {
+    for (const [element, attributes] of deferred) {
+      for (const [name, value] of attributes) {
+        if (name === 'srcset' ? blockedSrcset(value) : blocked(value)) continue
+        // Do not resurrect a URL overwritten by another component or removed in the meantime.
+        const placeholder = name === 'srcset' ? '' : PLACEHOLDER
+        if (element.getAttribute(name) === placeholder) rawSetAttribute.call(element, name, value)
+        forget(element, name)
+      }
+    }
+    for (const element of document.querySelectorAll(MEDIA_SELECTOR)) scrub(element)
   }
 
   const rawFetch = window.fetch?.bind(window)
   if (rawFetch) {
     window.fetch = function guardedFetch(input, init) {
-      const url = typeof input === 'string' ? input : input?.url
+      const url = typeof input === 'string' || input instanceof URL ? String(input) : input?.url
       if (blocked(url)) return Promise.reject(new TypeError('Blocked media host'))
       return rawFetch(input, init)
     }
   }
 
-  const rawOpen = XMLHttpRequest.prototype.open
-  XMLHttpRequest.prototype.open = function guardedOpen(method, url, ...rest) {
-    if (blocked(String(url))) throw new TypeError('Blocked media host')
-    return rawOpen.call(this, method, url, ...rest)
+  if (window.XMLHttpRequest) {
+    const urls = new WeakMap()
+    const rawOpen = XMLHttpRequest.prototype.open
+    const rawSend = XMLHttpRequest.prototype.send
+    XMLHttpRequest.prototype.open = function guardedOpen(method, url, ...rest) {
+      if (blocked(String(url))) throw new TypeError('Blocked media host')
+      urls.set(this, String(url))
+      return rawOpen.call(this, method, url, ...rest)
+    }
+    XMLHttpRequest.prototype.send = function guardedSend(body) {
+      if (blocked(urls.get(this))) throw new TypeError('Blocked media host')
+      return rawSend.call(this, body)
+    }
   }
 
   if (navigator.sendBeacon) {
@@ -116,30 +181,27 @@ export function installMediaGuard() {
     }
   }
 
-  // Markup parsed through innerHTML bypasses both setters, so repair it afterwards.
-  const observer = new MutationObserver((records) => {
+  // Parsed markup needs a second line of defence; normal React/property writes are blocked first.
+  const observer = new MutationObserver(records => {
     for (const record of records) {
-      const target = record.target
-      if (!(target instanceof Element)) continue
       if (record.type === 'attributes') {
-        if (record.attributeName === 'src' && blocked(target.getAttribute('src'))) {
-          rawSetAttribute.call(target, 'src', PLACEHOLDER)
-        } else if (record.attributeName === 'srcset') {
-          const value = target.getAttribute('srcset')
-          const safe = scrubSrcset(value)
-          if (safe !== value) rawSetAttribute.call(target, 'srcset', safe)
-        }
-      } else {
-        for (const image of target.querySelectorAll('img[src], source[srcset]')) {
-          if (blocked(image.getAttribute('src'))) rawSetAttribute.call(image, 'src', PLACEHOLDER)
-          const value = image.getAttribute('srcset')
-          const safe = scrubSrcset(value)
-          if (safe !== value) rawSetAttribute.call(image, 'srcset', safe)
+        if (record.target instanceof Element) scrub(record.target)
+        continue
+      }
+      for (const node of record.addedNodes) {
+        if (!(node instanceof Element)) continue
+        scrub(node)
+        for (const element of node.querySelectorAll(MEDIA_SELECTOR)) scrub(element)
+      }
+      for (const node of record.removedNodes) {
+        for (const element of deferred.keys()) {
+          if (!element.isConnected && (node === element || node.contains?.(element))) deferred.delete(element)
         }
       }
     }
   })
-  observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['src', 'srcset'] })
+  observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['src', 'srcset', 'poster'] })
+  reconcile()
 }
 
 /** Test-only. */

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws://127.0.0.1:*; style-src 'self' 'unsafe-inline'">
+  <title>站点可访问范围 · 本地回归</title>
+</head>
+<body>
+  <h1>站点可访问范围 · 本地回归</h1>
+  <p>只测试浏览器状态和实际拦截器，不请求生产 API 或腾讯云。</p>
+  <button id="run" type="button">运行媒体与下载页回归</button>
+  <pre id="result" role="status">尚未运行</pre>
+  <script type="module">
+    import { installMediaGuard, placeholderForTest } from '/src/utils/mediaGuard.js'
+    import { setSiteAccessForTests, isClosedFor } from '/src/siteAccess.js'
+    import { syncSiteMediaAccess } from '/src/siteMediaAccess.js'
+
+    const result = document.getElementById('result')
+    const run = document.getElementById('run')
+    const remote = 'https://fixture.cos.ap-shanghai.myqcloud.com/browser-test.jpg'
+    const nativeFetch = window.fetch.bind(window)
+    let calls = 0
+    window.fetch = (input, init) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? String(input) : input.url
+      if (url.startsWith('https://fixture.cos.')) {
+        calls++
+        return Promise.resolve(new Response('{}', {headers: {'Content-Type': 'application/json'}}))
+      }
+      return nativeFetch(input, init)
+    }
+    installMediaGuard()
+    run.addEventListener('click', async () => {
+      const lines = []
+      const check = (label, value) => { if (!value) throw new Error(label); lines.push(`PASS ${label}`) }
+      const image = new Image()
+      const source = document.createElement('source')
+      try {
+        history.replaceState(null, '', '/tests/site-access-browser.html')
+        setSiteAccessForTests({status: 'login'})
+        syncSiteMediaAccess(null)
+        image.src = remote
+        source.srcset = `${remote} 1x`
+        document.body.append(image, source)
+        check('匿名图片在属性赋值时拦截', image.getAttribute('src') === placeholderForTest())
+        check('source.srcset 属性在赋值时拦截', source.srcset === '')
+        let denied = false
+        try { await fetch(new URL(remote)) } catch { denied = true }
+        check('匿名 fetch URL 被拦截且无上游请求', denied && calls === 0)
+        syncSiteMediaAccess({id: 1, baby_verified: true})
+        check('认证放行自动恢复原图片', image.getAttribute('src') === remote)
+        check('认证放行自动恢复 srcset', source.srcset === `${remote} 1x`)
+        await fetch(remote)
+        check('认证 fetch 通过实际补丁', calls === 1)
+        syncSiteMediaAccess(null)
+        check('退出会话同步恢复拦截', image.getAttribute('src') === placeholderForTest())
+        history.replaceState(null, '', '/admin/site-access')
+        syncSiteMediaAccess(null)
+        image.src = remote
+        check('管理路由不拦证据图', image.getAttribute('src') === remote)
+        history.replaceState(null, '', '/login')
+        syncSiteMediaAccess(null)
+        check('管理入口切回前台仍有拦截器', image.getAttribute('src') === placeholderForTest())
+        setSiteAccessForTests({status: 'closed', download_open: false})
+        check('暂停且开关关闭时不放行下载页', isClosedFor('/app'))
+        setSiteAccessForTests({status: 'closed', download_open: true})
+        check('暂停且开关打开仅放行精确 /app', !isClosedFor('/app') && isClosedFor('/app/other') && isClosedFor('/'))
+        result.textContent = lines.join('\n') + '\n全部通过'
+      } catch (error) {
+        result.textContent = lines.join('\n') + `\nFAIL ${error.message}`
+      } finally {
+        image.remove()
+        source.remove()
+        history.replaceState(null, '', '/tests/site-access-browser.html')
+      }
+    })
+  </script>
+</body>
+</html>

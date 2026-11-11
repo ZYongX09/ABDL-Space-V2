@@ -7,11 +7,11 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import './styles/global.css';
 import './styles/siteAccess.css';
-import { getSiteAccess, isAdminPage, loadSiteAccess, startSiteAccessWatch } from './siteAccess';
-import { installMediaGuard } from './utils/mediaGuard';
+import { loadSiteAccess, startSiteAccessWatch } from './siteAccess.js';
+import { syncSiteMediaAccess } from './siteMediaAccess.js';
 
 loadSiteAccess().then(() => {
-  if (getSiteAccess().status !== 'ok' && !isAdminPage(window.location.pathname)) installMediaGuard();
+  syncSiteMediaAccess(null);
 
   ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>

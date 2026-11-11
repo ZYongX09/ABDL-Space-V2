@@ -430,7 +430,7 @@ test('Auth refresh 旧成功/失败不覆盖新会话，当前401清身份且保
   const requests = [];
   const session = token => JSON.stringify([2, 'admin', false, null, token]);
   const context = {
-    USE_API: true, API_BASE: '', refreshRequest: { current: 0 }, currentSession: { current: session('A') },
+    USE_API: true, API_BASE: '', refreshRequest: { current: 0 }, currentSession: { current: session('A') }, sessionVersionRef: { current: 0 }, sessionChangingRef: { current: false },
     fetch: (_url, options) => { requests.push(options); return new Promise(resolve => { reply = resolve; }); }, setUser: value => { user = value; },
     setActiveAccountId() {}, getSavedAccounts: () => [], saveAccounts: value => { saved = value; }, setAccounts() {}, window: {},
   };
