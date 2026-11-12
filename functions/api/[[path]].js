@@ -12,7 +12,7 @@
  * - 不缓存
  */
 
-import { attachAuthClientIp } from '../_shared/auth-client-ip.js';
+import { attachAuthClientIp, attachObservationClientIp } from '../_shared/auth-client-ip.js';
 
 const API_ORIGIN = 'https://abdl-space-api.zhx589.workers.dev';
 
@@ -43,6 +43,7 @@ export async function onRequest(context) {
   headers.set('X-Forwarded-Host', url.host);
   headers.set('X-Forwarded-Proto', url.protocol.replace(':', ''));
   await attachAuthClientIp(request, headers, context.env?.AUTH_PROXY_HMAC_KEY);
+  await attachObservationClientIp(request, headers, context.env?.AUTH_PROXY_HMAC_KEY);
 
   // 构造 fetch
   const init = {

@@ -136,10 +136,15 @@ test('preflight remains local and keeps the existing CORS contract', async t => 
   assert.equal(response.headers.get('Access-Control-Max-Age'), '86400');
 });
 
-test('undeployed root API proxy stays identical to the deployed Pages handler', async () => {
-  const [deployed, duplicate] = await Promise.all([
+test('undeployed root API proxy and client-IP helper stay identical to the deployed Pages handlers', async () => {
+  const [deployed, duplicate, deployedHelper, duplicateHelper, root] = await Promise.all([
     readFile(new URL('../functions/api/[[path]].js', import.meta.url), 'utf8'),
     readFile(new URL('../../functions/api/[[path]].js', import.meta.url), 'utf8'),
+    readFile(new URL('../functions/_shared/auth-client-ip.js', import.meta.url), 'utf8'),
+    readFile(new URL('../../functions/_shared/auth-client-ip.js', import.meta.url), 'utf8'),
+    import('../../functions/api/[[path]].js'),
   ]);
   assert.equal(duplicate, deployed);
+  assert.equal(duplicateHelper, deployedHelper);
+  assert.equal(typeof root.onRequest, 'function', 'the mirrored helper must supply the root proxy imports');
 });

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import UserObservation from '../../userObservation/components.jsx';
 import { useAuth } from '../../contexts/AuthContext';
 import { adminSessionKey, isSuperAdmin } from './access.js';
 import { createTestVerificationLookup } from './testVerificationCode.js';
@@ -96,6 +98,9 @@ export function TestVerificationCodeCard({ user, token = '', request = adminAPI.
 }
 
 export default function AdminSecurity() {
+  const [search, setSearch] = useSearchParams();
+  const observationTab = search.get('tab') === 'user-observation';
+  const initialUserId = search.get('user_id') || '';
   const toast = useToast();
   const { user, accounts, loading: authLoading } = useAuth();
   const token = accounts?.find(account => String(account.id) === String(user?.id))?.token || '';
@@ -127,8 +132,8 @@ export default function AdminSecurity() {
     }
   }, [toast]);
 
-  useEffect(() => { loadStats(); }, [loadStats]);
-  useEffect(() => { loadLogs(page, type); }, [page, type, loadLogs]);
+  useEffect(() => { if (!observationTab) loadStats(); }, [observationTab, loadStats]);
+  useEffect(() => { if (!observationTab) loadLogs(page, type); }, [observationTab, page, type, loadLogs]);
 
   const trendData = (stats?.trend || []).map(item => {
     const date = new Date((item.hour || 0) * 1000);
@@ -142,7 +147,11 @@ export default function AdminSecurity() {
 
   return (
     <AdminLayout active="security">
-      <div className="ac-page-stack">
+      <div className="uo-tabs" role="tablist" aria-label="安全中心模块">
+        <button type="button" className="ac-btn" role="tab" id="security-overview-tab" aria-controls="security-overview-panel" aria-selected={!observationTab} onClick={() => setSearch({})}>安全概览</button>
+        {isSuperAdmin(user) && <button type="button" className="ac-btn" role="tab" id="user-observation-tab" aria-controls="user-observation-panel" aria-selected={observationTab} onClick={() => setSearch({ tab: 'user-observation' })}>定向用户观察</button>}
+      </div>
+      {observationTab ? <div id="user-observation-panel" role="tabpanel" aria-labelledby="user-observation-tab">{!authLoading && <UserObservation user={user} token={token} initialUserId={initialUserId} />}</div> : <div id="security-overview-panel" role="tabpanel" aria-labelledby="security-overview-tab" className="ac-page-stack">
         {!authLoading && isSuperAdmin(user) && <TestVerificationCodeCard key={adminSessionKey(user, token)} user={user} token={token} />}
         <div className="ac-stat-grid">
           <StatCard label="24 小时安全事件" value={fmtNum(stats?.dayCount)} icon="fa-triangle-exclamation" tone="red" meta="近期风险活动" />
@@ -211,7 +220,7 @@ export default function AdminSecurity() {
             <Pagination page={page} totalPages={Math.ceil(total / PAGE_SIZE)} total={total} onChange={setPage} />
           </div>
         </Card>
-      </div>
+      </div>}
     </AdminLayout>
   );
 }

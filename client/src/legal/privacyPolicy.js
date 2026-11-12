@@ -6,9 +6,9 @@ const link = (href, en, zh) => ({ href, label: text(en, zh) });
 export const privacyPolicyMeta = {
   operator: 'ABDL-Space',
   contact: 'zhx589@outlook.com',
-  version: '2026.10',
-  updated: '2026-10-03',
-  effective: '2026-10-03',
+  version: '2026.11',
+  updated: '2026-11-12',
+  effective: '2026-11-12',
   minimumAge: 18,
   officialLanguage: 'en',
   defaultLanguage: 'zh',
@@ -81,6 +81,8 @@ export const privacyPolicySections = [
   ] }),
   item('technical', '8', text('Technical data, security and local storage', '技术信息、安全与本地存储'), [], { children: [
     item('security-logs', '8.1', text('Requests and abuse prevention', '请求与防滥用'), [
+      text('When the targeted observation capability is actually deployed and enabled for a specified ordinary account, IP recording and request-log recording are separate controls. Records may include the account ID, Beijing calendar day (Asia/Shanghai), IP address and trusted source, first and latest occurrence and counts; request records may include event ID, timestamp, HTTP method, endpoint identifier, route template, business note and metadata version, response status and elapsed time. A business note explains the endpoint, not proof of a user action. The capability does not collect request bodies, raw query strings, credentials, tokens or private-message content for these records, and observation alone does not ban an IP.', '在定向观察能力实际部署且对指定普通账户启用时，IP 记录与请求日志是独立开关。记录可包括账号 ID、北京时间日期（Asia/Shanghai）、IP 与可信来源、首次和最近出现时间及计数；请求记录可包括事件 ID、时间戳、HTTP 方法、端点标识、路由模板、业务注释与元数据版本、响应状态及耗时。业务注释用于说明端点，不证明用户实施了对应动作。这些观察记录不采集请求正文、原始查询串、凭据、token 或私信内容，单独观察也不会封禁 IP。'),
+      text('The new targeted-observation tables use a configurable retention period of 1–30 days (default 30); this maximum applies only to those new tables, not to older security logs, historical tracing, bans or other records. Target authorization expires by default after 7 days and cannot exceed 30 days at a time. Stopping future observation does not delete retained history; clearing a selected day does not stop future recording or remove shared-IP bans. Only the super administrator may view raw observation data and perform these actions. Copying a current page or a bounded selected-day export requires an explicit reason, sensitive-data warning, confirmation and server-side authorization/audit. Output is limited to 5,000 combined records and 1 MiB, identifies scope, filters, time zone, coverage and continuation, and may be incomplete. Sensitive display/export data remains in controller memory and is cleared on logout, account switch, disposal or access rejection, without an offline/local-storage copy. An explicitly copied system clipboard may retain or synchronize its own copy outside this clearing mechanism.', '新的定向观察表按可配置的 1–30 天期限留存（默认 30 天）；该上限仅适用于这些新表，不适用于旧安全日志、历史追踪、封禁或其他记录。目标授权默认 7 天到期，每次最长 30 天。停止将来观察不删除已留存历史；清除所选日不停止将来记录，也不移除共享 IP 封禁。原始观察数据与相关操作仅向超级管理员开放。复制当前页或所选日有界导出须填写明确理由、阅读敏感信息警告并确认，且经过服务端授权及审计。输出最多合计 5000 条记录、1 MiB，标明范围、筛选、时区、覆盖状态及续传信息，可能并不完整。敏感展示与导出数据仅在控制器内存中保留，退出、切换账号、销毁或权限拒绝时清空，不提供离线或本地存储副本；主动复制后的系统剪贴板可能自行留存或同步，不属于页面清空机制。'),
       text('Requests and safety systems may process IP address, User-Agent, request path and time, captcha-related behavior, screen information and time zone. Rate limiting, QR-code scanning controls, bans and targeted tracing of particular anomalous accounts support abuse prevention and troubleshooting. We do not represent that all IP addresses are stored permanently or that all logs are automatically deleted after the same short period.', '请求与安全系统可能处理 IP、User-Agent、请求路径和时间、验证码相关行为、屏幕信息与时区。限流、扫码控制、封禁及对特定异常账户的针对性追踪用于防滥用和排障。不声称所有 IP 永久保存，也不声称所有日志在统一短期后自动删除。'),
     ]),
     item('app-version', '8.2', text('App compatibility and version records', 'App 兼容与版本记录'), [

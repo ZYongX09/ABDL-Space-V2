@@ -58,8 +58,8 @@ async function renderPage(language) {
 
 test('版本、日期、运营名称、联系方式与语言策略', () => {
   assert.deepEqual(meta, {
-    operator: 'ABDL-Space', contact: 'zhx589@outlook.com', version: '2026.10',
-    updated: '2026-10-03', effective: '2026-10-03', minimumAge: 18,
+    operator: 'ABDL-Space', contact: 'zhx589@outlook.com', version: '2026.11',
+    updated: '2026-11-12', effective: '2026-11-12', minimumAge: 18,
     officialLanguage: 'en', defaultLanguage: 'zh',
   });
   assert.match(notice.en, /sole official.*AI translation.*reference only.*English version prevails/s);
@@ -67,6 +67,14 @@ test('版本、日期、运营名称、联系方式与语言策略', () => {
   assert.match(body('scope', 'en'), /under 18 must not register/);
   assert.match(body('scope', 'zh'), /未满 18 周岁不得注册或使用/);
   assert.doesNotMatch(allText('en'), /users aged 16|children under 16|ABDL Space\b/);
+});
+
+test('8.1 定向观察能力与新表留存、独立开关、受控复制边界中英文一致', () => {
+  const en = body('security-logs', 'en'), zh = body('security-logs', 'zh');
+  for (const pattern of [/actually deployed and enabled/, /separate controls/, /Asia\/Shanghai/, /event ID.*route template.*business note.*metadata version/s, /not proof of a user action/, /does not collect request bodies.*raw query strings.*private-message/s, /1–30 days.*default 30/, /only to those new tables.*not to older security logs/s, /default after 7 days.*exceed 30 days/, /Stopping future observation does not delete/, /super administrator/, /reason.*warning.*confirmation.*authorization\/audit/s, /5,000 combined records and 1 MiB/, /controller memory.*logout.*account switch.*access rejection/s, /clipboard may retain or synchronize/]) assert.match(en, pattern);
+  for (const pattern of [/实际部署且.*启用/, /独立开关/, /Asia\/Shanghai/, /事件 ID.*路由模板.*业务注释.*元数据版本/s, /不证明用户实施/, /不采集请求正文.*原始查询串.*私信内容/s, /1–30 天.*默认 30 天/, /仅适用于这些新表，不适用于旧安全日志/, /默认 7 天.*最长 30 天/, /停止将来观察不删除/, /仅向超级管理员开放/, /理由.*警告.*确认.*授权及审计/s, /5000 条记录、1 MiB/, /内存.*退出.*切换账号.*权限拒绝/s, /剪贴板可能自行留存或同步/]) assert.match(zh, pattern);
+  assert.match(en, /not represent.*permanently.*automatically deleted/s);
+  assert.match(zh, /不声称.*永久保存.*不声称.*自动删除/s);
 });
 
 test('每项中英文完整对应，编号连续，目录覆盖全部唯一锚点', () => {
