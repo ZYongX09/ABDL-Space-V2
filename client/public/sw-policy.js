@@ -11,3 +11,10 @@ workerScope.shouldCacheRequest = function shouldCacheRequest(request, origin) {
   return url.pathname.startsWith('/assets/')
     || /\.(?:png|jpe?g|webp|svg|ico|css|js|woff2?|ttf)$/i.test(url.pathname);
 };
+
+workerScope.shouldCacheResponse = function shouldCacheResponse(response) {
+  if (!response?.ok || response.type !== 'basic') return false;
+  const type = (response.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase();
+  if (type === 'text/html' || type === 'application/xhtml+xml') return false;
+  return !/(?:^|,)\s*(?:no-store|private)(?:\s|,|=|$)/i.test(response.headers.get('Cache-Control') || '');
+};

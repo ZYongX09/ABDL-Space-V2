@@ -1,0 +1,13 @@
+# Archival preferences are advisory, not access authorization.
+# archive.org_bot is a legacy crawler-specific extension, not an RFC 9309 product token.
+User-agent: archive.org_bot
+User-agent: ia_archiver
+User-agent: ia_archiver-web.archive.org
+User-agent: ArchiveBot
+User-agent: CCBot
+User-agent: heritrix
+Disallow: /
+
+# Ordinary search indexing remains unchanged.
+User-agent: *
+Disallow:

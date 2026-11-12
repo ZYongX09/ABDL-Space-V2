@@ -25,14 +25,16 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.open(CACHE_NAME).then(cache =>
       cache.match(event.request).then(cached => {
+        const reusable = cached && self.shouldCacheResponse(cached) ? cached : null;
+        if (cached && !reusable) void cache.delete(event.request).catch(() => {});
         const fetched = fetch(event.request).then(response => {
-          if (response.ok && response.type === 'basic') cache.put(event.request, response.clone());
+          if (self.shouldCacheResponse(response)) cache.put(event.request, response.clone());
           return response;
         }).catch(error => {
-          if (cached) return cached;
+          if (reusable) return reusable;
           throw error;
         });
-        return cached || fetched;
+        return reusable || fetched;
       })
     )
   );
