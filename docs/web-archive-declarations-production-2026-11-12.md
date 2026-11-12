@@ -25,8 +25,21 @@
 
 本次声明候选已独立实跑：主站597/597、移动604/604，0失败/跳过/取消，双build exit0。首轮测试正则两个空格触发lint，改为等价` {2}`后最终声明/SW专项各13/13及scopedlint0、显式SWlint0；业务源码不因lint改变。
 
-实际Wrangler4.88编译：主站只`/oauth/*`与`/api/*`、移动只`/api/*`，没有`/*`根middleware，Functions源文件分别3/2份逐字保持原main。源与构建产物均无归档Function、_routes或_worker；robots/headers/SW/meta与源匹配。本轮不挪用此前完整guard611/618或381检查点作为声明候选结果。正式robots/meta/header及API时间线/OAuth/关联文件只读验收待部署后执行。
+实际Wrangler4.88编译：主站只`/oauth/*`与`/api/*`、移动只`/api/*`，没有`/*`根middleware，Functions源文件分别3/2份逐字保持原main。源与构建产物均无归档Function、_routes或_worker；robots/headers/SW/meta与源匹配。本轮不挪用此前完整guard611/618或381检查点作为声明候选结果。正式robots/meta/header及App公共/账号时间线、预检、管理员鉴权和关联文件只读验收34/34通过；未生产提交OAuth授权/换token，原代理逐字保持且本地既有契约回归通过，不声称真实OAuth完整闭环。
 
 ## 部署状态
 
-待验证与自动部署；尚未写入生产结果。后端保持Worker884/`15f0b5df-3fb4-463e-afa3-385c7ede432e`，本轮不部署Worker、不执行生产迁移。
+| 资源 | 正式main提交 | Pages production | 成功时间UTC |
+|---|---|---|---|
+| 主站 | `81493694f6c9bbb817521d26ad2102008f02f9fc` | `5ad96cf4-9a33-4f19-bd64-ee81ab47ee66` | 2026-11-12 11:08:33.903266 |
+| 移动站 | `c701679c54c52eea10ca370fb6a43955f7e04ccb` | `ed052f84-7de5-477c-b9dc-af93e4548d4d` | 2026-11-12 11:09:11.238962 |
+
+两站production deploy成功、canonical对应目标，构建/来源/环境配置hash与发布前相同。声明候选已先合并进develop（主站`47cf40b`、移动`e0bc4aa`），仅main发布声明候选，不squash/force/reset完整develop。完整守卫仍在develop，**不能直接全量develop→main把未授权的逐资源调用方案带上**。
+
+后端保持Worker884/`15f0b5df-3fb4-463e-afa3-385c7ede432e`，活动deployment与发布前完全相同，本轮不部署Worker、不执行生产迁移。
+
+线上34/34：两站首页/深链接/后台HTML/直接index均有meta和响应头noarchive，CSP等安全头保留；robots声明、SW及assetlinks与候选匹配，AppUA公共/个人时间线代理200、管理匿名401、预检204、入口JS可读。自定义域robots存在既有Cloudflare托管Content-Signal/训练爬虫前缀，新文件完整作为尾部保留；部署pages.dev文件与源逐字相同。测试仅核验本站及平台部署地址，未向归档服务发保存请求。
+
+过程如实保留：首次robots逐字断言被既有托管前缀触发；后续CCBot自定义域访问403而部署地址200。独立检查表明ArchiveBot自定义域200，CCBot被既有Cloudflare边缘层拦截；本次未改WAF，不能把边缘403归功于声明层。最终按源声明完整保留、部署字节相等与声明层不主动拦ArchiveBot/PagesCCBot验收通过。
+
+证据：仓外`abdl-space-archive-production-20261112/`，含发布前配置、GraphQL容量、候选路由、部署记录、各轮失败与最终`attempt-3-declarations-smoke-complete.json`。没有全路径Functions增量、套餐升级、WAF/生产fail_open更改或Android改动。
