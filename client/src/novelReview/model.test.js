@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { setImmediate } from 'node:timers';
-import { createNovelReviewController, initialReviewState, readAIChunk, readBody, readPage, readReview, reviewAvailability, safeReviewError } from './model.js';
+import { AUTO_REVIEW_FINDINGS_MAX, AUTO_REVIEW_TEXT_MAX, changedChapterIds, createNovelReviewController, initialReviewState, manualAIIdentity, readAIChunk, readAutoReview, readBody, readNovelAIPolicy, readPage, readReview, reviewAvailability, safeReviewError } from './model.js';
 import { createNovelReviewAPI } from './api.js';
-import { createNovelFixture, fixtureReview, fixtureWork, FIXTURE_BODY } from './fixture.js';
+import { createNovelFixture, fixtureAIPolicy, fixtureAutoReview, fixtureReview, fixtureWork, FIXTURE_BODY } from './fixture.js';
 
 function deferred() { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }
 function harness(overrides = {}, options = {}) {
@@ -32,13 +32,16 @@ test('小说审核只接受真实列表结构，不把缺失 items /完整目录
   assert.equal(item.statements.length, 2); assert.equal(item.chapters.length, 2);
 });
 
-test('宝宝认证式认领权限：他人认领、已通过/驳回和未认领不可直接决定', () => {
-  assert.equal(reviewAvailability(fixtureReview(), 1).claim, true);
-  for (const item of [fixtureReview(), reviewing({ claimed_by: 2 }), reviewing({ status: 'approved' }), reviewing({ status: 'rejected' })]) {
-    assert.equal(reviewAvailability(item, 1).approve, false); assert.equal(reviewAvailability(item, 1).ai, false);
+test('待审与审核中任何管理员均可决定 / 手动检查，他人认领仅作协作且可接手', () => {
+  for (const item of [fixtureReview(), reviewing(), reviewing({ claimed_by: 2 })]) {
+    const available = reviewAvailability(item, 1);
+    for (const action of ['approve', 'reject', 'ai']) assert.equal(available[action], true);
   }
-  const own = reviewAvailability(reviewing(), '1');
-  for (const key of ['approve', 'reject', 'release', 'ai']) assert.equal(own[key], true);
+  const other = reviewAvailability(reviewing({ claimed_by: 2 }), 1);
+  assert.equal(other.claimedByOther, true); assert.equal(other.claim, true); assert.equal(other.release, false);
+  const own = reviewAvailability(reviewing(), '1'); assert.equal(own.claim, false); assert.equal(own.release, true);
+  for (const status of ['approved', 'rejected', 'uploading']) for (const action of ['claim', 'release', 'approve', 'reject', 'ai']) assert.equal(reviewAvailability(reviewing({ status }), 1)[action], false);
+  assert.equal(reviewAvailability(fixtureReview(), null).approve, false);
 });
 
 test('四种审核状态均从 domain 列表读取，搜索/游标不构造假总数', async () => {
@@ -56,7 +59,6 @@ test('四种审核状态均从 domain 列表读取，搜索/游标不构造假�
 test('真实认领/释放后使用服务端版本，不能仅变按钮文字', async () => {
   const { controller } = harness();
   await controller.open('review-pending');
-  assert.equal(await controller.mutate('approve'), false);
   assert.equal(await controller.mutate('claim'), true);
   assert.equal(controller.getState().selected.status, 'reviewing'); assert.equal(controller.getState().selected.version, 2); assert.equal(controller.getState().selected.claimed_by, 1);
   assert.equal(await controller.mutate('release'), true);
@@ -64,11 +66,9 @@ test('真实认领/释放后使用服务端版本，不能仅变按钮文字', a
   controller.dispose();
 });
 
-test('通过与驳回均强制理由、当前 version 与稳定 UUID；成功之后采用真实服务器 snapshot', async () => {
+test('非空审核理由仍 trim 且携带当前 version 与 UUID；成功采用真实服务器 snapshot', async () => {
   const { controller, calls } = harness();
   await controller.open('review-reviewing');
-  for (const action of ['approve', 'reject']) assert.equal(await controller.mutate(action), false);
-  assert.match(controller.getState().error, /理由/);
   controller.changeReason('  人工完整核对授权及正文  ');
   assert.equal(await controller.mutate('approve'), true);
   const call = calls.find(entry => entry.path.endsWith('/decision'));
@@ -218,7 +218,7 @@ test('作品详情从 admin work endpoint 获取全部 metadata/chapters/reviews
   const { controller, calls } = harness();
   assert.equal(await controller.openWork('work-1'), true); assert.equal(controller.getState().work.reviews.length, 50); assert.equal(controller.getState().work.chapters.length, 2);
   assert.equal(await controller.loadMoreHistory(), true); assert.equal(controller.getState().work.reviews.length, 70); assert.equal(controller.getState().work.reviews_next_cursor, 'fixture-history:70');
-  assert.equal(await controller.loadMoreHistory(), true); assert.equal(controller.getState().work.reviews.length, 73); assert.equal(controller.getState().work.reviews_next_cursor, null);
+  assert.equal(await controller.loadMoreHistory(), true); assert.equal(controller.getState().work.reviews.length, 77); assert.equal(controller.getState().work.reviews_next_cursor, null);
   assert.equal(await controller.loadMoreHistory(), false);
   assert.equal(await controller.govern('work', 'work-1', 'withdraw', ''), false);
   assert.equal(await controller.govern('work', 'work-1', 'withdraw', '人工核实授权问题'), true);
@@ -240,10 +240,10 @@ test('作品历史分页使用独立游标、禁止重复并发，错误不丢�
   await stuck.controller.openWork('work-1'); assert.equal(await stuck.controller.loadMoreHistory(), false); assert.equal(stuck.controller.getState().work.reviews.length, 1); assert.match(stuck.controller.getState().historyError, /游标/); stuck.controller.dispose();
 });
 
-test('小说理由使用独立 2000 字合同：通过、驳回与治理接受长理由，空白/超限/空字符不发请求', async () => {
+test('小说理由使用独立 2000 字合同：审核可留空但仍拒超限 / NUL，治理仍必填', async () => {
   for (const action of ['approve', 'reject']) {
     const { controller, calls } = harness(); await controller.open('review-reviewing');
-    for (const reason of ['', '  \n ', '理'.repeat(2001), '理\0由']) {
+    for (const reason of ['理'.repeat(2001), '理\0由']) {
       controller.changeReason(reason); const count = calls.length;
       assert.equal(await controller.mutate(action), false); assert.equal(calls.length, count);
     }
@@ -251,6 +251,7 @@ test('小说理由使用独立 2000 字合同：通过、驳回与治理接受�
     assert.equal(await controller.mutate(action), true); assert.equal(controller.getState().selected.reason, reason); controller.dispose();
   }
   const { controller } = harness();
+  for (const reason of ['', '  \n ', '理\0由']) assert.equal(await controller.govern('creator', '42', 'suspend', reason), false);
   assert.equal(await controller.govern('creator', '42', 'suspend', '理'.repeat(2000)), true);
   assert.equal(await controller.govern('creator', '42', 'restore', '理'.repeat(2001)), false); controller.dispose();
 });
@@ -325,6 +326,169 @@ test('写入成功但回包丢失以相同 UUID 取回收据；409 刷新相同�
   assert.equal(await other.controller.mutate('reject'), false); assert.equal(await other.controller.mutate('reject'), false);
   other.fixture.configure({ scenario: 'normal' }); await other.controller.open('review-reviewing', { preserveReason: true }); assert.equal(await other.controller.mutate('reject'), true);
   const calls = other.calls.filter(call => call.path.endsWith('/decision')); assert.equal(calls.length, 2); assert.notEqual(calls[0].request.headers['Idempotency-Key'], calls[1].request.headers['Idempotency-Key']); other.controller.dispose();
+});
+
+test('任何管理员可无认领 / 正文 / 理由直接通过或驳回 pending / reviewing（含他人认领）', async () => {
+  for (const action of ['approve', 'reject']) for (const id of ['review-pending', 'review-reviewing', 'review-auto-failure']) for (const reason of ['', '  \n ']) {
+    const { controller, fixture } = harness(); await controller.open(id); controller.changeReason(reason);
+    const previous = controller.getState().selected.version;
+    assert.deepEqual(controller.getState().bodies, {}); assert.equal(await controller.mutate(action), true);
+    const calls = fixture.state().calls;
+    assert.equal(calls.filter(call => /\/claim$|\/chapters\//.test(call.path)).length, 0);
+    assert.deepEqual(calls.find(call => call.path.endsWith('/decision')).body, { decision: action, reason: '', version: previous });
+    assert.equal(controller.getState().selected.status, action === 'approve' ? 'approved' : 'rejected'); controller.dispose();
+  }
+});
+
+test('可选接手不作为决定门槛，采用新版本；终态失败摘要保留，在途自动任务才取消', async () => {
+  const { controller } = harness(); await controller.open('review-auto-failure');
+  const original = controller.getState().selected.auto_review;
+  assert.equal(controller.getState().selected.claimed_by, 2); assert.equal(await controller.mutate('claim'), true);
+  assert.equal(controller.getState().selected.claimed_by, 1); assert.equal(controller.getState().selected.version, 3);
+  assert.deepEqual(controller.getState().selected.auto_review, original);
+  assert.equal(await controller.mutate('approve'), true); assert.deepEqual(controller.getState().selected.auto_review, original);
+  await controller.open('review-auto-queued'); assert.equal(await controller.mutate('claim'), true); assert.equal(controller.getState().selected.auto_review.status, 'cancelled'); controller.dispose();
+});
+
+test('自动审核 DTO 兼容旧记录 / null，严格校验已知字段并忽略新增未知字段', () => {
+  assert.equal(readReview(fixtureReview()).auto_review, null); assert.equal(readReview(fixtureReview({ auto_review: null })).auto_review, null);
+  const summary = fixtureAutoReview({ status: 'needs_human', reason: '失败\n待人工', failure_code: 'JOB_CALL_LIMIT', findings: [{ chapter_id: null, field: 'title', reason: '人工确认', evidence: '<script>仅文本</script>', provider_request: 'not copied' }], provider_key: 'not copied' });
+  const parsed = readAutoReview(summary);
+  assert.equal(parsed.reason, summary.reason); assert.equal(parsed.findings[0].evidence, summary.findings[0].evidence);
+  assert.equal(Object.hasOwn(parsed, 'provider_key'), false); assert.equal(Object.hasOwn(parsed.findings[0], 'provider_request'), false);
+  assert.deepEqual(readReview(fixtureReview({ auto_review: summary })).auto_review, parsed);
+  const patches = [{ status: 'approved' }, { completed_chunks: -1 }, { completed_chunks: 4 }, { total_chunks: '3' }, { policy_version: '' }, { reason: undefined }, { reason: 'x'.repeat(AUTO_REVIEW_TEXT_MAX + 1) }, { failure_code: 'x\0y' }, { updated_at: 'today' }, { findings: [{}] }, { findings: Array(AUTO_REVIEW_FINDINGS_MAX + 1).fill(summary.findings[0]) }];
+  for (const patch of patches) assert.throws(() => readAutoReview({ ...summary, ...patch }));
+});
+
+test('自动审核筛选独立传递 status + auto_filter，切到治理不携带自动筛选', async () => {
+  const { controller, calls } = harness();
+  for (const [status, auto_filter, expected] of [['pending', 'queued', 'review-auto-queued'], ['pending', 'running', 'review-auto-running'], ['reviewing', 'needs_human', 'review-auto-failure']]) {
+    assert.equal(await controller.loadList({ status, auto_filter }), true);
+    assert.deepEqual(controller.getState().page.items.map(item => item.id), auto_filter === 'needs_human' ? ['review-reviewing', expected] : [expected]);
+    const params = new URL(calls.at(-1).path, 'http://fixture.invalid').searchParams;
+    assert.equal(params.get('status'), status); assert.equal(params.get('auto_filter'), auto_filter);
+  }
+  const count = calls.length; assert.equal(await controller.loadList({ status: 'needs_human' }), false); assert.equal(await controller.loadList({ auto_filter: 'passed' }), false); assert.equal(calls.length, count);
+  await controller.loadList({ mode: 'works', auto_filter: 'queued' }); assert.equal(new URL(calls.at(-1).path, 'http://fixture.invalid').searchParams.has('auto_filter'), false); controller.dispose();
+});
+
+test('需人工筛选包含旧记录 / 取消任务，claim replaceReview 不应错误移出当前页', async () => {
+  const { controller } = harness(); await controller.open('review-auto-queued'); await controller.mutate('claim');
+  await controller.loadList({ status: 'reviewing', auto_filter: 'needs_human' });
+  assert.ok(controller.getState().page.items.some(item => item.id === 'review-auto-queued'));
+  await controller.open('review-reviewing'); assert.ok(controller.getState().page.items.some(item => item.id === 'review-reviewing'));
+  await controller.open('review-auto-queued'); assert.ok(controller.getState().page.items.some(item => item.id === 'review-auto-queued')); controller.dispose();
+});
+
+test('系统自动审核历史可缺少 actor_id，保留真实 actor_type / 原因且不伪装管理员', () => {
+  const entry = { actor_type: 'system', actor_name: '自动审核', action: 'auto_needs_human', reason: '策略已关闭', created_at: 1793174400 };
+  assert.deepEqual(readReview(fixtureReview({ audit: [entry] }), true).audit, [entry]);
+  assert.throws(() => readReview(fixtureReview({ audit: [{ ...entry, actor_type: 'admin' }] }), true), /操作者/);
+});
+
+test('手动 AI 默认只选服务端 added / updated，清空不请求，选择后仅循环所选无需认领或正文', async () => {
+  const item = fixtureReview(); item.changes.chapters[1].kind = 'unchanged'; item.changes.chapters.push({ id: 'old-chapter', title: '不在候选目录', kind: 'updated' });
+  const { controller, fixture } = harness({ review: async () => item }); await controller.open(item.id);
+  assert.deepEqual(changedChapterIds(item), ['chapter-1']); assert.deepEqual(controller.getState().selectedChapterIds, ['chapter-1']);
+  assert.equal(controller.selectAIChapters(['foreign']), false); controller.selectAIChapters([]);
+  assert.equal(await controller.startAI(), false); assert.equal(fixture.state().calls.filter(call => call.path.endsWith('/ai')).length, 0);
+  controller.selectAIChapters(['chapter-2']); assert.equal(await controller.startAI(), true);
+  assert.deepEqual(fixture.state().calls.filter(call => call.path.endsWith('/ai')).map(call => call.body), [{ chapter_id: 'chapter-2', offset: 0 }]);
+  assert.equal(controller.getState().ai.totalChapters, 1); assert.equal(controller.getState().ai.completedChapters, 1);
+  assert.match(controller.getState().ai.message, /本次所选 1 章/); assert.match(controller.getState().ai.message, /不代表未选/);
+  assert.deepEqual(controller.getState().bodies, {}); assert.equal(controller.getState().selected.status, 'pending');
+  controller.selectChangedAIChapters(); assert.deepEqual(controller.getState().selectedChapterIds, ['chapter-1']); assert.equal(controller.getState().ai.chunks, 0); controller.dispose();
+  const noChanges = harness({ review: async () => fixtureReview({ changes: null }) }); await noChanges.controller.open('review-pending'); assert.deepEqual(noChanges.controller.getState().selectedChapterIds, []); assert.equal(await noChanges.controller.startAI(), false); noChanges.controller.dispose();
+});
+
+test('手动 AI 对未认领 / 他人认领均可用，不请求正文且只运行管理员所选章节', async () => {
+  for (const id of ['review-pending', 'review-auto-failure']) {
+    const { controller, fixture } = harness(); await controller.open(id); controller.selectAIChapters(['chapter-2']);
+    assert.equal(await controller.startAI(), true); assert.equal(controller.getState().ai.completedChapters, 1);
+    const calls = fixture.state().calls; assert.equal(calls.filter(call => /\/claim$|\/chapters\//.test(call.path)).length, 0);
+    assert.deepEqual(calls.filter(call => call.path.endsWith('/ai')).map(call => call.body.chapter_id), ['chapter-2']); controller.dispose();
+  }
+});
+
+test('手动 AI 改选中止旧分块，晚回包不计入新选择；选回也从零开始而非旧偏移', async () => {
+  const waiting = deferred(), calls = [];
+  const { controller } = harness({ ai: async (_id, body, options) => {
+    calls.push({ ...body, key: options.operationId }); if (calls.length === 2) await waiting.promise;
+    return { status: 'complete', chapter_id: body.chapter_id, body_sha256: 'a'.repeat(64), next_offset: body.chapter_id === 'chapter-1' && body.offset === 0 ? 12000 : null, findings: '合成辅助意见' };
+  } }); await controller.open('review-pending'); const first = controller.startAI();
+  while (calls.length < 2) await new Promise(resolve => setImmediate(resolve));
+  controller.selectAIChapters(['chapter-2']); assert.equal(controller.getState().ai.chunks, 0);
+  assert.equal(await controller.startAI(), true); waiting.resolve(); await first;
+  assert.equal(controller.getState().ai.totalChapters, 1); assert.equal(controller.getState().ai.results.length, 1); assert.equal(controller.getState().ai.results[0].chapter_id, 'chapter-2');
+  controller.selectAIChapters(['chapter-1', 'chapter-2']); await controller.startAI();
+  assert.equal(calls[3].chapter_id, 'chapter-1'); assert.equal(calls[3].offset, 0); assert.notEqual(calls[1].key, calls[4].key); controller.dispose();
+});
+
+test('手动 AI 续跑身份绑定 review + version + 选择 + hash / generation，刷新新候选不沿用进度', async () => {
+  for (const change of ['version', 'hash', 'review']) {
+    let item = fixtureReview(), failed = false; const calls = [];
+    const { controller } = harness({ review: async () => item, ai: async (_id, body, options) => {
+      calls.push({ ...body, key: options.operationId });
+      if (!failed && body.offset === 12000) { failed = true; throw new Error('lost chunk'); }
+      return { status: 'complete', chapter_id: body.chapter_id, body_sha256: item.chapters.find(chapter => chapter.id === body.chapter_id).body_sha256, next_offset: body.chapter_id === 'chapter-1' && body.offset === 0 ? 12000 : null, findings: '' };
+    } }); await controller.open(item.id); assert.equal(await controller.startAI(), false); assert.equal(controller.getState().ai.offset, 12000);
+    const originalIdentity = manualAIIdentity(item, ['chapter-1', 'chapter-2']);
+    if (change === 'version') item = { ...item, version: item.version + 1 };
+    if (change === 'hash') item = { ...item, chapters: item.chapters.map((chapter, index) => index ? chapter : { ...chapter, generation: 3, body_sha256: 'b'.repeat(64) }) };
+    if (change === 'review') item = { ...item, id: 'new-review' };
+    assert.notEqual(manualAIIdentity(item, ['chapter-1', 'chapter-2']), originalIdentity);
+    assert.notEqual(manualAIIdentity(item, ['chapter-2']), manualAIIdentity(item, ['chapter-1', 'chapter-2']));
+    await controller.open(item.id); assert.equal(controller.getState().ai.chunks, 0); assert.equal(await controller.startAI(), true);
+    assert.equal(calls[2].offset, 0); assert.notEqual(calls[1].key, calls[3].key); controller.dispose();
+  }
+});
+
+test('小说自动审核策略只接受服务器值，校验预算范围 / opaque revision，未知字段不进入返回值', () => {
+  const policy = fixtureAIPolicy(); assert.equal(initialReviewState().policy.saved, null); assert.equal(initialReviewState().policy.draft.daily_call_limit, '');
+  assert.deepEqual(readNovelAIPolicy({ ...policy, provider_key: 'not forwarded' }), policy);
+  for (const patch of [{ enabled: 1 }, { daily_call_limit: 0 }, { daily_call_limit: 10001 }, { job_call_limit: 2049 }, { job_call_limit: 1.5 }, { revision: '' }, { revision: 'x\0y' }]) assert.throws(() => readNovelAIPolicy({ ...policy, ...patch }));
+});
+
+test('策略加载失败不伪造默认值；加载 / 保存中有状态，保存只接受新 revision 的真实回包', async () => {
+  const waiting = deferred(); const { controller } = harness({ aiPolicy: () => waiting.promise });
+  const load = controller.loadPolicy(); assert.equal(controller.getState().policy.loading, true); assert.equal(await controller.savePolicy(), false);
+  waiting.resolve(fixtureAIPolicy()); assert.equal(await load, true);
+  controller.changePolicy({ enabled: true, daily_call_limit: '400', job_call_limit: '128' });
+  assert.equal(await controller.savePolicy(), true);
+  assert.deepEqual(controller.getState().policy.saved, fixtureAIPolicy({ enabled: true, daily_call_limit: 400, job_call_limit: 128, revision: 'fixture-policy-2' })); assert.match(controller.getState().policy.notice, /服务器已确认/); controller.dispose();
+  const failed = harness({ aiPolicy: async () => { throw new Error('provider-secret'); } }); await failed.controller.loadPolicy(); assert.equal(failed.controller.getState().policy.saved, null); assert.equal(failed.controller.getState().policy.draft.daily_call_limit, ''); assert.doesNotMatch(failed.controller.getState().policy.error, /provider-secret/); failed.controller.dispose();
+  const invalid = harness({ saveAIPolicy: async () => fixtureAIPolicy() }); await invalid.controller.loadPolicy(); invalid.controller.changePolicy({ enabled: true }); assert.equal(await invalid.controller.savePolicy(), false); assert.equal(invalid.controller.getState().policy.notice, ''); assert.equal(invalid.controller.getState().policy.needsReload, true); invalid.controller.dispose();
+});
+
+test('策略 409 保留草稿且必须显式重载，不重放；关闭自动审核不禁用手动 AI', async () => {
+  const { controller, fixture, calls } = harness(); await controller.loadPolicy(); controller.changePolicy({ daily_call_limit: '450' }); fixture.configure({ scenario: 'policy-conflict' });
+  assert.equal(await controller.savePolicy(), false); assert.equal(controller.getState().policy.draft.daily_call_limit, '450'); assert.equal(controller.getState().policy.saved.daily_call_limit, 200);
+  assert.match(controller.getState().policy.error, /草稿已保留/); assert.equal(controller.getState().policy.needsReload, true);
+  const count = calls.length; assert.equal(await controller.savePolicy(), false); assert.equal(calls.length, count);
+  fixture.configure({ scenario: 'normal' }); await controller.loadPolicy(); assert.equal(controller.getState().policy.draft.daily_call_limit, '200');
+  await controller.open('review-pending'); assert.equal(controller.getState().policy.saved.enabled, false); assert.equal(await controller.startAI(), true); controller.dispose();
+});
+
+test('策略网络未知写入以相同 UUID 取收据，预算非法不发请求且 saved 不变化', async () => {
+  let first = true, save; const keys = [];
+  const h = harness({ saveAIPolicy: async (body, options) => { keys.push(options.operationId); const result = await save(body, options); if (first) { first = false; throw new Error('lost saved policy response'); } return result; } }); save = h.api.saveAIPolicy;
+  await h.controller.loadPolicy(); h.controller.changePolicy({ enabled: true }); assert.equal(await h.controller.savePolicy(), false); assert.equal(h.controller.getState().policy.notice, '');
+  assert.equal(await h.controller.savePolicy(), true); assert.equal(keys[0], keys[1]);
+  for (const daily_call_limit of ['', '0', '10001', '1.5', '1e2']) { h.controller.changePolicy({ daily_call_limit }); const count = h.calls.length; assert.equal(await h.controller.savePolicy(), false); assert.equal(h.calls.length, count); }
+  assert.equal(h.controller.getState().policy.saved.daily_call_limit, 200); h.controller.dispose();
+});
+
+test('策略读写中切换会话会清空草稿 / 回包 / 成功提示，401 / 403 不保留旧策略', async () => {
+  for (const action of ['load', 'save']) {
+    let session = 'A'; const waiting = deferred();
+    const h = harness(action === 'load' ? { aiPolicy: () => waiting.promise } : { saveAIPolicy: () => waiting.promise }, { getSession: () => session });
+    if (action === 'save') { await h.controller.loadPolicy(); h.controller.changePolicy({ enabled: true }); }
+    const pending = action === 'load' ? h.controller.loadPolicy() : h.controller.savePolicy(); session = 'B'; h.controller.block();
+    waiting.resolve(fixtureAIPolicy({ enabled: true, revision: 'new-revision' })); await pending;
+    assert.equal(h.controller.getState().blocked, true); assert.equal(h.controller.getState().policy.saved, null); assert.equal(h.controller.getState().policy.notice, ''); assert.equal(h.controller.getState().policy.draft.daily_call_limit, ''); h.controller.dispose();
+  }
+  for (const status of [401, 403]) { const h = harness({ aiPolicy: async () => { throw Object.assign(new Error('denied'), { status }); } }); await h.controller.loadPolicy(); assert.equal(h.controller.getState().blocked, true); assert.equal(h.controller.getState().policy.saved, null); h.controller.dispose(); }
 });
 
 test('网络/超时/冲突错误不泄漏原始响应，也不把失败当默认配置或空成功', () => {

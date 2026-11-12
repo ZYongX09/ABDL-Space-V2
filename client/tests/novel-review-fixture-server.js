@@ -3,16 +3,16 @@ import { pathToFileURL } from 'node:url';
 import { createAdminFixtureServer } from './app-clients-fixture-server.js';
 import { createNovelFixture } from '../src/novelReview/fixture.js';
 
-const DEFAULT_PORT = new URL('../', import.meta.url).pathname.includes('/abdl-space-mobile/') ? 8814 : 8813;
-const scenarios = ['normal', 'conflict', 'ai-unavailable', 'ai-stuck', 'body-mismatch', 'slow', 'unavailable', 'unauthorized', 'forbidden'];
+const DEFAULT_PORT = new URL('../', import.meta.url).pathname.includes('/abdl-space-mobile') ? 8814 : 8813;
+const scenarios = ['normal', 'conflict', 'policy-conflict', 'ai-unavailable', 'ai-stuck', 'body-mismatch', 'slow', 'unavailable', 'unauthorized', 'forbidden'];
 const landing = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>小说审核本地验收</title><style>body{font:16px system-ui;padding:24px;max-width:900px;margin:auto}button,select{font:inherit;padding:12px;margin:8px}p{line-height:1.8}</style>
-<h1>两站小说审核 · 仅内存验收</h1><p>不连接生产账号、API 或外部 AI。合成数据只保存在当前本地进程；重新启动即重置。完整章节、认领、人工决策、版本冲突、AI 分块 / 取消、作品下架恢复、评论举报删评和创作者限制均使用实际 React 页面。作品历史为 73 条，首次 50 条、后续 20 + 3 条。</p>
+<h1>两站小说审核 · 仅内存验收</h1><p>不连接生产账号、API 或外部 AI。合成数据只保存在当前本地进程；重新启动即重置。完整章节、可选认领 / 接手、无理由人工决策、版本冲突、手动 AI 选章 / 分块 / 取消、自动审核排队 / 失败 / 已通过摘要、策略调用次数上限与 409、作品下架恢复、评论举报删评和创作者限制均使用实际 React 页面。自动摘要为合成记录，不运行后台 AI；策略默认由内存 API 返回关闭 / 每日 200 次 / 单任务 256 次。作品历史为 77 条，首次 50 条、后续 20 + 7 条。</p>
 <label>主题<select id="theme"><option>light</option><option>dark</option><option>colorful</option></select></label>
 <label>管理员<select id="actor"><option value="1">本地管理员 1</option><option value="2">本地管理员 2</option></select></label>
 <label>场景<select id="scenario">${scenarios.map(value => `<option>${value}</option>`).join('')}</select></label>
 <label>每次 API 延迟<select id="delay"><option value="0">无额外延迟</option><option value="1500">1500 ms</option><option value="3000">3000 ms</option></select></label>
 <p><button id="start">进入真实审核页面</button><button id="apply">仅应用场景与延迟（不切账号）</button><output id="result" role="status"></output></p>
-<p>在另一个标签页打开本入口，点「仅应用场景与延迟」可对正在审核的页面注入冲突、延迟或故障。管理员 2 进入可核对他人认领只读；新入口的账号写入会触发同源旧页 storage 隔离。</p><p><a href="/__novel/state" target="_blank">查看内存请求记录与作品 / 评论状态</a></p>
+<p>在另一个标签页打开本入口，点「仅应用场景与延迟」可对正在审核的页面注入冲突、延迟或故障。管理员 2 进入可核对他人认领仍可决定 / 手动检查 / 接手；新入口的账号写入会触发同源旧页 storage 隔离。</p><p><a href="/__novel/state" target="_blank">查看内存请求记录与作品 / 评论状态</a></p>
 <script>
 const config=async(changeActor)=>{const response=await fetch('/__novel/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...(changeActor?{actorId:Number(document.getElementById('actor').value)}:{}),scenario:document.getElementById('scenario').value,delay:Number(document.getElementById('delay').value)})});if(!response.ok)throw new Error('本地场景配置失败');document.getElementById('result').textContent='已应用本地场景，未调用生产或真实 AI';};
 document.getElementById('apply').onclick=()=>config(false);

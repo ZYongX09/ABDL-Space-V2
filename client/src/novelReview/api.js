@@ -1,4 +1,4 @@
-import { NOVEL_ADMIN_ROOT, REVIEW_STATUSES, identifier, readBody, readPage, readReport, readReview, readWork, validateNovelReason } from './model.js';
+import { AUTO_REVIEW_FILTERS, NOVEL_ADMIN_ROOT, REVIEW_STATUSES, identifier, novelAIPolicyPayload, readBody, readNovelAIPolicy, readPage, readReport, readReview, readWork, validateNovelReason } from './model.js';
 
 const invalid = message => Object.assign(new Error(message), { code: 'INVALID_RESPONSE' });
 const segment = value => encodeURIComponent(identifier(String(value)));
@@ -8,10 +8,10 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{1
 export function createNovelReviewAPI(request, { createId = () => crypto.randomUUID(), timeoutMs = 45000 } = {}) {
   const query = params => {
     const values = new URLSearchParams();
-    for (const key of ['status', 'query', 'cursor', 'limit']) if (params?.[key] != null && params[key] !== '') values.set(key, String(params[key]));
+    for (const key of ['status', 'auto_filter', 'query', 'cursor', 'limit']) if (params?.[key] != null && params[key] !== '') values.set(key, String(params[key]));
     return values.size ? `?${values}` : '';
   };
-  async function invoke(path, { signal, operationId, body } = {}, parser = value => value) {
+  async function invoke(path, { signal, operationId, body, method = body === undefined ? 'GET' : 'POST' } = {}, parser = value => value) {
     signal?.throwIfAborted();
     const controller = new AbortController();
     let timer, timedOut = false;
@@ -28,7 +28,7 @@ export function createNovelReviewAPI(request, { createId = () => crypto.randomUU
     signal?.addEventListener('abort', abort, { once: true });
     const timeout = new Promise((_, reject) => { timer = setTimeout(() => { timedOut = true; controller.abort(); reject(Object.assign(new Error('小说审核请求超时。'), { code: 'TIMEOUT' })); }, timeoutMs); });
     try {
-      const data = await Promise.race([request(`${NOVEL_ADMIN_ROOT}${path}`, { method: body === undefined ? 'GET' : 'POST', headers, cache: 'no-store', redirect: 'error', referrerPolicy: 'no-referrer', signal: controller.signal, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) }), timeout, aborted]);
+      const data = await Promise.race([request(`${NOVEL_ADMIN_ROOT}${path}`, { method, headers, cache: 'no-store', redirect: 'error', referrerPolicy: 'no-referrer', signal: controller.signal, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) }), timeout, aborted]);
       signal?.throwIfAborted();
       return parser(data);
     } catch (error) {
@@ -45,9 +45,15 @@ export function createNovelReviewAPI(request, { createId = () => crypto.randomUU
     return invoke(path, { ...options, body: { [field]: body[field], reason } }, success);
   };
   return {
+    aiPolicy: options => invoke('/ai-policy', options, readNovelAIPolicy),
+    saveAIPolicy: (body, options) => {
+      let payload;
+      try { payload = novelAIPolicyPayload(body); } catch (error) { return Promise.reject(error); }
+      return invoke('/ai-policy', { ...options, method: 'PUT', body: payload }, readNovelAIPolicy);
+    },
     listReviews: (params = {}, options) => {
-      if (!REVIEW_STATUSES.includes(params.status ?? 'pending')) return Promise.reject(invalid('审核筛选状态无效。'));
-      return invoke(`/reviews${query({ ...params, status: params.status ?? 'pending' })}`, options, value => readPage(value, readReview));
+      if (!REVIEW_STATUSES.includes(params.status ?? 'pending') || !AUTO_REVIEW_FILTERS.includes(params.auto_filter ?? 'all')) return Promise.reject(invalid('审核状态或自动审核筛选无效。'));
+      return invoke(`/reviews${query({ ...params, status: params.status ?? 'pending', auto_filter: params.auto_filter ?? 'all' })}`, options, value => readPage(value, readReview));
     },
     review: (id, options) => invoke(`/reviews/${segment(id)}`, options, fullReview),
     chapter: (id, chapterId, options) => invoke(`/reviews/${segment(id)}/chapters/${segment(chapterId)}`, options),
@@ -56,9 +62,9 @@ export function createNovelReviewAPI(request, { createId = () => crypto.randomUU
     claim: (id, options) => invoke(`/reviews/${segment(id)}/claim`, { ...options, body: {} }, fullReview),
     release: (id, options) => invoke(`/reviews/${segment(id)}/release`, { ...options, body: {} }, fullReview),
     decide: (id, body, options) => {
-      if (!['approve', 'reject'].includes(body?.decision) || !Number.isSafeInteger(body.version) || body.version < 1) return Promise.reject(invalid('人工决定需要明确理由及当前审核版本。'));
+      if (!['approve', 'reject'].includes(body?.decision) || !Number.isSafeInteger(body.version) || body.version < 1) return Promise.reject(invalid('人工决定需要有效操作及当前审核版本。'));
       let reason;
-      try { reason = validateNovelReason(body.reason); } catch (error) { return Promise.reject(error); }
+      try { reason = validateNovelReason(body.reason, { required: false }); } catch (error) { return Promise.reject(error); }
       return invoke(`/reviews/${segment(id)}/decision`, { ...options, body: { decision: body.decision, reason, version: body.version } }, value => {
         const review = fullReview(value?.review);
         if (value.work !== null && value.work !== undefined) readWork(value.work);

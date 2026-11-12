@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import { adminSessionKey } from '../pages/admin/access.js';
 import { Card, Empty, ErrorBox, Loading, Modal, Pill, Tabs, useConfirm } from '../pages/admin/ui.jsx';
 import { fmtFull } from '../pages/admin/util.js';
-import { createNovelReviewController, initialReviewState, NOVEL_REASON_MAX, REVIEW_STATUSES, reviewAvailability, statusMeta } from './model.js';
+import { AUTO_REVIEW_FILTERS, NOVEL_AI_LIMITS, autoReviewMeta, changedChapterIds, createNovelReviewController, initialReviewState, NOVEL_REASON_MAX, REVIEW_STATUSES, reviewAvailability, statusMeta } from './model.js';
 import './review.css';
 
 const MODES = [{ value: 'reviews', label: '作品审核', icon: 'fa-book-open' }, { value: 'works', label: '作品治理', icon: 'fa-book' }, { value: 'reports', label: '小说举报', icon: 'fa-flag' }, { value: 'creators', label: '创作者限制', icon: 'fa-user-shield' }];
@@ -39,32 +39,67 @@ export function ChangeSummary({ changes, baseReleaseId }) {
   </section>;
 }
 export function ReviewHistory({ audit }) {
-  const labels = { submit: '提交', claim: '认领', release: '释放', approve: '通过', reject: '驳回', human_approve: '人工通过', human_reject: '人工驳回', ai_assistance: 'AI 辅助检查', ai: 'AI 辅助检查', admin_withdraw: '管理员下架', admin_restore: '管理员恢复', withdraw: '下架', restore: '恢复', suspend: '限制创作者' };
+  const labels = { submit: '提交', claim: '认领', release: '释放', approve: '通过', reject: '驳回', human_approve: '人工通过', human_reject: '人工驳回', auto_approve: '自动审核通过', auto_pass: '自动审核通过', auto_passed: '自动审核通过', auto_queued: '自动审核排队', auto_running: '自动审核开始', auto_needs_human: '自动审核转人工', auto_cancel: '自动审核取消', auto_cancelled: '自动审核取消', ai_assistance: 'AI 辅助检查', ai: 'AI 辅助检查', admin_withdraw: '管理员下架', admin_restore: '管理员恢复', withdraw: '下架', restore: '恢复', suspend: '限制创作者' };
   return <section className="nr-section"><h3>审核历史与操作理由</h3>{audit == null ? <p>服务端未返回审核历史。</p> : !audit.length ? <p>服务器返回的历史记录为空。</p> : <ol className="nr-history">{audit.map((entry, index) => <li key={entry.id || index}><div><strong>{labels[entry.action] || entry.action || '操作'}</strong><span>{entry.actor_name || entry.actor_id || '系统'} · {fmtFull(entry.created_at)}</span></div><p>{entry.reason || '未附理由'}</p><details><summary>查看完整审计字段</summary><pre className="nr-pre">{display(entry)}</pre></details></li>)}</ol>}</section>;
 }
 
-function AIReview({ state, controller, allowed }) {
-  const ai = state.ai, item = state.selected;
-  const current = item.chapters.find(chapter => chapter.id === ai.chapter_id);
-  return <section className="nr-section nr-ai"><h3>统一 App AI · 仅作辅助</h3><p>复用站点设置中的同一 provider；本页不保存令牌。只有管理员主动点击才发送请求，逐章逐块检查，结果不会自动通过、驳回或更改作品。</p>
-    <div className="nr-actions"><button type="button" className="ac-btn" disabled={!allowed || state.saving || state.needsReload || ai.status === 'running'} onClick={() => controller.startAI()}>{['error', 'cancelled'].includes(ai.status) ? '从未完成分块继续 AI 检查' : ai.status === 'complete' ? '重新检查全部候选章节' : '手动开始全文 AI 辅助检查'}</button>{ai.status === 'running' && <button type="button" className="ac-btn danger" onClick={() => controller.cancelAI()}>取消 AI 检查</button>}</div>
-    {!allowed && <p className="nr-muted">请先由当前管理员认领此待审作品。</p>}
-    <div className="nr-ai-progress" aria-live="polite"><progress aria-label="AI 完整章节覆盖进度" max={ai.totalChapters || 1} value={ai.completedChapters} /><span>已完整覆盖 {ai.completedChapters} / {ai.totalChapters || item.chapters.length} 章 · 已确认 {ai.chunks} 个分块</span>{current && <span>当前章节 {current.title || current.id} · 同章偏移 {ai.offset}</span>}</div>
+export function AutoReviewSummary({ value, compact = false }) {
+  const [label, tone] = autoReviewMeta(value?.status);
+  if (!value) return <p className="nr-muted">无自动审核记录（旧记录可能未启用自动审核）。</p>;
+  const content = <><Pill tone={tone}>{label}</Pill><p className="nr-muted">已完成 {value.completed_chunks} / {value.total_chunks} 个自动审核分块 · 策略版本 {value.policy_version} · {fmtFull(value.updated_at)}</p>
+    {value.reason && <p className="nr-auto-reason">自动审核原因 {value.reason}</p>}{value.failure_code && <p>失败代码 <code>{value.failure_code}</code></p>}
+    {!compact && <>{value.findings.length ? <ul className="nr-auto-findings">{value.findings.map((finding, index) => <li key={index}><strong>{finding.chapter_id ? `章节 #${finding.chapter_id}` : '作品 / 元数据'}{finding.field ? ` · ${FIELD_NAMES[finding.field] || finding.field}` : ''}</strong><p>{finding.reason}</p>{finding.evidence !== null && <pre className="nr-pre">{finding.evidence || '未附文字依据'}</pre>}</li>)}</ul> : <p className="nr-muted">服务端未返回具体意见；不据此推断作品安全。</p>}<p className="nr-muted">启用时先由服务器自动审核；待审 / 审核中的记录，任何管理员均可人工通过或驳回覆盖自动流程。自动审核失败不会锁定人工操作；并发结果以服务器版本检查为准。</p></>}
+  </>;
+  return compact ? <div className="nr-auto-compact">{content}</div> : <section className="nr-section nr-auto"><h3>AI 自动审核 · 服务器结果</h3>{content}</section>;
+}
+
+export function NovelAIPolicy({ state, controller }) {
+  const policy = state.policy, disabled = !policy.saved || policy.loading || policy.saving || policy.needsReload;
+  const dirty = Boolean(policy.saved && (policy.saved.enabled !== policy.draft.enabled || Object.keys(NOVEL_AI_LIMITS).some(field => String(policy.saved[field]) !== policy.draft[field])));
+  const reload = async () => {
+    if (!dirty || window.confirm('重新加载会替换未保存的自动审核策略草稿，是否继续？')) await controller.loadPolicy();
+  };
+  return <Card title="小说 AI 自动审核策略" description="仅控制服务器自动审核，不禁用手动辅助检查。这里配置最大调用次数，不是 token 预算；不管理密钥，也不发送供应商测试请求。">
+    {policy.loading && <p role="status">正在加载服务器策略…</p>}{!policy.saved && !policy.loading && <p className="nr-muted">尚未读取已保存策略；不会使用客户端默认值替代。</p>}
+    <form className="nr-policy-form" onSubmit={event => { event.preventDefault(); void controller.savePolicy(); }}>
+      <label className="nr-policy-enabled"><input type="checkbox" checked={policy.draft.enabled} disabled={disabled} onChange={event => controller.changePolicy({ enabled: event.target.checked })} />启用自动审核</label>
+      <label>每日最大调用次数（1–10000）<input className="ac-input" type="number" min={1} max={NOVEL_AI_LIMITS.daily_call_limit} step={1} required value={policy.draft.daily_call_limit} disabled={disabled} onChange={event => controller.changePolicy({ daily_call_limit: event.target.value })} /></label>
+      <label>单任务最大调用次数（1–2048）<input className="ac-input" type="number" min={1} max={NOVEL_AI_LIMITS.job_call_limit} step={1} required value={policy.draft.job_call_limit} disabled={disabled} onChange={event => controller.changePolicy({ job_call_limit: event.target.value })} /></label>
+      <div className="nr-actions"><button type="submit" className="ac-btn primary" disabled={disabled || !dirty}>{policy.saving ? '正在保存…' : '保存自动审核策略'}</button><button type="button" className="ac-btn" disabled={policy.loading || policy.saving} onClick={reload}>{policy.saved ? '重新加载策略' : '加载 / 重试策略'}</button></div>
+    </form>
+    {policy.saved && <p className="nr-muted">服务器已保存：{policy.saved.enabled ? '自动审核已开启' : '自动审核已关闭'} · 每日最多 {policy.saved.daily_call_limit} 次 · 单任务最多 {policy.saved.job_call_limit} 次{policy.needsReload ? '（需重新加载确认最新版本）' : ''}</p>}
+    <ErrorBox msg={policy.error} />{policy.needsReload && policy.saved && <p className="nr-muted">重新加载确认最新策略后才可再次保存；不会自动覆盖其他管理员的修改。</p>}{policy.notice && <p className="nr-success" role="status">{policy.notice}</p>}
+  </Card>;
+}
+
+export function AIReview({ state, controller, allowed }) {
+  const ai = state.ai, item = state.selected, selection = state.selectedChapterIds;
+  const current = item.chapters.find(chapter => chapter.id === ai.chapter_id), changed = new Set(changedChapterIds(item));
+  const disabled = !allowed || state.saving || state.needsReload;
+  return <section className="nr-section nr-ai"><h3>手动 AI 检查 · 仅作辅助</h3><p>自动审核之外，可直接选择章节手动辅助检查，无需认领或预先加载正文。默认仅选择服务端差异中的新增 / 修改章节；只检查所选章节，不会自动通过、驳回或改变自动审核结果。</p>
+    {!item.changes && <p className="nr-muted">服务端未提供版本差异，未默认选择任何章节；可手动选择或全选。</p>}
+    <fieldset className="nr-ai-selection" disabled={disabled}><legend>选择手动检查章节（已选 {selection.length} / {item.chapters.length} 章）</legend><div className="nr-actions"><button type="button" className="ac-btn" onClick={() => controller.selectChangedAIChapters()}>选择变更章节</button><button type="button" className="ac-btn" onClick={() => controller.selectAIChapters(item.chapters.map(chapter => chapter.id))}>全选章节</button><button type="button" className="ac-btn" onClick={() => controller.selectAIChapters([])}>清空选择</button></div>
+      <ul>{item.chapters.map(chapter => <li key={chapter.id}><label><input type="checkbox" checked={selection.includes(chapter.id)} onChange={event => controller.selectAIChapters(event.target.checked ? [...selection, chapter.id] : selection.filter(id => id !== chapter.id))} /><span>{chapter.title || chapter.id}{changed.has(chapter.id) ? '（新增 / 修改）' : ''}<small>#{chapter.id}</small></span></label></li>)}</ul>
+    </fieldset>
+    <p className="nr-muted">改选会取消后续请求并清空旧进度；仅同一审核版本、所选章节与内容校验值可续跑。已发送的调用不保证撤回。</p>
+    <div className="nr-actions"><button type="button" className="ac-btn" disabled={disabled || !selection.length || ai.status === 'running'} onClick={() => controller.startAI()}>{['error', 'cancelled'].includes(ai.status) ? '继续所选章节 AI 检查' : ai.status === 'complete' ? '重新检查所选章节' : '开始所选章节 AI 辅助检查'}</button>{ai.status === 'running' && <button type="button" className="ac-btn danger" onClick={() => controller.cancelAI()}>取消 AI 检查</button>}</div>
+    {!allowed && <p className="nr-muted">仅待审 / 审核中的候选可手动检查；不受认领人限制。</p>}
+    <div className="nr-ai-progress" aria-live="polite"><progress aria-label="手动 AI 所选章节完成进度" max={ai.totalChapters || selection.length || 1} value={ai.completedChapters} /><span>本次所选章节已完成 {ai.completedChapters} / {ai.totalChapters || selection.length} 章 · 已确认 {ai.chunks} 个分块；不代表未选章节已检查。</span>{current && <span>当前章节 {current.title || current.id} · 同章偏移 {ai.offset}</span>}</div>
     {ai.message && <p role={ai.status === 'error' ? 'alert' : 'status'}>{ai.message}</p>}
-    {ai.results.length > 0 && <div className="nr-ai-results"><h4>已确认分块结果（未经人工决定）</h4>{ai.results.map((result, index) => <details key={`${result.chapter_id}-${result.offset}-${index}`}><summary>{item.chapters.find(chapter => chapter.id === result.chapter_id)?.title || result.chapter_id} · 偏移 {result.offset} → {result.next_offset ?? '本章末尾'}</summary><pre className="nr-pre">{result.findings || '服务端未返回文字意见（不等于安全结论）'}</pre></details>)}</div>}
+    {ai.results.length > 0 && <div className="nr-ai-results"><h4>所选章节已确认分块结果（辅助意见，不是审核决定）</h4>{ai.results.map((result, index) => <details key={`${result.chapter_id}-${result.offset}-${index}`}><summary>{item.chapters.find(chapter => chapter.id === result.chapter_id)?.title || result.chapter_id} · 偏移 {result.offset} → {result.next_offset ?? '本章末尾'}</summary><pre className="nr-pre">{result.findings || '服务端未返回文字意见（不等于安全结论）'}</pre></details>)}</div>}
   </section>;
 }
 export function ReviewDetail({ state, controller, adminId }) {
   const item = state.selected, permissions = reviewAvailability(item, adminId);
   const confirm = useConfirm();
-  const allBodies = item.chapters.length > 0 && item.chapters.every(chapter => state.bodies[chapter.id]);
   const decide = async action => {
-    const ok = await confirm({ title: action === 'approve' ? `人工通过「${item.title}」？` : `人工驳回「${item.title}」？`, message: `审核版本 ${item.version}。本操作提交明确理由并由服务器检查认领与版本，不会使用 AI 自动决定。`, okText: action === 'approve' ? '确认通过' : '确认驳回', danger: action === 'reject' });
+    const ok = await confirm({ title: action === 'approve' ? `人工通过「${item.title}」？` : `人工驳回「${item.title}」？`, message: `审核版本 ${item.version}。人工决定可覆盖自动审核流程；无需认领、加载正文或填写理由。服务器会检查当前状态与版本，并发更新时须刷新。`, okText: action === 'approve' ? '确认通过' : '确认驳回', danger: action === 'reject' });
     if (ok) await controller.mutate(action);
   };
   return <div className="nr-detail">
     <div className="nr-detail-heading"><div><h2>{item.title}</h2><p>审核 #{item.id} · 版本 {item.version} · 提交于 {fmtFull(item.submitted_at)}</p></div><Status value={item.status} /></div>
-    <div className="nr-notice">{permissions.claimedByOther ? `管理员 #${item.claimed_by} 已认领，当前只读。` : item.claimed_by ? `由当前管理员 #${item.claimed_by} 认领。` : '尚未认领；可先查看完整候选内容，作决定前必须认领。'}{item.reason && <p>最近审核理由 {item.reason}</p>}</div>
+    <div className="nr-notice">{!permissions.approve ? '此候选已不在待审 / 审核中；认领信息仅作历史协作记录。' : permissions.claimedByOther ? `管理员 #${item.claimed_by} 已认领；仅作协作提示，你仍可决定、手动检查或接手。` : item.claimed_by ? `由当前管理员 #${item.claimed_by} 认领；认领不限制其他管理员操作。` : '尚未认领；认领仅用于协作，可直接作人工决定或手动检查。'}{item.reason && <p>最近审核理由 {item.reason}</p>}</div>
+    <AutoReviewSummary value={item.auto_review} />
     <ErrorBox msg={state.error} />{state.notice && <p className="nr-success" role="status">{state.notice}</p>}
     {state.needsReload && <div className="nr-conflict" role="alert"><p>需要重新加载详情，当前不能保存或继续 AI 检查。理由草稿未丢弃。</p><button type="button" className="ac-btn" onClick={() => controller.open(item.id, { preserveReason: true })}>重新加载详情并保留理由</button></div>}
     <NovelMetadata item={item} /><ChangeSummary changes={item.changes} baseReleaseId={item.base_release_id} />
@@ -75,12 +110,17 @@ export function ReviewDetail({ state, controller, adminId }) {
       </li>)}</ol>}
     </section>
     <AIReview state={state} controller={controller} allowed={permissions.ai} /><ReviewHistory audit={item.audit} />
-    <section className="nr-section nr-decision"><h3>人工审核决定</h3><p>通过与驳回都必须填写理由并携带当前版本；发布只由服务器接受人工审核后生效。作品治理、举报和创作者限制不与徽章/认证资格混用。</p>
-      <label className="nr-label" htmlFor="novel-review-reason">审核理由（必填，最多 {NOVEL_REASON_MAX} 字）<textarea id="novel-review-reason" className="ac-textarea" rows={4} value={state.reason} disabled={state.saving} maxLength={NOVEL_REASON_MAX} onChange={event => controller.changeReason(event.target.value)} placeholder="写明通过或驳回的具体依据，不以 AI 意见代替人工判断" /></label>
-      <div className="nr-actions">{permissions.claim && <button type="button" className="ac-btn primary" disabled={state.saving || state.needsReload} onClick={() => controller.mutate('claim')}>认领审核</button>}{permissions.release && <button type="button" className="ac-btn" disabled={state.saving || state.needsReload} onClick={() => controller.mutate('release')}>释放审核</button>}{permissions.approve && <button type="button" className="ac-btn primary" disabled={state.saving || state.needsReload || !state.reason.trim() || !allBodies} onClick={() => decide('approve')}>人工通过</button>}{permissions.reject && <button type="button" className="ac-btn danger" disabled={state.saving || state.needsReload || !state.reason.trim()} onClick={() => decide('reject')}>人工驳回</button>}</div>
-      {permissions.approve && !allBodies && <p className="nr-muted">通过前请加载并通读所有候选章节全文；当前未完整加载。</p>}{!permissions.claim && !permissions.approve && <p className="nr-muted">当前状态为只读，不能重新发布或绕过人工审核。</p>}{state.saving && <p role="status">正在等待服务器确认，请勿重复提交。</p>}
-    </section>
+    <ReviewDecision state={state} controller={controller} adminId={adminId} onDecide={decide} />
   </div>;
+}
+
+export function ReviewDecision({ state, controller, adminId, onDecide }) {
+  const permissions = reviewAvailability(state.selected, adminId), disabled = state.saving || state.needsReload;
+  return <section className="nr-section nr-decision"><h3>人工审核决定 · 可覆盖自动流程</h3><p>待审 / 审核中均可由任何管理员直接通过或驳回，包括他人已认领的记录。无需先认领或加载正文，审核理由可不填；服务器仍检查当前版本与权限。作品治理、举报和创作者限制的必填理由不变。</p>
+    <label className="nr-label" htmlFor="novel-review-reason">审核理由（选填，最多 {NOVEL_REASON_MAX} 字）<textarea id="novel-review-reason" className="ac-textarea" rows={4} value={state.reason} disabled={state.saving} maxLength={NOVEL_REASON_MAX} onChange={event => controller.changeReason(event.target.value)} placeholder="可补充人工通过或驳回的依据，也可留空" /></label>
+    <div className="nr-actions">{permissions.claim && <button type="button" className="ac-btn" disabled={disabled} onClick={() => controller.mutate('claim')}>{permissions.claimedByOther ? '接手认领（可选）' : '认领协作（可选）'}</button>}{permissions.release && <button type="button" className="ac-btn" disabled={disabled} onClick={() => controller.mutate('release')}>释放我的认领</button>}{permissions.approve && <button type="button" className="ac-btn primary" disabled={disabled} onClick={() => onDecide('approve')}>人工通过</button>}{permissions.reject && <button type="button" className="ac-btn danger" disabled={disabled} onClick={() => onDecide('reject')}>人工驳回</button>}</div>
+    {!permissions.approve && <p className="nr-muted">此候选已不在待审 / 审核中，不能重复决定；请查看最新服务器状态。</p>}{state.saving && <p role="status">正在等待服务器确认，请勿重复提交。</p>}
+  </section>;
 }
 
 export function WorkDetails({ work, onReview }) {
@@ -134,7 +174,7 @@ export default function NovelReviewConsole() {
     window.addEventListener('storage', storage);
     window.addEventListener('pagehide', block);
     window.addEventListener('admin-session-rejected', rejected);
-    if (user?.role === 'admin') void current.loadList();
+    if (user?.role === 'admin') { void current.loadList(); void current.loadPolicy(); }
     return () => { current.dispose(); if (controller.current === current) controller.current = null; window.removeEventListener('auth-session-changing', block); window.removeEventListener('storage', storage); window.removeEventListener('pagehide', block); window.removeEventListener('admin-session-rejected', rejected); };
   }, [sessionKey, user?.id, user?.role]);
   const state = snapshot.key === sessionKey ? snapshot.state : initialReviewState();
@@ -143,14 +183,15 @@ export default function NovelReviewConsole() {
   const open = item => { setTarget(null); setSelectedId(item.id); void controller.current?.open(item.id); };
   const govern = value => { controller.current?.close(); setSelectedId(null); setTarget(value); if (value.kind === 'work') void controller.current?.openWork(value.id); };
   if (state.blocked) return <Card title="小说审核会话已停止"><ErrorBox msg={state.error} /><p>请确认当前管理员账号后重新进入此页面。</p></Card>;
-  return <div className="nr-console ac-page-stack"><div className="nr-local-note">小说重构审核域 · 人工决定 · 当前筛选计数仅来自真实服务器返回，不推算待审总量。</div><Tabs items={MODES} value={state.mode} onChange={mode => { close(); setQuery(''); load({ mode, status: mode === 'reviews' ? 'pending' : '', query: '' }); }} label="小说管理分类" />
+  return <div className="nr-console ac-page-stack"><div className="nr-local-note">小说审核 · AI 自动审核优先，管理员可直接人工决定；手动 AI 检查仅作辅助。当前筛选计数来自服务器，不推算待审总量。</div><NovelAIPolicy state={state} controller={controller.current} /><Tabs items={MODES} value={state.mode} onChange={mode => { close(); setQuery(''); load({ mode, status: mode === 'reviews' ? 'pending' : '', auto_filter: 'all', query: '' }); }} label="小说管理分类" />
     {state.mode === 'creators' ? <Card title="独立创作者权限治理" description="限制或恢复均需要确切账号与操作理由，服务器再次校验权限。"><GovernanceForm key={sessionKey} target={{ kind: 'creator' }} controller={controller.current} state={state} /></Card> : <Card title={MODES.find(mode => mode.value === state.mode)?.label} icon={state.mode === 'reports' ? 'fa-flag' : 'fa-book-open'}>
       <form className="nr-toolbar" onSubmit={event => { event.preventDefault(); load({ query: query.trim() }); }}>
         {state.mode !== 'reports' && <label className="nr-search">搜索标题 / 作者 / 标签<input className="ac-input" value={query} maxLength={100} onChange={event => setQuery(event.target.value)} placeholder="输入关键词后搜索" /></label>}
         {state.mode !== 'reports' && <label>状态<select className="ac-select" aria-label="小说状态筛选" value={state.filter.status} onChange={event => load({ status: event.target.value })}>{(state.mode === 'reviews' ? REVIEW_STATUSES : ['', 'published', 'withdrawn', 'pending', 'rejected', 'draft']).map(status => <option key={status} value={status}>{status ? statusMeta(status)[0] : '全部作品状态'}</option>)}</select></label>}
+        {state.mode === 'reviews' && <label>自动审核<select className="ac-select" aria-label="自动审核筛选" value={state.filter.auto_filter} onChange={event => load({ auto_filter: event.target.value })}>{AUTO_REVIEW_FILTERS.map(value => <option key={value} value={value}>{value === 'all' ? '全部自动审核状态' : value === 'needs_human' ? '需人工处理（含旧记录 / 已取消）' : autoReviewMeta(value)[0]}</option>)}</select></label>}
         {state.mode !== 'reports' && <button type="submit" className="ac-btn primary" disabled={state.loading}>搜索</button>}<button type="button" className="ac-btn" disabled={state.loading} onClick={() => load()}>刷新服务器列表</button>
       </form><ErrorBox msg={state.listError} />{state.notice && !selectedId && !target && <p className="nr-success" role="status">{state.notice}</p>}
-      {state.loading ? <Loading text="正在加载小说管理数据…" /> : state.page && <><p className="nr-muted" aria-live="polite">{state.mode === 'reports' ? '服务器本次返回' : '当前页'} {state.page.items.length} 条{state.mode === 'reports' ? ' · 仅展示接口提供的举报记录' : state.page.next_cursor ? ' · 还有下一页' : ' · 已到末页'}</p>{state.page.items.length ? <ul className="nr-records">{state.page.items.map(item => <li key={item.id}><div className="nr-record-copy"><strong>{item.title || item.work_title || `作品举报 #${item.id}`}</strong><p>{item.author ? `${item.author.display_name || item.author.username} · @${item.author.username}` : `作品 #${item.work_id} · ${item.reason}`}</p><small>#{item.id}{state.mode === 'reviews' ? ` · 审核版本 ${item.version} · ${fmtFull(item.submitted_at)} · ${item.claimed_by ? `认领 #${item.claimed_by}` : '未认领'}` : state.mode === 'works' ? ` · ${item.chapter_count} 章 · ${item.word_count} 字 · 发布版本 ${item.release_id || '无'}` : ` · ${fmtFull(item.created_at)}`}</small></div><div className="nr-record-actions"><Status value={item.status} /><button type="button" className="ac-btn" onClick={() => state.mode === 'reviews' ? open(item) : govern(state.mode === 'works' ? { kind: 'work', id: item.id, item } : { kind: 'report', id: item.id, report: item })}>{state.mode === 'reviews' ? '详情审核' : state.mode === 'works' ? '详情与治理' : '处理举报'}</button></div></li>)}</ul> : <Empty text={state.mode === 'reports' ? '服务器返回的小说举报列表为空' : '服务器没有返回符合当前筛选的记录'} />}
+      {state.loading ? <Loading text="正在加载小说管理数据…" /> : state.page && <><p className="nr-muted" aria-live="polite">{state.mode === 'reports' ? '服务器本次返回' : '当前页'} {state.page.items.length} 条{state.mode === 'reports' ? ' · 仅展示接口提供的举报记录' : state.page.next_cursor ? ' · 还有下一页' : ' · 已到末页'}</p>{state.page.items.length ? <ul className="nr-records">{state.page.items.map(item => <li key={item.id}><div className="nr-record-copy"><strong>{item.title || item.work_title || `作品举报 #${item.id}`}</strong><p>{item.author ? `${item.author.display_name || item.author.username} · @${item.author.username}` : `作品 #${item.work_id} · ${item.reason}`}</p><small>#{item.id}{state.mode === 'reviews' ? ` · 审核版本 ${item.version} · ${fmtFull(item.submitted_at)} · ${item.claimed_by ? `认领 #${item.claimed_by}` : '未认领'}` : state.mode === 'works' ? ` · ${item.chapter_count} 章 · ${item.word_count} 字 · 发布版本 ${item.release_id || '无'}` : ` · ${fmtFull(item.created_at)}`}</small>{state.mode === 'reviews' && <AutoReviewSummary value={item.auto_review} compact />}</div><div className="nr-record-actions"><Status value={item.status} /><button type="button" className="ac-btn" onClick={() => state.mode === 'reviews' ? open(item) : govern(state.mode === 'works' ? { kind: 'work', id: item.id, item } : { kind: 'report', id: item.id, report: item })}>{state.mode === 'reviews' ? '详情审核' : state.mode === 'works' ? '详情与治理' : '处理举报'}</button></div></li>)}</ul> : <Empty text={state.mode === 'reports' ? '服务器返回的小说举报列表为空' : '服务器没有返回符合当前筛选的记录'} />}
       <nav className="nr-pagination" aria-label="小说列表游标分页"><button type="button" className="ac-btn" disabled={!cursors.length || state.loading} onClick={() => { const previous = cursors.at(-1); setCursors(values => values.slice(0, -1)); controller.current?.loadList({ mode: state.mode, ...state.filter, cursor: previous }); }}>上一页</button><span>第 {cursors.length + 1} 页</span><button type="button" className="ac-btn" disabled={!state.page.next_cursor || state.loading} onClick={() => { setCursors(values => [...values, state.filter.cursor]); controller.current?.loadList({ mode: state.mode, ...state.filter, cursor: state.page.next_cursor }); }}>下一页</button></nav></>}
     </Card>}
     <Modal open={Boolean(selectedId) && snapshot.key === sessionKey} onClose={close} title="小说完整候选审核" width={1180} className="nr-review-modal">{state.detailLoading ? <Loading text="正在加载完整候选元数据和目录…" /> : state.detailError ? <><ErrorBox msg={state.detailError} /><button type="button" className="ac-btn" onClick={() => controller.current?.open(selectedId, { preserveReason: true })}>重试加载详情</button></> : state.selected && <ReviewDetail state={state} controller={controller.current} adminId={user?.id} />}</Modal>

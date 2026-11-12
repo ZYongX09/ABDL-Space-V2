@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { createServer } from 'vite';
 import { createNovelReviewAPI } from './api.js';
-import { fixtureReview, fixtureWork } from './fixture.js';
+import { fixtureAIPolicy, fixtureAutoReview, fixtureReview, fixtureWork } from './fixture.js';
 
 function response(path) {
+  if (path.endsWith('/ai-policy')) return fixtureAIPolicy();
   if (path.includes('/reports/') && path.endsWith('/decision')) return { success: true };
   if (path.endsWith('/decision')) return { review: fixtureReview({ status: 'approved', version: 3 }), work: fixtureWork() };
   if (path.includes('/chapters/')) return { ...fixtureReview().chapters[0], body: '全章正文' };
@@ -28,22 +29,23 @@ test('全部审核域请求使用 no-store、JSON 和 UUID Idempotency-Key；正
   await api.workAction('work-1', { action: 'withdraw', reason: '授权问题' }, { operationId: key });
   await api.reportDecision('report-1', { decision: 'dismiss', reason: '人工核实' }, { operationId: key });
   await api.creatorAction('42', { action: 'suspend', reason: '人工限制' }, { operationId: key });
+  await api.aiPolicy(); await api.saveAIPolicy(fixtureAIPolicy(), { operationId: key });
   assert.ok(calls.every(call => call.path.startsWith('/api/admin/novels/rebuild/')));
   assert.equal(new URL(calls[0].path, 'http://fixture.invalid').searchParams.get('query'), '标题 & 作者');
   assert.match(calls[1].path, /reviews\/review%20%2F%201$/); assert.match(calls[2].path, /chapters\/chapter%20%2F%201$/);
   for (const call of calls) {
     assert.equal(call.options.cache, 'no-store'); assert.equal(call.options.redirect, 'error'); assert.ok(call.options.signal);
-    if (call.options.method === 'POST') { assert.equal(call.options.headers['Idempotency-Key'], key); assert.equal(call.options.headers['Content-Type'], 'application/json'); assert.doesNotThrow(() => JSON.parse(call.options.body)); }
+    if (call.options.method !== 'GET') { assert.equal(call.options.headers['Idempotency-Key'], key); assert.equal(call.options.headers['Content-Type'], 'application/json'); assert.doesNotThrow(() => JSON.parse(call.options.body)); }
   }
   assert.deepEqual(JSON.parse(calls[5].options.body), { decision: 'approve', reason: '人工理由', version: 2 });
   assert.deepEqual(JSON.parse(calls[6].options.body), { chapter_id: 'chapter-1', offset: 12000 });
   assert.ok(calls.every(call => !/preview|provider|publish|novelStatus/.test(call.path)));
 });
 
-test('API 拒绝缺少当前版本/理由/响应目录与治理假成功，不访问网络', async () => {
+test('API 拒绝缺少当前版本 / 非法理由 / 响应目录与治理假成功，不访问网络', async () => {
   let count = 0;
   const api = createNovelReviewAPI(async () => { count += 1; return {}; }, { createId: randomUUID });
-  for (const body of [{ decision: 'approve', reason: '', version: 2 }, { decision: 'reject', reason: '理由' }, { decision: 'approve', reason: '理由', version: 0 }]) await assert.rejects(api.decide('id', body));
+  for (const body of [{ decision: 'approve', reason: 'x\0y', version: 2 }, { decision: 'reject', reason: '理由' }, { decision: 'approve', reason: '理由', version: 0 }]) await assert.rejects(api.decide('id', body));
   await assert.rejects(api.ai('id', { chapter_id: 'chapter', offset: -1 }));
   await assert.rejects(api.listReviews({ status: 'all' })); assert.equal(count, 0);
   await assert.rejects(api.review('id'), /审核状态/); await assert.rejects(api.work('work-1'), /完整作品目录/); await assert.rejects(api.workAction('id', { action: 'withdraw', reason: '理由' }), /未确认/);
@@ -55,12 +57,48 @@ test('API 理由按小说合同支持 2000 字；非法理由及操作不访问�
   for (const decision of ['approve', 'reject']) await api.decide('id', { decision, reason, version: 2 });
   await api.workAction('work-1', { action: 'withdraw', reason }); await api.reportDecision('report-1', { decision: 'withdraw', reason }); await api.creatorAction('42', { action: 'restore', reason });
   assert.ok(calls.every(call => JSON.parse(call.options.body).reason.length === 2000)); const count = calls.length;
+  for (const reason of ['理'.repeat(2001), '理\0由', null, 1]) await assert.rejects(api.decide('id', { decision: 'approve', reason, version: 2 }));
   for (const reason of ['', '  ', '理'.repeat(2001), '理\0由', null]) {
-    await assert.rejects(api.decide('id', { decision: 'approve', reason, version: 2 })); await assert.rejects(api.workAction('work-1', { action: 'withdraw', reason })); await assert.rejects(api.reportDecision('report-1', { decision: 'dismiss', reason }));
+    await assert.rejects(api.workAction('work-1', { action: 'withdraw', reason })); await assert.rejects(api.reportDecision('report-1', { decision: 'dismiss', reason }));
   }
   await assert.rejects(api.creatorAction('42', { action: 'publish', reason: '理由' })); assert.equal(calls.length, count);
   await api.workReviews('work-1', { cursor: 'history / & 50', limit: 20 }); const url = new URL(calls.at(-1).path, 'http://fixture.invalid');
   assert.equal(url.pathname, '/api/admin/novels/rebuild/works/work-1/reviews'); assert.equal(url.searchParams.get('cursor'), 'history / & 50'); assert.equal(url.searchParams.get('limit'), '20'); assert.equal(calls.at(-1).options.method, 'GET');
+});
+
+test('API 审核允许省略 / 空白 reason 且仍携带 version；治理 reason 不变', async () => {
+  const calls = [], api = createNovelReviewAPI(async (path, options) => { calls.push({ path, options }); return response(path); }, { createId: randomUUID });
+  for (const decision of ['approve', 'reject']) for (const reason of [undefined, '', '  \n ']) {
+    await api.decide('id', { decision, ...(reason === undefined ? {} : { reason }), version: 2 });
+    assert.deepEqual(JSON.parse(calls.at(-1).options.body), { decision, reason: '', version: 2 });
+  }
+  const count = calls.length; await assert.rejects(api.workAction('id', { action: 'withdraw', reason: '' })); await assert.rejects(api.reportDecision('id', { decision: 'dismiss', reason: '' })); assert.equal(calls.length, count);
+});
+
+test('API auto_filter 与审核 status 独立、默认 all；自动审核摘要兼容旧记录与新增字段', async () => {
+  const calls = [], summary = fixtureAutoReview({ status: 'needs_human', reason: '需要人工', failure_code: 'AI_UNAVAILABLE' });
+  const api = createNovelReviewAPI(async (path, options) => { calls.push({ path, options }); return { items: [fixtureReview(), fixtureReview({ id: 'new', auto_review: { ...summary, provider_request: 'ignore' } })], next_cursor: null }; }, { createId: randomUUID });
+  const page = await api.listReviews({ status: 'reviewing', auto_filter: 'needs_human' });
+  const params = new URL(calls[0].path, 'http://fixture.invalid').searchParams;
+  assert.equal(params.get('status'), 'reviewing'); assert.equal(params.get('auto_filter'), 'needs_human');
+  assert.equal(page.items[0].auto_review, null); assert.deepEqual(page.items[1].auto_review, summary);
+  await api.listReviews(); assert.equal(new URL(calls[1].path, 'http://fixture.invalid').searchParams.get('auto_filter'), 'all');
+  const count = calls.length; await assert.rejects(api.listReviews({ status: 'needs_human' })); await assert.rejects(api.listReviews({ auto_filter: 'passed' })); assert.equal(calls.length, count);
+});
+
+test('API 自动审核策略 GET / PUT 同根、CAS + UUID、有效范围；只发送白名单字段且不请求 provider', async () => {
+  const calls = [], key = randomUUID(), policy = fixtureAIPolicy();
+  const api = createNovelReviewAPI(async (path, options) => { calls.push({ path, options }); return { ...policy, revision: options.method === 'PUT' ? 'next-policy' : policy.revision, provider_key: 'not copied' }; }, { createId: randomUUID });
+  assert.deepEqual(await api.aiPolicy(), policy);
+  assert.deepEqual(await api.saveAIPolicy({ ...policy, provider_key: 'do-not-send' }, { operationId: key }), { ...policy, revision: 'next-policy' });
+  assert.equal(calls[0].path, '/api/admin/novels/rebuild/ai-policy'); assert.equal(calls[0].options.method, 'GET'); assert.equal(calls[1].options.method, 'PUT');
+  assert.deepEqual(JSON.parse(calls[1].options.body), policy); assert.equal(calls[1].options.headers['Idempotency-Key'], key);
+  const count = calls.length;
+  for (const patch of [{ enabled: 1 }, { daily_call_limit: 0 }, { daily_call_limit: 10001 }, { job_call_limit: 0 }, { job_call_limit: 2049 }, { job_call_limit: '256' }, { revision: undefined }]) await assert.rejects(api.saveAIPolicy({ ...policy, ...patch }));
+  assert.equal(calls.length, count); assert.ok(calls.every(call => call.path.endsWith('/ai-policy')));
+  const conflict = createNovelReviewAPI(async () => { throw Object.assign(new Error('policy changed'), { status: 409, code: 'policy_conflict' }); }, { createId: randomUUID });
+  await assert.rejects(conflict.saveAIPolicy(policy, { operationId: key }), error => error.status === 409 && error.code === 'policy_conflict');
+  const malformed = createNovelReviewAPI(async () => ({}), { createId: randomUUID }); await assert.rejects(malformed.aiPolicy(), /未使用默认配置/);
 });
 
 test('API 超时与显式取消均中止请求并明确失败，即使传输层忽略 abort 也不会等成假成功', async () => {
