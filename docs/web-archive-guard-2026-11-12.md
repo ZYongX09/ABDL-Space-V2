@@ -37,7 +37,7 @@ UA列表是小型、可审查的产品标识：`archive.org_bot`、`ia_archiver`
 - 普通浏览器实际访问本地Pages深链接，文档标题正确，robots返回真实文本；HTML仅最小合成入口，不当作整站ReactUI视觉或生产验收。没有模拟真实外部归档请求，也不发送用户原文。
 - 初轮运行时工具错误：workerd拒绝deny public/private网络配置，Miniflare RPC拦截合成Origin返回403；均改仓外harness入口/断网策略而非业务判断。最终使用dispatchFetch和本地service协议替身、所有终端外呼抛错；PagesWorkerfetch关闭，CLI仅loopback，子进程均清理。
 
-证据：仓外`abdl-space-archive-evidence-20261112/runtime-BT71vx/result.json`及编译/Pages日志；Node/build/lint各轮原始日志在既有仓外`abdl-space-novel-evidence-20261112/archive-*.log`。后续文档修改不改变业务源码。功能分支待实际提交/推送后登记，生产不动。
+证据：仓外`abdl-space-archive-evidence-20261112/runtime-BT71vx/result.json`及编译/Pages日志；Node/build/lint各轮原始日志在既有仓外`abdl-space-novel-evidence-20261112/archive-*.log`。后续文档修改不改变业务源码。业务已提交并普通push、快进远端develop：主站`9244d89`、移动`032c760`。两站main仍分别`f10003d`/`7044824`，未部署。未提交依赖软链/.mimosa/构建产物，其他本地develop工作树预先存在的暂存改动不覆盖。
 
 ## 参考
 
