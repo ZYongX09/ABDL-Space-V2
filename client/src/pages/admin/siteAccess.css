@@ -1,0 +1,18 @@
+.ac-site-access { min-width: 0; }
+.ac-site-access .sa-access-overview { padding: 1rem; background: var(--ac-surface-soft); border: 1px solid var(--ac-border); border-radius: var(--ac-radius-sm); color: var(--ac-text); display: grid; gap: 0.75rem; overflow-wrap: anywhere; }
+.ac-site-access .sa-access-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.ac-site-access .sa-access-nav a { color: var(--ac-action); padding: 0.625rem 0.75rem; border: 1px solid var(--ac-border); border-radius: var(--ac-radius-sm); background: var(--ac-surface); }
+.ac-site-access .sa-access-editor { border: 0; margin: 0; padding: 0; display: grid; gap: 1rem; min-width: 0; }
+.ac-site-access .sa-access-download { display: flex; align-items: start; gap: 0.75rem; margin-block: 1rem; }
+.ac-site-access .sa-access-details { margin-top: 1rem; border: 1px solid var(--ac-border); border-radius: var(--ac-radius-sm); padding: 0.875rem; }
+.ac-site-access summary { cursor: pointer; color: var(--ac-text); font-weight: 600; overflow-wrap: anywhere; }
+.ac-site-access details[open] > summary { margin-bottom: 0.875rem; }
+.ac-site-access .sa-access-post-list { display: grid; gap: 0.875rem; }
+.ac-site-access .sa-access-post { min-width: 0; margin: 0; }
+.ac-site-access .sa-access-post-body { display: grid; gap: 0.875rem; }
+.ac-site-access :is(.ac-input, .ac-textarea) { min-width: 0; width: 100%; font-size: 1rem; }
+.ac-site-access .sa-access-savebar { display: grid; gap: 0.875rem; padding: 1rem; border: 1px solid var(--ac-border); border-radius: var(--ac-radius-sm); background: var(--ac-surface); }
+.ac-site-access :is(.ac-action-group, .sa-access-overview .ac-action-group) { flex-wrap: wrap; }
+.ac-site-access section[id] { scroll-margin-top: 6rem; min-width: 0; }
+.ac-site-access .sa-access-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.ac-site-access :is(.ac-btn, .ac-pill) { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }

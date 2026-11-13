@@ -11,6 +11,9 @@
 .ac-translation-glossary-card .ac-glossary-confirm h3 { font-size: 1rem; margin: 0 0 0.75rem; }
 .ac-translation-glossary-card .ac-glossary-confirm p { margin-bottom: 0.875rem; }
 .ac-translation-glossary-card .ac-glossary-actions { margin-top: 1rem; }
+.ac-translation-glossary-card .ac-glossary-details { min-width: 0; margin-block: 0.875rem; }
+.ac-translation-glossary-card .ac-glossary-details > summary { cursor: pointer; font-weight: 600; color: var(--ac-text); overflow-wrap: anywhere; }
+.ac-translation-glossary-card .ac-glossary-details[open] > summary { margin-bottom: 0.875rem; }
 @media (max-width: 40rem) {
   .ac-translation-glossary-card .ac-glossary-languages { grid-template-columns: minmax(0, 1fr); }
   .ac-translation-glossary-card .ac-glossary-entry { padding: 0.75rem; }

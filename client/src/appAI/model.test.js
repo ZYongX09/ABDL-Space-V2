@@ -207,7 +207,12 @@ test('本地 fixture 仅内存元数据与 CAS，无令牌读回/真调用；重
 
 test('卡片接在 V2 模式之后，非受控空密码、父级身份边界与三主题响应布局不持久化秘密', () => {
   const card = source('../pages/admin/AppAIProviderCard.jsx'); const page = source('../pages/admin/appClients.jsx');
-  assert.match(page, /<NbwV2PolicyEditor \/>\s*<AppNBWUpstreamCard \/>\s*<AppAIProviderCard \/>/); assert.match(page, /AppClientsContent key=\{`\$\{user\.id\}:\$\{token\}`\}/);
+  const orderedCards = [...page.matchAll(/<(NbwV2PolicyEditor|AppNBWUpstreamCard|AppAIProviderCard) \/>/g)].map(match => match[1]);
+  assert.deepEqual(orderedCards, ['NbwV2PolicyEditor', 'AppNBWUpstreamCard', 'AppAIProviderCard'], '三张卡各挂载一次，保留跨分组顺序');
+  const aiPanel = /<AppModulePanel id="ai-security" active=\{active\}>([\s\S]*?)<\/AppModulePanel>/.exec(page)?.[1];
+  assert.ok(aiPanel); assert.match(aiPanel, /<AppAIProviderCard \/>/); assert.doesNotMatch(aiPanel, /active\s*(?:===|&&|\?)/, '分组不得按 active 条件卸载卡片');
+  assert.match(page, /hidden=\{active !== id\}/);
+  assert.match(page, /AppClientsContent key=\{`\$\{user\.id\}:\$\{token\}`\}/);
   assert.match(card, /type="password" defaultValue=""/); assert.match(card, /autoComplete="new-password"/); assert.doesNotMatch(card, /type="password"[^>]*\bvalue=|localStorage|sessionStorage|console\.|dangerouslySetInnerHTML/);
   for (const text of ['X-ABDL-App-AI:1', '旧版 App 或网页 AI', '本站发帖正常', '已同意默认板块', 'DNS 公网解析', '取消当前请求', 'originNeedsToken', 'auth-session-changing', 'current.dispose()']) assert.ok(card.includes(text), text);
   assert.match(card, /<Card /); assert.match(card, /<FormField /); assert.match(card, /minWidth: 0, overflowWrap: 'anywhere'/); assert.match(card, /maxWidth: '100%', whiteSpace: 'normal'/);

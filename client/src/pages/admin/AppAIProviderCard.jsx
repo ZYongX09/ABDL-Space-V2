@@ -4,19 +4,21 @@ import { createProviderEditor, initialProviderState, providerOriginChangeRequire
 import { Card, ErrorBox, FormField, Loading, Pill } from './ui';
 
 // 生产组件共用此视图，SSR 覆盖真实加载/草稿/测试/保存状态，不另造测试 UI。
-export function AppAIProviderView({ state, onChange, onSave, onTest, onReload, onCancel, onTokenInput, tokenRef }) {
+export function AppAIProviderView({ state, onChange, onSave, onTest, onReload, onCancel, onTokenInput, tokenRef, confirmTest = false, onConfirmTest, onCancelTest, confirmReload = false, onConfirmReload, onCancelReload }) {
   const { saved, draft, loading, saving, testing, testResult, testError, needsReload, error, notice } = state;
   const dirty = saved && (draft.base_url !== saved.base_url || draft.model_id !== saved.model_id || draft.token_action !== 'keep');
   const busy = loading || saving || testing;
-  const disabled = busy || needsReload;
+  const disabled = busy || needsReload || confirmTest || confirmReload;
   const originNeedsToken = providerOriginChangeRequiresToken(saved, draft);
   const testNeedsToken = draft.token_action === 'clear' || (draft.token_action === 'keep' && !saved?.token_configured);
   return <Card title="新版 App AI 服务配置" icon="fa-robot" className="ac-app-ai-card" description="仅用于带新版协议头的 App AI 功能，不影响旧版 App 或网页 AI。保存与加载只管理配置；测试需手动点击。">
     <div style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
       <p id="app-ai-scope" className="ac-app-note">仅作用于携带 X-ABDL-App-AI:1 协议头的新版 App 功能，包括宝宝新天地的 AI 板块分类。不会更改旧版 App 或网页 AI 的配置；浏览器不会直连模型。未配置令牌时无法使用此 AI，但本站发帖正常；分类失败仅在用户已同意默认板块时回退，不会擅自代选。</p>
+      <details className="ac-app-details"><summary>接口协议、调用范围与测试费用说明</summary>
       <p id="app-ai-host-policy" className="ac-section-note">不设固定供应商主机白名单，可填写自定义 HTTPS 公网域名与安全基础路径；服务器仍会校验 DNS 公网解析并拒绝私网地址、重定向等不安全请求。不得在地址中填写令牌、账号密码或查询参数。</p>
       <p id="app-ai-protocol" className="ac-app-note">实际使用：OpenAI兼容 Chat Completions协议（POST .../chat/completions），不是 Responses API。基础地址不自动添加 /v1；供应商需要 /v1 时请自行填写。协议为只读说明，不支持在此切换。</p>
       <p id="app-ai-test-policy" className="ac-section-note">测试当前草稿不保存配置、不更新版本；由服务器使用当前地址、模型及令牌操作发送一次固定简短无害提示词，可能产生供应商费用，不会自动重试。只验证收到非空有效文本，原始回复不展示。测试成功不等于已保存，也不代表全部 App AI 功能或模型质量已验证。停止等待不保证服务器调用已停止或不计费。</p>
+      </details>
       {saved && <div id="app-ai-saved-summary" className="ac-app-policy-status" role="status" aria-live="polite">
         <Pill tone={saved.token_configured ? 'green' : 'amber'}>{saved.token_configured ? '已保存令牌：已配置' : '已保存令牌：未配置，无法使用此 AI'}</Pill>
         <span>{saved.token_configured ? '已配置不代表供应商可用；仅手动测试才会发起验证调用。' : '本站发帖仍正常，不会自动使用其他环境令牌。'}服务器只返回是否配置，不返回原令牌或密文。</span>
@@ -53,6 +55,8 @@ export function AppAIProviderView({ state, onChange, onSave, onTest, onReload, o
         </fieldset>
       </form>}
       <p id="app-ai-form-status" role="status" aria-live="polite" className="ac-section-note">{notice || (saving ? '正在保存 App AI 配置…' : needsReload ? '未确认最新配置，必须成功重新加载后才能保存或测试；不会自动覆盖冲突。' : dirty ? '表单有未保存更改，尚未生效。' : saved ? '当前地址、模型与已保存配置一致；默认保留令牌。' : '')}</p>
+      {confirmTest && <div className="ac-app-note" role="group" aria-label="确认测试当前 AI 草稿"><p>确认向当前供应商发送一次固定测试请求？可能计费，不保存配置，也不会自动重试。</p><div className="ac-action-group"><button type="button" className="ac-btn" disabled={busy} onClick={onCancelTest}>取消测试，保留草稿</button><button type="button" className="ac-btn" disabled={busy || needsReload} onClick={onConfirmTest}>确认调用一次测试</button></div></div>}
+      {confirmReload && <div className="ac-app-note" role="group" aria-label="确认替换 AI 草稿"><p>重新加载成功将替换地址、模型及令牌操作草稿；发起重新加载会清空新令牌密码框。其他模块不受影响。</p><div className="ac-action-group"><button type="button" className="ac-btn" disabled={busy} onClick={onCancelReload}>取消，保留 AI 草稿</button><button type="button" className="ac-btn" disabled={busy} onClick={onConfirmReload}>确认重新读取 AI 配置</button></div></div>}
       <div id="app-ai-test-status" role="status" aria-live="polite" aria-busy={testing}>
         {testing && <Loading text="正在测试当前草稿（不保存）…最多等待 20 秒，不会自动重试。" />}
         <ErrorBox msg={testError} />
@@ -75,6 +79,8 @@ export function AppAIProviderView({ state, onChange, onSave, onTest, onReload, o
 // 继承 AppClientsContent 的 AdminLayout 与按管理员身份/会话 key 的卸载边界，不另嵌布局。
 export default function AppAIProviderCard() {
   const [state, setState] = useState(initialProviderState);
+  const [confirmTest, setConfirmTest] = useState(false);
+  const [confirmReload, setConfirmReload] = useState(false);
   const editor = useRef(null);
   const tokenInput = useRef(null);
   const clearToken = useCallback(node => {
@@ -88,6 +94,7 @@ export default function AppAIProviderCard() {
     editor.current = current;
     const sessionChanging = () => {
       current.dispose();
+      setConfirmTest(false); setConfirmReload(false);
       setState({ ...initialProviderState(), loading: false, error: '管理员会话已变更，请在当前账号下重新打开管理页面。' });
     };
     window.addEventListener('auth-session-changing', sessionChanging);
@@ -99,5 +106,5 @@ export default function AppAIProviderCard() {
     };
   }, []);
   // 密码非受控且默认空白，只在手动操作调用栈读取；onInput 仅废弃结果，不传令牌。
-  return <AppAIProviderView state={state} tokenRef={clearToken} onChange={patch => editor.current?.change(patch)} onTokenInput={() => editor.current?.tokenChanged()} onSave={() => void editor.current?.save(tokenInput.current?.value || '')} onTest={() => void editor.current?.test(tokenInput.current?.value || '')} onReload={() => void editor.current?.load()} onCancel={() => editor.current?.cancel()} />;
+  return <AppAIProviderView state={state} tokenRef={clearToken} onChange={patch => editor.current?.change(patch)} onTokenInput={() => editor.current?.tokenChanged()} onSave={() => void editor.current?.save(tokenInput.current?.value || '')} onTest={() => setConfirmTest(true)} confirmTest={confirmTest} onCancelTest={() => setConfirmTest(false)} onConfirmTest={() => { setConfirmTest(false); void editor.current?.test(tokenInput.current?.value || ''); }} onReload={() => { const { saved, draft } = state; if (saved && (draft.base_url !== saved.base_url || draft.model_id !== saved.model_id || draft.token_action !== 'keep')) setConfirmReload(true); else void editor.current?.load(); }} confirmReload={confirmReload} onCancelReload={() => setConfirmReload(false)} onConfirmReload={() => { setConfirmReload(false); void editor.current?.load(); }} onCancel={() => editor.current?.cancel()} />;
 }

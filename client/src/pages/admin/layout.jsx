@@ -3,51 +3,35 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { adminRoleLabel } from './access.js';
+import { useDialogLifecycle } from './ui.jsx';
 import './admin.css';
 
 const NAV = [
-  {
-    group: '运营',
-    items: [
-      { key: 'overview', path: '/admin', label: '仪表盘概览', icon: 'fa-gauge-high' },
-    ],
-  },
-  {
-    group: '成员',
-    items: [
-      { key: 'users', path: '/admin/users', label: '用户管理', icon: 'fa-users' },
-      { key: 'advertising', path: '/admin/advertising', label: '广告投放', icon: 'fa-rectangle-ad' },
-      { key: 'badges', path: '/admin/badges', label: '徽章体系', icon: 'fa-medal' },
-      { key: 'sponsors', path: '/admin/sponsors', label: '赞助者管理', icon: 'fa-heart' },
-      { key: 'baby-verifications', path: '/admin/baby-verifications', label: '宝宝认证审核', icon: 'fa-shield-heart' },
-    ],
-  },
-  {
-    group: '内容',
-    items: [
-      { key: 'posts', path: '/admin/posts', label: '帖子', icon: 'fa-file-lines' },
-      { key: 'comments', path: '/admin/comments', label: '评论', icon: 'fa-comments' },
-      { key: 'novels', path: '/admin/novels', label: '小说作品', icon: 'fa-book-open' },
-    ],
-  },
-  {
-    group: '互动治理',
-    items: [
-      { key: 'reports', path: '/admin/reports', label: '举报中心', icon: 'fa-flag' },
-      { key: 'album-reports', path: '/admin/album-reports', label: '相册举报', icon: 'fa-images' },
-      { key: 'push', path: '/admin/notifications', label: '推送通知', icon: 'fa-bell' },
-      { key: 'diapers', path: '/admin/diapers', label: '纸尿裤 / 品牌', icon: 'fa-tags' },
-    ],
-  },
-  {
-    group: '系统',
-    items: [
-      { key: 'security', path: '/admin/security', label: '安全中心', icon: 'fa-shield-halved' },
-      { key: 'app-clients', path: '/admin/app-clients', label: 'App 管理', icon: 'fa-mobile-screen' },
-      { key: 'settings', path: '/admin/settings', label: '站点设置', icon: 'fa-gear' },
-      { key: 'site-access', path: '/admin/site-access', label: '站点状态', icon: 'fa-power-off' },
-    ],
-  },
+  { group: '运营', items: [
+    { key: 'overview', path: '/admin', label: '仪表盘', icon: 'fa-gauge-high' },
+    { key: 'advertising', path: '/admin/advertising', label: '广告投放', icon: 'fa-rectangle-ad' },
+    { key: 'sponsors', path: '/admin/sponsors', label: '赞助者管理', icon: 'fa-heart' },
+    { key: 'push', path: '/admin/notifications', label: '推送通知', icon: 'fa-bell' },
+  ] },
+  { group: '成员与认证', items: [
+    { key: 'users', path: '/admin/users', label: '用户管理', icon: 'fa-users' },
+    { key: 'baby-verifications', path: '/admin/baby-verifications', label: '宝宝认证审核', icon: 'fa-shield-heart' },
+    { key: 'badges', path: '/admin/badges', label: '徽章体系', icon: 'fa-medal' },
+  ] },
+  { group: '内容与治理', items: [
+    { key: 'posts', path: '/admin/posts', label: '帖子管理', icon: 'fa-file-lines' },
+    { key: 'comments', path: '/admin/comments', label: '评论管理', icon: 'fa-comments' },
+    { key: 'novels', path: '/admin/novels', label: '小说作品', icon: 'fa-book-open' },
+    { key: 'reports', path: '/admin/reports', label: '举报中心', icon: 'fa-flag' },
+    { key: 'album-reports', path: '/admin/album-reports', label: '相册举报', icon: 'fa-images' },
+    { key: 'diapers', path: '/admin/diapers', label: '纸尿裤 / 品牌', icon: 'fa-tags' },
+  ] },
+  { group: '系统与安全', items: [
+    { key: 'security', path: '/admin/security', label: '安全中心', icon: 'fa-shield-halved' },
+    { key: 'app-clients', path: '/admin/app-clients', label: 'App 管理', icon: 'fa-mobile-screen' },
+    { key: 'settings', path: '/admin/settings', label: '站点设置', icon: 'fa-gear' },
+    { key: 'site-access', path: '/admin/site-access', label: '站点状态', icon: 'fa-power-off' },
+  ] },
 ];
 
 const PAGE_META = {
@@ -73,9 +57,14 @@ const PAGE_META = {
 export default function AdminLayout({ active = 'overview', children }) {
   const { user, loading } = useAuth();
   const [sideOpen, setSideOpen] = useState(false);
+  const [narrow, setNarrow] = useState(false);
   const hamburgerRef = useRef(null);
   const sideRef = useRef(null);
+  const contentRef = useRef(null);
   const meta = PAGE_META[active] || { title: '管理后台', description: '' };
+  const group = NAV.find(section => section.items.some(item => item.key === active))?.group || '管理控制台';
+  const closeSide = () => setSideOpen(false);
+  useDialogLifecycle(sideOpen && narrow, closeSide, sideRef);
 
   useEffect(() => {
     document.title = `${meta.title} — ABDL Space`;
@@ -83,31 +72,14 @@ export default function AdminLayout({ active = 'overview', children }) {
   }, [meta.title]);
 
   useEffect(() => {
-    if (!sideOpen) return undefined;
-    const frame = window.requestAnimationFrame(() => {
-      const side = sideRef.current;
-      const target = side?.querySelector('[aria-current="page"]')
-        || side?.querySelector('a')
-        || side?.querySelector('button');
-      target?.focus();
-    });
-    const onKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        setSideOpen(false);
-        hamburgerRef.current?.focus();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [sideOpen]);
+    const media = window.matchMedia('(max-width: 1023px)');
+    const update = () => { setNarrow(media.matches); if (!media.matches) setSideOpen(false); };
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
 
-  const closeSide = () => {
-    setSideOpen(false);
-    window.requestAnimationFrame(() => hamburgerRef.current?.focus());
-  };
+  useEffect(() => { contentRef.current?.scrollTo({ top: 0, behavior: 'instant' }); }, [active]);
 
   if (loading) {
     return (
@@ -133,8 +105,9 @@ export default function AdminLayout({ active = 'overview', children }) {
 
   return (
     <div className="admin-console">
-      {sideOpen && <button type="button" className="ac-side-mask" aria-label="关闭管理导航" onClick={closeSide} />}
-      <aside ref={sideRef} id="admin-navigation" className={`ac-side ${sideOpen ? 'open' : ''}`} aria-label="管理后台导航">
+      <a className="ac-skip-link" href="#admin-main-content">跳到管理内容</a>
+      {sideOpen && narrow && <button type="button" className="ac-side-mask" aria-label="关闭管理导航" onClick={closeSide} />}
+      <aside ref={sideRef} id="admin-navigation" className={`ac-side ${sideOpen ? 'open' : ''}`} role={sideOpen && narrow ? 'dialog' : undefined} aria-modal={sideOpen && narrow || undefined} aria-label="管理后台导航">
         <div className="ac-side-head">
           <div className="ac-logo"><i className="fa-solid fa-baby" aria-hidden="true" /></div>
           <div className="ac-side-brand">
@@ -165,8 +138,8 @@ export default function AdminLayout({ active = 'overview', children }) {
           ))}
         </nav>
         <div className="ac-side-foot">
-          <span className="ac-status-dot" aria-hidden="true" />
-          <span>{import.meta.env.VITE_ADMIN_FIXTURE === '1' ? '本地验收' : '生产环境'}</span>
+          <i className={`fa-solid ${import.meta.env.VITE_ADMIN_FIXTURE === '1' ? 'fa-flask' : 'fa-shield-halved'}`} aria-hidden="true" />
+          <span>{import.meta.env.VITE_ADMIN_FIXTURE === '1' ? '本地验收' : '管理工作区'}</span>
           <span className="ac-side-version">Web v2</span>
         </div>
       </aside>
@@ -184,9 +157,9 @@ export default function AdminLayout({ active = 'overview', children }) {
           >
             <i className="fa-solid fa-bars" aria-hidden="true" />
           </button>
-          <div className="ac-topbar-title">{meta.title}</div>
+          <div className="ac-topbar-title"><span className="ac-topbar-group">{group}</span><span aria-hidden="true"> / </span><span>{meta.title}</span></div>
           <div className="ac-topbar-right">
-            <a className="ac-topbar-link" href="/">
+            <a className="ac-topbar-link" href="/" aria-label="返回前台">
               <i className="fa-solid fa-arrow-up-right-from-square" aria-hidden="true" />
               <span>返回前台</span>
             </a>
@@ -202,7 +175,7 @@ export default function AdminLayout({ active = 'overview', children }) {
             </span>
           </div>
         </header>
-        <main className="ac-content">
+        <main ref={contentRef} id="admin-main-content" className="ac-content" tabIndex={-1}>
           <div className="ac-content-inner">
             <div className="ac-page-heading">
               <div>

@@ -29,7 +29,12 @@ function useResource(key, fetcher) {
     }).catch(error => {
       if (current()) setState({ key, data: null, error: error.message || '加载失败，请重试', loading: false });
     });
-    return () => { gate.current.invalidate(); controller.abort(); };
+    const sessionChanging = () => {
+      gate.current.invalidate(); controller.abort();
+      setState(value => ({ ...value, loading: false, error: '管理员会话已变更，请重新打开此页。当前请求结果已废弃。' }));
+    };
+    window.addEventListener('auth-session-changing', sessionChanging);
+    return () => { window.removeEventListener('auth-session-changing', sessionChanging); gate.current.invalidate(); controller.abort(); };
     // 每个请求所需参数全部包含在 key 内，切换时旧响应不得回写。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
@@ -40,9 +45,36 @@ function RetryError({ error, retry }) {
   return error ? <div className="ac-app-feedback"><ErrorBox msg={error} /><button type="button" className="ac-btn" onClick={retry}>重新加载</button></div> : null;
 }
 
+// 隐藏分组只改变呈现，所有独立编辑器始终挂载，切换不会清空草稿或令牌输入。
+export const APP_MODULE_GROUPS = [
+  { id: 'updates', label: '更新与版本', modules: ['更新提醒', '版本废弃'] },
+  { id: 'nbw', label: 'NBW 联动', modules: ['指定版本仅本站', 'V2 模式', '上游域名'] },
+  { id: 'ai-security', label: 'AI 与验证', modules: ['AI 服务', '注册安全验证'] },
+  { id: 'translation', label: '翻译', modules: ['翻译策略', '翻译词库'] },
+  { id: 'observation', label: '请求观测', modules: ['统计与用户明细'] },
+];
+
+export function AppModuleNavigation({ active, onSelect }) {
+  return <nav className="ac-app-module-nav" aria-label="App 管理模块">
+    {APP_MODULE_GROUPS.map(group => <button key={group.id} type="button" className={`ac-btn${active === group.id ? ' primary' : ''}`} aria-pressed={active === group.id} aria-controls={`app-group-${group.id}`} onClick={() => onSelect(group.id)}><span>{group.label}</span><small>{group.modules.join(' / ')}</small></button>)}
+  </nav>;
+}
+
+export function DraftReloadButton({ dirty, busy, onReload, children }) {
+  const [confirm, setConfirm] = useState(false);
+  return <div className="ac-app-reload">
+    <button type="button" className="ac-btn" disabled={busy} onClick={() => dirty ? setConfirm(true) : onReload()}>{children}</button>
+    {confirm && <div className="ac-app-note" role="group" aria-label="确认替换当前模块草稿"><p>重新加载成功后将替换本模块未保存草稿；其他模块不受影响。失败仍保留当前输入。</p><div className="ac-action-group"><button type="button" className="ac-btn" disabled={busy} onClick={() => setConfirm(false)}>取消，保留草稿</button><button type="button" className="ac-btn" disabled={busy} onClick={() => { setConfirm(false); onReload(); }}>确认重新加载</button></div></div>}
+  </div>;
+}
+
+export function AppDraftStatus({ dirty, saving, notice }) {
+  return <p role="status" aria-live="polite" className="ac-section-note">{saving ? '正在保存本模块，其他模块不会一并提交…' : notice || (dirty ? '表单有未保存更改，尚未生效。' : '当前表单与已保存配置一致。')}</p>;
+}
+
 const reminderForm = reminder => ({ ...reminder, versionText: reminder.version_codes.join('\n'), message: reminder.message === DEFAULT_APP_REMINDER_MESSAGE ? '' : reminder.message });
 
-function ReminderEditor() {
+export function ReminderEditor() {
   const [revision, setRevision] = useState(0);
   const resource = useResource(String(revision), signal => adminAPI.appClientReminder({ signal }));
   const [form, setForm] = useState(() => reminderForm(DEFAULT_APP_REMINDER));
@@ -52,13 +84,18 @@ function ReminderEditor() {
   const [notice, setNotice] = useState('');
   const saveGate = useRef(createRequestGate());
   const saveController = useRef(null);
-  useEffect(() => () => { saveGate.current.invalidate(); saveController.current?.abort(); }, []);
+  useEffect(() => {
+    const stop = () => { saveGate.current.invalidate(); saveController.current?.abort(); };
+    window.addEventListener('auth-session-changing', stop);
+    return () => { window.removeEventListener('auth-session-changing', stop); stop(); };
+  }, []);
   useEffect(() => {
     if (!resource.data) return;
     setSaved(resource.data); setForm(reminderForm(resource.data));
     setError(''); setNotice('');
   }, [resource.data]);
   const change = patch => { setForm(value => ({ ...value, ...patch })); setError(''); setNotice(''); };
+  const dirty = saved && JSON.stringify(form) !== JSON.stringify(reminderForm(saved));
   let preview = [];
   try { preview = normalizeVersionCodes(form.versionText, '提醒'); } catch { /* 保存时显示校验错误。 */ }
   const save = async event => {
@@ -100,14 +137,14 @@ function ReminderEditor() {
         </FormField>
         <div><h3 className="ac-app-subtitle">提醒内容预览（纯文本，尚未保存）</h3><p id="app-reminder-message-preview" className="ac-app-note ac-app-plaintext">{form.message.trim() || DEFAULT_APP_REMINDER_MESSAGE}</p></div>
         <ErrorBox msg={error} />
-        <p role="status" aria-live="polite" className="ac-section-note">{notice}</p>
-        <div className="ac-action-group"><button type="submit" className="ac-btn primary" disabled={saving}>{saving ? '正在保存提醒…' : '保存 App 更新提醒'}</button><button type="button" className="ac-btn" disabled={saving} onClick={() => { setError(''); setNotice(''); setRevision(value => value + 1); }}>重新加载已保存提醒</button></div>
+        <AppDraftStatus dirty={dirty} saving={saving} notice={notice} />
+        <div className="ac-action-group"><button type="submit" className="ac-btn primary" disabled={saving || !dirty}>{saving ? '正在保存提醒…' : '保存 App 更新提醒'}</button><DraftReloadButton dirty={dirty} busy={saving} onReload={() => setRevision(value => value + 1)}>重新加载已保存提醒</DraftReloadButton></div>
       </fieldset>
     </form>}
   </Card>;
 }
 
-function PolicyEditor() {
+export function PolicyEditor() {
   const [revision, setRevision] = useState(0);
   const resource = useResource(String(revision), signal => adminAPI.appClientPolicy({ signal }));
   const [form, setForm] = useState({ ...DEFAULT_APP_POLICY, versionText: '' });
@@ -117,7 +154,12 @@ function PolicyEditor() {
   const [notice, setNotice] = useState('');
   const mounted = useRef(false);
   const saveController = useRef(null);
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false; saveController.current?.abort(); }; }, []);
+  useEffect(() => {
+    mounted.current = true;
+    const stop = () => { mounted.current = false; saveController.current?.abort(); };
+    window.addEventListener('auth-session-changing', stop);
+    return () => { window.removeEventListener('auth-session-changing', stop); stop(); };
+  }, []);
   useEffect(() => {
     if (!resource.data) return;
     setSaved(resource.data);
@@ -125,11 +167,12 @@ function PolicyEditor() {
     setError(''); setNotice('');
   }, [resource.data]);
   const change = patch => { setForm(value => ({ ...value, ...patch })); setError(''); setNotice(''); };
+  const dirty = saved && JSON.stringify(form) !== JSON.stringify({ ...saved, versionText: saved.deprecated_version_codes.join('\n') });
   let preview = [];
   try { preview = normalizeVersionCodes(form.versionText); } catch { /* 保存时给出具体错误，不静默丢弃。 */ }
   const save = async event => {
     event.preventDefault();
-    if (saving || resource.loading || resource.error) return;
+    if (saveController.current || saving || resource.loading || resource.error || !resource.data) return;
     let payload;
     try { payload = policyPayload(form); } catch (e) { setError(e.message); return; }
     setSaving(true); setError(''); setNotice('');
@@ -140,7 +183,7 @@ function PolicyEditor() {
       setSaved(policy); setForm({ ...policy, versionText: policy.deprecated_version_codes.join('\n') });
       setNotice('App 策略已保存；网页访问不受影响。');
     } catch (e) { if (mounted.current) setError(`保存失败：${e.message || '请重试'}。当前输入已保留；若响应中断，请重新加载确认服务器状态。`); }
-    finally { if (mounted.current) setSaving(false); }
+    finally { if (mounted.current) { saveController.current = null; setSaving(false); } }
   };
   return <Card title="App 版本废弃（只返回假帖）" description="默认关闭。命中的原生 App 时间线只返回更新提示假帖，不返回真实帖子；优先于更新提醒，网页不受影响。完整四字段策略独立保存。" icon="fa-mobile-screen">
     {resource.loading ? <Loading text="正在读取 App 策略…" /> : resource.error ? <RetryError error={resource.error} retry={() => setRevision(value => value + 1)} /> : <form onSubmit={save}>
@@ -158,8 +201,8 @@ function PolicyEditor() {
           <textarea id="app-update-message" className="ac-textarea" rows={3} maxLength={MAX_UPDATE_MESSAGE} value={form.update_message} onChange={e => change({ update_message: e.target.value })} />
         </FormField>
         <ErrorBox msg={error} />
-        <p role="status" aria-live="polite" className="ac-section-note">{notice}</p>
-        <div className="ac-action-group"><button type="submit" className="ac-btn primary" disabled={saving}>{saving ? '正在保存…' : '保存 App 策略'}</button><button type="button" className="ac-btn" disabled={saving} onClick={() => setRevision(value => value + 1)}>重新加载已保存策略</button></div>
+        <AppDraftStatus dirty={dirty} saving={saving} notice={notice} />
+        <div className="ac-action-group"><button type="submit" className="ac-btn primary" disabled={saving || !dirty}>{saving ? '正在保存…' : '保存 App 策略'}</button><DraftReloadButton dirty={dirty} busy={saving} onReload={() => setRevision(value => value + 1)}>重新加载已保存策略</DraftReloadButton></div>
       </fieldset>
     </form>}
   </Card>;
@@ -167,7 +210,7 @@ function PolicyEditor() {
 
 const nbwLocalOnlyForm = config => ({ ...config, versionText: config.version_codes.join('\n') });
 
-function NbwLocalOnlyEditor() {
+export function NbwLocalOnlyEditor() {
   const [loadKey, setLoadKey] = useState(0);
   const resource = useResource(String(loadKey), signal => adminAPI.appClientNbwLocalOnly({ signal }));
   const [form, setForm] = useState(() => nbwLocalOnlyForm(DEFAULT_APP_NBW_LOCAL_ONLY));
@@ -177,7 +220,11 @@ function NbwLocalOnlyEditor() {
   const [notice, setNotice] = useState('');
   const saveGate = useRef(createRequestGate());
   const saveController = useRef(null);
-  useEffect(() => () => { saveGate.current.invalidate(); saveController.current?.abort(); }, []);
+  useEffect(() => {
+    const stop = () => { saveGate.current.invalidate(); saveController.current?.abort(); };
+    window.addEventListener('auth-session-changing', stop);
+    return () => { window.removeEventListener('auth-session-changing', stop); stop(); };
+  }, []);
   useEffect(() => {
     if (!resource.data) return;
     setSaved(resource.data); setForm(nbwLocalOnlyForm(resource.data));
@@ -224,7 +271,7 @@ function NbwLocalOnlyEditor() {
         <p id="app-nbw-local-only-unversioned-note" className="ac-section-note">默认不勾选。仅针对已识别为原生 App 但版本号缺失或格式无效的请求，不包含网页。此项与已知版本列表独立：总开关启用时，勾选后即使列表为空也会命中这些 App；取消勾选不影响列表匹配。列表为空且此项未勾选时，不命中任何 App。</p>
         <ErrorBox msg={error} />
         <p id="app-nbw-local-only-form-status" role="status" aria-live="polite" className="ac-section-note">{notice || (saved ? dirty ? '表单有未保存更改，尚未生效。' : '当前表单与已保存配置一致。' : '')}</p>
-        <div className="ac-action-group"><button type="submit" className="ac-btn primary" disabled={saving}>{saving ? '正在保存仅本站模式…' : '保存仅本站模式'}</button><button type="button" className="ac-btn" disabled={saving} onClick={reload}>重新加载已保存仅本站模式</button></div>
+        <div className="ac-action-group"><button type="submit" className="ac-btn primary" disabled={saving || !dirty}>{saving ? '正在保存仅本站模式…' : '保存仅本站模式'}</button><DraftReloadButton dirty={!!dirty} busy={saving} onReload={reload}>重新加载已保存仅本站模式</DraftReloadButton></div>
       </fieldset>
     </form>}
   </Card>;
@@ -232,7 +279,7 @@ function NbwLocalOnlyEditor() {
 
 const NBW_V2_MODE_LABELS = { local_only: '仅本站（完全关闭远端）', read_only: '只读（可浏览外站内容）', full: '完整（自动同步与外站互动）' };
 
-function NbwV2PolicyEditor() {
+export function NbwV2PolicyEditor() {
   const [loadKey, setLoadKey] = useState(0);
   const resource = useResource(String(loadKey), signal => adminAPI.nbwV2Policy({ signal }));
   const [form, setForm] = useState(DEFAULT_NBW_V2_POLICY);
@@ -242,7 +289,11 @@ function NbwV2PolicyEditor() {
   const [notice, setNotice] = useState('');
   const saveGate = useRef(createRequestGate());
   const saveController = useRef(null);
-  useEffect(() => () => { saveGate.current.invalidate(); saveController.current?.abort(); }, []);
+  useEffect(() => {
+    const stop = () => { saveGate.current.invalidate(); saveController.current?.abort(); };
+    window.addEventListener('auth-session-changing', stop);
+    return () => { window.removeEventListener('auth-session-changing', stop); stop(); };
+  }, []);
   useEffect(() => {
     if (!resource.data) return;
     setSaved(resource.data); setForm(resource.data);
@@ -266,7 +317,7 @@ function NbwV2PolicyEditor() {
       setSaved(config); setForm(config);
       setNotice('宝宝新天地 V2 模式已保存，对后续请求立即生效。');
     } catch (e) {
-      if (current()) setError(`保存失败：${e.message || '请重试'}。若响应中断，请重新加载确认服务器状态。`);
+      if (current()) setError(`保存失败：${e.message || '请重试'}。当前输入已保留，未确认生效；若响应中断，请重新加载确认服务器状态。`);
     } finally {
       if (current()) { saveController.current = null; setSaving(false); }
     }
@@ -286,13 +337,18 @@ function NbwV2PolicyEditor() {
         <p className="ac-section-note">仅本站：新版 App 看不到外站内容也不能互动，本站发帖完全正常。只读：可浏览外站帖子与资料，所有外站写入不出站。完整：公开内容自动同步、外站点赞收藏开放；AI 分类失败仅在用户同意过默认板块时回退，不影响本站。</p>
         <ErrorBox msg={error} />
         <p role="status" aria-live="polite" className="ac-section-note">{notice || (saved ? dirty ? '表单有未保存更改，尚未生效。' : '当前表单与已保存配置一致。' : '')}</p>
-        <div className="ac-action-group"><button type="submit" className="ac-btn primary" disabled={saving}>{saving ? '正在保存 V2 模式…' : '保存 V2 模式'}</button><button type="button" className="ac-btn" disabled={saving} onClick={reload}>重新加载已保存模式</button></div>
+        <div className="ac-action-group"><button type="submit" className="ac-btn primary" disabled={saving || !dirty}>{saving ? '正在保存 V2 模式…' : '保存 V2 模式'}</button><DraftReloadButton dirty={!!dirty} busy={saving} onReload={reload}>重新加载已保存模式</DraftReloadButton></div>
       </fieldset>
     </form>}
   </Card>;
 }
 
-function AppClientsContent() {
+export function AppModulePanel({ id, active, children }) {
+  return <section id={`app-group-${id}`} className="ac-page-stack ac-app-module-panel" hidden={active !== id} aria-label={APP_MODULE_GROUPS.find(group => group.id === id)?.label}>{children}</section>;
+}
+
+export function AppClientsContent() {
+  const [active, setActive] = useState('updates');
   const [revision, setRevision] = useState(0);
   const stats = useResource(`stats:${revision}`, signal => adminAPI.appClientStats({ signal }));
   const [filters, setFilters] = useState({ version_code: 'all', page: 1, q: '' });
@@ -300,20 +356,31 @@ function AppClientsContent() {
   const [listRevision, setListRevision] = useState(0);
   const listKey = JSON.stringify([stats.data?.available === true, filters, revision, listRevision]);
   const list = useResource(listKey, signal => stats.data?.available === true ? adminAPI.appClientUsers({ ...filters, limit: 20 }, { signal }) : Promise.resolve(null));
-  const selectVersion = value => setFilters(current => ({ ...current, version_code: value, page: 1 }));
+  const selectVersion = value => { setActive('observation'); setFilters(current => ({ ...current, version_code: value, page: 1 })); };
   const historical = filters.version_code !== 'all';
   const versionOptions = stats.data?.available ? stats.data.versions.filter(row => row.version_code !== null).map(row => row.version_code).sort((a, b) => b - a) : [];
   if (filters.version_code !== 'all' && filters.version_code !== 'missing' && !versionOptions.includes(Number(filters.version_code))) versionOptions.push(Number(filters.version_code));
   return <div className="ac-page-stack ac-app-clients">
-    <ReminderEditor />
-    <PolicyEditor />
-    <NbwLocalOnlyEditor />
-    <NbwV2PolicyEditor />
-    <AppNBWUpstreamCard />
-    <AppAIProviderCard />
-    <AppHumanCheckPolicyCard />
-    <TranslationPolicyCard />
-    <TranslationGlossaryCard />
+    <div className="ac-app-note"><strong>10 个模块，按任务分组</strong><p>每张配置卡独立保存，不会一并提交其他草稿。切换分组不会卸载编辑器；未保存内容仅留在本页内存，离开页面或切换账号会清空。</p></div>
+    <AppModuleNavigation active={active} onSelect={setActive} />
+    <AppModulePanel id="updates" active={active}>
+      <ReminderEditor />
+      <PolicyEditor />
+    </AppModulePanel>
+    <AppModulePanel id="nbw" active={active}>
+      <NbwLocalOnlyEditor />
+      <NbwV2PolicyEditor />
+      <AppNBWUpstreamCard />
+    </AppModulePanel>
+    <AppModulePanel id="ai-security" active={active}>
+      <AppAIProviderCard />
+      <AppHumanCheckPolicyCard />
+    </AppModulePanel>
+    <AppModulePanel id="translation" active={active}>
+      <TranslationPolicyCard />
+      <TranslationGlossaryCard />
+    </AppModulePanel>
+    <AppModulePanel id="observation" active={active}>
     <Card title="原生 App 请求观测统计" icon="fa-chart-column" description="统计已认证的原生时间线请求，不是安装量、设备数、下载量，也不覆盖 App 的所有活动。" action={<button type="button" className="ac-btn" disabled={stats.loading} onClick={() => setRevision(value => value + 1)}>刷新观测数据</button>}>
       <p className="ac-app-note">「未上报版本号」包括未上报有效版本号及格式无效的请求，不代表未安装。仅从数据库迁移开始观测，不回填历史数据。账号总数按账号去重；同一账号可使用多个版本，也可先未上报再升级，所以「曾上报」与「曾未上报」可能重叠，不能相加当作总账号数。</p>
       {stats.loading ? <Loading text="正在读取观测统计…" /> : stats.error ? <RetryError error={stats.error} retry={() => setRevision(value => value + 1)} /> : stats.data?.available === false ? <div className="ac-app-note" role="status">统计不可用：后端尚未完成 App 观测数据库迁移，或观测数据读取失败。这不是 0 个用户；版本明细和用户列表暂不可用。</div> : stats.data && <>
@@ -336,6 +403,7 @@ function AppClientsContent() {
         <Pagination {...list.data.pagination} onChange={page => setFilters(current => ({ ...current, page }))} />
       </>}
     </Card>
+    </AppModulePanel>
   </div>;
 }
 

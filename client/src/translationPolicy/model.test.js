@@ -300,7 +300,11 @@ test('fixture HTTP管理员guard优先，CAS/503/422/no-store与Origin边界，�
 test('仅AppClients一处挂卡，继承管理员/账号边界与三主题样式，不改provider、不持久化草稿', () => {
   const page = source('../pages/admin/appClients.jsx'), card = source('./Card.jsx'), api = source('../api.js');
   assert.equal((page.match(/<TranslationPolicyCard \/>/g) || []).length, 1);
-  assert.match(page, /<AppAIProviderCard \/>\s*<AppHumanCheckPolicyCard \/>\s*<TranslationPolicyCard \/>/);
+  const orderedCards = [...page.matchAll(/<(AppAIProviderCard|AppHumanCheckPolicyCard|TranslationPolicyCard) \/>/g)].map(match => match[1]);
+  assert.deepEqual(orderedCards, ['AppAIProviderCard', 'AppHumanCheckPolicyCard', 'TranslationPolicyCard'], '卡片各挂载一次且保留 AI / 验证 / 翻译顺序');
+  const translationPanel = /<AppModulePanel id="translation" active=\{active\}>([\s\S]*?)<\/AppModulePanel>/.exec(page)?.[1];
+  assert.ok(translationPanel); assert.match(translationPanel, /<TranslationPolicyCard \/>/); assert.doesNotMatch(translationPanel, /active\s*(?:===|&&|\?)/, '切换分组不能卸载翻译草稿');
+  assert.match(page, /hidden=\{active !== id\}/);
   assert.match(page, /user\?\.role === 'admin'/); assert.match(page, /AppClientsContent key=\{`\$\{user.id\}:\$\{token\}`\}/);
   assert.match(card, /auth-session-changing/); assert.match(card, /current.dispose\(\)/); assert.match(api, /\.\.\.createTranslationPolicyAPI\(apiFetch\)/);
   for (const path of ['./model.js', './api.js', './fixture.js', './Card.jsx']) assert.doesNotMatch(source(path), /localStorage|sessionStorage|console\.|\bfetch\(|dangerouslySetInnerHTML|challenges\.cloudflare\.com/);

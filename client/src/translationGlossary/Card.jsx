@@ -14,8 +14,10 @@ export function TranslationGlossaryCardView({ state, onAdd, onChange, onRemove, 
   return <Card title="App 中英翻译词库" icon="fa-book" className="ac-translation-glossary-card" description="管理统一 App AI 的中英双向参考术语；同条多个变体是同义候选，实际翻译按上下文选择，不作本地字符串替换。">
     <div className="ac-glossary-content">
       <p id="translation-glossary-cache-warning" className="ac-app-note">{TRANSLATION_GLOSSARY_CACHE_WARNING}</p>
+      <details className="ac-glossary-details"><summary>词库限制、保存范围与草稿安全</summary>
       <p id="translation-glossary-limits" className="ac-section-note">最多 200 条；中文、英文各 1–10 个非空变体，每行一个，每变体最多 120 个 Unicode 码点；可选备注最多 500 码点。trim/NFC 后同条去重，跨条同语言不能重复（英文忽略大小写）。规范化词条 JSON ≤64 KiB，完整请求 ≤96 KiB；服务器校验为准。</p>
       <p id="translation-glossary-safety" className="ac-section-note">只读取和显式保存全部词库，不调用 AI、不测试供应商、不设置密钥。术语和备注均为不可信纯文本，备注不是系统指令。草稿仅在本页内存，离开页面或切换账号会丢失。</p>
+      </details>
       {saved && <div id="translation-glossary-saved-summary" className="ac-app-policy-status" role="status" aria-live="polite"><Pill tone="slate">已保存 {saved.entries.length} 条</Pill><span>词库版本：{saved.revision}；最后成功读取或保存的快照{needsReload ? '，尚需重新确认服务器状态' : ''}。</span></div>}
       {loading && <Loading text="正在读取翻译词库…" />}
       <ErrorBox msg={error} />
@@ -27,6 +29,7 @@ export function TranslationGlossaryCardView({ state, onAdd, onChange, onRemove, 
         <button type="button" className="ac-btn" disabled={disabled || draft.length >= TRANSLATION_GLOSSARY_LIMITS.entries} onClick={onAdd}>添加词条</button>
         {!draft.length ? <Empty text="词库为空（0 条）；可添加中英同义词，不会自动调用 AI。" /> : !visible.length ? <Empty text="没有匹配的词条；清空搜索可查看全部草稿，其他词条没有被删除。" /> : <ol className="ac-glossary-list" aria-label="词库草稿，可直接编辑">
           {visible.map(entry => <li key={entry.id} className="ac-glossary-entry">
+            <details className="ac-glossary-details" open={!entry.chineseText.trim() || !entry.englishText.trim()}><summary>词条 {draft.indexOf(entry) + 1} · {entry.chineseText.split('\n')[0] || '待填写中文'} / {entry.englishText.split('\n')[0] || '待填写英文'}</summary>
             <fieldset className="ac-app-fieldset" disabled={disabled}>
               <legend>编辑词条 {draft.indexOf(entry) + 1}</legend>
               <p className="ac-section-note">UUID：{entry.id}</p>
@@ -42,7 +45,7 @@ export function TranslationGlossaryCardView({ state, onAdd, onChange, onRemove, 
                 <textarea id={`glossary-note-${entry.id}`} className="ac-textarea" rows={2} value={entry.note} onChange={event => onChange?.(entry.id, { note: event.target.value })} />
               </FormField>
               <button type="button" className="ac-btn danger" aria-label={`从草稿删除词条 ${draft.indexOf(entry) + 1}`} onClick={() => onRemove?.(entry.id)}>删除词条（尚未保存）</button>
-            </fieldset>
+            </fieldset></details>
           </li>)}
         </ol>}
         <button type="submit" className="ac-btn primary" disabled={disabled || !dirty}>保存全部词库</button>

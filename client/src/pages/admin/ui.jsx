@@ -1,66 +1,26 @@
-import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
+import { cloneElement, createContext, isValidElement, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
 import NBWImage from '../../components/NBWImage.jsx';
+import { registerAdminDialog } from './dialog.js';
 
 /** 管理控制台共享 UI 原语。 */
 const ConfirmCtx = createContext(null);
 
-function useDialogLifecycle(open, onClose, panelRef) {
-  const previousFocus = useRef(null);
+/** Share the same top-layer focus, Escape and scroll lifecycle across every admin overlay. */
+export function useDialogLifecycle(open, onClose, panelRef, { initialFocus = 'first' } = {}) {
   const onCloseRef = useRef(onClose);
-
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
   useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    previousFocus.current = document.activeElement;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const frame = window.requestAnimationFrame(() => {
-      const panel = panelRef.current;
-      const target = panel?.querySelector('[data-autofocus]')
-        || panel?.querySelector('input:not(:disabled), select:not(:disabled), textarea:not(:disabled)')
-        || panel?.querySelector('button:not(:disabled), [href], [tabindex]:not([tabindex="-1"])');
-      target?.focus();
-    });
-
-    const onKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onCloseRef.current?.();
-        return;
-      }
-      if (event.key !== 'Tab' || !panelRef.current) return;
-      const focusable = [...panelRef.current.querySelectorAll('button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])')];
-      if (!focusable.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = previousOverflow;
-      previousFocus.current?.focus?.();
-    };
-  }, [open, panelRef]);
+    const panel = panelRef.current;
+    if (!open || !panel) return undefined;
+    return registerAdminDialog(panel, () => onCloseRef.current?.(), { initialFocus });
+  }, [open, panelRef, initialFocus]);
 }
 
 function ConfirmDialog({ state, onClose }) {
   const panelRef = useRef(null);
   const titleId = useId();
   const close = useCallback((value) => onClose(value), [onClose]);
-  useDialogLifecycle(!!state, () => close(false), panelRef);
+  useDialogLifecycle(!!state, () => close(false), panelRef, { initialFocus: state?.danger ? 'cancel' : 'first' });
   if (!state) return null;
 
   return (
@@ -81,8 +41,8 @@ function ConfirmDialog({ state, onClose }) {
           <div className="ac-confirm-message">{state.message}</div>
         </div>
         <div className="ac-modal-foot">
-          <button type="button" className="ac-btn" onClick={() => close(false)}>取消</button>
-          <button type="button" className={`ac-btn ${state.danger ? 'danger solid' : 'primary'}`} data-autofocus onClick={() => close(true)}>{state.okText}</button>
+          <button type="button" className="ac-btn" data-dialog-cancel onClick={() => close(false)}>取消</button>
+          <button type="button" className={`ac-btn ${state.danger ? 'danger solid' : 'primary'}`} data-autofocus={!state.danger || undefined} onClick={() => close(true)}>{state.okText}</button>
         </div>
       </div>
     </div>
@@ -196,7 +156,7 @@ export function Pagination({ page, totalPages, total, onChange, size = 'sm' }) {
   return (
     <div className={`ac-pagination-wrap ${size}`}>
       <span className="ac-page-info">共 {total ?? 0} 条 · 第 {page}/{totalPages} 页</span>
-      <nav className="ac-pagination" aria-label="分页">
+      <nav className="ac-pagination ac-pagination-desktop" aria-label="分页">
         <button type="button" className="ac-page-btn" aria-label="上一页" disabled={page <= 1} onClick={() => onChange(page - 1)}>
           <i className="fa-solid fa-chevron-left" aria-hidden="true" />
         </button>
@@ -215,6 +175,11 @@ export function Pagination({ page, totalPages, total, onChange, size = 'sm' }) {
         <button type="button" className="ac-page-btn" aria-label="下一页" disabled={page >= totalPages} onClick={() => onChange(page + 1)}>
           <i className="fa-solid fa-chevron-right" aria-hidden="true" />
         </button>
+      </nav>
+      <nav className="ac-pagination ac-pagination-compact" aria-label="移动列表分页">
+        <button type="button" className="ac-btn" disabled={page <= 1} onClick={() => onChange(page - 1)}>上一页</button>
+        <span className="ac-page-position" aria-current="page">{page} / {totalPages}</span>
+        <button type="button" className="ac-btn" disabled={page >= totalPages} onClick={() => onChange(page + 1)}>下一页</button>
       </nav>
     </div>
   );
@@ -336,25 +301,54 @@ export function StatCard({ label, value, icon, tone = 'blue', meta, compact = fa
   );
 }
 
+function AutoFormField(props) {
+  const generatedId = useId();
+  return <FormField {...props} htmlFor={`admin-field-${generatedId}`} />;
+}
+
 export function FormField({ label, hint, error, required, htmlFor, children, className = '' }) {
+  const fieldId = htmlFor || (isValidElement(children) ? children.props.id : undefined);
+  if (!fieldId) return <AutoFormField {...{ label, hint, error, required, children, className }} />;
+  const hintId = `${fieldId}-hint`, errorId = `${fieldId}-error`;
+  const nativeField = isValidElement(children) && ['input', 'select', 'textarea'].includes(children.type);
+  const describedBy = [nativeField && children.props['aria-describedby'], hint && hintId, error && errorId].filter(Boolean).join(' ') || undefined;
+  const field = nativeField ? cloneElement(children, { id: fieldId, 'aria-describedby': describedBy, 'aria-invalid': error ? true : children.props['aria-invalid'], 'aria-required': required || children.props['aria-required'] || undefined }) : children;
   return (
     <div className={`ac-form-field ${className}`.trim()}>
-      {label && <label className="ac-field-label" htmlFor={htmlFor}>{label}{required && <span aria-hidden="true"> *</span>}</label>}
-      {children}
-      {hint && <div className="ac-field-hint">{hint}</div>}
-      {error && <div className="ac-field-error" role="alert">{error}</div>}
+      {label && <label className="ac-field-label" htmlFor={fieldId}>{label}{required && <span aria-hidden="true"> *</span>}</label>}
+      {field}
+      {hint && <div id={hintId} className="ac-field-hint">{hint}</div>}
+      {error && <div id={errorId} className="ac-field-error" role="alert">{error}</div>}
     </div>
   );
 }
 
-export function Tabs({ items, value, onChange, label = '页面分类' }) {
+export function Tabs({ items, value, onChange, label = '页面分类', id }) {
+  const generatedId = useId();
+  const groupId = id || `admin-tabs-${generatedId}`;
+  const selected = items.some(item => item.value === value && !item.disabled) ? value : items.find(item => !item.disabled)?.value;
+  const moveFocus = event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    const tabs = [...event.currentTarget.querySelectorAll('[role="tab"]:not(:disabled)')];
+    const current = tabs.indexOf(event.target);
+    if (current < 0) return;
+    event.preventDefault();
+    const index = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    // Manual activation keeps arrow-key exploration from submitting queries or discarding a draft.
+    tabs.forEach((tab, position) => { tab.tabIndex = position === index ? 0 : -1; });
+    tabs[index]?.focus();
+  };
   return (
-    <div className="ac-tabs" role="tablist" aria-label={label}>
+    <div id={groupId} className="ac-tabs" role="tablist" aria-label={label} onKeyDown={moveFocus}>
       {items.map(item => (
         <button
+          id={item.tabId || `${groupId}-${item.value}`}
           type="button"
           role="tab"
           aria-selected={value === item.value}
+          aria-controls={item.panelId}
+          tabIndex={selected === item.value ? 0 : -1}
+          disabled={item.disabled}
           className={`ac-tab ${value === item.value ? 'active' : ''}`}
           key={item.value}
           onClick={() => onChange(item.value)}
@@ -389,12 +383,41 @@ export function Card({ title, description, icon, action, children, pad = true, f
   );
 }
 
-export function ErrorBox({ msg }) {
+export function ErrorBox({ msg, onRetry, retryText = '重新读取' }) {
   if (!msg) return null;
   return (
     <div className="ac-error-box" role="alert">
       <i className="fa-solid fa-circle-exclamation" aria-hidden="true" />
       <span>{msg}</span>
+      {onRetry && <button type="button" className="ac-btn" onClick={onRetry}>{retryText}</button>}
     </div>
   );
+}
+
+/** Distinguish unavailable, stale and genuinely empty server resources without inventing data. */
+export function ResourceState({ loading, error, hasData = false, empty = false, onRetry, loadingText = '正在读取…', emptyText = '暂无记录', children }) {
+  if (loading && !hasData) return <Loading text={loadingText} />;
+  if (error && !hasData) return <ErrorBox msg={error} onRetry={onRetry} />;
+  return <div className="ac-resource" aria-busy={loading || undefined}>
+    {loading && <p className="ac-refresh-note" role="status"><i className="fa-solid fa-spinner fa-spin" aria-hidden="true" />正在刷新，以下为上次读取的结果。</p>}
+    {error && <ErrorBox msg={`${error}；以下为上次读取的结果。`} onRetry={onRetry} />}
+    {empty ? <Empty text={emptyText} /> : children}
+  </div>;
+}
+
+/** Present local draft state without implying that a write was accepted by the server. */
+export function SaveState({ dirty, busy, error, savedText = '当前显示已读取的配置' }) {
+  return <div className={`ac-save-state ${error ? 'has-error' : dirty ? 'is-dirty' : ''}`} role={error ? 'alert' : 'status'}>
+    <i className={`fa-solid ${error ? 'fa-circle-exclamation' : busy ? 'fa-spinner fa-spin' : dirty ? 'fa-pen-to-square' : 'fa-circle-check'}`} aria-hidden="true" />
+    <span>{error || (busy ? '正在提交，请勿重复操作…' : dirty ? '有未保存修改' : savedText)}</span>
+  </div>;
+}
+
+/** Readable narrow-screen record with actions kept beside its object context. */
+export function RecordCard({ title, subtitle, meta, actions, children, className = '' }) {
+  return <article className={`ac-record-card ${className}`.trim()}>
+    <div className="ac-record-head"><div><div className="ac-record-title">{title}</div>{subtitle && <div className="ac-record-subtitle">{subtitle}</div>}</div>{meta && <div className="ac-record-meta">{meta}</div>}</div>
+    {children}
+    {actions && <div className="ac-record-actions">{actions}</div>}
+  </article>;
 }

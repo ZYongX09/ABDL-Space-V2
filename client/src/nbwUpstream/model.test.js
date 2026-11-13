@@ -272,7 +272,11 @@ test('实际api.js认证注入使用cookie/token/no-store，PUT body仅mode字�
 
 test('卡片接在V2模式之后、AI卡片之前；api.js最小接线；模块无本地存储/console/fetch/自填输入', () => {
   const page = source('../pages/admin/appClients.jsx'), card = source('../pages/admin/AppNBWUpstreamCard.jsx'), api = source('../api.js');
-  assert.match(page, /<NbwV2PolicyEditor \/>\s*<AppNBWUpstreamCard \/>\s*<AppAIProviderCard \/>/);
+  const orderedCards = [...page.matchAll(/<(NbwV2PolicyEditor|AppNBWUpstreamCard|AppAIProviderCard) \/>/g)].map(match => match[1]);
+  assert.deepEqual(orderedCards, ['NbwV2PolicyEditor', 'AppNBWUpstreamCard', 'AppAIProviderCard'], '卡片唯一挂载并保留 V2 / 上游 / AI 顺序');
+  const nbwPanel = /<AppModulePanel id="nbw" active=\{active\}>([\s\S]*?)<\/AppModulePanel>/.exec(page)?.[1];
+  assert.ok(nbwPanel); assert.match(nbwPanel, /<NbwV2PolicyEditor \/>\s*<AppNBWUpstreamCard \/>/); assert.doesNotMatch(nbwPanel, /active\s*(?:===|&&|\?)/);
+  assert.match(page, /hidden=\{active !== id\}/);
   assert.match(page, /import AppNBWUpstreamCard from '\.\/AppNBWUpstreamCard';/);
   assert.match(page, /AppClientsContent key=\{`\$\{user\.id\}:\$\{token\}`\}/);
   assert.match(card, /auth-session-changing/); assert.match(card, /current\.dispose\(\)/);
