@@ -15,7 +15,12 @@ function LedgerAvatar({ src, name, known = true }) {
   </span>;
 }
 
-function RecordRow({ record, onRefund, refundOpen }) {
+function LedgerValue({ value, label }) {
+  const text = String(value ?? '—');
+  return text.length > 32 || text.includes('\n') ? <details className="sa-long-value"><summary>查看完整{label}（{text.length} 字符）</summary><span className="sa-full-value">{text}</span></details> : <span className="sa-full-value">{text}</span>;
+}
+
+export function RecordRow({ record, onRefund, refundOpen }) {
   const user = ledgerUser(record), message = ledgerMessage(record);
   const unredeemed = record.channel === 'afdian' && record.redeemer === null;
   const refundable = isRefundable(record);
@@ -32,15 +37,22 @@ function RecordRow({ record, onRefund, refundOpen }) {
     </div>
     <dl className="sa-ledger-fields">
       <div><dt>支付时间</dt><dd>{formatLedgerTime(record.paid_at)}</dd></div>
-      <div><dt>{record.channel === 'afdian' ? '爱发电订单号' : '订单号'}</dt><dd className="sa-ledger-mono">{record.order_no}</dd></div>
-      <div><dt>套餐</dt><dd>{record.plan_name}</dd></div>
-      {message && <div className="sa-ledger-field-wide"><dt>留言</dt><dd>{message}</dd></div>}
+      <div><dt>{record.channel === 'afdian' ? '爱发电订单号' : '订单号'}</dt><dd className="sa-ledger-mono"><LedgerValue value={record.order_no} label="订单号" /></dd></div>
+      <div><dt>套餐</dt><dd><LedgerValue value={record.plan_name} label="套餐" /></dd></div>
+      {message && <div className="sa-ledger-field-wide"><dt>留言</dt><dd><LedgerValue value={message} label="留言" /></dd></div>}
       <div><dt>实付金额</dt><dd className="sa-ledger-amount">{formatLedgerMoney(record.amount_minor)}</dd></div>
     </dl>
     <div className="sa-ledger-row-actions">
-      {refundable && <button type="button" className="sa-button sa-danger" onClick={() => onRefund(record)} disabled={refundOpen}>退款</button>}
+      {refundable ? <button type="button" className="sa-button sa-danger" onClick={() => onRefund(record)} disabled={refundOpen}>退款</button> : <span className="sa-muted">{record.channel === 'afdian' ? '本站不提供爱发电退款' : '服务器未开放退款'}</span>}
     </div>
   </article>;
+}
+
+export function RecordTable({ items, onRefund, refundOpen }) {
+  return <table className="sa-table sa-ledger-table"><caption>支付记录 · 按服务器支付时间倒序</caption><thead><tr><th scope="col">渠道 / 用户</th><th scope="col">订单 / 套餐</th><th scope="col">支付时间（上海）</th><th scope="col">实付金额</th><th scope="col">操作</th></tr></thead><tbody>{items.map(record => {
+    const user = ledgerUser(record), message = ledgerMessage(record);
+    return <tr key={recordKey(record)}><td><strong>{user.username}</strong><p><span className="sa-badge">{SPONSOR_CHANNEL_LABELS[record.channel]}</span>{record.channel === 'afdian' && record.redeemer === null && <span className="sa-badge" data-state="unknown">未兑换</span>}</p></td><td><LedgerValue value={record.order_no} label="订单号" /><p><LedgerValue value={record.plan_name} label="套餐" /></p>{message && <details className="sa-disclosure"><summary>查看完整留言</summary><p className="sa-full-value">{message}</p></details>}</td><td>{formatLedgerTime(record.paid_at)}</td><td className="sa-ledger-amount">{formatLedgerMoney(record.amount_minor)}</td><td>{isRefundable(record) ? <button type="button" className="sa-button sa-danger" onClick={() => onRefund(record)} disabled={refundOpen}>退款</button> : <span className="sa-muted">{record.channel === 'afdian' ? '本站不提供爱发电退款' : '服务器未开放退款'}</span>}</td></tr>;
+  })}</tbody></table>;
 }
 
 export default function SponsorLedgerPanel({ api, actions, onRefunded }) {
@@ -93,7 +105,7 @@ export default function SponsorLedgerPanel({ api, actions, onRefunded }) {
 
   async function submitRefund(event) {
     event?.preventDefault?.();
-    if (!refund || locked.current || state.loading || refund.phase === 'saving' || refund.phase === 'confirming') return;
+    if (!refund || locked.current || actions.busy || state.loading || refund.phase === 'saving' || refund.phase === 'confirming') return;
     let body;
     try { body = refund.phase === 'unknown' && refund.body ? refund.body : alipayRefundRequest(refund.record, refund.amount, refund.reason); }
     catch (error) { patchRefund({ error: error.message }); return; }
@@ -134,10 +146,10 @@ export default function SponsorLedgerPanel({ api, actions, onRefunded }) {
 
   const page = state.data ? ledgerPage(state.data) : null;
 
-  return <section className="sa-panel sa-ledger" aria-labelledby={titleId} data-testid="sponsor-ledger-panel" aria-busy={state.loading}>
+  return <section id="sponsor-ledger" className="sa-panel sa-ledger" aria-labelledby={titleId} data-testid="sponsor-ledger-panel" aria-busy={state.loading}>
     <header className="sa-ledger-heading">
       <div><h2 id={titleId}>赞助明细</h2><p className="sa-muted">按支付时间倒序读取服务器支付记录。支付宝与爱发电共用分页；金额由分换算为元展示。</p></div>
-      <button type="button" className="sa-button" onClick={read} disabled={state.loading}>刷新明细</button>
+      <button type="button" className="sa-button" onClick={read} disabled={state.loading || actions.busy}>{state.loading ? '正在读取明细…' : '刷新明细'}</button>
     </header>
     <div className="sa-ledger-toolbar">
       <label className="sa-ledger-filter">渠道筛选
@@ -153,24 +165,24 @@ export default function SponsorLedgerPanel({ api, actions, onRefunded }) {
     {state.loading && <p role="status" className="sa-message">正在读取支付明细…</p>}
     {state.error && <div role="alert" className="sa-message sa-error"><p>{state.error}</p><p>列表未更新，不能据此判断支付、退款或未兑换状态。</p><button type="button" className="sa-button" onClick={read}>重新读取</button></div>}
     {state.data && page && <>
-      {page.empty ? <p className="sa-message">{ledgerEmptyText(channel)}</p> : <div className="sa-ledger-list">{state.data.items.map(record => <RecordRow key={recordKey(record)} record={record} onRefund={openRefund} refundOpen={refundActive} />)}</div>}
+      {page.empty ? <div className="sa-empty" role="status"><strong>{ledgerEmptyText(channel)}</strong><p>{channel ? '当前渠道读取成功但没有记录；可选择全部渠道核查。' : '服务器当前没有支付记录，不代表接口读取失败。'} 本页不创建订单、不推断到账。</p></div> : <><RecordTable items={state.data.items} onRefund={openRefund} refundOpen={refundActive || !!actions.busy} /><div className="sa-ledger-list sa-ledger-mobile">{state.data.items.map(record => <RecordRow key={recordKey(record)} record={record} onRefund={openRefund} refundOpen={refundActive || !!actions.busy} />)}</div></>}
       <nav aria-label="支付明细分页" className="sa-ledger-pagination">
         <span>共 {page.total} 条 · 第 {page.page} / {page.pages} 页</span>
         <div className="sa-actions">
-          <button type="button" className="sa-button" disabled={state.loading || !page.hasPrev} onClick={() => setOffset(Math.max(0, page.offset - page.limit))}>上一页</button>
-          <button type="button" className="sa-button" disabled={state.loading || !page.hasNext} onClick={() => setOffset(page.offset + page.limit)}>下一页</button>
+          <button type="button" className="sa-button" disabled={state.loading || refundActive || actions.busy || !page.hasPrev} onClick={() => setOffset(Math.max(0, page.offset - page.limit))}>上一页</button>
+          <button type="button" className="sa-button" disabled={state.loading || refundActive || actions.busy || !page.hasNext} onClick={() => setOffset(page.offset + page.limit)}>下一页</button>
         </div>
       </nav>
       <p className="sa-muted">时间倒序来自服务器；页面不按本地时间重排。未兑换的爱发电订单显示通用头像与「未知用户」，已兑换订单显示服务器给出的实际兑换用户。</p>
     </>}
     {refund && <form className="sa-ledger-refund" onSubmit={submitRefund} noValidate data-testid="refund-form">
-      <h3>退款 · {SPONSOR_CHANNEL_LABELS[refund.record.channel]}订单</h3>
+      <h3>退款 · {SPONSOR_CHANNEL_LABELS[refund.record.channel]}订单</h3><p role="status" className="sa-save-state" data-dirty={!!refund.reason}>{refund.phase === 'unknown' ? '结果未知 · 原金额、原因与操作标识已锁定保留' : refund.phase === 'saving' ? '正在发送退款申请' : refund.phase === 'confirming' ? '等待核对目标与金额' : '退款草稿 · 未提交，不会自动发送'}</p><h4>1. 核对目标与影响</h4>
       <dl className="sa-ledger-refund-target">
-        <div><dt>订单号</dt><dd className="sa-ledger-mono">{refund.record.order_no}</dd></div>
+        <div><dt>订单号</dt><dd className="sa-ledger-mono"><LedgerValue value={refund.record.order_no} label="退款订单号" /></dd></div>
         <div><dt>实付金额</dt><dd>{formatLedgerMoney(refund.record.amount_minor)}</dd></div>
       </dl>
       <p className="sa-ledger-warning">退款不会自动取消已发放权益。本操作只提交支付宝退款申请，不撤销赞助身份、额度、颜色或其他已发放权益；如需撤销请另行处理并留审计理由。</p>
-      <div className="sa-grid">
+      <h4>2. 金额与审计原因</h4><div className="sa-grid">
         <label className="sa-field">退款金额（元 / CNY）
           <input inputMode="decimal" value={refund.amount} onChange={event => patchRefund({ amount: event.target.value })} disabled={refund.phase === 'saving' || refund.phase === 'confirming' || refund.phase === 'unknown'} required aria-describedby={`${titleId}-refund-amount`} />
           <small id={`${titleId}-refund-amount`}>默认全额；必须大于 0 且不超过实付金额。结果未知时锁定为上次请求金额。</small>
@@ -184,7 +196,7 @@ export default function SponsorLedgerPanel({ api, actions, onRefunded }) {
       {refund.error && <p role="alert" className="sa-message sa-error">{refund.error}</p>}
       {(refund.phase === 'saving' || refund.phase === 'confirming') && <p role="status" className="sa-message">正在提交退款申请，请勿重复操作…</p>}
       <div className="sa-actions">
-        <button type="submit" className="sa-button sa-danger" disabled={refund.phase === 'saving' || refund.phase === 'confirming'}>{refund.phase === 'unknown' ? '重试同一退款请求' : '提交退款申请'}</button>
+        <button type="submit" className="sa-button sa-danger" disabled={actions.busy || state.loading || refund.phase === 'saving' || refund.phase === 'confirming'}>{refund.phase === 'saving' ? '正在提交退款…' : refund.phase === 'confirming' ? '等待确认…' : refund.phase === 'unknown' ? '重试同一退款请求' : '提交退款申请'}</button>
         <button type="button" className="sa-button" onClick={closeRefund} disabled={refund.phase === 'saving' || refund.phase === 'confirming'}>取消</button>
       </div>
     </form>}

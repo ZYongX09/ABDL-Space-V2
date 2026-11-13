@@ -1,1 +1,57 @@
-.baby-verification-admin .bv-tabs,.bv-actions{display:flex;gap:8px;flex-wrap:wrap}.bv-stat{font-size:28px;color:var(--ac-text)}.ac-table td small{display:block;color:var(--ac-text-muted);margin-top:4px}.bv-detail-mask{position:fixed;inset:0;background:rgba(15,23,42,.56);z-index:1300;display:flex;justify-content:flex-end}.bv-detail{width:min(760px,100%);height:100%;overflow:auto;background:var(--ac-surface);color:var(--ac-text);padding:22px;box-shadow:-20px 0 60px rgba(0,0,0,.25)}.bv-detail>header{display:flex;justify-content:space-between;gap:16px;border-bottom:1px solid var(--ac-border);padding-bottom:16px}.bv-detail section{padding:18px 0;border-bottom:1px solid var(--ac-border)}.bv-profile dl,.bv-detail dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.bv-profile dl div,.bv-certificate-details div{background:var(--ac-surface-subtle);padding:10px;border-radius:10px;min-width:0}.bv-profile dt,.bv-certificate-details dt{color:var(--ac-text-muted);font-size:12px}.bv-certificate-details dd{margin:4px 0 0;word-break:break-word}.bv-photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.bv-photo button{width:100%;aspect-ratio:4/3;border:0;border-radius:12px;overflow:hidden;background:var(--ac-surface-subtle);color:var(--ac-text-muted);cursor:pointer}.bv-photo img{width:100%;height:100%;object-fit:cover;filter:none;transition:filter .2s}.bv-photo img.blurred{filter:blur(24px)}.bv-photo small{color:var(--ac-danger);display:block}.bv-sensitive-note,.bv-readonly{color:var(--ac-text-muted);font-size:13px}.bv-readonly{padding:12px;background:var(--ac-surface-subtle);border-radius:10px}.bv-config{display:grid;gap:12px;max-width:480px}.bv-config label{display:grid;gap:6px}.bv-audit{white-space:pre-wrap;word-break:break-word;max-height:580px;overflow:auto;font-size:12px;background:var(--ac-surface-subtle);padding:14px;border-radius:10px}@media(max-width:640px){.bv-photos,.bv-profile dl,.bv-detail dl{grid-template-columns:1fr}.bv-detail{padding:16px}}
+.baby-verification-admin { min-width: 0; }
+.baby-verification-admin .bv-tabs, .bv-detail .bv-actions, .baby-verification-admin .bv-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.bv-stat { font-size: 28px; color: var(--ac-text); }
+.baby-verification-admin .ac-table td small { display: block; color: var(--ac-text-muted); margin-top: 4px; overflow-wrap: anywhere; }
+.baby-verification-admin .ac-table td { vertical-align: top; }
+.bv-detail-mask { position: fixed; inset: 0; background: var(--ac-overlay, color-mix(in srgb, var(--ac-text) 45%, transparent)); z-index: 210; display: flex; justify-content: flex-end; }
+.bv-detail { box-sizing: border-box; width: min(760px, 100%); height: 100%; overflow: auto; overscroll-behavior: contain; background: var(--ac-surface); color: var(--ac-text); padding: 22px; box-shadow: var(--ac-shadow-overlay); }
+.bv-detail > header { display: flex; justify-content: space-between; align-items: start; gap: 16px; border-bottom: 1px solid var(--ac-border); padding-bottom: 16px; }
+.bv-detail h2 { font-size: 20px; margin: 0; overflow-wrap: anywhere; }
+.bv-detail h3 { font-size: 15px; margin: 0 0 12px; }
+.bv-detail > header p { margin: 7px 0 0; font-size: 13px; color: var(--ac-text-secondary); }
+.bv-detail section { padding: 18px 0; border-bottom: 1px solid var(--ac-border); }
+.bv-detail p, .bv-detail code { overflow-wrap: anywhere; }
+.bv-detail dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.bv-detail dl > div { background: var(--ac-surface-soft); padding: 10px; border-radius: 10px; min-width: 0; }
+.bv-detail dt, .bv-record dt { color: var(--ac-text-muted); font-size: 12px; }
+.bv-detail dd, .bv-record dd { margin: 4px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.bv-photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.bv-photo { min-width: 0; }
+.bv-photo button { width: 100%; aspect-ratio: 4 / 3; border: 1px solid var(--ac-border); border-radius: 12px; overflow: hidden; background: var(--ac-surface-soft); color: var(--ac-text-muted); cursor: pointer; }
+.bv-photo button:disabled { cursor: not-allowed; }
+.bv-photo button > span { display: grid; gap: 12px; justify-items: center; padding: 14px; }
+.bv-photo img { width: 100%; height: 100%; object-fit: contain; filter: none; }
+.bv-photo img.blurred { filter: blur(24px); }
+.bv-photo small { color: var(--ac-danger); display: block; }
+.bv-photo > div { font-size: 12px; color: var(--ac-text-secondary); padding-top: 8px; overflow-wrap: anywhere; }
+.bv-sensitive-note, .bv-readonly { color: var(--ac-text-secondary); font-size: 13px; line-height: 1.6; }
+.bv-readonly { padding: 12px; background: var(--ac-surface-soft); border-radius: 10px; }
+.bv-disclosure { min-width: 0; }
+.bv-disclosure > summary { cursor: pointer; padding: 8px 0; font-weight: 600; color: var(--ac-text); overflow-wrap: anywhere; }
+.bv-disclosure[open] > summary { margin-bottom: 10px; }
+.bv-detail button:focus-visible, .bv-detail summary:focus-visible, .baby-verification-admin summary:focus-visible { outline: 2px solid var(--ac-focus); outline-offset: 3px; }
+.bv-decision .bv-actions { margin-top: 14px; }
+.bv-record-list { min-width: 0; }
+.bv-record { padding: 16px; border: 1px solid var(--ac-border); border-radius: var(--ac-radius); background: var(--ac-surface-soft); min-width: 0; }
+.bv-record + .bv-record { margin-top: 12px; }
+.bv-record > header { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+.bv-record h3 { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
+.bv-record > header > span { color: var(--ac-text-muted); font-size: 12px; }
+.bv-record dl { display: grid; gap: 8px; margin: 12px 0; }
+.bv-record dl > div { display: grid; grid-template-columns: minmax(80px, 0.35fr) minmax(0, 1fr); gap: 10px; }
+.bv-record dd { margin: 0; min-width: 0; font-size: 13px; max-height: 360px; overflow: auto; }
+.baby-verification-admin .ac-mobile-only.bv-record-list { padding: 14px; }
+.bv-config { display: grid; gap: 16px; max-width: 760px; }
+.bv-config fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; border: 1px solid var(--ac-border); border-radius: var(--ac-radius); padding: 16px; min-width: 0; }
+.bv-config legend { color: var(--ac-text-secondary); font-size: 13px; padding: 0 6px; }
+.bv-config fieldset > .bv-check, .bv-config fieldset > p { grid-column: 1 / -1; }
+.bv-check { display: flex; gap: 10px; align-items: center; }
+.bv-check input { width: 18px; height: 18px; accent-color: var(--ac-action); }
+.bv-config-state { color: var(--ac-text-secondary); background: var(--ac-action-soft); padding: 12px; border-radius: var(--ac-radius); overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .bv-photos, .bv-detail dl, .bv-config fieldset { grid-template-columns: 1fr; }
+  .bv-detail { padding: 16px; }
+  .bv-detail .bv-actions > button, .baby-verification-admin .bv-actions > button { flex: 1 1 140px; }
+  .baby-verification-admin .bv-tabs > button { flex: 1 1 100px; white-space: normal; }
+  .bv-record .ac-btn { width: 100%; }
+}

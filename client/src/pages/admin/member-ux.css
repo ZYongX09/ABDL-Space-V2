@@ -1,0 +1,103 @@
+/* 仅总览、用户、徽章、产品/品牌页使用；主题与共享容器由 admin.css 提供。 */
+.ac-member-ux { min-width: 0; }
+.ac-member-ux .ac-member-block { display: block; }
+.ac-member-ux .ac-member-notice { margin: 10px 0; padding: 10px 12px; border: 1px solid var(--ac-border); border-radius: var(--ac-radius-sm); background: var(--ac-surface-soft); color: var(--ac-text-secondary); font-size: 12.5px; line-height: 1.65; overflow-wrap: anywhere; }
+.ac-member-ux .ac-member-retry { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-block: 10px; }
+.ac-member-ux .ac-member-retry > .ac-error-box { flex: 1 1 230px; min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.ac-member-ux .ac-member-resource:empty { display: none; }
+.ac-member-ux .ac-member-filter { margin-bottom: 12px; }
+.ac-member-ux .ac-member-filter .ac-toolbar-group { align-items: end; flex: 1; }
+.ac-member-ux .ac-member-filter .ac-form-field { flex: 1 1 160px; min-width: 0; }
+.ac-member-ux .ac-member-filter .ac-input, .ac-member-ux .ac-member-filter .ac-select { width: 100%; min-width: 0; }
+.ac-member-ux .ac-member-pagination { margin-top: 14px; }
+.ac-member-ux .ac-member-records { display: grid; gap: 12px; margin-block: 12px; min-width: 0; }
+.ac-member-ux .ac-member-record { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 14px; border: 1px solid var(--ac-border); border-radius: var(--ac-radius); background: var(--ac-surface); color: var(--ac-text); }
+.ac-member-ux .ac-member-record-head { display: flex; align-items: start; flex-wrap: wrap; gap: 10px; min-width: 0; }
+.ac-member-ux .ac-member-record-head > .ac-user-cell { flex: 1 1 150px; min-width: 0; }
+.ac-member-ux .ac-member-record-title { display: flex; align-items: start; gap: 8px; margin: 0; color: var(--ac-text); font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.ac-member-ux .ac-member-record-title .ac-badge-swatch { flex-shrink: 0; margin-top: 4px; }
+.ac-member-ux .ac-member-kv { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; margin: 0; min-width: 0; }
+.ac-member-ux .ac-member-kv > div { display: grid; grid-template-columns: minmax(85px, 0.7fr) minmax(0, 1.7fr); gap: 8px 12px; padding-block: 8px; border-bottom: 1px solid var(--ac-border); }
+.ac-member-ux .ac-member-kv > div:last-child { border-bottom: 0; }
+.ac-member-ux .ac-member-kv dt { color: var(--ac-text-secondary); font-size: 12px; }
+.ac-member-ux .ac-member-kv dd { margin: 0; min-width: 0; color: var(--ac-text); font-size: 12.5px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.ac-member-ux .ac-member-long { min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+.ac-member-ux .ac-member-long a, .ac-member-ux a.ac-member-long { color: var(--ac-action); text-decoration: underline; text-underline-offset: 2px; }
+.ac-member-ux .ac-member-actions, .ac-member-ux .ac-member-actions .ac-table-actions { display: flex; flex-wrap: wrap; gap: 7px; min-width: 0; }
+.ac-member-ux .ac-user-actions.ac-member-actions { flex-direction: column; align-items: start; }
+.ac-member-ux .ac-member-actions .ac-btn { min-height: 36px; white-space: normal; text-align: center; overflow-wrap: anywhere; }
+.ac-member-ux .ac-table-governance-note { max-width: 100%; margin: 3px 0 0; }
+.ac-member-ux .ac-member-disclosure { min-width: 0; padding-block: 10px; border-bottom: 1px solid var(--ac-border); }
+.ac-member-ux .ac-member-disclosure summary { min-height: 36px; padding-block: 7px; cursor: pointer; color: var(--ac-action); font-size: 12.5px; font-weight: 600; overflow-wrap: anywhere; }
+.ac-member-ux .ac-member-disclosure[open] > summary { margin-bottom: 10px; }
+.ac-member-ux .ac-member-disclosure summary:focus-visible { outline: 2px solid var(--ac-action); outline-offset: 3px; }
+.ac-member-ux .ac-member-small-table { min-width: 0; table-layout: fixed; }
+.ac-member-ux .ac-member-small-table th, .ac-member-ux .ac-member-small-table td { padding: 8px; white-space: normal; }
+.ac-member-ux .ac-member-links { padding-left: 20px; margin: 8px 0; }
+.ac-member-ux .ac-member-links li { margin-block: 8px; min-width: 0; overflow-wrap: anywhere; }
+.ac-member-ux .ac-member-logo { display: block; width: 72px; height: 36px; object-fit: contain; background: var(--ac-surface-soft); border: 1px solid var(--ac-border); border-radius: var(--ac-radius-sm); }
+.ac-member-ux .ac-member-fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.ac-member-ux .ac-member-fieldset > legend { margin-bottom: 12px; font-size: 13px; font-weight: 650; color: var(--ac-text); }
+.ac-member-ux .ac-member-fieldset .ac-form-field { min-width: 0; }
+.ac-member-ux .ac-member-fieldset :is(.ac-input, .ac-textarea, .ac-select) { width: 100%; min-width: 0; }
+.ac-member-ux .ac-member-fieldset .ac-textarea { resize: vertical; min-height: 90px; }
+.ac-member-ux .ac-member-monospace { font-family: ui-monospace, monospace; }
+.ac-member-ux .ac-member-detail-context { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--ac-border); }
+.ac-member-ux .ac-member-detail-context .ac-section-note { margin-top: 0; overflow-wrap: anywhere; }
+.ac-member-ux .ac-user-detail-head { flex-wrap: wrap; }
+.ac-member-ux .ac-user-detail-name, .ac-member-ux .ac-qq-nickname, .ac-member-ux .ac-uname, .ac-member-ux .ac-recent-post > div, .ac-member-ux .ac-track-list span { white-space: pre-wrap; overflow: visible; overflow-wrap: anywhere; text-overflow: clip; }
+.ac-member-ux .ac-track-list > div { flex-wrap: wrap; }
+.ac-member-ux .ac-member-tasks .ac-list-title, .ac-member-ux .ac-member-recent-user .ac-list-title { white-space: normal; overflow-wrap: anywhere; }
+.ac-member-ux .ac-member-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.ac-member-ux .ac-mobile-only { display: none; }
+.ac-member-ux .ac-desktop-only { display: block; }
+.ac-member-dialog .ac-modal-head h2 { min-width: 0; overflow-wrap: anywhere; }
+.ac-member-dialog .ac-modal-close { flex-shrink: 0; }
+.ac-member-dialog .ac-modal-body { overflow-x: hidden; }
+
+/* 用户检索桌面七列保留阅读宽度；不足时仅表格区域横滚，不挤压身份和邮箱。 */
+.ac-member-ux .ac-member-users-scroll { max-width: 100%; overflow-x: auto; }
+.ac-member-ux .ac-member-users-scroll:focus-visible { outline: 2px solid var(--ac-action); outline-offset: 3px; }
+.ac-member-ux .ac-member-users-table { min-width: 1040px; table-layout: fixed; }
+.ac-member-ux .ac-member-users-table .ac-member-user-identity { width: 200px; min-width: 200px; }
+.ac-member-ux .ac-member-users-table .ac-member-user-role { width: 140px; min-width: 140px; }
+.ac-member-ux .ac-member-users-table .ac-member-user-email { width: 220px; min-width: 220px; }
+.ac-member-ux .ac-member-users-table .ac-member-user-created { width: 145px; min-width: 145px; white-space: nowrap; }
+.ac-member-ux .ac-member-users-table .ac-member-user-activity { width: 120px; min-width: 120px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ac-member-ux .ac-member-users-table .ac-member-user-status { width: 80px; min-width: 80px; }
+.ac-member-ux .ac-member-users-table .ac-member-user-detail { width: 135px; min-width: 135px; }
+.ac-member-ux .ac-member-users-table .ac-uname { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-member-ux .ac-member-user-role > div + div { margin-top: 7px; }
+.ac-member-ux .ac-member-user-disclosure { min-width: 0; }
+.ac-member-ux .ac-member-user-disclosure summary { display: flex; align-items: center; gap: 6px; min-height: 32px; cursor: pointer; color: var(--ac-text-secondary); list-style: none; }
+.ac-member-ux .ac-member-user-disclosure summary::-webkit-details-marker { display: none; }
+.ac-member-ux .ac-member-user-disclosure summary:focus-visible { outline: 2px solid var(--ac-action); outline-offset: 2px; }
+.ac-member-ux .ac-member-user-disclosure summary > i { flex-shrink: 0; color: var(--ac-action); }
+.ac-member-ux .ac-member-user-disclosure[open] > .ac-member-long { margin-top: 6px; }
+.ac-member-ux .ac-member-user-ellipsis { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-member-ux .ac-member-user-detail .ac-btn { white-space: nowrap; }
+.ac-member-ux .ac-member-user-detail .ac-section-note { margin: 5px 0 0; }
+
+@media (max-width: 767px) {
+  .ac-member-ux .ac-desktop-only { display: none; }
+  .ac-member-ux .ac-mobile-only { display: grid; }
+  .ac-member-ux .ac-member-filter .ac-form-field { flex: 1 1 100%; }
+  .ac-member-ux .ac-member-actions .ac-btn, .ac-member-ux .ac-member-filter .ac-btn { min-height: 44px; flex: 1 1 112px; }
+  .ac-member-ux .ac-member-actions, .ac-member-ux .ac-member-actions .ac-table-actions { width: 100%; }
+  .ac-member-ux .ac-member-kv > div { grid-template-columns: minmax(78px, 0.7fr) minmax(0, 1.5fr); gap: 8px; }
+  .ac-member-ux .ac-member-tasks .ac-list-row { flex-wrap: wrap; }
+  .ac-member-ux .ac-member-tasks .ac-list-copy { flex: 1 1 140px; }
+  .ac-member-ux .ac-member-tasks .ac-pill { margin-left: 34px; }
+  .ac-member-ux .ac-member-recent-user { flex-wrap: wrap; }
+  .ac-member-ux .ac-member-recent-user .ac-list-time { flex-basis: 100%; margin-left: 42px; }
+  .ac-member-ux .ac-member-disclosure summary { min-height: 44px; }
+  .ac-member-ux .ac-identity-heading, .ac-member-ux .ac-qq-profile { flex-wrap: wrap; }
+  .ac-member-ux .ac-qq-meta { grid-template-columns: minmax(0, 1fr); }
+  .ac-member-dialog .ac-form-grid-2 { grid-template-columns: minmax(0, 1fr); }
+  .ac-member-dialog .ac-input, .ac-member-dialog .ac-select, .ac-member-dialog .ac-textarea { font-size: 16px; }
+  .ac-member-dialog .ac-modal-foot .ac-btn { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ac-member-ux .fa-spin { animation: none; }
+}

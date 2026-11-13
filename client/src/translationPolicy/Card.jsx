@@ -18,9 +18,11 @@ export function TranslationPolicyCardView({ state, onChange, onSave, onReload, o
   const disabled = loading || saving || needsReload || state.confirmReload;
   return <Card title="App 帖子 AI 翻译策略" icon="fa-language" className="ac-translation-policy-card" description="管理帖子翻译总开关、三档每日额度、赞助自动翻译与缓存世代；复用统一 App AI 服务，不新增密钥。">
     <div style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+      <details className="ac-app-details"><summary>额度、自动翻译与缓存边界</summary>
       <p id="translation-policy-scope" className="ac-app-note">三档额度分别为普通账号、英文阅读普通账号和当前有效赞助账号，不叠加。每天按 Asia/Shanghai（上海时区）结算；切换语言、赞助档位、翻译目标或本策略均不清空同一账号当天的已用与预留额度。</p>
       <p id="translation-policy-auto-note" className="ac-section-note">允许赞助自动翻译不等于为所有赞助账号开启：仍需账号当前有效赞助、用户主动启用自动翻译，并由服务器实时校验能力。总开关关闭时不提供帖子翻译，但保留以下配置。</p>
       <p id="translation-policy-safety" className="ac-section-note">只读取或保存策略，不调用 AI、不测试供应商，也不编辑地址、模型或密钥。实际翻译复用上方统一 App AI 服务配置；保存成功不代表模型已配置或可用。</p>
+      </details>
       {saved && <div id="translation-policy-saved-summary" className="ac-app-policy-status" role="status" aria-live="polite">
         <Pill tone={saved.enabled ? 'green' : 'slate'}>已保存翻译：{saved.enabled ? '启用' : '关闭'}</Pill>
         <Pill tone={saved.sponsor_auto_allowed ? 'green' : 'slate'}>已保存赞助自动翻译：{saved.sponsor_auto_allowed ? '允许' : '不允许'}</Pill>
@@ -33,9 +35,9 @@ export function TranslationPolicyCardView({ state, onChange, onSave, onReload, o
         <fieldset className="ac-app-fieldset" disabled={disabled}>
           <legend className="ac-app-visually-hidden">App 帖子 AI 翻译策略配置</legend>
           <label className="ac-check-row"><input id="translation-policy-enabled" type="checkbox" role="switch" checked={draft.enabled} onChange={event => onChange?.({ enabled: event.target.checked })} /><span>启用帖子翻译（总开关）</span></label>
-          {NUMERIC_FIELDS.map(([key, label, hint]) => <FormField key={key} label={label} htmlFor={`translation-policy-${key}`} hint={hint}>
+          <div className="ac-app-numeric-grid">{NUMERIC_FIELDS.map(([key, label, hint]) => <FormField key={key} label={label} htmlFor={`translation-policy-${key}`} hint={hint}>
             <input id={`translation-policy-${key}`} className="ac-input" type="number" inputMode="numeric" step="1" min={key === 'cache_epoch' ? saved.cache_epoch : TRANSLATION_POLICY_LIMITS[key][0]} max={TRANSLATION_POLICY_LIMITS[key][1]} required value={draft[key]} onChange={event => onChange?.({ [key]: event.target.value })} />
-          </FormField>)}
+          </FormField>)}</div>
           <label className="ac-check-row"><input id="translation-policy-sponsor-auto" type="checkbox" role="switch" checked={draft.sponsor_auto_allowed} aria-describedby="translation-policy-auto-note" onChange={event => onChange?.({ sponsor_auto_allowed: event.target.checked })} /><span>允许当前有效赞助账号使用自动翻译</span></label>
           <FormField label="每日额度结算时区（只读）" htmlFor="translation-policy-timezone" hint="固定上海时区，不随管理员浏览器时区变化，不能在此修改。">
             <input id="translation-policy-timezone" className="ac-input" type="text" value={saved.timezone} readOnly />

@@ -144,3 +144,49 @@ test('diffBlockedState 给出屏蔽/解除增量并判断是否有待应用变�
   assert.deepEqual(diffBlockedState([], { p9: true }), { toBlock: [], toUnblock: [], hasChanges: false });
   assert.equal(diffBlockedState(photos, { p2: true }).hasChanges, true);
 });
+
+test('全选/全取消覆盖完整照片清单，保存全量状态而非只提交增量', () => {
+  const photos = normalizePhotos(Array.from({ length: 65 }, (_, index) => ({
+    id: `photo-${index}`, admin_blocked: index % 2 === 0, preview_url: `/preview/${index}`,
+  })));
+  const allBlocked = Object.fromEntries(photos.map(photo => [photo.id, true]));
+  const noneBlocked = Object.fromEntries(photos.map(photo => [photo.id, false]));
+  assert.deepEqual(desiredBlockedIds(photos, allBlocked), photos.map(photo => photo.id));
+  assert.equal(desiredBlockedIds(photos, allBlocked).length, 65, '不可按可见缩略图数量截断提交');
+  assert.deepEqual(desiredBlockedIds(photos, noneBlocked), [], '空数组代表全部解除，不是没有操作');
+  assert.equal(diffBlockedState(photos, allBlocked).toBlock.length, 32);
+  assert.equal(diffBlockedState(photos, noneBlocked).toUnblock.length, 33);
+  assert.equal(desiredBlockedIds(photos, { 'photo-1': true, 'not-in-report': true }).includes('not-in-report'), false);
+});
+
+test('屏蔽状态往返以服务器读回为准，解除选择不能在保存前暴露已屏蔽预览', () => {
+  const initial = normalizePhotos([
+    { id: 'one', admin_blocked: true, preview_url: 'https://example.invalid/blocked-preview', original_url: '/original' },
+    { id: 'two', admin_blocked: false, preview_url: '/preview/two', hd_url: '/hd' },
+    { id: 'three', admin_blocked: false, preview_url: '/preview/three' },
+  ]);
+  const overrides = { one: false, two: true };
+  const desired = desiredBlockedIds(initial, overrides);
+  assert.deepEqual(desired, ['two']);
+  assert.equal(photoDisplayUrl(initial[0]), VIOLATION_PLACEHOLDER, '尚未保存的解除覆盖不改变当前服务器屏蔽态');
+  const readback = normalizePhotos(initial.map(photo => ({ ...photo, admin_blocked: desired.includes(photo.id), preview_url: `/fresh-preview/${photo.id}` })));
+  assert.deepEqual(desiredBlockedIds(readback), ['two']);
+  assert.deepEqual(diffBlockedState(readback, {}), { toBlock: [], toUnblock: [], hasChanges: false });
+  assert.equal(photoDisplayUrl(readback[1]), VIOLATION_PLACEHOLDER);
+  assert.equal(photoDisplayUrl(readback[0]), '/fresh-preview/one');
+  for (const photo of readback) {
+    assert.equal('original_url' in photo, false);
+    assert.equal('hd_url' in photo, false);
+  }
+});
+
+test('operation UUID 优先调用浏览器 randomUUID，getRandomValues 回退正确设置版本和变体', () => {
+  const expected = '12345678-1234-4123-8123-123456789abc';
+  let uuidCalls = 0;
+  assert.equal(newOperationId({ randomUUID() { uuidCalls++; return expected; } }), expected);
+  assert.equal(uuidCalls, 1);
+  let randomCalls = 0;
+  const id = newOperationId({ getRandomValues(bytes) { randomCalls++; bytes.fill(255); return bytes; } });
+  assert.equal(id, 'ffffffff-ffff-4fff-bfff-ffffffffffff');
+  assert.equal(randomCalls, 1);
+});

@@ -12,15 +12,17 @@ const NUMERIC_FIELDS = [
 ];
 
 // 生产组件也使用此视图；SSR 测试验证各状态的实际可见内容，不另造测试版 UI。
-export function AppHumanCheckPolicyView({ state, onChange, onSave, onReload, onCancel }) {
+export function AppHumanCheckPolicyView({ state, onChange, onSave, onReload, onCancel, confirmReload = false, onConfirmReload, onCancelReload }) {
   const { saved, draft, loading, saving, needsReload, error, notice } = state;
   const dirty = isHumanPolicyDirty(saved, draft);
-  const disabled = loading || saving || needsReload;
+  const disabled = loading || saving || needsReload || confirmReload;
   return <Card title="新版 App 注册验证码安全验证" icon="fa-shield-halved" className="ac-app-human-check-card" description="仅控制新版 App 新协议的注册验证码首次发送与重发，不影响旧版 App 或网页注册。">
     <div style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
       <p id="app-human-scope" className="ac-app-note">仅适用于新版 App 新协议的注册验证码邮件（type=register），包括首次发送与重发。429 硬限流始终优先；完成安全验证也不能绕过限流。旧版 App、网页注册和其他验证码用途不受此策略影响。</p>
+      <details className="ac-app-details"><summary>验证边界与未配置时的行为</summary>
       <p id="app-human-boundary" className="ac-section-note">旧发送端点仍可被调用；协议头和版本号不构成授权，因此此策略不代表全站防机器人。这里只保存服务器策略，不会发送邮件、启动挑战或验证组件。关闭窗口或取消验证不能视为通过。</p>
       <p className="ac-section-note">正在派送或结果未知的操作在窗口内保守占位，避免并发越阈；不把未知派送记录为成功，明确失败或取消不计成功。</p>
+      </details>
       {saved && <div id="app-human-saved-summary" className="ac-app-policy-status" role="status" aria-live="polite">
         <Pill tone={saved.mode === 'off' ? 'slate' : 'green'}>已保存模式：{HUMAN_POLICY_MODES[saved.mode]}</Pill>
         <Pill tone={saved.turnstile_configured ? 'green' : 'amber'}>{saved.turnstile_configured ? '验证组件：已配置（未实测）' : '验证组件：未配置'}</Pill>
@@ -39,16 +41,18 @@ export function AppHumanCheckPolicyView({ state, onChange, onSave, onReload, onC
               <option value="off">关闭（默认）</option><option value="risk">按风险触发</option><option value="always">始终验证</option>
             </select>
           </FormField>
+          <details className="ac-app-details" open={draft.mode === 'risk'}><summary>风险阈值（当前模式{draft.mode === 'risk' ? '使用' : '不使用，保留数值'}）</summary>
           <fieldset className="ac-app-fieldset" disabled={draft.mode !== 'risk'}>
             <legend>风险阈值（仅按风险模式可编辑）</legend>
             {NUMERIC_FIELDS.map(([key, label, hint]) => <FormField key={key} label={label} htmlFor={`app-human-${key}`} hint={hint}>
               <input id={`app-human-${key}`} className="ac-input" type="number" inputMode="numeric" step="1" min={HUMAN_POLICY_LIMITS[key][0]} max={HUMAN_POLICY_LIMITS[key][1]} required value={draft[key]} onChange={event => onChange?.({ [key]: event.target.value })} />
             </FormField>)}
-          </fieldset>
+          </fieldset></details>
           <button type="submit" className="ac-btn primary" style={{ justifySelf: 'start', maxWidth: '100%', whiteSpace: 'normal' }}>保存安全验证策略</button>
         </fieldset>
       </form>}
       <p id="app-human-form-status" role="status" aria-live="polite" className="ac-section-note">{notice || (saving ? '正在保存安全验证策略…' : needsReload ? '必须成功重新加载后才能保存；不会自动重放或覆盖冲突。' : dirty ? '表单有未保存更改，尚未生效。' : saved ? '当前表单与已保存策略一致。' : '')}</p>
+      {confirmReload && <div className="ac-app-note" role="group" aria-label="确认替换验证策略草稿"><p>重新加载成功后将替换本卡片草稿；失败仍保留输入，其他模块不受影响。</p><div className="ac-action-group"><button type="button" className="ac-btn" onClick={onCancelReload}>取消，保留草稿</button><button type="button" className="ac-btn" onClick={onConfirmReload}>确认重新加载</button></div></div>}
       <div className="ac-action-group" style={{ marginTop: 14, minWidth: 0 }}>
         <button type="button" className="ac-btn" style={{ maxWidth: '100%', whiteSpace: 'normal' }} disabled={loading || saving} onClick={onReload}>重新加载已保存策略</button>
         {(loading || saving) && <button type="button" className="ac-btn" onClick={onCancel}>取消当前请求</button>}
@@ -60,6 +64,7 @@ export function AppHumanCheckPolicyView({ state, onChange, onSave, onReload, onC
 // 继承父级 AppClientsContent 的 AdminLayout，不嵌套布局；按管理员身份/会话 key 隔离，变更同步废弃在途响应。
 export default function AppHumanCheckPolicyCard() {
   const [state, setState] = useState(initialHumanPolicyState);
+  const [confirmReload, setConfirmReload] = useState(false);
   const editor = useRef(null);
   useEffect(() => {
     const current = createHumanPolicyEditor(adminAPI, { onChange: setState });
@@ -76,5 +81,5 @@ export default function AppHumanCheckPolicyCard() {
       if (editor.current === current) editor.current = null;
     };
   }, []);
-  return <AppHumanCheckPolicyView state={state} onChange={patch => editor.current?.change(patch)} onSave={() => void editor.current?.save()} onReload={() => void editor.current?.load()} onCancel={() => editor.current?.cancel()} />;
+  return <AppHumanCheckPolicyView state={state} onChange={patch => editor.current?.change(patch)} onSave={() => void editor.current?.save()} onReload={() => { if (isHumanPolicyDirty(state.saved, state.draft)) setConfirmReload(true); else void editor.current?.load(); }} confirmReload={confirmReload} onCancelReload={() => setConfirmReload(false)} onConfirmReload={() => { setConfirmReload(false); void editor.current?.load(); }} onCancel={() => editor.current?.cancel()} />;
 }

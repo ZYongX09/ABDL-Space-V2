@@ -1,0 +1,22 @@
+/* 独立宿主框架为真实固定定位后台预留控制条，不改变产品页内部样式。 */
+#root > .admin-ux-controls { height: 44px; padding-block: 0; }
+#root > .admin-ux-controls > details { height: 44px; }
+#root > .admin-ux-controls > details > summary { height: 44px; padding-block: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#root > .admin-ux-controls > details[open] { height: auto; max-height: calc(100dvh - 12px); overflow: auto; background: var(--bg-card); border: 1px solid var(--border); padding-inline: 8px; }
+#root > .admin-ux-controls ~ div .admin-console { top: 44px; min-height: calc(100dvh - 44px); }
+#root > .admin-ux-controls ~ div :is(.ac-overlay, .ac-drawer-layer, .bv-detail-mask) { top: 44px; }
+.admin-ux-controls { position: relative; z-index: 100; padding: 7px 12px; border-bottom: 2px solid var(--primary-dark); color: var(--text); background: var(--bg-card); font: 13px/1.55 system-ui, sans-serif; }
+.admin-ux-controls summary { cursor: pointer; font-weight: 700; min-height: 30px; padding: 5px 0; }
+.admin-ux-controls p { margin: 8px 0; max-width: 1000px; }
+.admin-ux-controls label { display: grid; gap: 4px; min-width: 0; }
+.admin-ux-controls select, .admin-ux-controls button { padding: 7px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--input-bg); color: var(--text); font: inherit; min-height: 38px; max-width: 100%; }
+.admin-ux-controls button { cursor: pointer; }
+.admin-ux-controls button:disabled { opacity: .6; cursor: wait; }
+.admin-ux-controls :is(button, select, a, summary):focus-visible { outline: 3px solid var(--primary-dark); outline-offset: 2px; }
+.admin-ux-control-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 9px; align-items: end; margin: 10px 0; }
+.admin-ux-actions, .admin-ux-controls nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.admin-ux-controls nav a { color: var(--link-color, var(--primary-dark)); padding: 3px 5px; }
+.admin-ux-controls pre { max-height: 240px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.admin-ux-controls li { margin: 5px 0; }
+.admin-ux-scope { padding: 28px; color: var(--text); background: var(--bg); min-height: 60vh; }
+@media (max-width: 480px) { .admin-ux-controls { padding: 6px 10px; } .admin-ux-control-grid { grid-template-columns: 1fr; } }
