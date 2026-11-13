@@ -1,4 +1,6 @@
 import NBWImage from '../../components/NBWImage.jsx';
+import { useNavigate } from 'react-router-dom';
+import { UserObservationLink } from '../../userObservation/components.jsx';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { adminAPI } from '../../api';
 import { createAdminIdentityAPI } from '../../adminIdentity/api.js';
@@ -8,7 +10,7 @@ import { useToast } from '../../contexts/ToastContext';
 import AdminLayout from './layout';
 import { Card, Pill, Pagination, Loading, Empty, Drawer, ErrorBox, FormField, Modal, UserCell, useConfirm } from './ui';
 import { fmtDT, fmtFull, fmtNum } from './util';
-import { adminRoleLabel, adminSessionKey, userActionPolicy } from './access.js';
+import { adminRoleLabel, adminSessionKey, isSuperAdmin, userActionPolicy } from './access.js';
 
 export function UserRoleBadge({ user }) {
   return user?.role === 'admin' ? <Pill tone="slate"><i className="fa-solid fa-user-shield" aria-hidden="true" /> {adminRoleLabel(user)}</Pill> : <span className="ac-cell-muted">普通用户</span>;
@@ -99,6 +101,8 @@ function IdentityAudit({ items }) {
 }
 
 export default function AdminUsers() {
+  const navigate = useNavigate();
+  const openObservation = id => navigate(`/admin/security?tab=user-observation&user_id=${encodeURIComponent(id)}`);
   const toast = useToast();
   const confirm = useConfirm();
   const { user: admin, accounts } = useAuth();
@@ -279,7 +283,8 @@ export default function AdminUsers() {
         <UserIdentityDetails identity={detail.identity} identityError={detail.identityError} user={info?.user} onUnbind={qq => setUnbind({ userId: info.user.id, username: info.user.username, version: qqVersion(qq), reason: '', confirmUsername: '', busy: false, error: '' })} />
         <section className="ac-identity-section"><div className="ac-identity-heading"><div><h3>徽章（{info?.badges?.length || 0}）</h3></div></div>{info?.badges?.length ? <div className="ac-flex ac-wrap">{info.badges.map(b => <span key={b.key} className="ac-inline-chip"><span className="ac-badge-swatch" style={{ background: b.color || '#7C4DFF' }} />{b.name || b.key}<span className="ac-cell-muted">{b.created_at ? fmtDT(b.created_at) : ''}</span></span>)}</div> : <Empty text="暂无徽章" icon="fa-medal" />}</section>
         <section className="ac-identity-section"><div className="ac-identity-heading"><div><h3>最近发言（{info?.recentPosts?.length || 0} 条）</h3></div></div>{info?.recentPosts?.length ? <div className="ac-page-stack">{info.recentPosts.map(p => <div key={p.id} className="ac-recent-post"><div>{p.content}</div><small>#{p.id} · {fmtFull(p.created_at)}</small></div>)}</div> : <Empty text="暂无发言" icon="fa-receipt" />}</section>
-        <section className="ac-identity-section"><div className="ac-identity-heading"><div><h3>IP 追踪</h3></div>{info?.tracking?.enabled ? <Pill tone="red">已启用追踪</Pill> : <Pill tone="slate">未启用</Pill>}</div>{info?.trackEvents?.length ? <div className="ac-track-list">{info.trackEvents.map((ev, i) => <div key={i}><code>{ev.ip}</code><span>{ev.path}</span><time>{fmtFull(ev.created_at)}</time></div>)}</div> : <Empty text="暂无追踪记录" icon="fa-location-dot" />}</section>
+        <section className="ac-identity-section"><div className="ac-identity-heading"><div><h3>定向用户观察</h3><p>IP 记录与请求日志独立控制，进入模块只读取配置，不自动启用或封禁。</p></div></div><UserObservationLink actor={admin} target={info?.user} onOpen={openObservation} />{!isSuperAdmin(admin) && <p className="ac-section-note">原始观察数据与操作仅向超级管理员开放。</p>}</section>
+        {isSuperAdmin(admin) && <section className="ac-identity-section"><div className="ac-identity-heading"><div><h3>旧 IP 追踪（非新观察）</h3><p>旧机制与新观察互不推定；停止旧追踪、复核已有来源封禁请进入定向观察模块的独立区域。</p></div>{info?.tracking?.enabled ? <Pill tone="red">旧追踪已启用</Pill> : <Pill tone="slate">旧追踪未启用</Pill>}</div>{info?.trackEvents?.length ? <div className="ac-track-list">{info.trackEvents.map((ev, i) => <div key={i}><code>{ev.ip}</code><span>{ev.path}</span><time>{fmtFull(ev.created_at)}</time></div>)}</div> : <Empty text="暂无旧追踪记录" icon="fa-location-dot" />}</section>}
       </div>}
     </Drawer>
 

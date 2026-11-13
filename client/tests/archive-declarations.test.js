@@ -1,10 +1,40 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { lstat, readFile, readdir } from 'node:fs/promises';
 import test from 'node:test';
 
 const source = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 const sha256 = value => createHash('sha256').update(value).digest('hex');
+
+async function functionFiles(directory) {
+  const files = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      files.push(...(await functionFiles(new URL(`${entry.name}/`, directory))).map(path => `${entry.name}/${path}`));
+    } else {
+      assert.ok(entry.isFile(), 'Functions must not contain symlinked entries');
+      files.push(entry.name);
+    }
+  }
+  return files.sort();
+}
+
+test('declarations-only release has only API/OAuth Functions and no root archive guard', async () => {
+  const deployed = ['_shared/auth-client-ip.js', 'api/[[path]].js', 'oauth/[[path]].js'];
+  assert.deepEqual(await functionFiles(new URL('../functions/', import.meta.url)), deployed);
+  assert.deepEqual(await functionFiles(new URL('../../functions/', import.meta.url)), deployed.filter(path => !path.startsWith('oauth/')));
+  const dist = new URL('../dist/', import.meta.url);
+  const built = await lstat(dist).catch(error => { if (error.code !== 'ENOENT') throw error; });
+  if (built) assert.deepEqual(await functionFiles(new URL('functions/', dist)), deployed);
+});
+
+test('declarations-only source and optional build have no all-path routes or advanced Worker', async () => {
+  for (const root of ['../', '../public/', '../dist/', '../../']) {
+    for (const name of ['_routes.json', '_worker.js', '_worker.ts', '_middleware.js', '_middleware.ts']) {
+      await assert.rejects(lstat(new URL(`${root}${name}`, import.meta.url)), { code: 'ENOENT' }, `${root}${name}`);
+    }
+  }
+});
 
 test('robots declares the six archive products without restricting ordinary search indexing', async () => {
   const robots = await source('public/robots.txt');
@@ -55,12 +85,12 @@ test('global noarchive preserves CSP, security headers and sensitive-route decla
   }
 });
 
-test('existing API, OAuth and shared client-IP Functions stay byte-for-byte unchanged', async () => {
-  // Pin existing handlers only; additional develop guard files remain compatible.
+test('API, OAuth and client-IP Functions match the reviewed observation signing integration', async () => {
+  // Observation adds only a separately scoped signed IP envelope; response/proxy contracts have dedicated tests.
   for (const [path, digest] of [
-    ['functions/api/[[path]].js', 'd3fb018285aaefbb443e91f9ee49368239b3bbfa88c5b0e0d2225f74515b5483'],
+    ['functions/api/[[path]].js', 'c1ec5a568d9ee06e2b2c53ca55c52b7fed3f89f2285caa3f3f833fa72d0aec87'],
     ['functions/oauth/[[path]].js', 'f2741a83f0a881272b962862427df11307843fdd75388ada47832f8653ebeb6d'],
-    ['functions/_shared/auth-client-ip.js', 'f3a82a5ae364177699881bd13c1a311e6d8349c477ce20d6500c934ac38c20c9'],
+    ['functions/_shared/auth-client-ip.js', 'e13ab4b43808520659aaf3d76ad301bc6587da75aca59cc19351f674b0c9f2b7'],
   ]) {
     assert.equal(sha256(await readFile(new URL(`../${path}`, import.meta.url))), digest, path);
   }

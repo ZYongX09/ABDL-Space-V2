@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createHmac, randomBytes } from 'node:crypto';
 import { onRequest } from '../functions/api/[[path]].js';
-import { attachAuthClientIp } from '../functions/_shared/auth-client-ip.js';
+import { attachAuthClientIp, attachObservationClientIp } from '../functions/_shared/auth-client-ip.js';
 
 const secret = randomBytes(32).toString('hex');
 const time = 1793000000000;
@@ -234,4 +234,154 @@ test('actual Pages handler signs upstream registration without exposing secrets 
   assert.equal(await new Response(init.body).text(), '{"synthetic":true}');
   assert.equal(JSON.stringify([...init.headers]), JSON.stringify([...init.headers]).replaceAll(secret, 'not-expected'));
   assert.equal((await response.text()).includes(secret), false);
+});
+
+const observationHeaders = ['X-Observation-Client-IP', 'X-Observation-Client-Time', 'X-Observation-Client-Signature'];
+function observationEnvelope({ ip = '198.51.100.23', method = 'GET', path = '/api/posts', timestamp = String(Math.floor(time / 1000)), key = secret, purpose = 'observation-proxy-ip:v1' } = {}) {
+  return {
+    [observationHeaders[0]]: ip,
+    [observationHeaders[1]]: timestamp,
+    [observationHeaders[2]]: createHmac('sha256', key).update(`${purpose}\n${method}\n${path}\n${timestamp}\n${ip}`).digest('hex'),
+  };
+}
+function assertObservation(headers, options = {}) {
+  for (const [name, value] of Object.entries(observationEnvelope(options))) assert.equal(headers.get(name), value, name);
+}
+function assertNoObservation(headers) {
+  for (const name of observationHeaders) assert.equal(headers.has(name), false, name);
+}
+
+test('observation independently signs all API methods while legacy auth remains POST-only', async () => {
+  for (const method of ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']) {
+    const request = new Request('https://edge.example/api/posts///?ignored=fixture', { method, headers: { 'CF-Connecting-IP': '192.0.2.8' } });
+    const headers = new Headers(request.headers);
+    await attachAuthClientIp(request, headers, secret, time);
+    await attachObservationClientIp(request, headers, secret, time);
+    assertObservation(headers, { ip: '192.0.2.8', method });
+    assertNoEnvelope(headers);
+  }
+});
+
+test('observation validates original IP syntax and canonicalizes IPv6 without zones or synthetic aliases', async () => {
+  for (const [ip, expected] of [
+    ['2001:0DB8:0:0:0:0:0:23', '2001:db8::23'], ['::ffff:192.0.2.23', '::ffff:c000:217'],
+    ['192.0.2.23', '192.0.2.23'], ['127.0.0.1', '127.0.0.1'], ['fd00::1', 'fd00::1'],
+  ]) {
+    const request = new Request('https://edge.example/api/posts', { headers: { 'CF-Connecting-IP': ip } });
+    const headers = new Headers(request.headers);
+    await attachObservationClientIp(request, headers, secret, time);
+    assertObservation(headers, { ip: expected });
+  }
+  for (const ip of [syntheticIp, '2a06:98c0:3600:0:0:0:0:0103', '192.168.001.1', '127.1', '0x7f000001',
+    '999.0.0.1', '192.0.2.1:443', 'fe80::1%eth0', 'fe80::1%25eth0', '[2001:db8::1]', '::ffff:192.0.002.1', '1::2::3']) {
+    const request = new Request('https://edge.example/api/posts', { headers: { 'CF-Connecting-IP': ip, 'X-Forwarded-For': '192.0.2.99', 'X-Real-IP': '192.0.2.98' } });
+    const headers = new Headers(request.headers);
+    await attachObservationClientIp(request, headers, secret, time);
+    assertNoObservation(headers);
+  }
+});
+
+test('observation carries a validated IP across edge and Pages hops with aliased headers', async () => {
+  const edge = new Request('https://edge.example/api/posts', { headers: { 'CF-Connecting-IP': '2001:0DB8::23' } });
+  await attachObservationClientIp(edge, edge.headers, secret, time);
+  assertObservation(edge.headers, { ip: '2001:db8::23' });
+  for (const cf of [syntheticIp, '192.0.2.8', undefined]) {
+    const source = new Headers(edge.headers);
+    if (cf) source.set('CF-Connecting-IP', cf); else source.delete('CF-Connecting-IP');
+    const pages = new Request(edge.url, { headers: source });
+    await attachObservationClientIp(pages, pages.headers, secret, time + 1000);
+    assertObservation(pages.headers, { ip: '2001:db8::23', timestamp: String(Math.floor(time / 1000) + 1) });
+  }
+});
+
+test('observation verifies legacy upstream proof without ever upgrading it into legacy auth authority', async () => {
+  const path = '/api/posts', method = 'DELETE';
+  const upstream = signedEnvelope({ path, method });
+  const request = new Request(`https://edge.example${path}`, { method, headers: { ...upstream, 'CF-Connecting-IP': syntheticIp } });
+  const headers = new Headers(request.headers);
+  await attachAuthClientIp(request, headers, secret, time);
+  await attachObservationClientIp(request, headers, secret, time);
+  assertNoEnvelope(headers);
+  assertObservation(headers, { path, method });
+  const observationOnly = new Request(authUrl, { method: 'POST', headers: { ...observationEnvelope({ path: '/api/auth/register', method: 'POST' }), 'CF-Connecting-IP': syntheticIp } });
+  const authHeaders = new Headers(observationOnly.headers);
+  await attachAuthClientIp(observationOnly, authHeaders, secret, time);
+  assertNoEnvelope(authHeaders);
+});
+
+test('observation rejects forged stale purpose method path and noncanonical envelopes, ignoring public forwarding claims', async t => {
+  const stamp = Math.floor(time / 1000), valid = observationEnvelope();
+  const cases = [
+    ['missing', {}], ['missing IP', { ...valid, [observationHeaders[0]]: '' }],
+    ['malformed HMAC', { ...valid, [observationHeaders[2]]: 'forged' }],
+    ['invalid HMAC', { ...valid, [observationHeaders[2]]: '0'.repeat(64) }],
+    ['tampered IP', { ...valid, [observationHeaders[0]]: '192.0.2.99' }],
+    ['expired', observationEnvelope({ timestamp: String(stamp - 31) })],
+    ['future', observationEnvelope({ timestamp: String(stamp + 31) })],
+    ['malformed time', observationEnvelope({ timestamp: `${stamp}junk` })],
+    ['wrong method', observationEnvelope({ method: 'POST' })],
+    ['wrong path', observationEnvelope({ path: '/api/users' })],
+    ['wrong purpose', observationEnvelope({ purpose: 'auth-proxy-ip:v1' })],
+    ['wrong secret', observationEnvelope({ key: randomBytes(32).toString('hex') })],
+    ['synthetic', observationEnvelope({ ip: syntheticIp })],
+    ['expanded synthetic', observationEnvelope({ ip: '2a06:98c0:3600:0:0:0:0:103' })],
+    ['noncanonical IPv6', observationEnvelope({ ip: '2001:0db8::23' })],
+    ['zone', observationEnvelope({ ip: 'fe80::1%eth0' })],
+  ];
+  for (const [name, source] of cases) await t.test(name, async () => {
+    for (const cf of [syntheticIp, '192.0.2.8']) {
+      const request = new Request('https://edge.example/api/posts', { headers: { ...source, 'CF-Connecting-IP': cf, 'X-Forwarded-For': '192.0.2.99', 'X-Real-Client-IP': '192.0.2.98' } });
+      const headers = new Headers(request.headers);
+      await attachObservationClientIp(request, headers, secret, time);
+      if (cf === syntheticIp) assertNoObservation(headers); else assertObservation(headers, { ip: cf });
+    }
+  });
+});
+
+test('observation strips untrusted envelopes outside API bounds or without a usable secret and permits 30-second clock boundaries', async () => {
+  for (const [path, key] of [['/oauth/token', secret], ['/api-other/posts', secret], [`/api/${'p'.repeat(2048)}`, secret], ['/api/posts', undefined], ['/api/posts', 'x'.repeat(31)]]) {
+    const request = new Request(`https://edge.example${path}`, { headers: { ...observationEnvelope({ path }), 'CF-Connecting-IP': '192.0.2.8' } });
+    const headers = new Headers(request.headers);
+    await attachObservationClientIp(request, headers, key, time);
+    assertNoObservation(headers);
+  }
+  for (const offset of [-30, 30]) {
+    const request = new Request('https://edge.example/api/posts', { headers: { ...observationEnvelope({ timestamp: String(Math.floor(time / 1000) + offset) }), 'CF-Connecting-IP': syntheticIp } });
+    const headers = new Headers(request.headers);
+    await attachObservationClientIp(request, headers, secret, time + 999);
+    assertObservation(headers);
+  }
+});
+
+test('actual API proxy adds only signed observation evidence while preserving method URL body status and headers', async t => {
+  const calls = [], logs = [];
+  t.mock.method(Date, 'now', () => time);
+  t.mock.method(console, 'error', (...args) => { logs.push(args); });
+  t.mock.method(globalThis, 'fetch', async (url, init) => {
+    calls.push({ url, init });
+    return new Response('unchanged API response', { status: 418, headers: { 'Content-Type': 'text/plain', 'X-Existing-Fixture': 'kept' } });
+  });
+  for (const method of ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE']) {
+    const body = !['GET', 'HEAD'].includes(method) ? '{"private":"synthetic fixture"}' : undefined;
+    const request = new Request('https://edge.example/api/posts?cursor=synthetic-query', { method, headers: {
+      ...observationEnvelope({ method, timestamp: String(Math.floor(time / 1000) - 5) }), 'CF-Connecting-IP': syntheticIp,
+      Authorization: 'Bearer synthetic-token', Cookie: 'token=synthetic-cookie', 'X-Forwarded-For': '192.0.2.99',
+    }, ...(body ? { body } : {}) });
+    const response = await onRequest({ request, env: { AUTH_PROXY_HMAC_KEY: secret } });
+    const { url, init } = calls.at(-1);
+    assert.equal(new URL(url).pathname, '/api/posts');
+    assert.equal(new URL(url).search, '?cursor=synthetic-query');
+    assert.equal(init.method, method);
+    assertObservation(init.headers, { method });
+    assertNoEnvelope(init.headers);
+    assert.equal(init.headers.get('Authorization'), 'Bearer synthetic-token');
+    assert.equal(init.headers.get('Cookie'), 'token=synthetic-cookie');
+    if (body) assert.equal(await new Response(init.body).text(), body); else assert.equal(init.body, undefined);
+    assert.equal(response.status, 418);
+    assert.equal(response.headers.get('X-Existing-Fixture'), 'kept');
+    assert.equal(await response.text(), 'unchanged API response');
+    assert.equal(JSON.stringify([...init.headers]).includes(secret), false);
+  }
+  assert.equal(calls.length, 6);
+  assert.deepEqual(logs, []);
 });

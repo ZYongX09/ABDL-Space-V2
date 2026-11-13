@@ -1,0 +1,36 @@
+.uo-module { min-width: 0; }
+.uo-module p { overflow-wrap: anywhere; }
+.uo-warning, .uo-notice { padding: 12px 14px; border: 1px solid var(--ac-border); border-radius: var(--ac-radius); background: var(--ac-warning-soft); color: var(--ac-text); }
+.uo-warning p { margin: 5px 0 0; color: var(--ac-text-secondary); }
+.uo-notice { background: var(--ac-action-soft); }
+.uo-section { margin-top: 16px; }
+.uo-actions { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+.uo-actions > .ac-form-field { flex: 1 1 160px; min-width: 0; }
+.uo-check { display: inline-flex; gap: 9px; align-items: center; padding: 9px 0; color: var(--ac-text); }
+.uo-check input, .uo-legacy-ban input { width: 18px; height: 18px; flex: 0 0 18px; accent-color: var(--ac-action); }
+.uo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
+.uo-policy-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--ac-text-secondary); }
+.uo-target-list, .uo-day-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin: 16px 0; }
+.uo-target, .uo-day { display: flex; flex-direction: column; align-items: start; gap: 7px; padding: 14px; border: 1px solid var(--ac-border); border-radius: var(--ac-radius); background: var(--ac-surface-soft); color: var(--ac-text); text-align: left; overflow-wrap: anywhere; }
+.uo-target span, .uo-day span { font-size: 12px; color: var(--ac-text-secondary); }
+.uo-target.active, .uo-day.active { border-color: var(--ac-action); background: var(--ac-action-soft); }
+.uo-limit { color: var(--ac-danger) !important; }
+.uo-page-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.uo-page-controls > span { flex: 1 1 150px; }
+.uo-table td { vertical-align: top; }
+.uo-table td code { overflow-wrap: anywhere; white-space: normal; }
+.uo-table td small { display: block; margin-top: 5px; color: var(--ac-text-secondary); overflow-wrap: anywhere; }
+.uo-output { margin-top: 16px; padding: 14px; border: 1px solid var(--ac-border); border-radius: var(--ac-radius); background: var(--ac-surface-soft); }
+.uo-output-text { width: 100%; max-height: 420px; margin: 8px 0 12px; white-space: pre; font-family: ui-monospace, monospace; }
+.uo-legacy-list { display: grid; gap: 10px; max-height: 340px; overflow-y: auto; }
+.uo-legacy-ban { display: flex; align-items: start; gap: 10px; padding: 12px; border: 1px solid var(--ac-border); border-radius: var(--ac-radius); background: var(--ac-surface-soft); }
+.uo-legacy-ban p, .uo-legacy-ban small { margin: 4px 0 0; color: var(--ac-text-secondary); overflow-wrap: anywhere; }
+.uo-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.uo-tabs [aria-selected="true"] { border-color: var(--ac-action); background: var(--ac-action-soft); color: var(--ac-action); }
+.uo-module button:focus-visible, .uo-tabs button:focus-visible { outline: 2px solid var(--ac-focus); outline-offset: 3px; }
+@media (max-width: 640px) {
+  .uo-target-list, .uo-day-list { grid-template-columns: 1fr; }
+  .uo-actions > button { flex: 1 1 150px; white-space: normal; }
+  .uo-page-controls > button { flex: 1 1 auto; }
+  .uo-tabs > button { flex: 1 1 auto; }
+}
