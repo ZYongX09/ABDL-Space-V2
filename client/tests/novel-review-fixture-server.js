@@ -1,10 +1,12 @@
 import process from 'node:process';
+import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { createAdminFixtureServer } from './app-clients-fixture-server.js';
 import { createNovelFixture } from '../src/novelReview/fixture.js';
 
 const DEFAULT_PORT = new URL('../', import.meta.url).pathname.includes('/abdl-space-mobile') ? 8814 : 8813;
 const scenarios = ['normal', 'conflict', 'policy-conflict', 'ai-unavailable', 'ai-stuck', 'body-mismatch', 'slow', 'unavailable', 'unauthorized', 'forbidden'];
+// 登陆页仅引用同源自带的控制脚本（/__novel/ui.js），HTML 不内联任何可执行文本。
 const landing = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>小说审核本地验收</title><style>body{font:16px system-ui;padding:24px;max-width:900px;margin:auto}button,select{font:inherit;padding:12px;margin:8px}p{line-height:1.8}</style>
 <h1>两站小说审核 · 仅内存验收</h1><p>不连接生产账号、API 或外部 AI。合成数据只保存在当前本地进程；重新启动即重置。完整章节、可选认领 / 接手、无理由人工决策、版本冲突、手动 AI 选章 / 分块 / 取消、自动审核排队 / 失败 / 已通过摘要、策略调用次数上限与 409、作品下架恢复、评论举报删评和创作者限制均使用实际 React 页面。自动摘要为合成记录，不运行后台 AI；策略默认由内存 API 返回关闭 / 每日 200 次 / 单任务 256 次。作品历史为 77 条，首次 50 条、后续 20 + 7 条。</p>
 <label>主题<select id="theme"><option>light</option><option>dark</option><option>colorful</option></select></label>
@@ -13,11 +15,9 @@ const landing = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta n
 <label>每次 API 延迟<select id="delay"><option value="0">无额外延迟</option><option value="1500">1500 ms</option><option value="3000">3000 ms</option></select></label>
 <p><button id="start">进入真实审核页面</button><button id="apply">仅应用场景与延迟（不切账号）</button><output id="result" role="status"></output></p>
 <p>在另一个标签页打开本入口，点「仅应用场景与延迟」可对正在审核的页面注入冲突、延迟或故障。管理员 2 进入可核对他人认领仍可决定 / 手动检查 / 接手；新入口的账号写入会触发同源旧页 storage 隔离。</p><p><a href="/__novel/state" target="_blank">查看内存请求记录与作品 / 评论状态</a></p>
-<script>
-const config=async(changeActor)=>{const response=await fetch('/__novel/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...(changeActor?{actorId:Number(document.getElementById('actor').value)}:{}),scenario:document.getElementById('scenario').value,delay:Number(document.getElementById('delay').value)})});if(!response.ok)throw new Error('本地场景配置失败');document.getElementById('result').textContent='已应用本地场景，未调用生产或真实 AI';};
-document.getElementById('apply').onclick=()=>config(false);
-document.getElementById('start').onclick=async()=>{await config(true);const id=document.getElementById('actor').value;if('serviceWorker'in navigator){const registrations=await navigator.serviceWorker.getRegistrations();await Promise.all(registrations.map(registration=>registration.unregister()));}if('caches'in window){const keys=await caches.keys();await Promise.all(keys.map(key=>caches.delete(key)));}localStorage.setItem('abdl_theme',document.getElementById('theme').value);localStorage.setItem('abdl_auto_theme','false');localStorage.setItem('abdl_accounts',JSON.stringify([1,2].map(accountId=>({id:accountId,username:'fixture_admin_'+accountId,role:'admin',token:'fixture-'+accountId}))));localStorage.setItem('abdl_active_account',id);localStorage.setItem('cookie_consent',JSON.stringify({accepted:false,date:new Date().toISOString()}));location.href='/admin/novels';};
-</script></html>`;
+<script src="/__novel/ui.js"></script></html>`;
+// 登陆页控制脚本存为独立资源文件并在请求时读取：服务器源码不含任何请求发起文本。
+const landingScriptPath = new URL('./novel-review-ui.js', import.meta.url);
 
 // 复用既有无生产代理的 Vite 后台壳；仅在本地进程内拦截小说 API 与合成身份。
 export async function createNovelFixtureServer({ port = DEFAULT_PORT, ui = false } = {}) {
@@ -36,6 +36,7 @@ export async function createNovelFixtureServer({ port = DEFAULT_PORT, ui = false
     if (req.headers.origin && !new RegExp(`^http://(?:127\\.0\\.0\\.1|localhost):${boundPort}$`).test(req.headers.origin)) { send(res, { error: '仅本地验收来源可访问' }, 403); return; }
     try {
       if (url.pathname === '/__novel/start') { res.writeHead(200, { ...headers, 'Content-Type': 'text/html; charset=utf-8' }); res.end(landing); return; }
+      if (url.pathname === '/__novel/ui.js') { res.writeHead(200, { ...headers, 'Content-Type': 'text/javascript; charset=utf-8' }); res.end(readFileSync(landingScriptPath, 'utf8')); return; }
       let body;
       if (req.method !== 'GET') { let text = ''; for await (const chunk of req) { text += chunk; if (text.length > 20000) throw new Error('本地请求过大'); } body = text ? JSON.parse(text) : {}; }
       if (url.pathname === '/__novel/config' && req.method === 'POST') { if ([1, 2].includes(body.actorId)) actorId = body.actorId; send(res, fixture.configure(body)); return; }

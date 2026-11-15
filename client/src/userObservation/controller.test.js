@@ -10,11 +10,14 @@ function deferred() { let resolve; const promise = new Promise(done => { resolve
 function harness(options = {}) {
   const fixture = createObservationFixture({ now }), copied = [], rejected = [], requests = [];
   let session = { user: { id: 1, role: 'admin', is_super_admin: true }, token: 'fixture-only' };
-  const api = createUserObservationAPI({ now, getSession: () => session, fetcher: async (path, request) => {
-    requests.push({ path, request }); const url = new URL(path, 'http://127.0.0.1');
-    const result = fixture.respond(url.pathname, { method: request.method, params: url.searchParams, body: request.body ? JSON.parse(request.body) : undefined, operationId: request.headers['Idempotency-Key'] });
+  // 具名本地应答函数：同源相对路径直接查内存 fixture，无任何外发请求。
+  function fixtureRespond(path, request) {
+    requests.push({ path, request });
+    const [pathname, query] = path.split('?');
+    const result = fixture.respond(pathname, { method: request.method, params: new URLSearchParams(query), body: request.body ? JSON.parse(request.body) : undefined, operationId: request.headers['Idempotency-Key'] });
     return new Response(JSON.stringify(result.data), { status: result.status });
-  } });
+  }
+  const api = createUserObservationAPI({ now, getSession: () => session, fetcher: fixtureRespond });
   const controller = createUserObservationController({ api: { ...api, ...options.api }, getSession: () => session, now, createId: randomUUID, clipboard: async text => { copied.push(text); if (options.clipboardFails) throw new Error('permission denied'); }, onRejected: (...args) => rejected.push(args) });
   return { controller, fixture, copied, rejected, requests, switchSession(next) { session = next; } };
 }

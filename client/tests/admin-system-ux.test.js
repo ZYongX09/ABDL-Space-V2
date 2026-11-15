@@ -13,6 +13,7 @@ import selectorParser from 'postcss-selector-parser';
 import * as appModel from '../src/appClients/model.js';
 import * as aiModel from '../src/appAI/model.js';
 import * as humanModel from '../src/appHumanCheck/model.js';
+import * as babyPolicyModel from '../src/babyVerificationPolicy/model.js';
 import * as upstreamModel from '../src/nbwUpstream/model.js';
 import * as policyModel from '../src/translationPolicy/model.js';
 import * as glossaryModel from '../src/translationGlossary/model.js';
@@ -40,6 +41,7 @@ function fixture(overrides = {}) {
     nbwV2Policy: async () => ({ ...appModel.DEFAULT_NBW_V2_POLICY }),
     appAIProvider: async () => ({ ...aiModel.DEFAULT_APP_AI_PROVIDER, token_configured: true }),
     appHumanCheckPolicy: async () => ({ ...humanModel.DEFAULT_APP_HUMAN_POLICY }),
+    babyVerificationPolicy: async () => ({ policy: { enabled: false, province_codes: [], revision: '0' }, provinces: babyPolicyModel.PROVINCES }),
     nbwUpstreamHost: async () => ({ ...upstreamModel.DEFAULT_NBW_UPSTREAM }),
     translationPolicy: async () => ({ ...policyModel.DEFAULT_TRANSLATION_POLICY }),
     translationGlossary: async () => ({ entries: [], revision: uuid }),
@@ -77,7 +79,7 @@ function jsxHost(fx, { confirm = async () => true } = {}) {
     useMemo(fn, deps) { const frame = active, slot = frame.cursor++, previous = frame.slots[slot]; if (!previous || deps.some((value, index) => !Object.is(value, previous.deps[index]))) frame.slots[slot] = { deps, value: fn() }; return frame.slots[slot].value; },
     useId() { const frame = active; return `fixture-${frame.path.replace(/\W/g, '-')}-${frame.cursor++}`; },
   };
-  const known = new Map(Object.entries({ 'appClients/model.js': appModel, 'appAI/model.js': aiModel, 'appHumanCheck/model.js': humanModel, 'nbwUpstream/model.js': upstreamModel, 'translationPolicy/model.js': policyModel, 'translationGlossary/model.js': glossaryModel, 'pages/admin/util.js': util }).map(([path, value]) => [resolve(root, path), value]));
+  const known = new Map(Object.entries({ 'appClients/model.js': appModel, 'appAI/model.js': aiModel, 'appHumanCheck/model.js': humanModel, 'babyVerificationPolicy/model.js': babyPolicyModel, 'nbwUpstream/model.js': upstreamModel, 'translationPolicy/model.js': policyModel, 'translationGlossary/model.js': glossaryModel, 'pages/admin/util.js': util }).map(([path, value]) => [resolve(root, path), value]));
   const load = path => {
     const file = resolve(root, path);
     if (known.has(file)) return known.get(file);
@@ -154,13 +156,13 @@ function jsxHost(fx, { confirm = async () => true } = {}) {
   };
 }
 
-test('10 App modules stay mounted across grouped navigation; independent drafts/save; no mount mutations', async () => {
+test('11 App modules stay mounted across grouped navigation; independent drafts/save; no mount mutations', async () => {
   const fx = fixture(), ui = jsxHost(fx);
   try {
     await ui.mount('pages/admin/appClients.jsx', 'AppClientsContent');
     const { APP_MODULE_GROUPS } = ui.load('pages/admin/appClients.jsx');
-    assert.equal(APP_MODULE_GROUPS.flatMap(group => group.modules).length, 10);
-    for (const key of ['appClientReminder', 'appClientPolicy', 'appClientNbwLocalOnly', 'nbwV2Policy', 'nbwUpstreamHost', 'appAIProvider', 'appHumanCheckPolicy', 'translationPolicy', 'translationGlossary', 'appClientStats', 'appClientUsers']) assert.equal(fx.count(key), 1, key);
+    assert.equal(APP_MODULE_GROUPS.flatMap(group => group.modules).length, 11);
+    for (const key of ['appClientReminder', 'appClientPolicy', 'appClientNbwLocalOnly', 'nbwV2Policy', 'nbwUpstreamHost', 'appAIProvider', 'appHumanCheckPolicy', 'babyVerificationPolicy', 'translationPolicy', 'translationGlossary', 'appClientStats', 'appClientUsers']) assert.equal(fx.count(key), 1, key);
     assert.equal(fx.writes().length, 0);
     assert.match(ui.html(), /app-group-nbw[^>]*hidden=""/);
     await ui.change('app-reminder-message', '仅保存在内存的提醒');

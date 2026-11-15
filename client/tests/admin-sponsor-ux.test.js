@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import * as router from 'react-router-dom';
+import * as jsxRuntime from 'react/jsx-runtime';
 import { transform } from 'esbuild';
 import * as adminModel from '../src/sponsors/adminModel.js';
 import * as ledgerModel from '../src/sponsors/sponsorLedgerModel.js';
@@ -45,11 +46,19 @@ async function loadViews() {
     },
   };
   const loaded = {};
+  // 沙箱 require 只解析显式登记的模块：jsx-runtime 与宿主模块在顶层字面量导入，
+  // 未登记的说明符直接失败，绝不回落到宿主动态 require。
+  const sandboxRequire = mappings => id => {
+    if (id.endsWith('.css')) return {};
+    const resolved = mappings[id] || loaded[id];
+    if (resolved === undefined) throw new Error(`沙箱模块未登记: ${id}`);
+    return resolved;
+  };
   async function load(name) {
     const compiled = await transform(source(name), { loader: 'jsx', jsx: 'automatic', format: 'cjs', target: 'es2022', define: { 'import.meta.env.VITE_API_BASE': '""' } });
     const module = { exports: {} };
-    const dependencies = { react: hooks, 'react-router-dom': router, './adminModel.js': adminModel, './sponsorLedgerModel.js': ledgerModel, './alipayPolicyModel.js': policyModel, './adminAPI.js': adminAPI, '../contexts/AuthContext.jsx': { useAuth: () => ({ user: { id: 'admin-view', username: '单元管理员' }, accounts: [] }) }, '../pages/admin/ui.jsx': { useDialogLifecycle() {} } };
-    new Script(compiled.code, { filename: name }).runInContext(createContext({ module, exports: module.exports, require(id) { if (id.endsWith('.css')) return {}; return dependencies[id] || loaded[id] || require(id); }, structuredClone, console, Date, setInterval, clearInterval }));
+    const dependencies = { react: hooks, 'react/jsx-runtime': jsxRuntime, 'react-router-dom': router, './adminModel.js': adminModel, './sponsorLedgerModel.js': ledgerModel, './alipayPolicyModel.js': policyModel, './adminAPI.js': adminAPI, '../contexts/AuthContext.jsx': { useAuth: () => ({ user: { id: 'admin-view', username: '单元管理员' }, accounts: [] }) }, '../pages/admin/ui.jsx': { useDialogLifecycle() {} } };
+    new Script(compiled.code, { filename: name }).runInContext(createContext({ module, exports: module.exports, require: sandboxRequire(dependencies), structuredClone, console, Date, setInterval, clearInterval }));
     loaded[`./${name}`] = module.exports;
     return module.exports;
   }
@@ -60,12 +69,12 @@ async function loadViews() {
   // 真实路由 wrapper 必须显式声明嵌入；标题宿主只提供与 AdminLayout 相同的 h1 契约。
   const wrapper = { exports: {} };
   const wrapperCode = await transform(readFileSync(new URL('../src/pages/admin/sponsors.jsx', import.meta.url), 'utf8'), { loader: 'jsx', jsx: 'automatic', format: 'cjs' });
-  new Script(wrapperCode.code, { filename: 'admin/sponsors.jsx' }).runInContext(createContext({ module: wrapper, exports: wrapper.exports, require(id) {
-    if (id === '../../contexts/AuthContext.jsx') return { useAuth: () => ({ user: { id: 'admin-view', role: 'admin' } }) };
-    if (id === './layout.jsx') return { __esModule: true, default: ({ children }) => React.createElement('main', null, React.createElement('h1', null, '赞助者管理'), children) };
-    if (id === '../../sponsors/SponsorAdmin.jsx') return views;
-    return require(id);
-  } }));
+  new Script(wrapperCode.code, { filename: 'admin/sponsors.jsx' }).runInContext(createContext({ module: wrapper, exports: wrapper.exports, require: sandboxRequire({
+    'react/jsx-runtime': jsxRuntime,
+    '../../contexts/AuthContext.jsx': { useAuth: () => ({ user: { id: 'admin-view', role: 'admin' } }) },
+    './layout.jsx': { __esModule: true, default: ({ children }) => React.createElement('main', null, React.createElement('h1', null, '赞助者管理'), children) },
+    '../../sponsors/SponsorAdmin.jsx': views,
+  }) }));
   const actions = { busy: false, overviewVersion: 0, run() { throw new Error('静态视图不应写入'); }, confirm() { throw new Error('静态视图不应确认'); }, mutate() { throw new Error('静态视图不应写入'); } };
   function render(Component, props = {}, { resources = [], policy = null, override = null, route = '/' } = {}) {
     settings.resources = resources.map(value => value && Object.hasOwn(value, 'loading') ? value : ready(value)); settings.policy = policy; settings.override = override; settings.ids = 0;

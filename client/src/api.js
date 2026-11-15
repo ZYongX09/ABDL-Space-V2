@@ -7,6 +7,8 @@ import { fetchFollowStatuses } from './utils/followStatus.js';
 import { createAppClientsAPI } from './appClients/api.js';
 import { createAppAIAPI } from './appAI/api.js';
 import { createAppHumanCheckAPI } from './appHumanCheck/api.js';
+import { createBabyVerificationPolicyAPI } from './babyVerificationPolicy/api.js';
+import { contentAccess } from './contentAccess.js';
 import { createTranslationPolicyAPI } from './translationPolicy/api.js';
 import { createTranslationGlossaryAPI } from './translationGlossary/api.js';
 import { createNBWUpstreamAPI } from './nbwUpstream/api.js';
@@ -46,6 +48,7 @@ function weightedScore(rating, isBaby) {
 
 // ====== 通用 fetch ======
 async function apiFetch(path, options = {}) {
+  const contentEpoch = contentAccess.getEpoch();
   const nbwEpoch = getNBWEndpointState().epoch;
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   // 自动附加 Authorization header（从 localStorage 读取 token）
@@ -65,6 +68,9 @@ async function apiFetch(path, options = {}) {
   } catch {
     validJSON = false;
   }
+  const accessError = contentAccess.observe(res, data, path, contentEpoch);
+  if (accessError) throw accessError;
+  contentAccess.assertResponse(path, contentEpoch);
   if (!res.ok || !validJSON) {
     const error = new Error(data?.error || (validJSON ? `请求失败 (${res.status})` : `服务器响应异常 (${res.status})`));
     error.status = res.status;
@@ -88,6 +94,7 @@ const CACHE_TTL = {
 };
 
 function cacheGet(key) {
+  contentAccess.assertCache();
   const entry = _cache.get(key);
   if (!entry) return null;
   if (Date.now() > entry.expireAt || (entry.nbwEpoch !== null && entry.nbwEpoch !== getNBWEndpointState().epoch)) { _cache.delete(key); return null; }
@@ -95,6 +102,7 @@ function cacheGet(key) {
 }
 
 function cacheSet(key, data, ttl = CACHE_TTL.short, nbwEpoch = getNBWEndpointState().epoch) {
+  contentAccess.assertCache();
   const remote = /^(feed:|post:)/.test(key) && hasNBWDisplayData(data);
   if (remote && nbwEpoch !== getNBWEndpointState().epoch) throw new NBWError('NBW_ENDPOINT_CHANGED');
   // 缓存大小限制：超过 100 条时驱逐最早的
@@ -1067,6 +1075,7 @@ export const adminAPI = {
   ...createAppAIAPI(apiFetch),
   ...createAppHumanCheckAPI(apiFetch),
   ...createNBWUpstreamAPI(apiFetch),
+  ...createBabyVerificationPolicyAPI(apiFetch),
   ...createTranslationPolicyAPI(apiFetch),
   ...createTranslationGlossaryAPI(apiFetch),
   advertising: async (params = {}) => {

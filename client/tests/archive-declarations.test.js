@@ -55,10 +55,10 @@ test('global noarchive preserves CSP, security headers and sensitive-route decla
   }
 });
 
-test('API, OAuth and client-IP Functions match the reviewed observation signing integration', async () => {
-  // Observation adds only a separately scoped signed IP envelope; response/proxy contracts have dedicated tests.
+test('API, OAuth and client-IP Functions match the reviewed observation and content signing integration', async () => {
+  // Content proof adds its own purpose and no-store handling; auth/observation remain unchanged. Both proxy suites cover the reviewed contracts.
   for (const [path, digest] of [
-    ['functions/api/[[path]].js', 'c1ec5a568d9ee06e2b2c53ca55c52b7fed3f89f2285caa3f3f833fa72d0aec87'],
+    ['functions/api/[[path]].js', '2305a086f38bbf092e91fef6913db9776da081a381020a74312cfde7bc3e99bd'],
     ['functions/oauth/[[path]].js', 'f2741a83f0a881272b962862427df11307843fdd75388ada47832f8653ebeb6d'],
     ['functions/_shared/auth-client-ip.js', 'e13ab4b43808520659aaf3d76ad301bc6587da75aca59cc19351f674b0c9f2b7'],
   ]) {

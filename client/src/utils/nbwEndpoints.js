@@ -1,5 +1,6 @@
 // NBW 公共发现与展示 URL 的唯一边界；不改稳定身份、正文或任意请求主机。
 import { withAuthHeader } from './authHeaders.js';
+import { contentAccess } from '../contentAccess.js';
 export const NBW_PRIMARY_ORIGIN = 'https://www.newbabyworld.top';
 export const NBW_BACKUP_ORIGIN = 'https://nbw.abdlcalendar.top';
 export const NBW_ENDPOINTS_PATH = '/api/nbw/endpoints';
@@ -35,6 +36,7 @@ export function readNBWEndpoints(data) {
 
 // 有界读取，非 JSON/HTML、过大响应、重定向与错误正文均不透传到日志或 UI。
 export async function fetchNBWJSON(path, options = {}) {
+  const contentEpoch = contentAccess.getEpoch();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
   const abort = () => controller.abort();
@@ -64,10 +66,13 @@ export async function fetchNBWJSON(path, options = {}) {
     } finally { await reader.cancel().catch(() => {}); }
     let data;
     try { data = JSON.parse(text); } catch { throw new NBWError('NBW_INVALID_RESPONSE'); }
+    const accessError = contentAccess.observe(response, data, path, contentEpoch);
+    if (accessError) throw accessError;
+    contentAccess.assertResponse(path, contentEpoch);
     if (!response.ok) throw new NBWError(data?.code);
     return data;
   } catch (error) {
-    throw error instanceof NBWError ? error : new NBWError();
+    throw error instanceof NBWError || ['baby_verification_required', 'content_access_unavailable'].includes(error?.code) ? error : new NBWError();
   } finally { clearTimeout(timeout); options.signal?.removeEventListener('abort', abort); }
 }
 

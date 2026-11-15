@@ -10,13 +10,15 @@ function deferred() { let resolve, reject; const promise = new Promise((yes, no)
 function harness(overrides = {}, options = {}) {
   const fixture = createNovelFixture();
   const calls = [];
-  const api = createNovelReviewAPI(async (path, request) => {
-    const url = new URL(path, 'http://fixture.invalid');
+  // 具名本地应答函数：同源相对路径直接查内存 fixture，无任何外发请求。
+  async function fixtureRespond(path, request) {
     calls.push({ path, request });
-    const result = await fixture.respond(url.pathname, { method: request.method, body: request.body == null ? undefined : JSON.parse(request.body), params: url.searchParams, actorId: 1, operationId: request.headers['Idempotency-Key'] });
+    const [pathname, query] = path.split('?');
+    const result = await fixture.respond(pathname, { method: request.method, body: request.body == null ? undefined : JSON.parse(request.body), params: new URLSearchParams(query), actorId: 1, operationId: request.headers['Idempotency-Key'] });
     if (result.status !== 200) throw Object.assign(new Error(result.data.error), { status: result.status, code: result.data.code });
     return result.data;
-  }, { createId: randomUUID, timeoutMs: 1000 });
+  }
+  const api = createNovelReviewAPI(fixtureRespond, { createId: randomUUID, timeoutMs: 1000 });
   const controller = createNovelReviewController({ ...api, ...overrides }, { adminId: 1, createId: randomUUID, ...options });
   return { controller, api, fixture, calls };
 }

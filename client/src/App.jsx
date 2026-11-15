@@ -23,6 +23,7 @@ import PushPrompt from './components/PushPrompt';
 import { useExternalLinkInterceptor } from './hooks/useExternalLinkInterceptor';
 import AdminRouteGate, { AdminUnknownRoute } from './pages/admin/gate.jsx';
 import SiteUnavailablePage from './components/SiteUnavailablePage';
+import ContentAccessNotice, { useContentAccessGate } from './components/ContentAccessNotice.jsx';
 import { getSiteAccess, isAdminPage, isClosedFor, isRegistrationPath, isStaticPage } from './siteAccess';
 
 // 路由级懒加载 — 首屏只加载 HomeV2
@@ -125,6 +126,7 @@ const ROUTE_TITLES = {
   '/admin/advertising': '广告投放 — ABDL Space',
   '/admin/baby-verifications': '宝宝认证审核 — ABDL Space',
   '/baby-verification': '宝宝认证 — ABDL Space',
+  '/settings/baby-verification': '宝宝认证 — ABDL Space',
   '/admin/badges': '徽章体系 — ABDL Space',
   '/admin/posts': '帖子管理 — ABDL Space',
   '/admin/comments': '评论管理 — ABDL Space',
@@ -284,6 +286,7 @@ export default function App() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { pathname, search } = useLocation();
+  const contentGate = useContentAccessGate(pathname);
   const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
   const isMerchantRoute = pathname === '/merchant' || pathname.startsWith('/merchant/');
   useExternalLinkInterceptor();
@@ -325,6 +328,9 @@ export default function App() {
       return <Navigate to="/login" replace state={{ from: `${pathname}${search}`, notice: access.login_prompt }} />;
     }
   }
+
+  // 组合策略取更严格者：必要入口不绕过既有全站关闭/登录策略。
+  if (contentGate) return <ContentAccessNotice access={contentGate} />;
 
   // 商家控制台独立挂载，不进入前台 provider / Sidebar / 导航 / footer / Toast。
   if (isMerchantRoute) return <Suspense fallback={<PageFallback />}><MerchantHost /></Suspense>;
@@ -423,6 +429,7 @@ export default function App() {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/account" element={<AccountPrivacy />} />
                 <Route path="/baby-verification" element={<BabyVerificationStatus />} />
+                <Route path="/settings/baby-verification" element={<BabyVerificationStatus />} />
                 <Route path="/profile-legacy" element={<AdminOnlyProfile />} />
                 <Route path="/profile-legacy/:id" element={<AdminOnlyProfile />} />
                 <Route path="/external" element={<ExternalLink />} />

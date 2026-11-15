@@ -5,6 +5,7 @@ import { createRequestGate, DEFAULT_APP_NBW_LOCAL_ONLY, DEFAULT_APP_POLICY, DEFA
 import AdminLayout from './layout';
 import AppAIProviderCard from './AppAIProviderCard';
 import AppHumanCheckPolicyCard from './AppHumanCheckPolicyCard';
+import AppBabyVerificationPolicyCard from './AppBabyVerificationPolicyCard';
 import TranslationPolicyCard from '../../translationPolicy/Card';
 import TranslationGlossaryCard from '../../translationGlossary/Card';
 import AppNBWUpstreamCard from './AppNBWUpstreamCard';
@@ -49,7 +50,7 @@ function RetryError({ error, retry }) {
 export const APP_MODULE_GROUPS = [
   { id: 'updates', label: '更新与版本', modules: ['更新提醒', '版本废弃'] },
   { id: 'nbw', label: 'NBW 联动', modules: ['指定版本仅本站', 'V2 模式', '上游域名'] },
-  { id: 'ai-security', label: 'AI 与验证', modules: ['AI 服务', '注册安全验证'] },
+  { id: 'ai-security', label: 'AI 与验证', modules: ['AI 服务', '注册安全验证', '宝宝认证访问'] },
   { id: 'translation', label: '翻译', modules: ['翻译策略', '翻译词库'] },
   { id: 'observation', label: '请求观测', modules: ['统计与用户明细'] },
 ];
@@ -361,7 +362,7 @@ export function AppClientsContent() {
   const versionOptions = stats.data?.available ? stats.data.versions.filter(row => row.version_code !== null).map(row => row.version_code).sort((a, b) => b - a) : [];
   if (filters.version_code !== 'all' && filters.version_code !== 'missing' && !versionOptions.includes(Number(filters.version_code))) versionOptions.push(Number(filters.version_code));
   return <div className="ac-page-stack ac-app-clients">
-    <div className="ac-app-note"><strong>10 个模块，按任务分组</strong><p>每张配置卡独立保存，不会一并提交其他草稿。切换分组不会卸载编辑器；未保存内容仅留在本页内存，离开页面或切换账号会清空。</p></div>
+    <div className="ac-app-note"><strong>11 个模块，按任务分组</strong><p>每张配置卡独立保存，不会一并提交其他草稿。切换分组不会卸载编辑器；未保存内容仅留在本页内存，离开页面或切换账号会清空。</p></div>
     <AppModuleNavigation active={active} onSelect={setActive} />
     <AppModulePanel id="updates" active={active}>
       <ReminderEditor />
@@ -375,6 +376,7 @@ export function AppClientsContent() {
     <AppModulePanel id="ai-security" active={active}>
       <AppAIProviderCard />
       <AppHumanCheckPolicyCard />
+      <AppBabyVerificationPolicyCard />
     </AppModulePanel>
     <AppModulePanel id="translation" active={active}>
       <TranslationPolicyCard />

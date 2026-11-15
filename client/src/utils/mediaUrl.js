@@ -34,9 +34,22 @@ function decodeSource(value) {
   }
 }
 
-function mediaApiOrigin() {
-  const base = import.meta.env?.VITE_API_BASE?.replace(/\/+$/, '');
-  return base || 'https://api.abdl-space.top';
+const OWN_MEDIA_ORIGINS = new Set(['https://api.abdl-space.top', 'https://abdl-space-api.zhx589.workers.dev']);
+const V3_PREVIEW = /^\/api\/v1\/media\/(?:preview|avatar)\/v3\/[A-Za-z0-9_-]+$/;
+
+// Only exact, credential-free own v3 preview URLs become same-origin cookie-authenticated Pages requests.
+export function firstPartyMediaPreviewUrl(source) {
+  if (typeof source !== 'string' || !source) return source;
+  if (V3_PREVIEW.test(source)) return source;
+  try {
+    const url = new URL(source);
+    if (!OWN_MEDIA_ORIGINS.has(url.origin) || url.username || url.password || url.port || url.search || url.hash || !V3_PREVIEW.test(url.pathname)) return source;
+    return url.pathname;
+  } catch { return source; }
+}
+
+export function isFirstPartyMediaPreview(source) {
+  return typeof source === 'string' && V3_PREVIEW.test(firstPartyMediaPreviewUrl(source));
 }
 
 function isTrustedSource(source) {
@@ -48,8 +61,8 @@ function isTrustedSource(source) {
 }
 
 function previewUrlFor(source, path) {
-  if (!source || !isTrustedSource(source)) return source;
-  return `${mediaApiOrigin()}${path}${encodeSource(source)}`;
+  if (!source || !isTrustedSource(source)) return firstPartyMediaPreviewUrl(source);
+  return `${path}${encodeSource(source)}`;
 }
 
 /**
@@ -63,7 +76,7 @@ export function buildMediaPreviewUrl(source) {
 
 /**
  * 头像缩略图地址：与内容图同一套边缘缓存，长边压到 160px（列表里实际显示 24–80px）。
- * 结果指向 api.abdl-space.top，不在可信集内，因此重复调用是幂等的。
+ * 结果走同源 Pages 代理以携带 Cookie 与可信来源证明，重复调用仍幂等。
  * @param {string} source 头像原地址
  * @returns {string} 头像缩略图地址（不可用场景返回原地址）
  */
@@ -79,13 +92,9 @@ export function buildAvatarPreviewUrl(source) {
  */
 export function originalMediaUrl(source) {
   if (!source) return source;
-  let url;
-  try {
-    url = new URL(source);
-  } catch {
-    return source;
-  }
-  if (url.origin !== mediaApiOrigin()) return source;
+  const firstParty = firstPartyMediaPreviewUrl(source);
+  if (!V3_PREVIEW.test(firstParty)) return source;
+  const url = new URL(firstParty, 'https://abdl-space.top');
   const prefix = PREVIEW_PATH_PREFIXES.find((path) => url.pathname.startsWith(path));
   if (!prefix) return source;
   const encoded = url.pathname.slice(prefix.length);
@@ -108,7 +117,7 @@ export function withAvatarPreviews(value) {
   for (const [key, item] of Object.entries(value)) {
     result[key] = AVATAR_KEYS.has(key) && typeof item === 'string'
       ? buildAvatarPreviewUrl(item)
-      : withAvatarPreviews(item);
+      : ['preview_url', 'previewUrl'].includes(key) && typeof item === 'string' ? firstPartyMediaPreviewUrl(item) : withAvatarPreviews(item);
   }
   return result;
 }

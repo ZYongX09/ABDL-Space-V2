@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
+import { createContext, Script } from 'node:vm';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
@@ -128,8 +129,11 @@ async function registerHarness() {
     fetchNBWJSON: async (path, options) => { posts.push({ path, options }); if (path.endsWith('check-register')) return status; if (path.endsWith('get-register-url')) return { code: 200, data: { register_url: `${B}/member.php?mod=register` } }; return {}; },
     registrationNBWURL: value => value,
   };
-  const factory = new Function(...Object.keys(hooks), ...Object.keys(runtime), `${compiled.code}; return NBWOneClickRegister;`);
-  const Component = factory(...Object.values(hooks), ...Object.values(runtime));
+  // 转译后的页面代码在 vm 沙箱内以测试 runtime 为全局执行；不存在宿主动态求值逃逸。
+  // window 由用例在挂载前安装到 globalThis，沙箱通过惰性透传在调用时解析。
+  const sandbox = createContext({ ...hooks, ...runtime, module: { exports: {} }, exports: {}, require: () => { throw new Error('页面沙箱不解析模块'); } });
+  Object.defineProperty(sandbox, 'window', { configurable: true, get: () => globalThis.window, set: value => { globalThis.window = value; } });
+  const Component = new Script(`${compiled.code};NBWOneClickRegister`, { filename: 'nbw-one-click-register.js' }).runInContext(sandbox);
   const render = () => { cursor = 0; effects.length = 0; callbacks.length = 0; const tree = Component(); phase = states.find(value => value === 1 || value === 2 || value === 3) || 1; return tree; };
   const flush = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
   return { posts, states, callbacks, effects, render, flush,

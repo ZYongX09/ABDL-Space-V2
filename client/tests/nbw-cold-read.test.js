@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
+import { createContext, Script } from 'node:vm';
 import { createServer } from 'vite';
 import { transform } from 'esbuild';
 const P = 'https://www.newbabyworld.top', B = 'https://nbw.abdlcalendar.top';
@@ -24,7 +25,11 @@ async function pageHarness(api, endpoints) {
     readFeedState: () => null, writeFeedState() {}, forumAPI: api, followsAPI: { statusMany: () => [] }, merchantAPI: {}, h: () => null, fragment: 'fragment',
     PillSelector: 'pill', InlineComposer: 'composer', PostCard: 'post', RightSidebar: 'aside', ThemeToggleBubble: 'theme', LoadingSkeleton: 'loading', EmptyState: 'empty', PullToRefresh: 'pull', PageLayout: 'layout', ImageGrid: 'images', NBWImage: 'img', RichContent: 'rich', OfficialBadge: 'badge', BetaBadge: 'beta', ReportModal: 'report', Link: 'a', buildMediaPreviewUrl: value => value,
   };
-  const Page = new Function(...Object.keys(runtime), `${code};return Page;`)(...Object.values(runtime));
+  // Transformed page code runs in a vm sandbox whose globals are the test runtime; no host
+  // dynamic Function/require escape exists.
+  const sandbox = createContext({ ...runtime, module: { exports: {} }, exports: {}, require: () => { throw new Error('页面沙箱不解析模块'); } });
+  new Script(`${code};Page`, { filename: 'home-page.js' }).runInContext(sandbox);
+  const Page = sandbox.Page;
   const render = () => { cursor = 0; effects.length = 0; callbacks.length = 0; Page(); };
   render(); const effect = effects.find(effect => effect.deps?.length === 1 && typeof effect.deps[0] === 'string' && effect.deps[0].includes('|'));
   return { values, start: () => effect.fn(), render };

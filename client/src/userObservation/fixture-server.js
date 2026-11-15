@@ -49,7 +49,11 @@ export async function createObservationFixtureServer({ port = 8796, ui = true, s
       if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/oauth/')) { send(404, { error: '本地 fixture 未实现此接口，绝不转发生产' }); return; }
       if (url.pathname === '/sw.js') { res.writeHead(200, { ...headers, 'Content-Type': 'application/javascript' }); res.end("self.addEventListener('install',()=>self.skipWaiting());self.addEventListener('activate',event=>event.waitUntil(self.registration.unregister()));"); return; }
       if (ui && (url.pathname === '/' || url.pathname.startsWith('/admin/'))) {
-        res.writeHead(200, { ...headers, 'Content-Type': 'text/html; charset=utf-8' }); res.end(await vite.transformIndexHtml(url.pathname, html)); return;
+        const transformed = await vite.transformIndexHtml(url.pathname, html);
+        // 本进程内 Vite 转换的本地页面；以 Buffer 写出，无任何远端内容。
+        res.writeHead(200, { ...headers, 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(Buffer.from(transformed, 'utf8'));
+        return;
       }
       if (vite) { for (const [key, value] of Object.entries(headers)) if (key !== 'Content-Type') res.setHeader(key, value); vite.middlewares(req, res); return; }
       send(404, { error: '未启用本地 UI' });

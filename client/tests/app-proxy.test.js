@@ -16,8 +16,8 @@ test('main-cdn and deployed Pages proxy preserve native App identity and private
   const seen = [];
   globalThis.fetch = async (url, init) => {
     seen.push({ url, headers: new Headers(init.headers) });
-    return Response.json([{ id: 'app-update-required', content: '请更新 App' }], {
-      headers: { 'Cache-Control': 'private, no-store', Vary: 'User-Agent, X-App-Version-Code, Authorization' },
+    return new Response(JSON.stringify([{ id: 'app-update-required', content: '请更新 App' }]), {
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store', Vary: 'User-Agent, X-App-Version-Code, Authorization' },
     });
   };
   try {
@@ -50,7 +50,7 @@ test('main-cdn and Pages proxy do not invent App version headers for browser req
     const headers = new Headers(init.headers);
     assert.equal(headers.get('X-App-Version-Code'), null);
     assert.equal(headers.get('User-Agent'), 'Mozilla/5.0 (Linux; Android 14) Chrome/130');
-    return Response.json([{ id: 'real-post' }], { headers: { 'Cache-Control': 'public, max-age=30' } });
+    return new Response(JSON.stringify([{ id: 'real-post' }]), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30' } });
   };
   try {
     const response = await throughMainCdn(new Request('https://abdl-space.top/api/v1/timelines/public', {

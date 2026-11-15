@@ -1,17 +1,46 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 import {
   buildAvatarPreviewUrl,
   buildMediaPreviewUrl,
   originalMediaUrl,
+  firstPartyMediaPreviewUrl,
+  isFirstPartyMediaPreview,
   withAvatarPreviews,
 } from './mediaUrl.js';
 
-const apiOrigin = 'https://api.abdl-space.top';
+const apiOrigin = '';
 const cosSource = 'https://abdl-1339643562.cos.ap-shanghai.myqcloud.com/posts/example.jpg';
 const imgbedSource = 'https://img.abdl-space.top/file/posts/example image.jpg';
 const previewPrefix = `${apiOrigin}/api/v1/media/preview/v3/`;
 const avatarPrefix = `${apiOrigin}/api/v1/media/avatar/v3/`;
+
+test('仅精确自有 API 的 v3 预览转同源代理，Cookie 不放 URL、拒绝端口/凭据/后缀域名', () => {
+  const path = '/api/v1/media/preview/v3/c2FmZQ';
+  assert.equal(firstPartyMediaPreviewUrl(`https://api.abdl-space.top${path}`), path);
+  assert.equal(firstPartyMediaPreviewUrl(`https://abdl-space-api.zhx589.workers.dev${path}`), path);
+  assert.equal(withAvatarPreviews({ preview_url: `https://api.abdl-space.top${path}` }).preview_url, path);
+  const immutable = { body: `https://api.abdl-space.top${path}`, avatar_url: `https://api.abdl-space.top${path}`, source: `https://api.abdl-space.top${path}` };
+  assert.deepEqual(withAvatarPreviews(immutable), immutable, 'post text and editable/source fields must not be rewritten');
+  for (const url of [`https://api.abdl-space.top:8443${path}`, `https://user:pass@api.abdl-space.top${path}`, `https://api.abdl-space.top.evil.test${path}`, `https://evil.test${path}`, `https://api.abdl-space.top${path}?token=private`, `https://api.abdl-space.top/api/auth/me`, `https://api.abdl-space.top/api/v1/media/preview/v2/c2FmZQ`]) assert.equal(firstPartyMediaPreviewUrl(url), url);
+});
+
+test('真实 ImageItem onError 不把受保护 v3 失败回退公开原图，外国图片保留原行为', () => {
+  const source = readFileSync(new URL('../components/ImageGrid.jsx', import.meta.url), 'utf8');
+  const handler = /const handleError = useCallback\(\(\) => \{([\s\S]*?)\}, \[fallbackUrl, src\]\);/.exec(source)?.[1];
+  assert.ok(handler, 'exercise actual production error callback, not a replacement test UI');
+  const original = 'https://img.abdl-space.top/file/source.jpg';
+  for (const src of ['/api/v1/media/preview/v3/c2FmZQ', 'https://api.abdl-space.top/api/v1/media/avatar/v3/c2FmZQ']) {
+    const writes = [], errors = [];
+    runInNewContext(`(() => { ${handler} })()`, { fallbackUrl: original, src, isFirstPartyMediaPreview, setSrc: value => writes.push(value), setError: value => errors.push(value) });
+    assert.deepEqual(writes, []); assert.deepEqual(errors, [true]);
+  }
+  const writes = [];
+  runInNewContext(`(() => { ${handler} })()`, { fallbackUrl: original, src: 'https://foreign.test/preview.jpg', isFirstPartyMediaPreview, setSrc: value => writes.push(value), setError() { assert.fail('foreign fallback must stay'); } });
+  assert.deepEqual(writes, [original]); assert.match(source, /aria-label="图片暂时无法显示"/);
+});
 
 test('COS 对象改走后端预览端点，不再直连原图', () => {
   const preview = buildMediaPreviewUrl(cosSource);

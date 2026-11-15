@@ -103,6 +103,7 @@ test('bypass boundaries do not admit similarly named web paths or association de
 });
 
 test('HTML and XHTML, including asset-looking fallbacks and errors, are non-cacheable without losing CSP or existing robots rules', async () => {
+  // This archive-only regression uses a non-deployed host; content decisions have their own full first-party tests.
   const csp = headerRules(await source('../public/_headers')).get('/*').get('Content-Security-Policy');
   assert.ok(csp);
   for (const type of ['text/html; charset=utf-8', 'Text/HTML', 'application/xhtml+xml', 'Application/Xhtml+Xml; charset=UTF-8']) for (const path of ['/forum/61', '/assets/missing.js', '/missing.png']) for (const status of [200, 404]) {
@@ -110,7 +111,7 @@ test('HTML and XHTML, including asset-looking fallbacks and errors, are non-cach
       'Content-Type': type, 'Cache-Control': 'public, max-age=600', 'CDN-Cache-Control': 'public, max-age=3600',
       'Content-Security-Policy': csp, 'X-Robots-Tag': 'noindex, nofollow, max-snippet:0', Vary: 'Origin, Accept-Encoding',
     } });
-    const response = await onRequest({ request: new Request(`${ORIGINS[0]}${path}`), next: () => upstream });
+    const response = await onRequest({ request: new Request(`https://archive-fixture.test${path}`), next: () => upstream });
     assert.equal(response.status, status);
     assert.strictEqual(response.body, upstream.body);
     assert.equal(upstream.bodyUsed, false);
@@ -180,7 +181,7 @@ test('a normal-UA non-bypass WebSocket upgrade also stays identical and untouche
   const upstream = upgradeResponse();
   t.mock.method(globalThis, 'Response', function () { assert.fail('101 responses must not be reconstructed'); });
   let calls = 0;
-  const response = await onRequest({ request: new Request(`${ORIGINS[0]}/socket`, { headers: { Upgrade: 'websocket', 'User-Agent': 'Mozilla/5.0' } }), next() { calls++; return upstream; } });
+  const response = await onRequest({ request: new Request('https://archive-fixture.test/socket', { headers: { Upgrade: 'websocket', 'User-Agent': 'Mozilla/5.0' } }), next() { calls++; return upstream; } });
   assert.equal(calls, 1);
   assert.strictEqual(response, upstream);
   assert.strictEqual(response.webSocket, upstream.webSocket);

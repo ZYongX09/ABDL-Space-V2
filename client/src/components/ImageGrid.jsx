@@ -2,18 +2,18 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import NsfwGuard from './NsfwGuard';
 import { forumAPI } from '../api';
-import { buildMediaPreviewUrl } from '../utils/mediaUrl';
+import { buildMediaPreviewUrl, isFirstPartyMediaPreview } from '../utils/mediaUrl';
 import { resolveNBWDisplayURL } from '../utils/nbwEndpoints.js';
 import { useNBWEndpoints } from '../utils/useNBWEndpoints.js';
 
 function ImageItem({ url, fallbackUrl, onClick, overlay, isNsfw, nsfwType }) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
-  // 缩略图取不到（如源站图片处理不可用）时回退原图，避免直接显示破图占位。
+  // 自有受保护预览失败不自动请求公开原图；仅保留第三方既有回退行为。
   const [src, setSrc] = useState(url);
   useEffect(() => { setSrc(url); setLoaded(false); setError(false); }, [url]);
   const handleError = useCallback(() => {
-    if (fallbackUrl && src !== fallbackUrl) {
+    if (fallbackUrl && src !== fallbackUrl && !isFirstPartyMediaPreview(src)) {
       setSrc(fallbackUrl);
       return;
     }
@@ -28,7 +28,7 @@ function ImageItem({ url, fallbackUrl, onClick, overlay, isNsfw, nsfwType }) {
         </div>
       )}
       {error && (
-        <div className="img-grid-error">
+        <div className="img-grid-error" role="status" aria-label="图片暂时无法显示">
           <i className="fa-solid fa-image" />
         </div>
       )}
