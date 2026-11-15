@@ -130,9 +130,10 @@ async function registerHarness() {
     registrationNBWURL: value => value,
   };
   // 转译后的页面代码在 vm 沙箱内以测试 runtime 为全局执行；不存在宿主动态求值逃逸。
-  // window 由用例在挂载前安装到 globalThis，沙箱通过惰性透传在调用时解析。
+  // window 等浏览器/Node 自由变量经惰性透传按调用时 globalThis 解析，与原 new Function 语义一致。
   const sandbox = createContext({ ...hooks, ...runtime, module: { exports: {} }, exports: {}, require: () => { throw new Error('页面沙箱不解析模块'); } });
-  Object.defineProperty(sandbox, 'window', { configurable: true, get: () => globalThis.window, set: value => { globalThis.window = value; } });
+  for (const name of ['window', 'document', 'localStorage', 'sessionStorage', 'navigator', 'location', 'caches', 'Event', 'EventTarget', 'CustomEvent', 'fetch', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'queueMicrotask', 'structuredClone', 'Request', 'Response', 'Headers', 'URL', 'URLSearchParams', 'AbortController'])
+    Object.defineProperty(sandbox, name, { configurable: true, get: () => globalThis[name], set: value => { globalThis[name] = value; } });
   const Component = new Script(`${compiled.code};NBWOneClickRegister`, { filename: 'nbw-one-click-register.js' }).runInContext(sandbox);
   const render = () => { cursor = 0; effects.length = 0; callbacks.length = 0; const tree = Component(); phase = states.find(value => value === 1 || value === 2 || value === 3) || 1; return tree; };
   const flush = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };

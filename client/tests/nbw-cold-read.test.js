@@ -26,8 +26,11 @@ async function pageHarness(api, endpoints) {
     PillSelector: 'pill', InlineComposer: 'composer', PostCard: 'post', RightSidebar: 'aside', ThemeToggleBubble: 'theme', LoadingSkeleton: 'loading', EmptyState: 'empty', PullToRefresh: 'pull', PageLayout: 'layout', ImageGrid: 'images', NBWImage: 'img', RichContent: 'rich', OfficialBadge: 'badge', BetaBadge: 'beta', ReportModal: 'report', Link: 'a', buildMediaPreviewUrl: value => value,
   };
   // Transformed page code runs in a vm sandbox whose globals are the test runtime; no host
-  // dynamic Function/require escape exists.
+  // dynamic Function/require escape exists. Browser/Node globals the page may reference as
+  // free variables resolve lazily through globalThis, matching the previous new Function scope.
   const sandbox = createContext({ ...runtime, module: { exports: {} }, exports: {}, require: () => { throw new Error('页面沙箱不解析模块'); } });
+  for (const name of ['window', 'document', 'localStorage', 'sessionStorage', 'navigator', 'location', 'caches', 'Event', 'EventTarget', 'CustomEvent', 'fetch', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'queueMicrotask', 'structuredClone', 'Request', 'Response', 'Headers', 'URL', 'URLSearchParams', 'AbortController'])
+    Object.defineProperty(sandbox, name, { configurable: true, get: () => globalThis[name], set: value => { globalThis[name] = value; } });
   new Script(`${code};Page`, { filename: 'home-page.js' }).runInContext(sandbox);
   const Page = sandbox.Page;
   const render = () => { cursor = 0; effects.length = 0; callbacks.length = 0; Page(); };

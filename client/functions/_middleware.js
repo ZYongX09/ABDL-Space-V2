@@ -1,4 +1,5 @@
 import { archiveResponseHeaders, bypassArchiveGuard, isArchiveCrawler } from './_shared/archive-policy.js';
+import { checkWebContentAccess, contentDocumentHeaders } from './_shared/content-web.js';
 
 export async function onRequest(context) {
   const { request } = context;
@@ -18,11 +19,13 @@ export async function onRequest(context) {
       },
     });
   }
+  const decision = await checkWebContentAccess(context);
+  if (decision && decision !== 'open') return decision;
   const response = await context.next();
   if (response.status === 101) return response;
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
-    headers: archiveResponseHeaders(response),
+    headers: archiveResponseHeaders(decision === 'open' ? { headers: contentDocumentHeaders(response) } : response),
   });
 }
