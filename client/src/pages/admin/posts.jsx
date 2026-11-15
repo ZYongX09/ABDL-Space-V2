@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { adminAPI } from '../../api';
+import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import PostModerationModal from '../../postModeration/Modal.jsx';
 import AdminLayout from './layout';
 import { Card, Pill, Pagination, Loading, Empty, ErrorBox, UserCell, useConfirm, StatCard } from './ui';
 import { fmtFull, fmtNum } from './util';
@@ -11,8 +13,11 @@ const PAGE_SIZE = 20;
 export default function AdminPosts() {
   const toast = useToast();
   const confirm = useConfirm();
+  const { user, accounts } = useAuth();
+  const token = accounts?.find(account => String(account.id) === String(user?.id))?.token || '';
   const [q, setQ] = useState('');
   const [query, setQuery] = useState({ page: 1, q: '' });
+  const [moderationPost, setModerationPost] = useState(null);
   const [resource, setResource] = useState({ key: '', items: null, loading: true, error: '', pagination: { page: 1, total: 0, totalPages: 1 } });
   const [busy, setBusy] = useState({});
   const [actionErrors, setActionErrors] = useState({});
@@ -142,6 +147,7 @@ export default function AdminPosts() {
       <div className="ac-action-group">
         <button type="button" className="ac-btn" disabled={loading || !!error || !!busy[post.id]} onClick={() => togglePin(post)}>{busy[post.id] === 'pin' ? '置顶更新中…' : post.pinned ? '取消置顶' : '置顶'}</button>
         <button type="button" className="ac-btn" aria-pressed={!!post.has_nsfw} disabled={loading || !!error || !!busy[post.id]} onClick={() => setNsfw(post)}>{busy[post.id] === 'nsfw' ? '标记更新中…' : post.has_nsfw ? '取消敏感标记' : '标记敏感'}</button>
+        <button type="button" className="ac-btn" disabled={loading || !!error || !!busy[post.id]} onClick={() => setModerationPost(post)}>违规处理</button>
         <button type="button" className="ac-btn danger" disabled={loading || !!error || !!busy[post.id]} onClick={() => remove(post)}>{busy[post.id] === 'delete' ? '删除中…' : '删除帖子'}</button>
       </div>
       <ErrorBox msg={actionErrors[post.id]} />
@@ -193,6 +199,13 @@ export default function AdminPosts() {
           </section>
         </Card>
       </div>
+      <PostModerationModal
+        post={moderationPost}
+        open={Boolean(moderationPost)}
+        session={{ user, token }}
+        onClose={() => setModerationPost(null)}
+        onStored={() => { void load(queryRef.current); }}
+      />
     </AdminLayout>
   );
 }
