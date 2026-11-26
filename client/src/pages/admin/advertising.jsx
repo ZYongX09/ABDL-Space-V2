@@ -6,6 +6,8 @@ import AdminLayout from './layout';
 import { adminSessionKey } from './access.js';
 import { Card, Empty, ErrorBox, FormField, Loading, Pill, StatCard } from './ui';
 import { fmtFull, fmtNum, parseTs } from './util';
+import { ambiguousWrite, billingDelivery, formatHalfMinor, formatMinor, parseYuan } from '../../merchant/billing.js';
+import { BILLING_STATUS_LABELS, parseBillingCodeReceipt, parseBillingCodes, parseBillingPermission, parseBillingStatus } from './advertisingBilling.js';
 import './advertising-ux.css';
 
 const POLICY_FIELDS = [
@@ -61,6 +63,10 @@ function parseAds(raw) {
   rows.forEach(parseAdRecord);
   if (new Set(rows.map(ad => ad.id)).size !== rows.length) throw new Error('广告列表包含重复 ID。');
   return rows;
+}
+
+function parseAdvertisingOverview(raw) {
+  return { rows: parseAds(raw), canManageBilling: parseBillingPermission(raw) };
 }
 
 function parseStats(raw) {
@@ -248,7 +254,7 @@ export function AdvertisingAdsPanel({ resource, canManage }) {
   // 桌面表格与移动卡片共用此锁；同一事件周期的双击也只能提交一次。
   const locks = useRef(new Set());
   const uncertain = useRef(new Set());
-  const rows = resource.data;
+  const rows = resource.data?.rows ?? null;
   const counts = rows ? Object.fromEntries(STATUS_FILTERS.map(([value]) => [value, rows.filter(ad => value === 'all' || (value === 'unknown' ? !Object.hasOwn(STATUS_LABEL, ad.status) : ad.status === value)).length])) : null;
   const search = query.trim().toLocaleLowerCase();
   const visible = rows?.filter(ad => (filter === 'all' || (filter === 'unknown' ? !Object.hasOwn(STATUS_LABEL, ad.status) : ad.status === filter))
@@ -260,7 +266,7 @@ export function AdvertisingAdsPanel({ resource, canManage }) {
     if (loaded && resource.isCurrent()) { uncertain.current.clear(); setOperations({}); }
   };
   const setStatus = async ad => {
-    const current = resource.getSnapshot()?.find(row => row.id === ad.id);
+    const current = resource.getSnapshot()?.rows.find(row => row.id === ad.id);
     if (!canManage || !resource.isReady() || !current || current.status !== ad.status || locks.current.has(ad.id) || uncertain.current.has(ad.id)
       || !Object.hasOwn(STATUS_LABEL, ad.status) || !Object.hasOwn(TYPE_LABEL, ad.ad_type)) return;
     locks.current.add(ad.id);
@@ -270,7 +276,7 @@ export function AdvertisingAdsPanel({ resource, canManage }) {
     try {
       const saved = parseAdReceipt(await adminAPI.advertisingAction(ad.id, status === 'active' ? 'approve' : 'disable'), ad.id, status);
       if (!resource.isCurrent()) return;
-      resource.accept(previous => previous.map(row => row.id === ad.id ? { ...row, ...saved } : row));
+      resource.accept(previous => ({ ...previous, rows: previous.rows.map(row => row.id === ad.id ? { ...row, ...saved } : row) }));
       setOperations(previous => ({ ...previous, [ad.id]: { phase: 'success', message: `广告 #${ad.id} 已${label}，服务端回执已确认。` } }));
     } catch (error) {
       if (!resource.isCurrent()) return;
@@ -294,7 +300,8 @@ export function AdvertisingAdsPanel({ resource, canManage }) {
       <OperationFeedback feedback={operation} />
     </div>;
   };
-  const adCopy = ad => <div className="adux-ad-copy"><strong>{ad.title}</strong><small>#{ad.id} · {TYPE_LABEL[ad.ad_type] || `未知类型：${ad.ad_type}`}</small>{ad.body && <p>{ad.body}</p>}{ad.landing_url && <span className="adux-url">落地地址：{ad.landing_url}</span>}</div>;
+  const adBilling = ad => ad.billing_state ? <small>{billingDelivery(ad)}{ad.billing_mode === 'cpm' && ` · 有效曝光 ${isCount(ad.billing_impressions) ? fmtNum(ad.billing_impressions) : '—'} · 已扣 ${formatHalfMinor(ad.billing_spent_half_minor)} / 预算 ${formatMinor(ad.billing_budget_minor)}`}</small> : null;
+  const adCopy = ad => <div className="adux-ad-copy"><strong>{ad.title}</strong><small>#{ad.id} · {TYPE_LABEL[ad.ad_type] || `未知类型：${ad.ad_type}`}</small>{adBilling(ad)}{ad.body && <p>{ad.body}</p>}{ad.landing_url && <span className="adux-url">落地地址：{ad.landing_url}</span>}</div>;
   return <Card title="广告投放" description="启用表示该广告可参与投放；实际展示仍受全站策略与投放时间限制。" icon="fa-bullhorn"
     action={<button type="button" className="ac-btn" disabled={busy || resource.phase === 'loading'} onClick={reload}>重新读取广告</button>}>
     <div className="adux-filters" role="group" aria-label="按广告状态筛选">
@@ -320,8 +327,85 @@ export function AdvertisingAdsPanel({ resource, canManage }) {
   </Card>;
 }
 
+const BILLING_CODE_LIMIT = 10;
+const readBillingStatus = () => adminAPI.advertisingBillingStatus();
+
+function AdvertisingBillingPanel() {
+  const status = useAdvertisingResource(readBillingStatus, parseBillingStatus);
+  const [page, setPage] = useState(1);
+  const read = useCallback(() => adminAPI.advertisingBillingCodes({ page, limit: BILLING_CODE_LIMIT }), [page]);
+  const parse = useCallback(data => parseBillingCodes(data, page, BILLING_CODE_LIMIT), [page]);
+  const codes = useAdvertisingResource(read, parse);
+  const [amount, setAmount] = useState('');
+  const [plaintext, setPlaintext] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [needsReview, setNeedsReview] = useState(false);
+  const [feedback, setFeedback] = useState(null);
+  const lock = useRef(false);
+  const create = async event => {
+    event.preventDefault();
+    if (!codes.isReady() || codes.getSnapshot()?.pagination.page !== page || lock.current || plaintext || needsReview) return;
+    let minor;
+    try { minor = parseYuan(amount); } catch (error) { setFeedback({ phase: 'error', message: error.message }); return; }
+    lock.current = true;
+    setSaving(true);
+    setFeedback({ phase: 'busy', message: '正在创建一个充值码…' });
+    try {
+      const code = parseBillingCodeReceipt(await adminAPI.createAdvertisingBillingCode(minor), minor);
+      if (!codes.isCurrent()) return;
+      setPlaintext(code);
+      setAmount('');
+      setFeedback({ phase: 'success', message: `已创建面额 ${formatMinor(minor)} 的充值码。完整码只在下方显示一次。` });
+      if (page !== 1) setPage(1); else await codes.reload();
+    } catch (error) {
+      if (!codes.isCurrent()) return;
+      if (ambiguousWrite(error)) {
+        setNeedsReview(true);
+        codes.unconfirm('创建结果未确认');
+        setFeedback({ phase: 'unknown', message: '可能已创建。请重新读取并核对掩码记录，不要直接重试。' });
+      } else setFeedback({ phase: 'error', message: error.status === 403 ? '当前账户无权创建充值码。' : error.status === 401 ? '登录已过期，请重新登录。' : '创建充值码被拒绝，请核对金额及平台状态。' });
+    } finally {
+      lock.current = false;
+      if (codes.isCurrent()) setSaving(false);
+    }
+  };
+  const reload = async () => {
+    if (lock.current) return;
+    if (await codes.reload() && needsReview) {
+      setNeedsReview(false);
+      setFeedback({ phase: 'read', message: '已重新读取掩码列表。之前的创建结果仍需人工核对；未收到的完整码无法回读。' });
+    }
+  };
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(plaintext); if (codes.isCurrent()) setFeedback({ phase: 'success', message: '已复制充值码。请仅发给预定收码人。' }); }
+    catch { if (codes.isCurrent()) setFeedback({ phase: 'error', message: '无法访问剪贴板，请手动选择并复制完整充值码。' }); }
+  };
+  const currentPage = codes.data?.pagination.page === page ? codes.data : null;
+  const pagination = currentPage?.pagination;
+  return <>
+    <Card title="平台计费状态" description="计费状态独立于全站广告投放策略。" icon="fa-circle-info" action={<button type="button" className="ac-btn" disabled={status.phase === 'loading'} onClick={status.reload}>刷新计费状态</button>}>
+      <ResourceNotice resource={status} label="计费状态" />
+      {status.data && <Pill tone={status.phase === 'ready' && status.data.status === 'live' ? 'green' : 'slate'}>{status.phase !== 'ready' ? '上次确认：' : ''}{BILLING_STATUS_LABELS[status.data.status]}</Pill>}
+    </Card>
+    <Card title="企业充值码" description="充值码用于企业钱包，不用于开通商家。完整码仅在本次创建后显示，离开页面即无法回读。" icon="fa-ticket"
+      action={<button type="button" className="ac-btn" disabled={saving || codes.phase === 'loading'} onClick={reload}>重新读取充值码</button>}>
+      <ResourceNotice resource={codes} label="充值码列表" onRetry={reload} disabled={saving} />
+      <form className="adux-policy-form" onSubmit={create}>
+        <FormField label="充值金额（元）" htmlFor="billing-code-amount" hint="金额须大于 0，最多两位小数。"><input id="billing-code-amount" className="ac-input" type="text" inputMode="decimal" autoComplete="off" maxLength={20} value={amount} disabled={saving || !!plaintext} onChange={event => setAmount(event.target.value)} /></FormField>
+        <div><button className="ac-btn primary" type="submit" disabled={codes.phase !== 'ready' || !currentPage || saving || !!plaintext || needsReview || !amount.trim()}>{saving ? '创建中…' : '创建 1 个充值码'}</button></div>
+      </form>
+      <OperationFeedback feedback={feedback} />
+      {plaintext && <div className="adux-billing-secret"><label htmlFor="billing-code-created">本次创建的完整码</label><input id="billing-code-created" className="ac-input ac-input-full" type="text" readOnly value={plaintext} onFocus={event => event.target.select()} autoComplete="off" spellCheck={false} /><div className="adux-actions"><button type="button" className="ac-btn" onClick={copy}>复制完整码</button><button type="button" className="ac-btn" onClick={() => { setPlaintext(''); setFeedback(null); }}>关闭并隐藏</button></div></div>}
+      {currentPage && <>
+        {currentPage.items.length ? <div className="ac-table-wrap"><table className="ac-table"><thead><tr><th scope="col">充值码掩码</th><th scope="col">面额</th><th scope="col">兑换状态</th><th scope="col">创建时间</th></tr></thead><tbody>{currentPage.items.map(row => <tr key={row.id}><td><code>{row.code_mask}</code><small className="adux-billing-meta">#{row.id}</small></td><td>{formatMinor(row.amount_minor)}</td><td>{row.redeemed_at ? <><Pill tone="slate">已兑换</Pill><small className="adux-billing-meta">{fmtFull(row.redeemed_at)} · 企业 #{row.redeemed_by_merchant_id}</small></> : <Pill tone="green">未兑换</Pill>}</td><td>{fmtFull(row.created_at)}</td></tr>)}</tbody></table></div> : <Empty icon="fa-ticket" text={codes.phase === 'ready' ? '此页没有充值码' : '上次读取此页没有充值码'} />}
+        <div className="adux-list-toolbar"><span className="ac-section-note">共 {fmtNum(pagination.total)} 条 · 第 {page} / {Math.max(1, pagination.totalPages)} 页</span><div className="adux-actions"><button className="ac-btn" type="button" disabled={saving || page <= 1 || codes.phase === 'loading'} onClick={() => setPage(page - 1)}>上一页</button><button className="ac-btn" type="button" disabled={saving || page >= pagination.totalPages || codes.phase === 'loading'} onClick={() => setPage(page + 1)}>下一页</button></div></div>
+      </>}
+    </Card>
+  </>;
+}
+
 export function AdvertisingWorkspace({ canManage }) {
-  const ads = useAdvertisingResource(readAds, parseAds);
+  const ads = useAdvertisingResource(readAds, parseAdvertisingOverview);
   const stats = useAdvertisingResource(readStats, parseStats);
   const policy = useAdvertisingResource(readPolicy, parsePolicy);
   const snapshotNote = resource => resource.phase === 'ready' ? '' : resource.data === null ? '尚未确认' : '上次读取，当前未确认';
@@ -329,11 +413,12 @@ export function AdvertisingWorkspace({ canManage }) {
     <div className="ac-stat-grid">
       <StatCard label="累计曝光" value={stats.data ? fmtNum(stats.data.impressions) : '—'} icon="fa-rectangle-ad" tone="blue" meta={snapshotNote(stats) || '全量广告累计曝光'} />
       <StatCard label="累计互动" value={stats.data ? fmtNum(stats.data.clicks) : '—'} icon="fa-arrow-pointer" tone="green" meta={snapshotNote(stats) || '链接点击 + 图片查看 + 广告跳转'} />
-      <StatCard label="已读取广告" value={ads.data ? fmtNum(ads.data.length) : '—'} icon="fa-bullhorn" tone="amber" meta={snapshotNote(ads) || '含草稿与归档，最多 500 条'} />
+      <StatCard label="已读取广告" value={ads.data ? fmtNum(ads.data.rows.length) : '—'} icon="fa-bullhorn" tone="amber" meta={snapshotNote(ads) || '含草稿与归档，最多 500 条'} />
     </div>
     <ResourceNotice resource={stats} label="广告统计" />
     <AdvertisingAdsPanel resource={ads} canManage={canManage} />
     <AdvertisingPolicyPanel resource={policy} canManage={canManage} />
+    {canManage && ads.phase === 'ready' && ads.data.canManageBilling && <AdvertisingBillingPanel />}
   </div>;
 }
 

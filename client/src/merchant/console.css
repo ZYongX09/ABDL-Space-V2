@@ -85,3 +85,8 @@ body.merchant-mode { overflow: hidden; background: var(--app-admin-canvas); back
 @media (max-width: 1023px) { .merchant-console .ac-side { z-index: 20; } .merchant-console .ac-topbar { padding-inline: 16px; } .merchant-console .ac-content { padding: 20px 16px max(32px, env(safe-area-inset-bottom)); } .mc-skip { left: 60px; } }
 @media (max-width: 767px) { .mc-editor-grid, .mc-company-grid { grid-template-columns: minmax(0, 1fr); } .mc-preview { position: static; } .mc-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mc-kpi { padding: 16px; } .mc-kpi strong { font-size: 24px; } .mc-role { display: none; } .merchant-console .ac-page-heading { gap: 12px; flex-wrap: wrap; } .mc-filters .mc-field { max-width: none; flex-basis: 140px; } .mc-chart { height: 160px; } .mc-notice { flex-wrap: wrap; } .mc-enrollment { margin-top: 6px; } }
 @media (max-width: 520px) { .merchant-console .ac-content { padding: 16px 12px max(24px, env(safe-area-inset-bottom)); } .merchant-console .ac-topbar { gap: 8px; padding-inline: 12px; } .merchant-console .ac-topbar-username { max-width: 100px; } .mc-pagination > .ac-action-group { width: 100%; justify-content: space-between; } .mc-pagination .mc-field { gap: 4px; } .mc-pagination .ac-btn { padding-inline: 8px; } .merchant-console .ac-form-grid-2 { grid-template-columns: minmax(0, 1fr); } .mc-pagination label { max-width: 36px; } }
+
+.mc-billing-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: 1rem; margin: 0 0 1rem; }
+.mc-billing-summary dt { font-size: .82rem; opacity: .8; }
+.mc-billing-summary dd { margin: .25rem 0 0; font-weight: 650; overflow-wrap: anywhere; }
+.mc-ad-billing { margin-top: .35rem; }

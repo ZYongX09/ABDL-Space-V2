@@ -80,3 +80,7 @@
 @media (prefers-reduced-motion: reduce) {
   .adux-page .adux-filter, .adux-page .ac-btn { transition: none; }
 }
+
+.adux-page .adux-billing-secret { display: grid; gap: .65rem; padding: .85rem; margin: .75rem 0; border: 1px solid currentColor; border-radius: .5rem; }
+.adux-page .adux-billing-secret input { font-family: monospace; }
+.adux-page .adux-billing-meta { display: block; margin-top: .25rem; opacity: .8; }

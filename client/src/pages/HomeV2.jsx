@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { forumAPI, followsAPI } from '../api';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import PillSelector from '../components/PillSelector';
 import InlineComposer from '../components/InlineComposer';
 import PostCard from '../components/PostCard';
@@ -14,6 +14,8 @@ import { useFollowStatuses } from '../hooks/useFollowStatuses.js';
 import { readFeedState, writeFeedState } from '../utils/navigationState';
 import { getNBWEndpointState, hasNBWDisplayData, nbwAcquisitionEpoch } from '../utils/nbwEndpoints.js';
 import { useNBWEndpoints } from '../utils/useNBWEndpoints.js';
+import AdvertisementCard from '../components/AdvertisementCard.jsx';
+import { supportsAdViewability } from '../merchant/viewability.js';
 
 const TABS = [
   { key: 'latest', label: '最新' },
@@ -25,15 +27,23 @@ export default function HomeV2() {
   const search = searchParams.get('search') || '';
 
   const [activeTab, setActiveTab] = useState('latest');
-  const { user } = useAuth();
+  const { user, loading: authLoading, contentAccessSessionKey } = useAuth();
+  const { pathname } = useLocation();
+  const defaultFeed = pathname === '/' && activeTab === 'latest' && !search;
+  const adViewability = defaultFeed && supportsAdViewability();
   const feedKey = `${activeTab}|${search}|${user?.id ?? 'guest'}`;
+  const scope = `${pathname}|${feedKey}|${authLoading}|${contentAccessSessionKey ?? ''}`;
 
   // 进详情再返回时本组件会被卸载；命中缓存就同步恢复，既不重新请求也不闪骨架屏。
-  const [cachedFeed] = useState(() => readFeedState(feedKey));
+  const [cachedFeed] = useState(() => adViewability || authLoading ? null : readFeedState(feedKey));
 
   const { epoch: endpointEpoch } = useNBWEndpoints();
   const [acquiredEpoch, setAcquiredEpoch] = useState(() => cachedFeed?.nbwAcquiredEpoch ?? getNBWEndpointState().epoch);
   const requestGeneration = useRef(0);
+  const firstPageRequest = useRef(null);
+  const activeScope = useRef(scope); activeScope.current = scope;
+  const [adResponse, setAdResponse] = useState(null);
+  const advertisements = !authLoading && defaultFeed && adResponse?.scope === scope ? adResponse.items : [];
   const [posts, setPosts] = useState(() => cachedFeed?.posts ?? []);
   const [loading, setLoading] = useState(() => !cachedFeed);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -53,7 +63,16 @@ export default function HomeV2() {
   const [needLogin, setNeedLogin] = useState(false);
 
   const loadPosts = useCallback(async (pageNum = 1, append = false) => {
+    if (authLoading || activeScope.current !== scope) return;
     const ticket = ++requestGeneration.current;
+    const current = () => ticket === requestGeneration.current && activeScope.current === scope;
+    let signal;
+    if (!append) {
+      firstPageRequest.current?.abort();
+      firstPageRequest.current = new AbortController();
+      signal = firstPageRequest.current.signal;
+      setAdResponse(null);
+    }
     try {
       if (append) setLoadingMore(true); else setLoading(true);
       setNeedLogin(false);
@@ -62,31 +81,32 @@ export default function HomeV2() {
         page: pageNum,
         limit: 20,
         search: search || undefined,
-        filter,
+        filter, adViewability, signal,
       });
-      if (ticket !== requestGeneration.current) return;
+      if (!current()) return;
       const lease = nbwAcquisitionEpoch(data);
       if (hasNBWDisplayData(data) && lease !== getNBWEndpointState().epoch) return;
       setAcquiredEpoch(lease ?? getNBWEndpointState().epoch);
       // API 已完成一次整笔代次隔离；此处记录最终成功 acquisition lease。
       // 过滤掉回帖（in_reply_to_id 不为空的帖子）
       const newPosts = (data.posts || []).filter(p => !p.in_reply_to_id);
+      if (!append && defaultFeed) setAdResponse({ scope, items: data.advertisements || [] });
       setPosts(prev => append ? [...prev, ...newPosts] : newPosts);
       setHasMore(newPosts.length >= 20);
       setPage(pageNum);
       setReady(true);
     } catch (e) {
-      if (ticket !== requestGeneration.current) return;
+      if (!current()) return;
       if (activeTab === 'following' && !user) {
         setNeedLogin(true);
         setPosts([]);
-      } else {
+      } else if (e.name !== 'AbortError') {
         toast.error(e.message);
       }
     } finally {
-      if (ticket === requestGeneration.current) { setLoading(false); setLoadingMore(false); }
+      if (current()) { setLoading(false); setLoadingMore(false); }
     }
-  }, [activeTab, user, search]);
+  }, [activeTab, user, search, authLoading, scope, defaultFeed, adViewability, toast]);
 
   // 只在「列表 key」变化时加载：命中缓存直接恢复，否则拉第一页。
   // 用 ref 取最新 loadPosts，避免 user 对象换引用导致无谓重拉。
@@ -95,7 +115,8 @@ export default function HomeV2() {
 
   useEffect(() => {
     requestGeneration.current += 1;
-    const cached = readFeedState(feedKey);
+    const cached = adViewability || authLoading ? null : readFeedState(feedKey);
+    setAdResponse(null);
     if (cached) {
       setAcquiredEpoch(cached.nbwAcquiredEpoch ?? getNBWEndpointState().epoch);
       setPosts(cached.posts);
@@ -111,7 +132,8 @@ export default function HomeV2() {
     setHasMore(true);
     setReady(false);
     loadPostsRef.current(1);
-  }, [feedKey]);
+    return () => { requestGeneration.current += 1; firstPageRequest.current?.abort(); };
+  }, [feedKey, scope, adViewability, authLoading]);
 
   useEffect(() => {
     if (acquiredEpoch === endpointEpoch || !hasNBWDisplayData({ posts })) return;
@@ -123,9 +145,9 @@ export default function HomeV2() {
 
   // acquisition lease 只由真实成功读取或有效缓存恢复设置，点赞不能给旧 rows 续租。
   useEffect(() => {
-    if (!ready || loading) return;
+    if (adViewability || authLoading || !ready || loading) return;
     writeFeedState(feedKey, { posts, page, hasMore }, acquiredEpoch);
-  }, [feedKey, ready, loading, posts, page, hasMore, acquiredEpoch]);
+  }, [feedKey, adViewability, authLoading, ready, loading, posts, page, hasMore, acquiredEpoch]);
 
   const likingRef = useRef(new Set());
 
@@ -210,7 +232,7 @@ export default function HomeV2() {
                   <i className="fa-solid fa-right-to-bracket mr-1" /> 去登录
                 </button>
               </div>
-            ) : posts.length === 0 ? (
+            ) : posts.length === 0 && advertisements.length === 0 ? (
               <EmptyState
                 icon={activeTab === 'following' ? 'fa-user-group' : 'fa-comments'}
                 title={activeTab === 'following' ? '暂无关注内容' : '暂无帖子'}
@@ -218,6 +240,7 @@ export default function HomeV2() {
               />
             ) : (  
               <div className={`space-y-4 ${restored ? '' : 'miui-list-enter'}`}>
+                {advertisements.map(ad => <AdvertisementCard key={`ad-${ad.id}`} ad={ad} viewerId={adViewability ? user?.id : null} />)}
                 {posts.map(post => (
                   <PostCard
                     key={post.id}

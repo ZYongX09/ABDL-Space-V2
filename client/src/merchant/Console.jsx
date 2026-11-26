@@ -3,6 +3,7 @@ import { Link, Route, Routes, useNavigate, useParams, useSearchParams } from 're
 import { ConfirmProvider, useConfirm } from '../pages/admin/ui.jsx';
 import MerchantLayout from './Layout.jsx';
 import { AD_STATUSES, COUNTERS, EMPTY_AD, accessState, adForm, adPayload, auditDetail, defaultDateRange, formatNumber, identityPayload, profilePayload, safeMediaURL, safeURL, statsCSV, validateDateRange } from './model.js';
+import { TRIAL_PRICE_MINOR, LEDGER_LABELS, adBillingFields, ambiguousWrite, assertBillingReceipt, billingDelivery, billingEnabled, billingError, createPurchaseAttempt, formatHalfMinor, formatLedgerAmount, formatMinor, minorToInput, officialAd, termExpiries } from './billing.js';
 
 const MerchantContext = createContext(null);
 const useMerchant = () => useContext(MerchantContext);
@@ -71,9 +72,9 @@ function UploadField({ label, value, onChange, api, disabled = false, onBusy }) 
 }
 function Badge({ status }) { return <span className={`mc-badge ${status}`}>{AD_STATUSES[status] || ({ suspended: '已暂停', active: '正常' })[status] || status}</span>; }
 function Empty({ children }) { return <div className="ac-empty">{children}</div>; }
-function Pagination({ pagination, onChange, disabled = false }) {
+function Pagination({ pagination, onChange, disabled = false, compact = false }) {
   const { page, total, totalPages } = pagination;
-  return <div className="mc-pagination"><span className="mc-muted">共 {formatNumber(total)} 条 · 第 {page} / {Math.max(totalPages, 1)} 页</span><div className="ac-action-group"><button className="ac-btn" type="button" disabled={disabled || page <= 1} onClick={() => onChange(page - 1)}>上一页</button><Field label="跳转页码">{id => <select id={id} className="ac-select" value={page} disabled={disabled || totalPages < 2} onChange={event => onChange(Number(event.target.value))}>{Array.from({ length: Math.max(totalPages, page, 1) }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select>}</Field><button className="ac-btn" type="button" disabled={disabled || page >= totalPages} onClick={() => onChange(page + 1)}>下一页</button></div></div>;
+  return <div className="mc-pagination"><span className="mc-muted">共 {formatNumber(total)} 条 · 第 {page} / {Math.max(totalPages, 1)} 页</span><div className="ac-action-group"><button className="ac-btn" type="button" disabled={disabled || page <= 1} onClick={() => onChange(page - 1)}>上一页</button>{!compact && <Field label="跳转页码">{id => <select id={id} className="ac-select" value={page} disabled={disabled || totalPages < 2} onChange={event => onChange(Number(event.target.value))}>{Array.from({ length: Math.max(totalPages, page, 1) }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select>}</Field>}<button className="ac-btn" type="button" disabled={disabled || page >= totalPages} onClick={() => onChange(page + 1)}>下一页</button></div></div>;
 }
 function usePageFilters() {
   const [search, setSearch] = useSearchParams();
@@ -86,9 +87,14 @@ function KPIs({ stats, extra = true }) {
   return <div className="mc-kpis">{columns.map(([key, label]) => <div className="ac-card mc-kpi" key={key}><span>{label}</span><strong>{formatNumber(stats[key])}</strong></div>)}</div>;
 }
 function dateTime(value) { return value && Number.isFinite(new Date(value).getTime()) ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '—'; }
+function AdBilling({ ad }) {
+  const delivery = billingDelivery(ad);
+  if (!delivery && !ad?.billing_mode) return null;
+  return <div className="mc-ad-billing"><small className="mc-block">{ad.billing_mode === 'cpm' ? '按可见曝光' : ad.billing_mode === 'plan' ? '投放套餐' : '计费状态'} · {delivery || '待确认'}</small>{!officialAd(ad) && ad.billing_mode === 'cpm' && <small className="mc-block mc-muted">有效曝光 {formatNumber(ad.billing_impressions ?? undefined)} · 已扣 {formatHalfMinor(ad.billing_spent_half_minor)} / 预算 {formatMinor(ad.billing_budget_minor)}</small>}</div>;
+}
 function AdTable({ items, actions }) {
   if (!items.length) return <Empty>没有匹配的广告。</Empty>;
-  return <div className="ac-table-wrap"><table className="ac-table mc-ads-table"><thead><tr><th scope="col">广告内容</th><th scope="col">企业 / 类型</th><th scope="col">状态 / 排期</th><th scope="col">曝光</th><th scope="col">点击</th><th scope="col">操作</th></tr></thead><tbody>{items.map(ad => <tr key={ad.id}><td><div className="mc-ad-cell">{safeMediaURL(ad.image_url) && <img className="mc-thumb" src={safeMediaURL(ad.image_url)} alt="" loading="lazy" />}<div className="ac-grow"><Link className="mc-title-link" to={`/merchant/ads/${encodeURIComponent(ad.id)}/edit`}>{ad.title || `广告 #${ad.id}`}</Link><p className="mc-clamp">{ad.body || '图片广告'}</p><small className="mc-muted">ID {ad.id}</small></div></div></td><td><span>{ad.merchant_name || '—'}</span><small className="mc-block mc-muted">{ad.ad_type === 'official' ? '官方广告' : '商家广告'}</small></td><td><Badge status={ad.status} /><small className="mc-block mc-muted">开始 {dateTime(ad.starts_at)}</small><small className="mc-block mc-muted">结束 {dateTime(ad.ends_at)}</small></td><td>{formatNumber(ad.impressions)}</td><td>{formatNumber(ad.clicks)}</td><td><div className="mc-row-actions">{actions ? actions(ad) : <Link className="ac-btn" to={`/merchant/ads/${encodeURIComponent(ad.id)}/edit`}>查看 / 编辑</Link>}</div></td></tr>)}</tbody></table></div>;
+  return <div className="ac-table-wrap"><table className="ac-table mc-ads-table"><thead><tr><th scope="col">广告内容</th><th scope="col">企业 / 类型</th><th scope="col">状态 / 排期</th><th scope="col">曝光</th><th scope="col">点击</th><th scope="col">操作</th></tr></thead><tbody>{items.map(ad => <tr key={ad.id}><td><div className="mc-ad-cell">{safeMediaURL(ad.image_url) && <img className="mc-thumb" src={safeMediaURL(ad.image_url)} alt="" loading="lazy" />}<div className="ac-grow"><Link className="mc-title-link" to={`/merchant/ads/${encodeURIComponent(ad.id)}/edit`}>{ad.title || `广告 #${ad.id}`}</Link><p className="mc-clamp">{ad.body || '图片广告'}</p><small className="mc-muted">ID {ad.id}</small></div></div></td><td><span>{ad.merchant_name || '—'}</span><small className="mc-block mc-muted">{ad.ad_type === 'system' ? '系统广告' : officialAd(ad) ? '官方广告' : '商家广告'}</small></td><td><Badge status={ad.status} /><small className="mc-block mc-muted">开始 {dateTime(ad.starts_at)}</small><small className="mc-block mc-muted">结束 {dateTime(ad.ends_at)}</small><AdBilling ad={ad} /></td><td>{formatNumber(ad.impressions)}</td><td>{formatNumber(ad.clicks)}</td><td><div className="mc-row-actions">{actions ? actions(ad) : <Link className="ac-btn" to={`/merchant/ads/${encodeURIComponent(ad.id)}/edit`}>查看 / 编辑</Link>}</div></td></tr>)}</tbody></table></div>;
 }
 function Overview() {
   const { api, info } = useMerchant();
@@ -107,7 +113,7 @@ function Ads() {
   const resource = useResource(load); const operation = useOperation();
   const change = async (ad, action) => {
     const labels = { archive: '归档', pause: '暂停投放', activate: '启用投放', clone: '复制为草稿' };
-    if (!(await confirm({ title: `${labels[action]}广告`, message: `确认${labels[action]}「${ad.title || `广告 #${ad.id}`}」？${action === 'archive' ? '归档后不再参与投放。' : ''}`, danger: action === 'archive', okText: labels[action] }))) return;
+    if (!(await confirm({ title: `${labels[action]}广告`, message: `确认${labels[action]}「${ad.title || `广告 #${ad.id}`}」？${action === 'archive' ? '归档后不再参与投放。' : action === 'pause' && billingEnabled(info) && ad.billing_state === 'legacy' && !officialAd(ad) ? '暂停后将失去历史投放资格，重新启用前需配置计费方式。' : ''}`, danger: action === 'archive', okText: labels[action] }))) return;
     operation.run(() => action === 'archive' ? api.archiveAd(ad.id) : action === 'clone' ? api.cloneAd(ad.id) : api.updateAd(ad.id, { status: action === 'pause' ? 'paused' : 'active' }), resource.reload);
   };
   return <><Heading title="广告管理" description="按关键词、状态筛选广告；发布状态与排期共同决定实际投放。"><Link className="ac-btn primary" to="/merchant/ads/new">新建广告</Link></Heading><Card><form className="mc-filters" onSubmit={event => { event.preventDefault(); update({ q: query.trim(), merchant_id: merchant.trim(), page: 1 }); }}><TextField label="搜索广告" value={query} onChange={event => setQuery(event.target.value)} maxLength={120} /><Field label="广告状态">{id => <select id={id} className="ac-select" value={status} onChange={event => update({ status: event.target.value, page: 1 })}><option value="">全部状态</option>{Object.entries(AD_STATUSES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>}</Field>{info.permissions.can_manage_all && <TextField label="企业 ID" value={merchant} inputMode="numeric" onChange={event => setMerchant(event.target.value)} />}<button className="ac-btn primary" type="submit">筛选</button><button className="ac-btn" type="button" disabled={resource.loading || operation.busy} onClick={resource.reload}>刷新</button></form></Card><Notice {...operation} retry={operation.error ? resource.reload : undefined} /><ResourceState resource={resource}>{resource.data && <Card><AdTable items={resource.data.items} actions={ad => <><Link className="ac-btn" to={`/merchant/ads/${encodeURIComponent(ad.id)}/edit`}>编辑</Link>{ad.status !== 'archived' && <button className="ac-btn" disabled={operation.busy} onClick={() => change(ad, ad.status === 'active' ? 'pause' : 'activate')}>{ad.status === 'active' ? '暂停' : '启用'}</button>}<button className="ac-btn" disabled={operation.busy} onClick={() => change(ad, 'clone')}>复制草稿</button>{ad.status !== 'archived' && <button className="ac-btn danger" disabled={operation.busy} onClick={() => change(ad, 'archive')}>归档</button>}</>} /><Pagination pagination={resource.data.pagination} disabled={operation.busy} onChange={next => update({ page: next })} /></Card>}</ResourceState></>;
@@ -122,15 +128,98 @@ function EditorForm({ source, id }) {
   const { api, info } = useMerchant(); const navigate = useNavigate(); const operation = useOperation();
   const [form, setForm] = useState(() => adForm(source)); const [imageBusy, setImageBusy] = useState(false); const [avatarBusy, setAvatarBusy] = useState(false);
   const change = (key, value) => setForm(previous => ({ ...previous, [key]: value }));
-  const profile = info.profile || info.merchant; const override = info.is_super_admin && info.permissions.can_override_advertiser;
+  const profile = info.profile || info.merchant;
+  const override = info.is_super_admin && info.permissions.can_override_advertiser && (!id || officialAd(source));
+  const merchantAd = id ? !officialAd(source) : !info.is_super_admin;
+  const editBilling = merchantAd && billingEnabled(info);
+  const [mode, setMode] = useState(() => source.billing_mode || '');
+  const [budget, setBudget] = useState(() => minorToInput(source.billing_budget_minor));
   if (source?.status === 'archived') return <Card title="此广告已归档"><p className="mc-muted">归档广告不可编辑；请从广告列表复制为草稿后再修改。</p><Link className="ac-btn" to="/merchant/ads">返回广告列表</Link></Card>;
-  const save = event => { event.preventDefault(); operation.run(() => { const payload = adPayload(form, override); return id ? api.updateAd(id, payload) : api.createAd(payload); }, () => navigate('/merchant/ads')); };
-  return <><Heading title={id ? '编辑广告' : '新建广告'} description="编辑内容、展示身份与排期；右侧实时预览。"><Link className="ac-btn" to="/merchant/ads">返回广告列表</Link></Heading><Notice {...operation} /><div className="mc-editor-grid"><form className="ac-page-stack" onSubmit={save}><Card title="广告内容"><div className="ac-form-grid"><TextField label="广告标题" value={form.title} maxLength={120} onChange={event => change('title', event.target.value)} hint="可选，最多 120 字。" /><TextField label="广告正文" textarea rows={7} maxLength={5000} value={form.body} onChange={event => change('body', event.target.value)} hint="正文和图片至少填写一项，最多 5000 字。" /><TextField label="落地页地址" type="url" value={form.landing_url} onChange={event => change('landing_url', event.target.value)} hint="可选，HTTP / HTTPS 地址。" /><UploadField label="广告图片" api={api} value={form.image_url} onChange={value => change('image_url', value)} onBusy={setImageBusy} disabled={operation.busy} /></div></Card><Card title="展示身份" note={override ? '每条官方广告可单独设置企业名称和头像；留空时由服务端决定回退身份。' : '企业名称和头像在注册时锁定，广告只能使用企业固定身份。'}>{override ? <div className="ac-form-grid"><TextField label="广告企业名称" maxLength={120} value={form.advertiser_name} onChange={event => change('advertiser_name', event.target.value)} /><UploadField label="企业头像" api={api} value={form.advertiser_avatar_url} onChange={value => change('advertiser_avatar_url', value)} onBusy={setAvatarBusy} disabled={operation.busy} /></div> : <div className="ac-form-grid ac-form-grid-2"><TextField label="企业名称（只读）" value={profile?.display_name} readOnly /><TextField label="企业头像地址（只读）" value={profile?.avatar_url} readOnly /></div>}</Card><Card title="投放排期" note="未设置开始或结束时间时不限制对应边界；启用广告仍受排期限制。"><div className="ac-form-grid"><Field label="保存状态">{fieldId => <select id={fieldId} className="ac-select" value={form.status} onChange={event => change('status', event.target.value)}><option value="draft">草稿</option><option value="active">启用投放</option><option value="paused">暂停</option></select>}</Field><div className="ac-form-grid ac-form-grid-2"><TextField label="开始时间（本地时间）" type="datetime-local" value={form.starts_at} onChange={event => change('starts_at', event.target.value)} /><TextField label="结束时间（本地时间）" type="datetime-local" value={form.ends_at} onChange={event => change('ends_at', event.target.value)} /></div><div className="ac-action-group"><button className="ac-btn primary" type="submit" disabled={operation.busy || imageBusy || avatarBusy}>{operation.busy ? '保存中…' : '保存广告'}</button><Link className="ac-btn" to="/merchant/ads">取消</Link></div></div></Card></form><Preview form={form} profile={profile} override={override} /></div></>;
+  const save = event => {
+    event.preventDefault();
+    operation.run(() => {
+      const payload = adPayload(form, override);
+      if (editBilling && (mode !== (source.billing_mode || '') || (mode === 'cpm' && budget !== minorToInput(source.billing_budget_minor)))) Object.assign(payload, adBillingFields(mode, budget));
+      return id ? api.updateAd(id, payload) : api.createAd(payload);
+    }, () => navigate('/merchant/ads'));
+  };
+  return <><Heading title={id ? '编辑广告' : '新建广告'} description="编辑内容、展示身份与排期；右侧实时预览。"><Link className="ac-btn" to="/merchant/ads">返回广告列表</Link></Heading><Notice {...operation} /><div className="mc-editor-grid"><form className="ac-page-stack" onSubmit={save}><Card title="广告内容"><div className="ac-form-grid"><TextField label="广告标题" value={form.title} maxLength={120} onChange={event => change('title', event.target.value)} hint="可选，最多 120 字。" /><TextField label="广告正文" textarea rows={7} maxLength={5000} value={form.body} onChange={event => change('body', event.target.value)} hint="正文和图片至少填写一项，最多 5000 字。" /><TextField label="落地页地址" type="url" value={form.landing_url} onChange={event => change('landing_url', event.target.value)} hint="可选，HTTP / HTTPS 地址。" /><UploadField label="广告图片" api={api} value={form.image_url} onChange={value => change('image_url', value)} onBusy={setImageBusy} disabled={operation.busy} /></div></Card><Card title="展示身份" note={override ? '每条官方广告可单独设置企业名称和头像；留空时由服务端决定回退身份。' : '企业名称和头像在注册时锁定，广告只能使用企业固定身份。'}>{override ? <div className="ac-form-grid"><TextField label="广告企业名称" maxLength={120} value={form.advertiser_name} onChange={event => change('advertiser_name', event.target.value)} /><UploadField label="企业头像" api={api} value={form.advertiser_avatar_url} onChange={value => change('advertiser_avatar_url', value)} onBusy={setAvatarBusy} disabled={operation.busy} /></div> : <div className="ac-form-grid ac-form-grid-2"><TextField label="企业名称（只读）" value={profile?.display_name} readOnly /><TextField label="企业头像地址（只读）" value={profile?.avatar_url} readOnly /></div>}</Card>
+    {(editBilling || (id && source.billing_mode)) && <Card title="广告计费" note="计费资格独立于广告启停和投放排期。"><div className="ac-form-grid">
+      {id && <AdBilling ad={source} />}
+      {editBilling && <>
+        <Field label="计费方式">{fieldId => <select id={fieldId} className="ac-select" value={mode} required={!id} disabled={operation.busy} onChange={event => setMode(event.target.value)}>{!source.billing_mode && <option value="">{id ? '不更改现有计费方式' : '请选择计费方式'}</option>}<option value="plan">使用企业投放套餐</option><option value="cpm">按可见曝光扣费</option></select>}</Field>
+        {mode === 'cpm' ? <TextField label="广告总预算（元）" inputMode="decimal" required value={budget} onChange={event => setBudget(event.target.value)} disabled={operation.busy} hint="每 1,000 次有效可见曝光 ¥15；从企业余额逐次扣费。预算或余额不足时停止按曝光投放。" /> : mode === 'plan' ? <p className="mc-muted">企业需要生效中的套餐，不按次扣费。<Link className="mc-title-link" to="/merchant/billing">查看企业计费</Link></p> : null}
+      </>}
+    </div></Card>}
+    <Card title="投放排期" note="未设置开始或结束时间时不限制对应边界；启用广告仍受排期限制。"><div className="ac-form-grid"><Field label="保存状态">{fieldId => <select id={fieldId} className="ac-select" value={form.status} onChange={event => change('status', event.target.value)}><option value="draft">草稿</option><option value="active">启用投放</option><option value="paused">暂停</option></select>}</Field><div className="ac-form-grid ac-form-grid-2"><TextField label="开始时间（本地时间）" type="datetime-local" value={form.starts_at} onChange={event => change('starts_at', event.target.value)} /><TextField label="结束时间（本地时间）" type="datetime-local" value={form.ends_at} onChange={event => change('ends_at', event.target.value)} /></div><div className="ac-action-group"><button className="ac-btn primary" type="submit" disabled={operation.busy || imageBusy || avatarBusy}>{operation.busy ? '保存中…' : '保存广告'}</button><Link className="ac-btn" to="/merchant/ads">取消</Link></div></div></Card></form><Preview form={form} profile={profile} override={override} /></div></>;
 }
 function EditAd() {
   const { api } = useMerchant(); const { id } = useParams();
   const load = useCallback(signal => api.ad(id, { signal }), [api, id]); const resource = useResource(load);
   return <ResourceState resource={resource}>{resource.data && <EditorForm key={id} id={id} source={resource.data} />}</ResourceState>;
+}
+function Billing() {
+  const { api, info, refreshInfo } = useMerchant();
+  if (!billingEnabled(info)) return <><Heading title="企业计费" description="管理余额、投放套餐和扣费流水。" /><Card title="商家计费未开放"><button className="ac-btn" onClick={refreshInfo}>重新验证权限</button></Card></>;
+  const company = info.profile || info.merchant;
+  return <BillingWallet key={company?.id ?? 'no-company'} api={api} company={company} />;
+}
+function BillingWallet({ api, company }) {
+  const { page, update } = usePageFilters(); const confirm = useConfirm(); const operation = useOperation();
+  const [code, setCode] = useState('');
+  const [attempt] = useState(() => {
+    let storage;
+    try { storage = window.sessionStorage; } catch { /* 内存回退 */ }
+    return createPurchaseAttempt({ storage, scope: company?.id });
+  });
+  const load = useCallback(async signal => {
+    try { return await api.billing({ page, limit: 20 }, { signal }); }
+    catch (error) { if (error.name === 'AbortError') throw error; throw new Error(billingError(error)); }
+  }, [api, page]);
+  const resource = useResource(load); const wallet = resource.data;
+  const canWrite = wallet?.status === 'live' && company?.status === 'active' && !!company.identity_locked && !!company.avatar_url;
+  const refresh = () => { resource.reload(); if (page !== 1) update({ page: 1 }); };
+  const redeem = event => {
+    event.preventDefault();
+    if (!canWrite || operation.busy || !code.trim()) return;
+    operation.run(async () => {
+      try { assertBillingReceipt(await api.redeemBilling(code.trim()), 'redemption'); }
+      catch (error) { throw new Error(ambiguousWrite(error) ? '兑换结果未确认。可重新读取流水，或用原充值码重试，不会重复入账。' : billingError(error)); }
+    }, () => { setCode(''); refresh(); }, '充值码已入账，正在重新读取余额和流水。');
+  };
+  const buy = async (plan, price) => {
+    const pending = attempt.current;
+    if (operation.busy || !company?.id || (!pending && !canWrite)) return;
+    const finalPlan = pending?.plan ?? plan; const finalPrice = pending?.expected_price_minor ?? price;
+    if (!await confirm({ title: pending ? '重试原购买请求' : '确认套餐购买', message: `${LEDGER_LABELS[finalPlan]} · 将从企业余额支付 ${formatMinor(finalPrice)}。${pending ? '本次沿用同一请求标识，不会重复扣款。' : ''}`, okText: pending ? '重试原请求' : '确认支付' })) return;
+    operation.run(async () => {
+      const request = attempt.start(finalPlan, finalPrice);
+      try {
+        assertBillingReceipt(await api.purchaseBilling(request), request.plan, request.expected_price_minor);
+        attempt.clear();
+      } catch (error) {
+        if (ambiguousWrite(error) || [401, 403].includes(error.status)) throw new Error(`${billingError(error)} 原购买请求仍保留，请使用“重试原购买”。`);
+        attempt.clear(); refresh();
+        throw new Error(billingError(error));
+      }
+    }, refresh, '购买回执已确认，正在重新读取余额和套餐。');
+  };
+  const pending = attempt.current;
+  const terms = wallet ? termExpiries(wallet) : null;
+  const pagination = wallet?.pagination || (wallet && { page, total: wallet.total, totalPages: Math.ceil(wallet.total / 20) });
+  return <>
+    <Heading title="企业计费" description="使用充值码为企业充值，或从余额购买投放套餐。按可见曝光扣费的广告不消耗套餐权益。"><button className="ac-btn" disabled={resource.loading || operation.busy} onClick={resource.reload}>刷新计费</button></Heading>
+    <Notice {...operation} retry={operation.error && !operation.busy ? resource.reload : undefined} />
+    {pending && <Card title="购买结果待确认" note={`${LEDGER_LABELS[pending.plan]} · ${formatMinor(pending.expected_price_minor)}。重试沿用原请求，不会重复扣款。`}><button className="ac-btn" disabled={operation.busy || !company?.id} type="button" onClick={() => buy()}>重试原购买</button></Card>}
+    <ResourceState resource={resource}>{wallet && <>
+      <Card title="企业钱包"><dl className="mc-billing-summary"><div><dt>余额</dt><dd>{formatLedgerAmount(wallet, 'balance')}</dd></div><div><dt>平台计费状态</dt><dd>{{ live: '运行中', paused: '已暂停', disabled: '未开放' }[wallet.status]}</dd></div><div><dt>当前套餐到期</dt><dd>{terms.current ? dateTime(terms.current) : '没有生效中的套餐'}</dd></div>{terms.queued && <div><dt>含已续订的最终到期</dt><dd>{dateTime(terms.queued)}</dd></div>}</dl>{!canWrite && <p className="mc-muted">{wallet.status === 'live' ? '仅已完成身份登记、状态正常的企业可充值或购买。' : '计费未运行，充值和新购买暂不可用。历史流水仍可查阅。'}</p>}</Card>
+      <div className="mc-company-grid">
+        <Card title="兑换充值码" note="充值码仅可入账一次，不是商家注册码。"><form onSubmit={redeem} className="ac-form-grid"><TextField label="充值码" value={code} disabled={!canWrite || operation.busy} maxLength={64} autoComplete="off" autoCapitalize="off" spellCheck={false} onChange={event => setCode(event.target.value)} /><button className="ac-btn primary mc-fit" disabled={!canWrite || operation.busy || !code.trim()}>兑换并充值</button></form></Card>
+        <Card title="投放套餐" note="月度套餐为 30 天，有剩余时长将顺延。7 天试用每家企业限购一次，且不能与现有套餐重叠。"><div className="ac-form-grid"><div className="ac-action-group"><button type="button" className="ac-btn primary" disabled={!canWrite || operation.busy || !!pending || wallet.balance_minor < wallet.monthly_price_minor} onClick={() => buy('monthly', wallet.monthly_price_minor)}>购买 / 续订 30 天 · {formatMinor(wallet.monthly_price_minor)}</button><button type="button" className="ac-btn" disabled={!canWrite || operation.busy || !!pending || !wallet.trial_available || !!terms.current || !!terms.queued || wallet.balance_minor < TRIAL_PRICE_MINOR} onClick={() => buy('trial', TRIAL_PRICE_MINOR)}>购买 7 天试用 · {formatMinor(TRIAL_PRICE_MINOR)}</button></div><p className="mc-muted">{!wallet.trial_available ? '本企业已使用试用方案。' : terms.current || terms.queued ? '当前套餐结束后才可购买试用。' : '余额不足时请先充值。'}</p></div></Card>
+      </div>
+      <Card title="计费流水" note="按最新交易排序；余额和扣费精确到半分。">{wallet.items.length ? <div className="ac-table-wrap"><table className="ac-table"><thead><tr><th scope="col">时间</th><th scope="col">类型</th><th scope="col">金额</th><th scope="col">交易后余额</th><th scope="col">关联广告 / 套餐</th></tr></thead><tbody>{wallet.items.map(row => <tr key={row.id}><td className="ac-cell-nowrap">{dateTime(row.created_at)}</td><td>{LEDGER_LABELS[row.kind] || '其他交易'}</td><td>{formatLedgerAmount(row, 'amount')}</td><td>{formatLedgerAmount(row, 'balance_after')}</td><td>{row.advertisement_id ? `广告 #${row.advertisement_id}` : row.ends_at ? `${dateTime(row.starts_at)} 至 ${dateTime(row.ends_at)}` : '—'}</td></tr>)}</tbody></table></div> : <Empty>此页暂无计费记录。</Empty>}<Pagination pagination={pagination} compact disabled={operation.busy} onChange={next => update({ page: next })} /></Card>
+    </>}</ResourceState>
+  </>;
 }
 function Company() {
   const { api, info, refreshInfo } = useMerchant();
@@ -203,5 +292,5 @@ export default function MerchantConsole({ api, username = '', loggedIn = true, a
   if (!loggedIn) return <MerchantLayout username={username} locked><Card title="请先登录"><p className="mc-muted">商家控制台与当前社区账户关联。</p><Link className="ac-btn primary" to="/login?redirect=%2Fmerchant">前往登录</Link></Card></MerchantLayout>;
   if (resource.error) return <MerchantLayout username={username} locked><Heading title="无法读取商家权限" description="未加载任何广告或统计，请手动重试。" /><Notice error={resource.error} retry={resource.reload} /></MerchantLayout>;
   if (state !== 'ready') return <ConfirmProvider><MerchantLayout info={info} username={username} locked>{state === 'activate' || state === 'identity' ? <Enrollment info={info} api={api} refreshInfo={resource.reload} identityOnly={state === 'identity'} /> : <Card title={state === 'suspended' ? '企业已暂停' : '商家权限未启用'}><p className="mc-muted">当前账户不可加载广告或统计。请联系平台处理权限，处理完成后手动重新验证。</p><button className="ac-btn" onClick={resource.reload}>重新验证权限</button></Card>}</MerchantLayout></ConfirmProvider>;
-  return <MerchantContext.Provider value={{ api, info, refreshInfo: resource.reload }}><ConfirmProvider><Routes><Route element={<MerchantLayout info={info} username={username} />}><Route path="/merchant" element={<Overview />} /><Route path="/merchant/ads" element={<Ads />} /><Route path="/merchant/ads/new" element={<EditorForm source={EMPTY_AD} />} /><Route path="/merchant/ads/:id/edit" element={<EditAd />} /><Route path="/merchant/reports" element={<Reports />} /><Route path="/merchant/company" element={<Company />} /><Route path="/merchant/audit" element={<Audit />} /><Route path="/merchant/merchants" element={<Merchants />} /><Route path="*" element={<Unknown />} /></Route></Routes></ConfirmProvider></MerchantContext.Provider>;
+  return <MerchantContext.Provider value={{ api, info, refreshInfo: resource.reload }}><ConfirmProvider><Routes><Route element={<MerchantLayout info={info} username={username} />}><Route path="/merchant" element={<Overview />} /><Route path="/merchant/ads" element={<Ads />} /><Route path="/merchant/ads/new" element={<EditorForm source={EMPTY_AD} />} /><Route path="/merchant/ads/:id/edit" element={<EditAd />} /><Route path="/merchant/reports" element={<Reports />} /><Route path="/merchant/company" element={<Company />} /><Route path="/merchant/billing" element={<Billing />} /><Route path="/merchant/audit" element={<Audit />} /><Route path="/merchant/merchants" element={<Merchants />} /><Route path="*" element={<Unknown />} /></Route></Routes></ConfirmProvider></MerchantContext.Provider>;
 }

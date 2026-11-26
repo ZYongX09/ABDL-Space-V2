@@ -1,20 +1,28 @@
 import { useEffect, useRef } from 'react';
 import { merchantAPI } from '../api';
 import { buildMediaPreviewUrl } from '../utils/mediaUrl';
+import { useBillableImpression } from '../merchant/useBillableImpression.js';
+import '../pages/merchant.css';
 
-export default function AdvertisementCard({ ad, placement = 'feed' }) {
-  const tracked = useRef(false);
+export default function AdvertisementCard({ ad, placement = 'feed', viewerId }) {
+  const tracked = useRef(null);
   const adId = ad?.id || ad?.ad_id;
+  const token = placement === 'feed' ? ad?.billable_impression_token : null;
+  const impressionId = ad?.impression_id;
+  const card = useBillableImpression(adId, token, viewerId);
   const imageUrl = ad?.images?.[0]?.preview_url || buildMediaPreviewUrl(ad?.image_url || ad?.imageUrl || '');
   const targetUrl = ad?.url || ad?.target_url || ad?.targetUrl;
   const title = ad?.title || '推广内容';
-  const body = ad?.content || ad?.text || '';
+  const body = ad?.body || ad?.content || ad?.text || '';
+  const name = ad?.display_name || ad?.merchant_name;
+  const label = ad?.official || ad?.ad_type === 'official' || ad?.ad_type === 'system' ? '官方推广' : '商家推广';
 
   useEffect(() => {
-    if (!adId || tracked.current) return;
-    tracked.current = true;
-    merchantAPI.event({ adId, eventType: 'impression', placement });
-  }, [adId, placement]);
+    // The legacy impression is analytics only; a separate visible receipt can be billed.
+    if (!adId || tracked.current === (impressionId || adId)) return;
+    tracked.current = impressionId || adId;
+    merchantAPI.event({ adId, eventType: 'impression', placement, impressionId });
+  }, [adId, placement, impressionId, token]);
 
   const track = (eventType) => merchantAPI.event({ adId, eventType, placement });
   const openTarget = (event) => {
@@ -26,8 +34,8 @@ export default function AdvertisementCard({ ad, placement = 'feed' }) {
   };
 
   return (
-    <article className="ad-card card" data-ad-id={adId}>
-      <div className="ad-card-label"><i className="fa-solid fa-bullhorn" aria-hidden="true" /> 推广</div>
+    <article className="ad-card card" data-ad-id={adId} ref={card}>
+      <div className="ad-card-label"><i className="fa-solid fa-bullhorn" aria-hidden="true" /> {label}{name ? ` · ${name}` : ''}</div>
       <div className="ad-card-content">
         <div className="ad-card-copy">
           <h3>{title}</h3>
