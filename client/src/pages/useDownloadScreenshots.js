@@ -4,6 +4,7 @@ import { contentAccess } from '../contentAccess.js';
 import { useAuth } from '../contexts/AuthContext';
 import { getSiteAccess } from '../siteAccess.js';
 import { shouldBlockSiteMedia } from '../siteMediaAccess.js';
+import { fallbackDownloadScreenshot } from './downloadScreenshotFallback.js';
 
 function useSystemTheme() {
   const [theme, setTheme] = useState('dark');
@@ -85,5 +86,11 @@ export function useDownloadScreenshots(theme) {
   const community = useScreenshot(slots, 'community', effective, scope);
   const rankings = useScreenshot(slots, 'rankings', effective, scope);
   const reading = useScreenshot(slots, 'reading', effective, scope);
-  return { community, rankings, reading };
+  // 后端槽位为空、读取失败或访问未放行时，回退到随前端发布的内置截图。
+  const withFallback = (feature, image) => image ?? fallbackDownloadScreenshot(feature, effective);
+  return {
+    community: withFallback('community', community),
+    rankings: withFallback('rankings', rankings),
+    reading: withFallback('reading', reading),
+  };
 }
