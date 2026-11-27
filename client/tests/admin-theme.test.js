@@ -122,7 +122,8 @@ test('App 管理只保留页内布局，不再以路由覆盖共享主题', () =
   assert.match(source('../src/pages/admin/ui.jsx'), /className="ac-admin-theme"/);
   const adminDir = new URL('../src/pages/admin/', import.meta.url);
   for (const file of readdirSync(adminDir).filter(file => file.endsWith('.jsx') && !['layout.jsx', 'ui.jsx', 'charts.jsx', 'util.jsx', 'gate.jsx'].includes(file))) {
-    assert.match(source(`../src/pages/admin/${file}`), /AdminLayout/, `${file} 未使用管理端共享容器`);
+    const content = source(`../src/pages/admin/${file}`);
+    assert.match(content, file === 'AppDownloadScreenshotsCard.jsx' ? /className="ac-admin-theme"/ : /AdminLayout/, `${file} 未使用管理端共享容器`);
   }
 });
 

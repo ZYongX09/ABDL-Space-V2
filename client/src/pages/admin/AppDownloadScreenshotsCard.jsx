@@ -150,7 +150,7 @@ export default function AppDownloadScreenshotsCard() {
     }
   }
 
-  return <Card title="下载页截图" icon="fa-images" description="主站和移动站共用这组深浅色截图；保存一个槽位不会改动其他槽位。"
+  return <div className="ac-admin-theme"><Card title="下载页截图" icon="fa-images" description="主站和移动站共用这组深浅色截图；保存一个槽位不会改动其他槽位。"
     action={<button type="button" className="ac-btn" disabled={loading || !!busy || expired} onClick={() => setReload(value => value + 1)}>重新读取配置</button>}>
     <p className="ac-app-note">建议使用竖屏原生截图，支持 PNG、JPEG 和 WebP：最多 3 MiB、最长边 3200 像素、总像素不超过 360 万。上传完成后才替换当前截图。</p>
     {expired ? <ErrorBox msg="管理员会话已变更，请重新打开此页。" /> : <>
@@ -165,5 +165,5 @@ export default function AppDownloadScreenshotsCard() {
         })}</div>
       </section>)}</div>}
     </>}
-  </Card>;
+  </Card></div>;
 }
