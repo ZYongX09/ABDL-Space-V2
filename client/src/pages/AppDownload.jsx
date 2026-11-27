@@ -114,7 +114,7 @@ function ScreenImage({ feature, image, decorative = false }) {
 }
 
 function Phone({ feature, image, decorative = false }) {
-  // 机身按截图本身的比例收缩，避免固定比例在边缘留下背景色条。
+  // 机身比例取自截图本身；边框改为外扩阴影，不占布局，图片可完整铺满机身。
   return <div className="adl-phone" data-tone={feature.tone} style={{ aspectRatio: `${image.width} / ${image.height}` }}><ScreenImage feature={feature} image={image} decorative={decorative} /></div>;
 }
 

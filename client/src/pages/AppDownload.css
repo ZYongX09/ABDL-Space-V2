@@ -133,7 +133,7 @@
   --adl-screen: color-mix(in srgb, var(--adl-tone) 42%, #fff);
   --adl-highlight: color-mix(in srgb, var(--adl-ink) var(--adl-tone-ink-share), var(--adl-tone));
 }
-.adl-phone { position: relative; overflow: hidden; aspect-ratio: 9 / 19.5; border: 4px solid #181820; border-radius: clamp(16px, 2.4vw, 28px); background: var(--adl-screen); box-shadow: 0 16px 40px #12121a55; }
+.adl-phone { position: relative; overflow: hidden; aspect-ratio: 9 / 19.5; border-radius: clamp(16px, 2.4vw, 28px); background: var(--adl-screen); box-shadow: 0 0 0 4px #181820, 0 16px 40px #12121a55; }
 .adl-phone img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
 
 .adl-kicker { display: flex; align-items: center; gap: 10px; color: var(--adl-highlight); font-size: 13px; font-weight: 750; letter-spacing: .055em; }
