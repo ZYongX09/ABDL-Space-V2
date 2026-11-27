@@ -279,6 +279,17 @@ export default function AppDownload() {
 
   return (
     <div className="app-landing" data-landing-theme={theme} id="top">
+      <header className="adl-topbar">
+        <div className="adl-wrap adl-topbar-inner">
+          <a className="adl-brand adl-topbar-brand" href="#top">
+            <img src="/app-icon.png" width="30" height="30" alt="" />
+            <span>ABDL Space</span>
+          </a>
+          <a className="adl-button adl-primary adl-topbar-cta" href="#download">
+            <Icon name="download" /><span>下载 App</span>
+          </a>
+        </div>
+      </header>
       <main>
         <section className={`adl-hero${Object.values(images).some(Boolean) ? '' : ' adl-hero-no-images'}`} aria-labelledby="adl-title">
           <div className="adl-hero-copy">
