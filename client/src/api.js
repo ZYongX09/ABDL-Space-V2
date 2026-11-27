@@ -1608,11 +1608,13 @@ export const betaInfoAPI = {
 /**
  * App 版本管理
  * 对接后端 GET /api/v1/version，返回最新安装包信息。
- * hasUpdate=false 时表示尚未发布任何版本（即“即将上线”）。
  */
 export const appVersionAPI = {
-  getLatest: async () => {
-    const res = await fetch(`${API_BASE}/api/v1/version`);
+  getLatest: async ({ signal } = {}) => {
+    // Vite 的本地预览不执行 Pages Functions，直接查询公开版本接口。
+    const isLoopback = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+    const base = API_BASE || (import.meta.env.DEV || isLoopback ? 'https://api.abdl-space.top' : '');
+    const res = await fetch(`${base}/api/v1/version`, { signal });
     if (!res.ok) return null;
     return res.json();
   },

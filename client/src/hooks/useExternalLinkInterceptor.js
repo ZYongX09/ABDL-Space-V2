@@ -5,10 +5,11 @@ import { useNavigate } from 'react-router-dom';
  * 全局劫持所有外链 <a> 标签
  * 点击时跳转到 /external?url=... 提醒页
  */
-export function useExternalLinkInterceptor() {
+export function useExternalLinkInterceptor(enabled = true) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!enabled) return;
     const handler = (e) => {
       // 找到最近的 <a> 标签
       const a = e.target.closest('a');
@@ -43,5 +44,5 @@ export function useExternalLinkInterceptor() {
 
     document.addEventListener('click', handler, true);
     return () => document.removeEventListener('click', handler, true);
-  }, [navigate]);
+  }, [enabled, navigate]);
 }

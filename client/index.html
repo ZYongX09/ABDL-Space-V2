@@ -5,6 +5,11 @@
   <meta name="robots" content="noarchive" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+  if (/^\/app\/?$/i.test(location.pathname)) {
+    document.querySelector('meta[name="viewport"]')?.setAttribute('content', 'width=device-width, initial-scale=1.0');
+  }
+  </script>
   <title>ABDL Space</title>
   <link rel="icon" type="image/png" href="/app-icon.png" />
   <link rel="apple-touch-icon" href="/app-icon.png" />
@@ -15,7 +20,7 @@
   <meta name="theme-color" content="#6C63FF" />
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="stylesheet" href="/fontawesome.min.css" />
-  <script>if (location.pathname.indexOf('/c/') !== 0) { var captchaScript = document.createElement('script'); captchaScript.src = 'https://api.abdl-space.top/api/v1/captcha/embed.js'; captchaScript.defer = true; document.head.appendChild(captchaScript); }</script>
+  <script>if (location.pathname.indexOf('/c/') !== 0 && !/^\/app\/?$/i.test(location.pathname)) { var captchaScript = document.createElement('script'); captchaScript.src = 'https://api.abdl-space.top/api/v1/captcha/embed.js'; captchaScript.defer = true; document.head.appendChild(captchaScript); }</script>
   <script>window.__ABDL_CAPTCHA_KEY = '%VITE_CAPTCHA_KEY%';</script>
   <script>window.__TURNSTILE_SITE_KEY = '%VITE_TURNSTILE_SITE_KEY%';</script>
   <script>
@@ -24,6 +29,7 @@
       document.querySelector('script[src*="captcha/embed.js"]')?.remove();
       return;
     }
+    if (/^\/app\/?$/i.test(location.pathname)) return;
     var _hmt = _hmt || [];
     var s = document.createElement('script');
     s.src = 'https://hm.baidu.com/hm.js?45f30315297c806e5581a3703a7e2a9a';
@@ -38,7 +44,7 @@
     <img src="/app-icon.png" alt="" style="width:64px;height:64px;opacity:0.6;" />
   </div>
   <script>
-  if (location.pathname.indexOf('/c/') === 0) {
+  if (location.pathname.indexOf('/c/') === 0 || /^\/app\/?$/i.test(location.pathname)) {
     document.getElementById('intro-placeholder').remove();
   } else {
     var introScript = document.createElement('script');
