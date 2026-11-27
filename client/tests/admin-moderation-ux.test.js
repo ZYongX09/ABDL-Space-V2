@@ -60,6 +60,7 @@ function harness(name, apiOverrides = {}, confirmReply = async () => true) {
     STATUS_LABELS: { pending: '待处理', resolved: '已处理', dismissed: '已驳回' },
     STATUS_TABS: [{ value: 'open', label: '待处理' }, { value: 'resolved', label: '已处理' }, { value: 'all', label: '全部' }],
     useToast: () => ({ success: text => successes.push(text), error: text => errors.push(text) }),
+    useAuth: () => ({ user: { id: 1, role: 'admin' }, accounts: [{ id: 1, token: 'fixture-only' }] }),
     useConfirm: () => async options => { confirmations.push(plain(options)); return confirmReply(options); },
     useState(initial) {
       const index = cursor++;

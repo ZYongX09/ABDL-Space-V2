@@ -11,6 +11,7 @@ import { transformSync } from 'esbuild';
 import postcss from 'postcss';
 import selectorParser from 'postcss-selector-parser';
 import * as appModel from '../src/appClients/model.js';
+import * as screenshotsModel from '../src/appDownloadScreenshots.js';
 import * as aiModel from '../src/appAI/model.js';
 import * as humanModel from '../src/appHumanCheck/model.js';
 import * as babyPolicyModel from '../src/babyVerificationPolicy/model.js';
@@ -29,6 +30,10 @@ const totals = Object.fromEntries(['observed_users', 'versioned_users', 'unversi
 const stats = () => ({ available: true, measurement_started_at: null, totals, versions: [] });
 const access = posts => ({ web_mode: 'closed', web_message: '', web_login_prompt: '', app_mode: 'off', app_message: '', fake_posts: posts || [], app_download_open: true, revision: 'fixture-1' });
 const beta = () => ({ enabled: false, allowedRoutes: ['/login'], message: '' });
+const screenshotSlots = () => Object.fromEntries(screenshotsModel.SCREENSHOT_GROUPS.flatMap(group => screenshotsModel.SCREENSHOT_THEMES.map(theme => {
+  const slot = `${group.id}-${theme.id}`;
+  return [slot, { slot, revision: '0', image: null }];
+})));
 
 // 直接编译、挂载生产 JSX，不创建 HTTP/Vite 服务，不导入生产 API，不发真实 AI/推送。
 // 最小 hook/事件宿主不伪称浏览器测试；shared Modal/confirm 的焦点与布局由父统一验收。
@@ -47,6 +52,9 @@ function fixture(overrides = {}) {
     translationGlossary: async () => ({ entries: [], revision: uuid }),
     appClientStats: async () => stats(),
     appClientUsers: async () => ({ users: [], pagination: { page: 1, total: 0, totalPages: 0 } }),
+    getAdminDownloadScreenshots: async () => screenshotSlots(),
+    getScreenshotBlob: async () => new Blob(['local screenshot fixture'], { type: 'image/webp' }),
+    saveDownloadScreenshot: async (slot, revision, file) => ({ slot, revision: uuid, image: file ? { url: `/fixture/${slot}/${revision}`, width: 720, height: 1640 } : null }),
     saveAppClientReminder: async payload => payload,
     saveAppClientPolicy: async payload => payload,
     saveAppClientNbwLocalOnly: async payload => payload,
@@ -67,7 +75,7 @@ function fixture(overrides = {}) {
 
 function jsxHost(fx, { confirm = async () => true } = {}) {
   const frames = new Map(), nodes = new Map(), modules = new Map();
-  const window = new EventTarget();
+  const window = Object.assign(new EventTarget(), { setTimeout, clearTimeout });
   let active, effects = [], changed = false, disposed = false, lateWrites = 0, hosts = [], tree, Component, props;
   const hooks = {
     ...React,
@@ -93,6 +101,10 @@ function jsxHost(fx, { confirm = async () => true } = {}) {
       if (!extname(target)) target = ['.js', '.jsx'].map(extension => target + extension).find(candidate => known.has(candidate) || existsSync(candidate)) || target + '.jsx';
       if (target.endsWith('.css')) return {};
       if (target === resolve(root, 'api.jsx') || target === resolve(root, 'api.js')) return { adminAPI: fx.api, adminPushAPI: fx.api };
+      if (target === resolve(root, 'appDownloadScreenshots.js')) return {
+        ...screenshotsModel, getAdminDownloadScreenshots: fx.api.getAdminDownloadScreenshots,
+        getScreenshotBlob: fx.api.getScreenshotBlob, saveDownloadScreenshot: fx.api.saveDownloadScreenshot,
+      };
       if (target.endsWith('/AuthContext.jsx')) return { useAuth: () => ({ user: { id: 1, role: 'admin' }, accounts: [{ id: 1, token: 'fixture-only' }] }) };
       if (target.endsWith('/layout.jsx')) return { default: ({ children }) => children };
       if (target.endsWith('/NBWImage.jsx')) return { default: () => null };
@@ -102,7 +114,9 @@ function jsxHost(fx, { confirm = async () => true } = {}) {
       return load(target);
     };
     const compiled = transformSync(readFileSync(file, 'utf8'), { loader: 'jsx', jsx: 'automatic', format: 'cjs', sourcefile: file }).code;
-    runInNewContext(compiled, { module, exports: module.exports, require, window, AbortController, URL, Event, console, setTimeout, clearTimeout }, { filename: file });
+    runInNewContext(compiled, { module, exports: module.exports, require, window, AbortController, URL, Event, Blob,
+      Image: class { set src(value) { this.value = value; } decode() { return Promise.resolve(); } },
+      console, setTimeout, clearTimeout }, { filename: file });
     return module.exports;
   };
   const walk = (element, path = 'root', disabled = false, hidden = false) => {
@@ -128,7 +142,11 @@ function jsxHost(fx, { confirm = async () => true } = {}) {
   const host = predicate => hosts.find(node => !node.hidden && predicate(node.element));
   const event = async (predicate, name, value) => {
     const node = host(predicate); assert.ok(node, `找不到 ${name} 控件`); assert.equal(node.disabled, false, '不能向禁用控件派发事件');
-    if (value !== undefined) { if (node.element.props.type === 'checkbox') node.checked = value; else node.value = value; }
+    if (value !== undefined) {
+      if (node.element.props.type === 'checkbox') node.checked = value;
+      else if (node.element.props.type === 'file') node.files = value;
+      else node.value = value;
+    }
     if (name === 'toggle') node.open = value;
     const type = { click: 'onClick', change: 'onChange', submit: 'onSubmit', toggle: 'onToggle' }[name]; let result;
     const callback = e => { result = node.element.props[type]?.(e); };
@@ -156,12 +174,13 @@ function jsxHost(fx, { confirm = async () => true } = {}) {
   };
 }
 
-test('11 App modules stay mounted across grouped navigation; independent drafts/save; no mount mutations', async () => {
+test('App modules retain drafts across grouped navigation and never mutate on mount', async () => {
   const fx = fixture(), ui = jsxHost(fx);
   try {
     await ui.mount('pages/admin/appClients.jsx', 'AppClientsContent');
     const { APP_MODULE_GROUPS } = ui.load('pages/admin/appClients.jsx');
-    assert.equal(APP_MODULE_GROUPS.flatMap(group => group.modules).length, 11);
+    assert.equal(APP_MODULE_GROUPS.flatMap(group => group.modules).length, 12);
+    assert.equal(fx.count('getAdminDownloadScreenshots'), 0);
     for (const key of ['appClientReminder', 'appClientPolicy', 'appClientNbwLocalOnly', 'nbwV2Policy', 'nbwUpstreamHost', 'appAIProvider', 'appHumanCheckPolicy', 'babyVerificationPolicy', 'translationPolicy', 'translationGlossary', 'appClientStats', 'appClientUsers']) assert.equal(fx.count(key), 1, key);
     assert.equal(fx.writes().length, 0);
     assert.match(ui.html(), /app-group-nbw[^>]*hidden=""/);
@@ -175,6 +194,55 @@ test('11 App modules stay mounted across grouped navigation; independent drafts/
     await ui.click('NBW 联动指定版本仅本站 / V2 模式 / 上游域名');
     assert.equal(ui.find(element => element.props.id === 'app-nbw-local-only-versions').value, '31,34');
     assert.equal(fx.count('appClientReminder'), 1, '分组切换不重新加载或卸载');
+  } finally { ui.dispose(); }
+});
+
+test('download screenshots load six slots only after navigation and use per-slot conflict refresh/removal confirmation', async () => {
+  const slots = screenshotSlots();
+  let conflict = true, confirmed = false;
+  let reads = 0;
+  const fx = fixture({
+    getAdminDownloadScreenshots: async () => { reads++; return { ...slots }; },
+    getScreenshotBlob: async () => new Blob(['synthetic screenshot'], { type: 'image/webp' }),
+    saveDownloadScreenshot: async (slot, revision, file) => {
+      assert.equal(slot, 'community-light');
+      assert.equal(revision, slots[slot].revision);
+      if (conflict) { conflict = false; throw failure(409); }
+      slots[slot] = { slot, revision: uuid, image: file ? { url: `/fixture/${slot}/${uuid}.webp`, width: 720, height: 1640 } : null };
+      return slots[slot];
+    },
+  });
+  const ui = jsxHost(fx, { confirm: async () => confirmed });
+  try {
+    await ui.mount('pages/admin/appClients.jsx', 'AppClientsContent');
+    assert.equal(fx.count('getAdminDownloadScreenshots'), 0, 'opening App 管理 does not fetch screenshots');
+    assert.equal(fx.writes().length, 0);
+    await ui.click('下载页截图浅色 / 深色');
+    assert.equal(reads, 1);
+    assert.equal(ui.hosts().filter(node => node.element.props.type === 'file').length, 6);
+    const file = new Blob(['synthetic PNG fixture'], { type: 'image/png' });
+    Object.defineProperty(file, 'name', { value: 'community.png' });
+    await ui.change('app-download-screenshot-community-light', [file]);
+    assert.match(ui.html(), /待上传预览/);
+    assert.equal(fx.writes().length, 0, 'file selection is local only');
+    await ui.click('上传并发布');
+    assert.match(ui.html(), /本地 fixture 请求失败/);
+    assert.equal(fx.count('saveDownloadScreenshot'), 1);
+    assert.equal(ui.find(element => element.props.type === 'submit' && text(element) === '上传并发布').disabled, true, '409 locks this slot until a reload');
+    assert.equal(slots['community-light'].image, null, 'the conflict did not change the stored image');
+    await ui.click('重新读取配置');
+    assert.equal(reads, 2);
+    await ui.click('上传并发布');
+    assert.match(ui.html(), /已更新，两站下载页共用此图/);
+    assert.equal(fx.count('saveDownloadScreenshot'), 2);
+    await ui.click('下架');
+    assert.equal(fx.count('saveDownloadScreenshot'), 2, 'cancelling the danger confirmation sends no write');
+    confirmed = true;
+    await ui.click('下架');
+    assert.equal(slots['community-light'].image, null);
+    assert.equal(slots['community-dark'].revision, '0', 'the adjacent slot is unchanged');
+    assert.equal(fx.count('saveDownloadScreenshot'), 3);
+    assert.match(ui.html(), /已从下载页下架/);
   } finally { ui.dispose(); }
 });
 

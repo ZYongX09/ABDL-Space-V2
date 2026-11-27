@@ -9,6 +9,7 @@ import AppBabyVerificationPolicyCard from './AppBabyVerificationPolicyCard';
 import TranslationPolicyCard from '../../translationPolicy/Card';
 import TranslationGlossaryCard from '../../translationGlossary/Card';
 import AppNBWUpstreamCard from './AppNBWUpstreamCard';
+import AppDownloadScreenshotsCard from './AppDownloadScreenshotsCard';
 import { Card, Empty, ErrorBox, FormField, Loading, Pagination, Pill, StatCard } from './ui';
 import { fmtFull } from './util';
 import './appClients.css';
@@ -46,9 +47,10 @@ function RetryError({ error, retry }) {
   return error ? <div className="ac-app-feedback"><ErrorBox msg={error} /><button type="button" className="ac-btn" onClick={retry}>重新加载</button></div> : null;
 }
 
-// 隐藏分组只改变呈现，所有独立编辑器始终挂载，切换不会清空草稿或令牌输入。
+// 编辑器挂载后切换分组不会清空草稿。
 export const APP_MODULE_GROUPS = [
   { id: 'updates', label: '更新与版本', modules: ['更新提醒', '版本废弃'] },
+  { id: 'screenshots', label: '下载页截图', modules: ['浅色 / 深色'] },
   { id: 'nbw', label: 'NBW 联动', modules: ['指定版本仅本站', 'V2 模式', '上游域名'] },
   { id: 'ai-security', label: 'AI 与验证', modules: ['AI 服务', '注册安全验证', '宝宝认证访问'] },
   { id: 'translation', label: '翻译', modules: ['翻译策略', '翻译词库'] },
@@ -350,6 +352,7 @@ export function AppModulePanel({ id, active, children }) {
 
 export function AppClientsContent() {
   const [active, setActive] = useState('updates');
+  const [screenshotsVisited, setScreenshotsVisited] = useState(false);
   const [revision, setRevision] = useState(0);
   const stats = useResource(`stats:${revision}`, signal => adminAPI.appClientStats({ signal }));
   const [filters, setFilters] = useState({ version_code: 'all', page: 1, q: '' });
@@ -362,11 +365,17 @@ export function AppClientsContent() {
   const versionOptions = stats.data?.available ? stats.data.versions.filter(row => row.version_code !== null).map(row => row.version_code).sort((a, b) => b - a) : [];
   if (filters.version_code !== 'all' && filters.version_code !== 'missing' && !versionOptions.includes(Number(filters.version_code))) versionOptions.push(Number(filters.version_code));
   return <div className="ac-page-stack ac-app-clients">
-    <div className="ac-app-note"><strong>11 个模块，按任务分组</strong><p>每张配置卡独立保存，不会一并提交其他草稿。切换分组不会卸载编辑器；未保存内容仅留在本页内存，离开页面或切换账号会清空。</p></div>
-    <AppModuleNavigation active={active} onSelect={setActive} />
+    <div className="ac-app-note"><strong>{APP_MODULE_GROUPS.reduce((count, group) => count + group.modules.length, 0)} 个模块，按任务分组</strong><p>每张配置卡独立保存，不会一并提交其他草稿。切换分组不会清空草稿；未保存内容仅留在本页内存，离开页面或切换账号会清空。</p></div>
+    <AppModuleNavigation active={active} onSelect={id => {
+      if (id === 'screenshots') setScreenshotsVisited(true);
+      setActive(id);
+    }} />
     <AppModulePanel id="updates" active={active}>
       <ReminderEditor />
       <PolicyEditor />
+    </AppModulePanel>
+    <AppModulePanel id="screenshots" active={active}>
+      {screenshotsVisited && <AppDownloadScreenshotsCard />}
     </AppModulePanel>
     <AppModulePanel id="nbw" active={active}>
       <NbwLocalOnlyEditor />
