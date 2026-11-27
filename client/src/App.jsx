@@ -139,7 +139,7 @@ const ROUTE_TITLES = {
   '/admin/notifications': '推送管理 — ABDL Space',
   '/external': '外部链接 — ABDL Space',
   '/about': '关于 — ABDL Space',
-  '/app': '下载客户端 — ABDL Space',
+  '/app': 'ABDL Space APP 下载',
   '/terms': '用户协议 — ABDL Space',
   '/privacy': '隐私政策 — ABDL Space',
   '/cookies': 'Cookie 政策 — ABDL Space',
@@ -161,6 +161,7 @@ const ROUTE_TITLES = {
 };
 
 function getTitle(pathname) {
+  if (/^\/app\/?$/i.test(pathname)) return ROUTE_TITLES['/app'];
   if (ROUTE_TITLES[pathname]) return ROUTE_TITLES[pathname];
   if (pathname.startsWith('/c/')) return '证书验真 — ABDL Space';
   if (pathname.startsWith('/admin')) return '管理后台 — ABDL Space';
@@ -289,7 +290,8 @@ export default function App() {
   const contentGate = useContentAccessGate(pathname);
   const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
   const isMerchantRoute = pathname === '/merchant' || pathname.startsWith('/merchant/');
-  useExternalLinkInterceptor();
+  const isAppDownload = /^\/app\/?$/i.test(pathname);
+  useExternalLinkInterceptor(!isAppDownload);
 
   // 手机端访问 /profile/* 强制跳转 m.abdl-space.top
   useEffect(() => {
@@ -334,6 +336,15 @@ export default function App() {
 
   // 商家控制台独立挂载，不进入前台 provider / Sidebar / 导航 / footer / Toast。
   if (isMerchantRoute) return <Suspense fallback={<PageFallback />}><MerchantHost /></Suspense>;
+
+  if (isAppDownload) return (
+    <>
+      <ScrollToTop />
+      <ErrorBoundary>
+        <Suspense fallback={<PageFallback />}><AppDownload /></Suspense>
+      </ErrorBoundary>
+    </>
+  );
 
   return (
     <MobileHeaderProvider>
@@ -403,7 +414,6 @@ export default function App() {
                 <Route path="/diaper-wiki" element={<DiaperWikiList />} />
                 <Route path="/diaper-wiki/:id" element={<DiaperWiki />} />
                 <Route path="/about" element={<About />} />
-                <Route path="/app" element={<AppDownload />} />
                 <Route path="/cookies" element={<CookiePolicy />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
 
