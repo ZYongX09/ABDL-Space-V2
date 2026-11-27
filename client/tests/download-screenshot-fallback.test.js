@@ -4,12 +4,12 @@ import { readFileSync, statSync } from 'node:fs';
 
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const SLOTS = [
-  ['community-light', 'community-light', 720, 1640],
-  ['community-dark', 'community-dark', 720, 1563],
-  ['rankings-light', 'rankings-light', 720, 1640],
-  ['rankings-dark', 'rankings-dark', 720, 1640],
-  ['reading-light', 'reading-light', 720, 1640],
-  ['reading-dark', 'reading-dark', 720, 1640],
+  ['community-light', 'community-light', 719, 1519],
+  ['community-dark', 'community-dark', 672, 1521],
+  ['rankings-light', 'rankings-light', 672, 1536],
+  ['rankings-dark', 'rankings-dark', 647, 1475],
+  ['reading-light', 'reading-light', 604, 1425],
+  ['reading-dark', 'reading-dark', 604, 1425],
 ];
 
 test('six bundled screenshots exist as real WebP assets', () => {
@@ -38,4 +38,12 @@ test('the download hook falls back only when the backend has no image', () => {
     assert.match(source, new RegExp(`withFallback\\('${feature}', ${feature}\\)`), feature);
   }
   assert.match(source, /const withFallback = \(feature, image\) => image \?\? fallbackDownloadScreenshot\(feature, effective\);/);
+});
+
+test('the phone frame hugs the screenshot so no background band shows', () => {
+  const page = read('../src/pages/AppDownload.jsx');
+  assert.match(page, /className="adl-phone"[^>]*aspectRatio: `\$\{image\.width\} \/ \$\{image\.height\}`/, 'frame ratio comes from the image');
+  const css = read('../src/pages/AppDownload.css');
+  assert.match(css, /\.adl-phone img \{[^}]*object-fit: cover;/, 'the image fills the frame');
+  assert.match(css, /\.adl-phone img \{[^}]*object-position: top;/, 'cropping stays at the bottom');
 });

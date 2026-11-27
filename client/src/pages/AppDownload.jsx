@@ -114,7 +114,8 @@ function ScreenImage({ feature, image, decorative = false }) {
 }
 
 function Phone({ feature, image, decorative = false }) {
-  return <div className="adl-phone" data-tone={feature.tone}><ScreenImage feature={feature} image={image} decorative={decorative} /></div>;
+  // 机身按截图本身的比例收缩，避免固定比例在边缘留下背景色条。
+  return <div className="adl-phone" data-tone={feature.tone} style={{ aspectRatio: `${image.width} / ${image.height}` }}><ScreenImage feature={feature} image={image} decorative={decorative} /></div>;
 }
 
 function HeroScreenshots({ images }) {
@@ -140,11 +141,14 @@ function FeatureShowcase({ images }) {
     function observeAtReadingLine() {
       observer?.disconnect();
       const height = window.innerHeight;
+      // 视口高度为 0 时（隐藏页签、内嵌零高度容器）无法构造合法的负边距。
+      if (height < 2) return;
       const top = Math.round(height * 0.28);
+      const bottom = Math.max(0, Math.round(height - top - 1));
       observer = new IntersectionObserver(entries => {
         const visible = entries.find(entry => entry.isIntersecting);
         if (visible) setActive(articleRefs.current.indexOf(visible.target));
-      }, { rootMargin: `-${top}px 0px -${height - top - 1}px 0px` });
+      }, { rootMargin: `-${top}px 0px -${bottom}px 0px` });
       articleRefs.current.forEach(article => { if (article) observer.observe(article); });
     }
     observeAtReadingLine();
