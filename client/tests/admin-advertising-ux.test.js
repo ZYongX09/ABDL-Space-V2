@@ -9,6 +9,8 @@ import { createServer } from 'vite';
 import { createAdminUXRouter } from './admin-ux-fixture-router.js';
 import { fmtFull, fmtNum, parseTs } from '../src/pages/admin/util.js';
 import { adminSessionKey } from '../src/pages/admin/access.js';
+import * as advertisingBilling from '../src/pages/admin/advertisingBilling.js';
+import * as merchantBilling from '../src/merchant/billing.js';
 
 const page = readFileSync(new URL('../src/pages/admin/advertising.jsx', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../src/pages/admin/advertising-ux.css', import.meta.url), 'utf8');
@@ -34,6 +36,9 @@ function mount(overrides = {}, initialAuth = { user: { id: 7, role: 'admin' }, l
     updateAdvertisingPolicy: async next => policy({ ...next, updated_at: '2026-11-13 08:01:00' }),
     advertisingAction: async (id, action) => ad(id, action === 'approve' ? 'active' : 'paused', { updated_at: '2026-11-13 08:01:00' }),
     generateAdvertisingCodes: async () => ({ success: true, masked_code: 'abc***xy' }),
+    advertisingBillingStatus: async () => ({ status: 'live' }),
+    advertisingBillingCodes: async () => ({ items: [], total: 0 }),
+    createAdvertisingBillingCode: async () => { throw new Error('Missing synthetic billing receipt'); },
   };
   const api = Object.fromEntries(Object.keys(defaults).map(name => [name, (...args) => { calls.push({ name, args }); return (overrides[name] || defaults[name])(...args); }]));
   const depsChanged = (previous, next) => !previous || !next || previous.length !== next.length || next.some((value, index) => !Object.is(value, previous[index]));
@@ -44,6 +49,7 @@ function mount(overrides = {}, initialAuth = { user: { id: 7, role: 'admin' }, l
   const useEffect = (setup, dependencies) => { const slot = hook(() => ({})); if (depsChanged(slot.dependencies, dependencies)) { slot.dependencies = dependencies; effects.push(() => { slot.cleanup?.(); slot.cleanup = setup(); }); } };
   const Card = ({ title, description, action, children }) => h('section', {}, h('h2', {}, title), description && h('p', {}, description), action, children);
   const context = {
+    ...advertisingBilling, ...merchantBilling,
     h, Fragment: 'fragment', useState, useRef, useCallback, useEffect, adminAPI: api,
     useAuth: () => auth, useToast: () => ({ success: message => successes.push(message), error() {} }), adminSessionKey,
     fmtFull, fmtNum, parseTs, window: { setInterval: () => 1, clearInterval() {} },
@@ -431,3 +437,37 @@ if (mobile) {
     }
   });
 }
+
+
+test('billing management requires server capability, requests one code at a time, and only displays cleartext in the creation receipt', async () => {
+  const unauthorized = mount({ advertising: async () => overview({ settings: { can_manage_billing: false } }) });
+  await unauthorized.flush();
+  assert.equal(unauthorized.callCount('advertisingBillingStatus'), 0);
+  assert.equal(unauthorized.callCount('advertisingBillingCodes'), 0);
+  assert.doesNotMatch(unauthorized.text(), /企业充值码/);
+  unauthorized.unmount();
+
+  const code = `MB-${'A'.repeat(36)}1234`;
+  const row = { id: 7, code_mask: 'MB-AAAA…1234', amount_minor: 1503, created_at: '2026-12-01T00:00:00Z', redeemed_at: null, redeemed_by_merchant_id: null };
+  let created = false;
+  const host = mount({
+    advertising: async () => overview({ settings: { can_manage_billing: true } }),
+    advertisingBillingCodes: async () => ({ items: created ? [{ ...row, code }] : [], total: Number(created) }),
+    createAdvertisingBillingCode: async () => { created = true; return { ...row, code }; },
+  });
+  await host.flush();
+  assert.equal(host.callCount('advertisingBillingStatus'), 1);
+  assert.equal(host.callCount('advertisingBillingCodes'), 1);
+  assert.match(host.text(), /平台计费状态.*运行中/);
+  host.change('billing-code-amount', '15.03');
+  const form = host.nodes(node => node.type === 'form').at(-1);
+  const submit = () => form.props.onSubmit({ preventDefault() {} });
+  const first = submit(); submit(); await first; await host.flush();
+  assert.deepEqual(host.calls.filter(call => call.name === 'createAdvertisingBillingCode').map(call => call.args[0]), [1503]);
+  assert.equal(host.nodes(node => node.props.value === code).length, 1);
+  assert.match(host.text(), /MB-AAAA…1234/);
+  assert.doesNotMatch(host.text(), new RegExp(code));
+  host.click(host.button('关闭并隐藏'));
+  assert.equal(host.nodes(node => node.props.value === code).length, 0);
+  host.unmount();
+});

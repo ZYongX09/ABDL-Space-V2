@@ -14,7 +14,7 @@ test('root App merchant 早 return，不重复 Toast 或前台外壳', async () 
 });
 test('独立 route sections 使用 canonical URL，不把编辑表单塞进概览', async () => {
   const console = await source('../src/merchant/Console.jsx');
-  for (const route of ['/merchant', '/merchant/ads', '/merchant/ads/new', '/merchant/ads/:id/edit', '/merchant/reports', '/merchant/company', '/merchant/audit', '/merchant/merchants']) assert.ok(console.includes(`path="${route}"`));
+  for (const route of ['/merchant', '/merchant/ads', '/merchant/ads/new', '/merchant/ads/:id/edit', '/merchant/reports', '/merchant/billing', '/merchant/company', '/merchant/audit', '/merchant/merchants']) assert.ok(console.includes(`path="${route}"`));
   assert.ok(console.includes('api.cloneAd')); assert.ok(console.includes('api.archiveAd')); assert.ok(console.includes('api.merchantStatus'));
 });
 test('fixture 明确 mode、无生产插件、无 SW/analytics/proxy，仅 loopback serve', async () => {

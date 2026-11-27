@@ -10,6 +10,7 @@ function validAd(data) { return isObject(data) && idValue(data.id) && typeof dat
 function validInfo(data) {
   return isObject(data) && ['authorized', 'active', 'is_super_admin', 'identity_required'].every(key => typeof data[key] === 'boolean')
     && isObject(data.permissions) && ['can_manage_all', 'can_override_advertiser', 'can_edit_identity'].every(key => typeof data.permissions[key] === 'boolean')
+    && (data.billing_enabled === undefined || typeof data.billing_enabled === 'boolean')
     && (data.profile == null || isObject(data.profile)) && (data.merchant == null || isObject(data.merchant));
 }
 function validStats(data) {
@@ -23,6 +24,17 @@ const validators = {
   ads: data => validPage(data) && data.items.every(validAd),
   ad: validAd,
   stats: validStats,
+  billing: data => isObject(data) && ['live', 'paused', 'disabled'].includes(data.status)
+    && Number.isSafeInteger(data.balance_minor) && data.balance_minor >= 0
+    && (data.balance_half_minor == null || (Number.isSafeInteger(data.balance_half_minor) && Math.floor(data.balance_half_minor / 2) === data.balance_minor))
+    && Number.isSafeInteger(data.monthly_price_minor) && data.monthly_price_minor > 0
+    && typeof data.trial_available === 'boolean'
+    && (data.entitlement_ends_at === null || Number.isFinite(Date.parse(data.entitlement_ends_at)))
+    && (data.entitlement_current_ends_at == null || Number.isFinite(Date.parse(data.entitlement_current_ends_at)))
+    && Array.isArray(data.items) && (data.pagination === undefined ? Number.isSafeInteger(data.total) && data.total >= 0 : validPage(data))
+    && data.items.every(row => isObject(row) && idValue(row.id) && typeof row.kind === 'string'
+      && Number.isSafeInteger(row.amount_minor) && (row.amount_half_minor == null || Number.isSafeInteger(row.amount_half_minor))
+      && typeof row.created_at === 'string'),
   audit: data => validPage(data) && data.items.every(row => isObject(row) && idValue(row.id) && typeof row.action === 'string' && typeof row.created_at === 'string'),
   merchants: data => validPage(data) && data.items.every(row => isObject(row) && idValue(row.id) && ['active', 'suspended'].includes(row.status) && typeof row.display_name === 'string'),
 };
@@ -51,7 +63,9 @@ export function createMerchantAPI({ base = '', fetcher = (...args) => fetch(...a
       let data = null;
       if (response.status !== 204) {
         try { data = await response.json(); }
-        catch { throw new Error(method === 'GET' ? '服务器响应无法解析，请手动重试。' : '服务器响应无法解析；操作结果未确认，请先重新读取数据。'); }
+        catch {
+          if (response.ok) throw new Error(method === 'GET' ? '服务器响应无法解析，请手动重试。' : '服务器响应无法解析；操作结果未确认，请先重新读取数据。');
+        }
       }
       assertSession();
       if (controller.signal.aborted) throw new DOMException('请求已取消', 'AbortError');
@@ -90,6 +104,9 @@ export function createMerchantAPI({ base = '', fetcher = (...args) => fetch(...a
   return {
     info: (options) => read('/info', 'info', options),
     profile: (options) => read('/profile', 'profile', options),
+    billing: (params, options) => read(`/billing${query(params)}`, 'billing', options),
+    redeemBilling: (code, options) => write('/billing/redeem', 'POST', { code }, options),
+    purchaseBilling: (body, options) => write('/billing/purchase', 'POST', body, options),
     activate: (body, options) => write('/activate', 'POST', body, options),
     identity: (body, options) => write('/identity', 'POST', body, options),
     updateProfile: (body, options) => write('/profile', 'PATCH', body, options),

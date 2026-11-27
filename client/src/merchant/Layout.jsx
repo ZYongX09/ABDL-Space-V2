@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { safeMediaURL } from './model.js';
+import { billingEnabled } from './billing.js';
 import '../pages/admin/admin.css';
 import './console.css';
 
@@ -9,7 +10,9 @@ const NAV = [
   ['/merchant/reports', '效果报表', 'chart'], ['/merchant/company', '企业资料', 'company'],
   ['/merchant/audit', '操作记录', 'audit'],
 ];
+const BILLING_LINK = ['/merchant/billing', '企业计费', 'wallet'];
 const PATHS = {
+  wallet: 'M3 6h16l2 3v10H3z M3 6l13-3 3 3 M21 11h-6v5h6 M17 13.5h.01',
   grid: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',
   ads: 'M3 5h18v14H3z M7 9h6 M7 13h10 M7 16h7',
   chart: 'M4 3v17h17 M8 15v-4 M13 15V7 M18 15V4',
@@ -26,7 +29,7 @@ export function merchantTitle(pathname) {
   if (pathname === '/merchant/ads/new') return '新建广告';
   if (/^\/merchant\/ads\/[^/]+\/edit\/?$/.test(pathname)) return '编辑广告';
   if (pathname === '/merchant/merchants') return '企业管理';
-  return NAV.find(([path]) => path === pathname)?.[1] || '商家控制台';
+  return [...NAV, BILLING_LINK].find(([path]) => path === pathname)?.[1] || '商家控制台';
 }
 export default function MerchantLayout({ info, username, children, locked = false }) {
   const { pathname } = useLocation();
@@ -53,7 +56,9 @@ export default function MerchantLayout({ info, username, children, locked = fals
     return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('resize', closeOnDesktop); if (previous?.isConnected) previous.focus(); };
   }, [drawer]);
   const profile = info?.profile || info?.merchant;
-  const links = info?.is_super_admin && info?.permissions?.can_manage_all ? [...NAV, ['/merchant/merchants', '企业管理', 'users']] : NAV;
+  const links = [...NAV];
+  if (billingEnabled(info)) links.splice(2, 0, BILLING_LINK);
+  if (info?.is_super_admin && info?.permissions?.can_manage_all) links.push(['/merchant/merchants', '企业管理', 'users']);
   return <div className="admin-console merchant-console ac-admin-theme" data-merchant-host>
     <a className="mc-skip" href="#merchant-content">跳转到主内容</a>
     {drawer && <button type="button" className="mc-drawer-backdrop" aria-label="关闭导航" onClick={() => setDrawer(false)} />}

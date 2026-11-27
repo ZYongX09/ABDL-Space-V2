@@ -20,7 +20,7 @@ async function pageHarness(api, endpoints) {
     useState(initial) { const key = cursor++; if (!(key in values)) values[key] = typeof initial === 'function' ? initial() : initial; return [values[key], next => { values[key] = typeof next === 'function' ? next(values[key]) : next; }]; },
     useRef(initial) { const key = cursor++; return refs[key] ||= { current: initial }; },
     useEffect(fn, deps) { cursor++; effects.push({ fn, deps }); }, useCallback(fn) { cursor++; callbacks.push(fn); return fn; },
-    useAuth: () => ({ user: null }), useNavigate: () => () => {}, useSearchParams: () => [new URLSearchParams()], useFollowStatuses: () => ({ followMap: {}, setFollowing() {} }), useMobileHeaderActions: () => ({ registerActions() {} }),
+    useAuth: () => ({ user: null }), useLocation: () => ({ pathname: '/' }), supportsAdViewability: () => false, AdvertisementCard: 'ad', useNavigate: () => () => {}, useSearchParams: () => [new URLSearchParams()], useFollowStatuses: () => ({ followMap: {}, setFollowing() {} }), useMobileHeaderActions: () => ({ registerActions() {} }),
     useToast: () => ({ error() {} }), useNBWEndpoints: endpoints.getNBWEndpointState, getNBWEndpointState: endpoints.getNBWEndpointState, hasNBWDisplayData: endpoints.hasNBWDisplayData, nbwAcquisitionEpoch: endpoints.nbwAcquisitionEpoch,
     readFeedState: () => null, writeFeedState() {}, forumAPI: api, followsAPI: { statusMany: () => [] }, merchantAPI: {}, h: () => null, fragment: 'fragment',
     PillSelector: 'pill', InlineComposer: 'composer', PostCard: 'post', RightSidebar: 'aside', ThemeToggleBubble: 'theme', LoadingSkeleton: 'loading', EmptyState: 'empty', PullToRefresh: 'pull', PageLayout: 'layout', ImageGrid: 'images', NBWImage: 'img', RichContent: 'rich', OfficialBadge: 'badge', BetaBadge: 'beta', ReportModal: 'report', Link: 'a', buildMediaPreviewUrl: value => value,
@@ -34,7 +34,7 @@ async function pageHarness(api, endpoints) {
   new Script(`${code};Page`, { filename: 'home-page.js' }).runInContext(sandbox);
   const Page = sandbox.Page;
   const render = () => { cursor = 0; effects.length = 0; callbacks.length = 0; Page(); };
-  render(); const effect = effects.find(effect => effect.deps?.length === 1 && typeof effect.deps[0] === 'string' && effect.deps[0].includes('|'));
+  render(); const effect = effects.find(effect => typeof effect.deps?.[0] === 'string' && effect.deps[0].includes('|'));
   return { values, start: () => effect.fn(), render };
 }
 
@@ -76,5 +76,38 @@ test('只读ABA最多重取一次，第二次跨代terminal；POST副作用不�
     };
     await assert.rejects(forumAPI.getPost('two-changes'), error => error.code === 'NBW_ENDPOINT_CHANGED'); assert.equal(gets, 2);
     await forumAPI.create({ content: 'fixture-only' }); assert.equal(posts, 1);
+  } finally { globalThis.fetch = oldFetch; if (storage) Object.defineProperty(globalThis, 'localStorage', storage); else delete globalThis.localStorage; await server.close(); }
+});
+
+
+test('render-capable first page bypasses fetch and SWR caches; billable report is a separate POST', async () => {
+  const oldFetch = globalThis.fetch, storage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: () => null } });
+  const server = await createServer(options());
+  try {
+    const { forumAPI, merchantAPI } = await server.ssrLoadModule('/src/api.js');
+    const calls = [];
+    globalThis.fetch = async (path, init) => {
+      calls.push({ path, init });
+      const optIn = new URL(path, 'http://fixture.invalid').searchParams.has('ad_viewability');
+      return Response.json(init.method === 'POST' ? { recorded: true } : {
+        posts: [], advertisements: optIn ? [{ id: 12, billable_impression_token: `synthetic-${calls.length}` }] : [],
+      });
+    };
+    const plain = await forumAPI.feed();
+    assert.deepEqual(plain.advertisements, []);
+    const one = await forumAPI.feed({ page: 1, adViewability: true });
+    const two = await forumAPI.feed({ page: 1, adViewability: true });
+    assert.equal(one.advertisements[0].billable_impression_token, 'synthetic-2');
+    assert.equal(two.advertisements[0].billable_impression_token, 'synthetic-3');
+    for (const options of [{ page: 2 }, { search: 'fixture' }, { filter: 'following' }]) await forumAPI.feed({ ...options, adViewability: true });
+    assert.deepEqual(calls.filter(({ path }) => path.includes('ad_viewability=1')).map(({ init }) => init.cache), ['no-store', 'no-store']);
+    assert.equal(calls.length, 6);
+    assert.deepEqual(await merchantAPI.billableImpression(12, 'synthetic-3'), { recorded: true });
+    const { path, init } = calls.at(-1);
+    assert.equal(path, '/api/merchant/ads/12/billable-impression');
+    assert.equal(init.method, 'POST');
+    assert.equal(init.cache, 'no-store');
+    assert.deepEqual(JSON.parse(init.body), { token: 'synthetic-3' });
   } finally { globalThis.fetch = oldFetch; if (storage) Object.defineProperty(globalThis, 'localStorage', storage); else delete globalThis.localStorage; await server.close(); }
 });

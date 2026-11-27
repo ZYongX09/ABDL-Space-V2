@@ -18,6 +18,7 @@ import { withAvatarPreviews } from './utils/mediaUrl.js';
 import { NBWError, getNBWEndpointState, hasNBWDisplayData, markNBWAcquisition } from './utils/nbwEndpoints.js';
 import { requestTestVerificationCode } from './pages/admin/testVerificationCode.js';
 import { nbwRegistrationFields } from './utils/nbwOAuth.js';
+import { shouldRequestAdViewability } from './merchant/viewability.js';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 // 空字符串也是有效值（相对路径），只有显式设为 undefined/null 时才走离线
@@ -512,12 +513,16 @@ export const rankingsAPI = {
 // 广场 Posts（后端路径 /api/posts）
 // =====================================================================
 export const forumAPI = {
-  feed: async ({ page = 1, limit = 20, search, excludeNsfw, filter } = {}) => {
+  feed: async ({ page = 1, limit = 20, search, excludeNsfw, filter, adViewability, signal } = {}) => {
     if (USE_API) {
       const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (search) qs.set('search', search);
       if (excludeNsfw) qs.set('exclude_nsfw', '1');
       if (filter) qs.set('filter', filter);
+      if (shouldRequestAdViewability({ page, search, filter, excludeNsfw, adViewability })) {
+        qs.set('ad_viewability', '1');
+        return readNBWPosts(() => apiFetch(`/api/posts?${qs}`, { signal, cache: 'no-store' }));
+      }
       const cacheKey = `feed:${qs}`;
       if (search || filter) return readNBWPosts(() => apiFetch(`/api/posts?${qs}`));
       return cachedFetch(cacheKey, () => apiFetch(`/api/posts?${qs}`), CACHE_TTL.short);
@@ -1002,6 +1007,9 @@ export const usersAPI = {
 // 商家 Merchant（后端 /api/merchant/*）
 // =====================================================================
 export const merchantAPI = {
+  billableImpression: (id, token) => apiFetch(`/api/merchant/ads/${encodeURIComponent(id)}/billable-impression`, {
+    method: 'POST', cache: 'no-store', redirect: 'error', body: JSON.stringify({ token }),
+  }),
   profile: async () => {
     if (USE_API) return apiFetch('/api/merchant/profile');
     return { profile: null, activated: false };
@@ -1058,10 +1066,10 @@ export const merchantAPI = {
     return { stats: {} };
   },
 
-  event: async ({ adId, eventType, placement }) => {
+  event: async ({ adId, eventType, placement, impressionId }) => {
     if (USE_API) return apiFetch(`/api/merchant/ads/${encodeURIComponent(adId)}/events`, {
       method: 'POST',
-      body: JSON.stringify({ ad_id: adId, event_type: eventType, event_key: `${adId}:${eventType}:${placement || 'feed'}:${crypto.randomUUID()}`, placement }),
+      body: JSON.stringify({ ad_id: adId, event_type: eventType, event_key: `${adId}:${eventType}:${placement || 'feed'}:${impressionId || crypto.randomUUID()}`, placement }),
     }).catch(() => null);
     return null;
   },
@@ -1082,9 +1090,14 @@ export const adminAPI = {
     const query = new URLSearchParams();
     if (params.status) query.set('status', params.status);
     if (params.merchantId) query.set('merchant_id', params.merchantId);
-    if (USE_API) return apiFetch(`/api/admin/advertising${query.toString() ? `?${query}` : ''}`);
+    if (USE_API) return apiFetch(`/api/admin/advertising${query.toString() ? `?${query}` : ''}`, { cache: 'no-store' });
     return { ads: [], pagination: { total: 0 } };
   },
+  advertisingBillingStatus: (options = {}) => apiFetch('/api/admin/advertising/billing-status', { ...options, cache: 'no-store', redirect: 'error' }),
+  advertisingBillingCodes: ({ page, limit }, options = {}) => apiFetch(`/api/admin/advertising/billing-codes?${new URLSearchParams({ page, limit })}`, { ...options, cache: 'no-store', redirect: 'error' }),
+  createAdvertisingBillingCode: (amountMinor, options = {}) => apiFetch('/api/admin/advertising/billing-codes', {
+    ...options, cache: 'no-store', redirect: 'error', method: 'POST', body: JSON.stringify({ amount_minor: amountMinor }),
+  }),
   advertisingAction: async (id, action) => {
     if (USE_API) return apiFetch(`/api/admin/advertising/ads/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ status: action === 'approve' ? 'active' : 'paused' }) });
     return { ok: true };
