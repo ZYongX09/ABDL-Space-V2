@@ -115,7 +115,8 @@ function readAudit(value) {
   return value.map(entry => {
     if (!record(entry)) throw invalid('审核历史响应格式无效。');
     if (entry.actor_type != null) boundedText(entry.actor_type, '审计操作者类型', 32, true);
-    return { ...(entry.actor_type != null ? { actor_type: entry.actor_type } : {}), ...(entry.actor_type === 'system' ? {} : { actor_id: integer(entry.actor_id, '审计操作者', 1) }), actor_name: string(entry.actor_name, '审计操作者名称'), action: string(entry.action, '审计操作', true), reason: string(entry.reason, '审计理由'), created_at: integer(entry.created_at, '审计时间') };
+    const system = entry.actor_type === 'system';
+    return { ...(entry.actor_type != null ? { actor_type: entry.actor_type } : {}), ...(system ? {} : { actor_id: integer(entry.actor_id, '审计操作者', 1) }), actor_name: string(entry.actor_name, '审计操作者名称'), action: string(entry.action, '审计操作', true), reason: system && entry.reason === null ? null : string(entry.reason, '审计理由'), created_at: integer(entry.created_at, '审计时间') };
   });
 }
 export function readReview(value, detail = false) {

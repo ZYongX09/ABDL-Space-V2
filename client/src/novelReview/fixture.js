@@ -37,7 +37,7 @@ export function createNovelFixture() {
     fixtureReview({ id: 'review-auto-approved', title: '自动审核已通过 · 完整候选示例', status: 'approved', version: 2, auto_review: fixtureAutoReview({ status: 'passed', completed_chunks: 3, reason: '所有自动审核分块已完成，服务器已通过。' }) }),
   ];
   for (const item of automatic) {
-    item.audit.push({ actor_type: 'system', actor_name: '自动审核', action: item.auto_review.status === 'passed' ? 'auto_passed' : item.auto_review.status === 'needs_human' ? 'auto_needs_human' : 'auto_queued', reason: item.auto_review.reason || '合成自动审核任务', created_at: 1793174500 });
+    item.audit.push({ actor_type: 'system', actor_name: '自动审核', action: item.auto_review.status === 'passed' ? 'auto_passed' : item.auto_review.status === 'needs_human' ? 'auto_needs_human' : 'auto_queued', reason: item.auto_review.reason, created_at: 1793174500 });
     reviews.set(item.id, item);
   }
   let policy = fixtureAIPolicy(), policyVersion = 1;

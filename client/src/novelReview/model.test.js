@@ -383,10 +383,21 @@ test('需人工筛选包含旧记录 / 取消任务，claim replaceReview 不应
   await controller.open('review-auto-queued'); assert.ok(controller.getState().page.items.some(item => item.id === 'review-auto-queued')); controller.dispose();
 });
 
+test('自动审核排队记录未附理由仍可打开详情，并保留人工审计记录', async () => {
+  const { controller } = harness();
+  assert.equal(await controller.open('review-auto-queued'), true, controller.getState().detailError);
+  assert.deepEqual(controller.getState().selected.audit, [fixtureReview().audit[0], {
+    actor_type: 'system', actor_name: '自动审核', action: 'auto_queued', reason: null, created_at: 1793174500,
+  }]);
+  controller.dispose();
+});
+
 test('系统自动审核历史可缺少 actor_id，保留真实 actor_type / 原因且不伪装管理员', () => {
   const entry = { actor_type: 'system', actor_name: '自动审核', action: 'auto_needs_human', reason: '策略已关闭', created_at: 1793174400 };
   assert.deepEqual(readReview(fixtureReview({ audit: [entry] }), true).audit, [entry]);
   assert.throws(() => readReview(fixtureReview({ audit: [{ ...entry, actor_type: 'admin' }] }), true), /操作者/);
+  for (const reason of [undefined, 123, {}]) assert.throws(() => readReview(fixtureReview({ audit: [{ ...entry, reason }] }), true), /审计理由/);
+  assert.throws(() => readReview(fixtureReview({ audit: [{ ...fixtureReview().audit[0], reason: null }] }), true), /审计理由/);
 });
 
 test('手动 AI 默认只选服务端 added / updated，清空不请求，选择后仅循环所选无需认领或正文', async () => {
