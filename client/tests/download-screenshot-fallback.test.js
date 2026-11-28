@@ -41,7 +41,7 @@ test('the download hook falls back only when the backend has no image', () => {
 });
 
 test('the phone frame matches the screenshot exactly without a border box', () => {
-  const page = read('../src/pages/AppDownload.jsx');
+  const page = read('../src/pages/AppDownloadShowcase.jsx');
   assert.match(page, /aspectRatio: `\$\{image\.width\} \/ \$\{image\.height\}`/, 'frame ratio comes from the image');
   const css = read('../src/pages/AppDownload.css');
   assert.match(css, /\.adl-phone \{[^}]*box-shadow: 0 0 0 4px #181820/, 'the bezel is drawn outside the layout');
