@@ -129,9 +129,7 @@
     var(--adl-bg);
 }
 .adl-hero-no-images { padding-bottom: clamp(52px, 9svh, 84px); }
-.adl-hero-copy { position: relative; z-index: 1; max-width: 820px; margin-inline: auto; padding: clamp(32px, 5.5svh, 62px) var(--adl-gutter) 0; }
-.adl-hero-badge { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 15px; padding: 5px 12px; border: 1px solid var(--adl-border); border-radius: 999px; background: var(--adl-panel); color: var(--adl-muted); font-size: 13px; font-weight: 650; }
-.adl-hero-badge span { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--adl-highlight); box-shadow: 0 0 12px var(--adl-brand-blue); }
+.adl-hero-copy { position: relative; z-index: 1; max-width: 820px; margin-inline: auto; padding: clamp(44px, 7svh, 78px) var(--adl-gutter) 0; }
 .adl-hero h1, .app-landing h2 { font-family: 'ABDL Display', 'PingFang SC', 'Microsoft YaHei', sans-serif; font-weight: 400; font-synthesis: none; line-height: 1.12; letter-spacing: -.02em; }
 .adl-hero h1 { margin: 0; font-size: clamp(52px, 7.4vw, 88px); }
 .adl-intro { max-width: 34em; margin: 20px auto 0; color: var(--adl-muted); font-size: 16px; line-height: 1.5; text-wrap: pretty; }
