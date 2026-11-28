@@ -145,7 +145,6 @@ export default function AppDownload() {
       <main>
         <section className={`adl-hero${Object.values(images).some(Boolean) ? '' : ' adl-hero-no-images'}`} aria-labelledby="adl-title">
           <div className="adl-hero-copy">
-            <p className="adl-hero-badge"><span aria-hidden="true" />ABDL Space App · 社区、评分与阅读</p>
             <h1 id="adl-title">宝宝们的日常<br />都在ABDL Space</h1>
             <p className="adl-intro">面向 ABDL 社区的移动端应用，提供社区动态、纸尿裤评分与榜单、小说等功能。</p>
             <DownloadActions release={release} retry={retry} />

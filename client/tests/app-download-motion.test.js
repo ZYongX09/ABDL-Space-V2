@@ -70,7 +70,6 @@ test('the real page wires the hero intro, chapter tracking and gallery controls'
   assert.match(page, /<HeroScreenshots features=\{FEATURES\} images=\{images\} header=\{header\} \/>/);
   assert.match(page, /<FeatureShowcase features=\{FEATURES\} images=\{images\} header=\{header\} \/>/);
   assert.match(page, /<ScreenshotGallery features=\{FEATURES\} images=\{images\} \/>/);
-  assert.match(page, /className="adl-hero-badge"/, 'hero positioning line');
   assert.match(showcase, /watchHeroImages\(photos/, 'intro waits for the rendered screenshots');
   assert.match(showcase, /featureAtReadingLine\(/, 'chapters follow the reading line');
   assert.match(showcase, /galleryEdges\(/, 'gallery controls derive from overflow');
