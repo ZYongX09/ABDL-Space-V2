@@ -90,16 +90,15 @@ export function OverviewTasks({ overview }) {
 export default function AdminOverview() {
   const [overviewResource, setOverviewResource] = useState(INITIAL_RESOURCE);
   const [trendResource, setTrendResource] = useState(INITIAL_RESOURCE);
-  const [appStats, setAppStats] = useState(INITIAL_RESOURCE);
   const [range, setRange] = useState(30);
   const [trendKey, setTrendKey] = useState('users');
-  const requests = useRef({ overview: 0, trends: 0, app: 0 });
+  const requests = useRef({ overview: 0, trends: 0 });
   const alive = useRef(true);
   useEffect(() => {
     // 请求计数器对象在此挂载期间不替换；cleanup 递增最新值，而非 setup 时的数字快照。
     const counters = requests.current;
     alive.current = true;
-    return () => { alive.current = false; counters.overview++; counters.trends++; counters.app++; };
+    return () => { alive.current = false; counters.overview++; counters.trends++; };
   }, []);
 
   const readResource = useCallback(async (key, read, setResource, extra = {}) => {
@@ -114,8 +113,7 @@ export default function AdminOverview() {
   }, []);
   const loadOverview = useCallback(() => readResource('overview', () => adminAPI.overview(), setOverviewResource), [readResource]);
   const loadTrends = useCallback(() => readResource('trends', () => adminAPI.trends(range), setTrendResource, { range }), [range, readResource]);
-  const loadAppStats = useCallback(() => readResource('app', () => adminAPI.appClientStats(), setAppStats), [readResource]);
-  useEffect(() => { loadOverview(); loadAppStats(); }, [loadOverview, loadAppStats]);
+  useEffect(() => { loadOverview(); }, [loadOverview]);
   useEffect(() => { loadTrends(); }, [loadTrends]);
 
   const overview = overviewResource.data;
@@ -123,23 +121,23 @@ export default function AdminOverview() {
   const currentTrend = TREND_KEYS.find(item => item.key === trendKey) || TREND_KEYS[0];
   const loadedRange = trendResource.range ?? range;
   const lastUpdated = overview?.generatedAt || overview?.updated_at;
-  const refreshing = overviewResource.loading || trendResource.loading || appStats.loading;
+  const refreshing = overviewResource.loading || trendResource.loading;
+  const appUsers = overview?.totals?.appUsersAvailable === true ? knownCount(overview.totals.appUsers) : null;
   const collection = (key, emptyText, render) => !overview ? <p className="ac-section-note">{overviewResource.loading ? '等待运营总览数据…' : '运营总览不可用，请在上方重试。'}</p> : !Array.isArray(overview[key])
     ? <p className="ac-section-note">接口未提供此项数据，不能判定为空。</p>
     : overview[key].length ? render(overview[key]) : <Empty text={emptyText} />;
 
   return <AdminLayout active="overview"><div className="ac-page-stack ac-member-ux">
     <Toolbar result={overviewResource.receivedAt ? `总览读取于 ${new Date(overviewResource.receivedAt).toLocaleTimeString('zh-CN')}` : '统计未就绪；— 表示未提供，不是 0'}>
-      <button type="button" className="ac-btn" disabled={refreshing} onClick={() => { loadOverview(); loadTrends(); loadAppStats(); }}><i className={`fa-solid ${refreshing ? 'fa-spinner fa-spin' : 'fa-rotate'}`} aria-hidden="true" />{refreshing ? '读取中…' : '刷新全部统计'}</button>
+      <button type="button" className="ac-btn" disabled={refreshing} onClick={() => { loadOverview(); loadTrends(); }}><i className={`fa-solid ${refreshing ? 'fa-spinner fa-spin' : 'fa-rotate'}`} aria-hidden="true" />{refreshing ? '读取中…' : '刷新全部统计'}</button>
       <Link className="ac-btn" to="/admin/reports">处理举报</Link><Link className="ac-btn" to="/admin/users">管理用户</Link>
     </Toolbar>
     <OverviewResourceNotice resource={overviewResource} label="运营总览" onRetry={loadOverview} />
     <div className="ac-stat-grid ac-overview-primary">
       {PRIMARY_TOTALS.map(item => item.key === 'appUsers' ? <Link key={item.key} to="/admin/app-clients" title="查看认证原生时间线请求的精确观测统计">
-        <StatCard label={item.label} value={appStats.data?.available && knownCount(appStats.data?.totals?.observed_users) !== null ? exactCount(appStats.data.totals.observed_users) : '—'} icon={item.icon} tone={item.tone} meta={appStats.loading ? '正在读取观测数据…' : appStats.error ? '读取失败；已有数字为上次成功数据' : appStats.data?.available === false ? '统计不可用（不是 0）' : '迁移后认证时间线请求 · 非安装量；查看明细'} />
+        <StatCard label={item.label} value={appUsers === null ? '—' : exactCount(appUsers)} icon={item.icon} tone={item.tone} meta={overviewResource.loading ? '正在读取概览…' : overviewResource.error ? '读取失败；已有数字为上次成功数据' : overview?.totals?.appUsersAvailable === false ? '统计不可用（不是 0）' : '概览快照 · 非安装量；查看明细'} />
       </Link> : <StatCard key={item.key} label={item.label} value={countText(overview?.totals?.[item.key])} icon={item.icon} tone={item.tone} meta={lastUpdated ? `更新于 ${fmtFull(lastUpdated)}` : overview ? '接口未提供统计生成时间' : '尚未取得统计'} />)}
     </div>
-    <OverviewResourceNotice resource={appStats} label="App 观测统计" onRetry={loadAppStats} />
     <div className="ac-overview-secondary">{SECONDARY_TOTALS.map(item => <StatCard compact key={item.key} label={item.label} value={countText(overview?.totals?.[item.key])} icon={item.icon} tone={item.tone} />)}</div>
     {overview && <Card title="今日运营" description="今日、昨日与近七天按接口原值展示；缺失指标不作为零计算。" icon="fa-bolt">
       <div className="ac-activity-grid">{ACTIVITY_ITEMS.map(item => <div className="ac-activity-item" key={item.key}>

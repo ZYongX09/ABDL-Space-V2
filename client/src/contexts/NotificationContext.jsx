@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { accountSessionKey } from '../notifications/scheduler.js';
 import { useNotificationResources } from '../notifications/useNotificationResources.js';
 import { useAuth } from './AuthContext';
@@ -11,20 +12,23 @@ export function NotificationProvider({ children }) {
   const [toasts, setToasts] = useState([]); // 实时弹窗队列
   const [pushSupported, setPushSupported] = useState(false);
   const [pushSubscribed, setPushSubscribed] = useState(false);
-  const lastNotifIdsRef = useRef(new Set());
+  const lastNotifIdsRef = useRef(null);
   const lastMsgTimeRef = useRef(null);
   const { user, accounts } = useAuth();
   const session = accountSessionKey(user, accounts);
+  const location = useLocation();
+  const detailsKey = /^\/notifications\/?$/i.test(location.pathname) ? location.key : null;
   const {
-    notifications, conversationSnapshot, conversationsLoading, conversationsError, sessionPaused,
+    notifications, notificationDetails, notificationsError, readAllNotifications,
+    conversationSnapshot, conversationsLoading, conversationsError, sessionPaused,
     refreshNotifications: fetchUnread, refreshConversations, clearUnread, clearMessageUnread, markConversationRead,
-  } = useNotificationResources(session);
+  } = useNotificationResources(session, detailsKey);
   const conversations = conversationSnapshot?.conversations || EMPTY_CONVERSATIONS;
   const unreadCount = notifications?.unread_count || 0;
   const messageUnread = conversations.reduce((sum, conversation) => sum + (conversation.unread || 0), 0);
 
   useLayoutEffect(() => {
-    lastNotifIdsRef.current.clear();
+    lastNotifIdsRef.current = null;
     lastMsgTimeRef.current = null;
     setToasts([]);
   }, [session, sessionPaused]);
@@ -79,8 +83,8 @@ export function NotificationProvider({ children }) {
   useEffect(() => {
     if (!notifications) return;
     const notifs = notifications.notifications || [];
-    const newNotifs = notifs.filter(n => !n.read && !lastNotifIdsRef.current.has(n.id));
-    if (lastNotifIdsRef.current.size > 0) newNotifs.forEach(n => addToast({
+    const previous = lastNotifIdsRef.current;
+    if (previous !== null) notifs.filter(n => !n.read && !previous.has(n.id)).forEach(n => addToast({
       type: 'notification',
       icon: n.type === 'like' ? 'fa-heart' : n.type === 'comment' ? 'fa-comment' : 'fa-bell',
       iconColor: n.type === 'like' ? 'var(--danger)' : 'var(--primary-dark)',
@@ -111,6 +115,7 @@ export function NotificationProvider({ children }) {
     <NotificationContext.Provider value={{
       unreadCount, messageUnread, toasts,
       fetchUnread, fetchMessageUnread: refreshConversations,
+      notificationDetails, notificationsError, detailsKey, readAllNotifications,
       conversations, conversationsLoading, conversationsError, sessionPaused, refreshConversations, markConversationRead,
       clearUnread, clearMessageUnread,
       dismissToast,

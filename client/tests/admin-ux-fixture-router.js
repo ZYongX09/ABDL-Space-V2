@@ -34,7 +34,7 @@ export const FIXTURE_FEATURE_SCENARIOS = Object.freeze({
 });
 
 export const ADMIN_PAGE_DEFINITIONS = Object.freeze([
-  { path: '/admin', module: 'overview', label: '概览', reads: ['/api/admin/stats/overview', '/api/admin/stats/trends', '/api/admin/app-clients/stats'] },
+  { path: '/admin', module: 'overview', label: '概览', reads: ['/api/admin/stats/overview', '/api/admin/stats/trends'] },
   { path: '/admin/users', module: 'users', label: '用户与 QQ 身份', reads: ['/api/admin/users'] },
   { path: '/admin/app-clients', module: 'appClients', label: 'App 管理', reads: ['/api/admin/app-clients/stats', '/api/admin/app-clients/users', '/api/admin/app-clients/reminder', '/api/admin/app-clients/policy', '/api/admin/app-clients/nbw-local-only', '/api/admin/nbw/policy', APP_AI_PROVIDER_PATH, APP_HUMAN_CHECK_POLICY_PATH, TRANSLATION_POLICY_PATH, TRANSLATION_GLOSSARY_PATH, NBW_UPSTREAM_HOST_PATH] },
   { path: '/admin/sponsors', module: 'sponsors', label: '赞助者（8 栏）', reads: ['/api/admin/sponsors/overview', '/api/admin/sponsors/payment-records', '/api/admin/sponsors/config', '/api/admin/sponsors/plans', '/api/admin/sponsors/users', '/api/admin/sponsors/codes', '/api/admin/sponsors/stock/', '/api/admin/sponsors/stock/batches', '/api/admin/sponsors/audit', '/api/admin/sponsors/alipay-policy'] },

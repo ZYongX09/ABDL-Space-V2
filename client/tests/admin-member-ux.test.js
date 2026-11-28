@@ -52,7 +52,9 @@ test('总览首载、刷新与失败独立显示；任务不将未知/安全事�
   for (const path of ['/admin/reports', '/admin/novels', '/admin/security']) assert.ok(actual.includes(path));
   const page = source('overview.jsx');
   assert.doesNotMatch(page, /Promise\.all\(|fillDaily\(/);
-  for (const key of ['overview', 'trends', 'app']) assert.ok(page.includes(`readResource('${key}'`));
+  for (const key of ['overview', 'trends']) assert.ok(page.includes(`readResource('${key}'`));
+  assert.doesNotMatch(page, /appClientStats\(|readResource\('app'/);
+  assert.match(page, /appUsersAvailable === true[\s\S]*knownCount\(overview\.totals\.appUsers\)/);
   assert.match(page, /request === requests\.current\[key\]/);
   assert.match(page, /查看每日数值[\s\S]*不依赖悬停/);
 });
@@ -250,7 +252,7 @@ test('纸尿裤表单保留零值/所有字段及原payload，非法尺码阻止
 });
 
 test('三页 cleanup 使用稳定计数器最新值，StrictMode 再 setup 不接受旧成功或失败', () => {
-  for (const [file, keys] of [['overview.jsx', ['overview', 'trends', 'app']], ['badges.jsx', ['list', 'holders']], ['diapers.jsx', ['diapers', 'brands']]]) {
+  for (const [file, keys] of [['overview.jsx', ['overview', 'trends']], ['badges.jsx', ['list', 'holders']], ['diapers.jsx', ['diapers', 'brands']]]) {
     const page = source(file);
     const body = /useEffect\(\(\) => \{\n([\s\S]*?)\n  \}, \[\]\);/.exec(page)?.[1];
     assert.ok(body, `${file} 生命周期应可独立验证`);
