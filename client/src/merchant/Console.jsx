@@ -99,7 +99,7 @@ function AdTable({ items, actions }) {
 function Overview() {
   const { api, info } = useMerchant();
   const [range] = useState(defaultDateRange);
-  const load = useCallback(signal => Promise.all([api.stats(range, { signal }), api.ads({ page: 1, limit: 5 }, { signal })]), [api, range]);
+  const load = useCallback(signal => Promise.all([api.stats({ ...range, view: 'summary' }, { signal }), api.ads({ page: 1, limit: 5 }, { signal })]), [api, range]);
   const resource = useResource(load);
   return <><Heading title="运营概览" description={`${info.is_super_admin ? '全平台' : '当前企业'}运营数据 · ${range.from} 至 ${range.to}（UTC）`}><Link className="ac-btn primary" to="/merchant/ads/new">新建广告</Link><button className="ac-btn" disabled={resource.loading} onClick={resource.reload}>刷新数据</button></Heading><ResourceState resource={resource}>{resource.data && <><KPIs stats={resource.data[0]} /><Card title="近期广告" note="展示服务器返回的最近 5 条广告。" actions={<Link className="ac-btn" to="/merchant/ads">全部广告</Link>}><AdTable items={resource.data[1].items} /></Card></>}</ResourceState></>;
 }

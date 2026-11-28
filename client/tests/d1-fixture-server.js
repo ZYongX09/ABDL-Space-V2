@@ -9,7 +9,7 @@ import react from '@vitejs/plugin-react';
 // 独立于生产 vite.config/index/main，永远不加载代理、env、SW、统计、NSFW或推送。
 export async function createD1FixtureServer({ port = 8795, quiet = false } = {}) {
   const cacheDir = await mkdtemp(join(tmpdir(), 'd1-browser-fixture-'));
-  const state = { scenario: 'success', delay: 20_000, calls: {}, events: [], unread: { A: 3, B: 5 } };
+  const state = { scenario: 'success', delay: 20_000, calls: {}, events: [], unread: { A: 3, B: 5 }, noticeRead: { A: false, B: false } };
   const html = '<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>D1 本地 effects 验收</title></head><body><div id="root"></div><script type="module" src="/tests/d1-fixture-entry.jsx"></script></body></html>';
   const csp = `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws://127.0.0.1:${port + 100} ws://localhost:${port + 100}; img-src 'self' data:; font-src 'self'; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'`;
   const vite = await createViteServer({ configFile: false, envFile: false, cacheDir,
@@ -45,11 +45,11 @@ export async function createD1FixtureServer({ port = 8795, quiet = false } = {})
       const account = /Bearer fixture-B/.test(req.headers.authorization || '') ? 'B' : 'A';
       const key = `${account} ${req.method} ${url.pathname}`;
       state.calls[key] = (state.calls[key] || 0) + 1;
-      const event = { key, started: Date.now(), scenario: state.scenario, aborted: false };
+      const event = { key, view: url.searchParams.get('view'), started: Date.now(), scenario: state.scenario, aborted: false };
       state.events.push(event); if (state.events.length > 8) state.events.shift();
       res.on('close', () => { if (!res.writableEnded) event.aborted = true; });
       // 启动时捕获响应，slow 模式可复现 read 后在途旧 snapshot 的竞态。
-      const payload = url.pathname === '/api/notifications' ? { unread_count: 2, notifications: [{ id: 1, message: `通知 ${account}`, read: false }] }
+      const payload = url.pathname === '/api/notifications' ? { unread_count: state.noticeRead[account] ? 0 : 2, notifications: [{ id: 1, type: 'follow', message: `通知 ${account}`, read: state.noticeRead[account], ...(event.view === 'summary' ? {} : { created_at: '2026-11-28 00:00:00' }) }] }
         : url.pathname === '/api/messages/conversations' ? { conversations: [{ user_id: 2, username: `peer-${account}`, unread: state.unread[account], last_message: `snapshot-${account}`, last_message_at: '2026-10-18T10:00:00Z' }] }
         : /^\/api\/messages\/\d+$/.test(url.pathname) ? { messages: [{ id: 1, sender_id: 2, content: `消息-${account}`, created_at: '2026-10-18T10:00:00Z' }] }
         : { message: 'fixture only' };
@@ -67,9 +67,10 @@ export async function createD1FixtureServer({ port = 8795, quiet = false } = {})
       }
       if (scenario === 'messages-error' && /^\/api\/messages\/\d+$/.test(url.pathname)) { json(503, { error: '本地消息失败，不应由 toast 重渲染重拉', code: 'FIXTURE_MESSAGE_ERROR' }); return; }
       if (/\/read$/.test(url.pathname) && req.method === 'POST') state.unread[account] = 0;
+      if (url.pathname === '/api/notifications/read-all' && req.method === 'POST') state.noticeRead[account] = true;
       json(200, payload); event.finished = Date.now(); return;
     }
-    if (url.pathname === '/' || url.pathname === '/messages') {
+    if (['/', '/messages', '/notifications'].includes(url.pathname)) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.end(await vite.transformIndexHtml(url.pathname, html)); return;
     }
     if (url.pathname === '/sw.js') { res.writeHead(404); res.end(); return; }

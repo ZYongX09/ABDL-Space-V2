@@ -936,14 +936,15 @@ export const imagesAPI = {
 };
 
 export const notificationsAPI = {
-  list: async ({ signal } = {}) => {
+  list: async ({ signal, summary = false } = {}) => {
     signal?.throwIfAborted();
-    if (USE_API) return apiFetch('/api/notifications', { signal });
+    if (USE_API) return apiFetch(summary ? '/api/notifications?view=summary' : '/api/notifications', { signal });
     return { notifications: [], unread_count: 0 };
   },
 
-  readAll: async () => {
-    if (USE_API) return apiFetch('/api/notifications/read-all', { method: 'POST' });
+  readAll: async ({ signal } = {}) => {
+    signal?.throwIfAborted();
+    if (USE_API) return apiFetch('/api/notifications/read-all', { method: 'POST', signal });
     return { message: '已全部标为已读' };
   },
 };

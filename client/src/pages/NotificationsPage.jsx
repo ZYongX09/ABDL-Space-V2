@@ -1,10 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { accountSessionKey } from '../notifications/scheduler.js';
 import PageLayout from '../components/PageLayout';
 import { LoadingSkeleton, EmptyState } from '../components/Feedback';
-import { notificationsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
-import { useToast } from '../contexts/ToastContext';
 import { Link, useNavigate } from 'react-router-dom';
 
 const FILTER_MENU = [
@@ -16,35 +15,22 @@ const FILTER_MENU = [
 ];
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
-  const { user } = useAuth();
-  const { clearUnread } = useNotifications();
-  const toast = useToast();
+  const { user, accounts } = useAuth();
+  const session = accountSessionKey(user, accounts);
+  const { notificationDetails, notificationsError, sessionPaused, detailsKey, readAllNotifications, fetchUnread } = useNotifications();
+  const notifications = notificationDetails?.notifications || [];
+  const unreadCount = notificationDetails?.unread_count || 0;
+  const attempted = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    (async () => {
-      try {
-        const data = await notificationsAPI.list();
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unread_count || 0);
-        if (data.unread_count > 0) {
-          await notificationsAPI.readAll();
-          clearUnread();
-          setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-          setUnreadCount(0);
-        }
-      } catch (e) {
-        toast.error(e.message);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [user]);
+    if (detailsKey === null || session === null || !notificationDetails || notificationsError || sessionPaused) return;
+    const visit = JSON.stringify([session, detailsKey]);
+    if (attempted.current === visit) return;
+    attempted.current = visit;
+    if (unreadCount > 0) void readAllNotifications(detailsKey);
+  }, [session, detailsKey, notificationDetails, notificationsError, sessionPaused, unreadCount, readAllNotifications]);
 
   // 客户端按 type 过滤
   const filtered = useMemo(() => {
@@ -96,8 +82,9 @@ export default function NotificationsPage() {
           ))}
         </nav>
         <div className="settings-content">
-          {loading ? (
-            <LoadingSkeleton count={4} height={70} />
+          {notificationsError && <p role="status">{notificationsError.message || '通知暂不可用'} <button className="btn" type="button" onClick={fetchUnread}>重试</button></p>}
+          {sessionPaused ? <p role="status">会话已失效，请重新登录。</p> : !notificationDetails ? (
+            !notificationsError && <LoadingSkeleton count={4} height={70} />
           ) : filtered.length === 0 ? (
             <EmptyState
               icon="fa-bell-slash"

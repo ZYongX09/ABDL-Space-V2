@@ -197,6 +197,62 @@ test('卸载等价的 visible=false 清理所有 timer/flight，subscribe可移�
   await time.tick(600_000); assert.equal(events, before);
 });
 
+test('摘要与详情复用一份预算，打开排队、关闭回摘要，期间不发第二条读', async () => {
+  const modes = [], wait = deferred();
+  const { scheduler, time } = setup({ notifications: ({ details }) => {
+    modes.push(details); return modes.length === 1 ? wait.promise : Promise.resolve({ unread_count: 1 });
+  } }, { quietIntervals: { notifications: 60_000 } });
+  await time.tick(0);
+  scheduler.setDetails('notifications', 'page1');
+  assert.equal(scheduler.refresh('notifications'), scheduler.refresh('notifications'));
+  await time.tick(0); assert.deepEqual(modes, [false]);
+  wait.resolve({ unread_count: 1 }); await time.tick(0);
+  assert.deepEqual(modes, [false, true]);
+  assert.equal(scheduler.getSnapshot().resources.notifications.detailKey, 'page1');
+  scheduler.setDetails('notifications', null);
+  assert.equal(scheduler.getSnapshot().resources.notifications.details, null);
+  await time.tick(30_000); assert.deepEqual(modes, [false, true, false]);
+  await time.tick(59_999); assert.equal(modes.length, 3);
+  await time.tick(1); assert.deepEqual(modes, [false, true, false, false]);
+});
+
+test('日额度 503 冷却适用于详情、手动、切账户和写；不清已有未读', async () => {
+  let calls = 0, writes = 0, failing = false;
+  const limit = Object.assign(failure(503, '900'), { code: 'D1_DAILY_QUOTA_EXHAUSTED' });
+  const { scheduler, time } = setup({ notifications: async () => {
+    calls++; if (failing) throw limit; return { unread_count: 4 };
+  } });
+  await time.tick(0); failing = true; await time.tick(30_000);
+  const before = scheduler.getSnapshot().resources.notifications;
+  assert.equal(before.data.unread_count, 4);
+  assert.equal(before.nextAt, time.now() + 900_000);
+  scheduler.setDetails('notifications', 'page');
+  await scheduler.refresh('notifications');
+  await scheduler.mutate('notifications', () => { writes++; }, data => data, 'page');
+  scheduler.setVisible(false); scheduler.setVisible(true); scheduler.setSession('B');
+  await time.tick(899_999); assert.deepEqual([calls, writes], [2, 0]);
+  assert.equal(scheduler.getSnapshot().resources.notifications.data, null);
+  failing = false; await time.tick(1);
+  assert.equal(calls, 3);
+  assert.equal(scheduler.getSnapshot().resources.notifications.detailKey, 'page');
+});
+
+test('详情已读单次写，切帐号取消旧写且不能把未读清零', async () => {
+  let writes = 0, signal;
+  const pending = deferred();
+  const { scheduler, time } = setup({ notifications: async () => ({ unread_count: 7 }) });
+  scheduler.setDetails('notifications', 'page'); await time.tick(0);
+  const task = current => { writes++; signal = current; return pending.promise; };
+  const update = data => ({ ...data, unread_count: 0 });
+  const first = scheduler.mutate('notifications', task, update, 'page');
+  await scheduler.mutate('notifications', task, update, 'page');
+  assert.equal(writes, 1);
+  scheduler.setSession('B'); await time.tick(0);
+  assert.equal(signal.aborted, true);
+  pending.resolve(); await first;
+  assert.equal(scheduler.getSnapshot().resources.notifications.details.unread_count, 7);
+});
+
 test('单次聊天/写请求 deadline 可取消及限时，不自动重试', async () => {
   let calls = 0;
   await assert.rejects(runWithDeadline(() => { calls++; return new Promise(() => {}); }, { timeout: 5 }), { code: 'REQUEST_TIMEOUT' });

@@ -50,6 +50,18 @@ test('apiFetch 保留 JSON/非 JSON HTTP status、code、Retry-After，成功响
   });
 });
 
+test('摘要用单次请求兼容旧服务端完整响应；503 不发兜底请求', async () => {
+  await withAPI(async ({ api, respond, calls }) => {
+    const oldData = { unread_count: 1, notifications: [{ id: 10, read: false, message: 'fixture', related_id: 20 }] };
+    respond(() => Response.json(oldData));
+    assert.deepEqual(await api.notificationsAPI.list({ summary: true }), oldData);
+    assert.deepEqual(calls.map(x => x.url), ['/api/notifications?view=summary']);
+    respond(() => Response.json({ error: '暂停', code: 'D1_DAILY_QUOTA_EXHAUSTED' }, { status: 503, headers: { 'Retry-After': '900' } }));
+    await assert.rejects(api.notificationsAPI.list({ summary: true }), { status: 503, code: 'D1_DAILY_QUOTA_EXHAUSTED', retryAfter: '900' });
+    assert.equal(calls.length, 2);
+  });
+});
+
 test('相关读取透传 AbortSignal、相对/绝对 API_BASE 与 auth；写请求只有一次且不自动重试', async () => {
   await withAPI(async ({ api, calls, respond }) => {
     const controller = new AbortController();

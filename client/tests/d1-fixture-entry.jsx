@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Link } from 'react-router-dom';
+import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
+import NotificationsPage from '../src/pages/NotificationsPage.jsx';
 import { NotificationProvider, useNotifications } from '../src/contexts/NotificationContext.jsx';
 import { ToastProvider, useToast } from '../src/contexts/ToastContext.jsx';
 import MessagesPage from '../src/pages/MessagesPage.jsx';
@@ -25,12 +26,12 @@ function Controls() {
   };
   return <section>
     <h1>D1 本地真实 React effects 验收</h1>
-    <p>仅本地合成数据；无生产 env/代理、统计、字体、SW、NSFW 或推送。StrictMode 开启，调度真实 30 秒/超时 15 秒。</p>
+    <p>仅本地合成数据；无生产 env/代理、统计、字体、SW、NSFW 或推送。StrictMode 开启；通知摘要 60 秒，列表与私信 30 秒，超时 15 秒。</p>
     <p>账号 {user ? user.id === 1 ? 'A' : 'B' : '未登录'}；通知 {unreadCount}；私信未读 {messageUnread}；toast数 {toasts.length}</p>
     <div>{['success', '429', '401', 'slow', 'messages-error', 'send-slow', 'load-send-error'].map(value => <button key={value} onClick={() => scenario(value)}>场景 {value}</button>)}</div>
     <div><button onClick={() => setAccount('A')}>账号 A</button><button onClick={() => setAccount('B')}>账号 B</button><button onClick={() => setAccount(null)}>注销</button><button onClick={revise}>同账号资料刷新</button><button onClick={() => error('手动toast，不能触发消息重拉')}>插入 toast</button></div>
     <div><button onClick={() => { void refreshConversations(); void fetchUnread(); }}>手动刷新（遵守冷却）</button><button onClick={() => { void markConversationRead(2).catch(error); }}>手动已读（单次写）</button><button onClick={() => visibility(true)}>模拟隐藏</button><button onClick={() => visibility(false)}>模拟恢复可见</button><button onClick={inspect}>查看请求计数</button></div>
-    <nav><Link to="/messages">会话列表</Link> <Link to="/messages?user=2">打开会话 2</Link> <Link to="/messages?user=4">打开会话 4</Link></nav>
+    <nav><Link to="/notifications">打开通知</Link> <Link to="/messages">会话列表</Link> <Link to="/messages?user=2">打开会话 2</Link> <Link to="/messages?user=4">打开会话 4</Link></nav>
     <pre id="d1-snapshot">{JSON.stringify({ conversations, unreadCount, messageUnread }, null, 2)}</pre>
     <pre id="d1-diagnostics">{JSON.stringify(diagnostics, null, 2)}</pre>
   </section>;
@@ -46,7 +47,7 @@ function Fixture() {
   };
   return <Auth.Provider value={{ user, accounts, setAccount, revise: () => setUser(previous => previous ? { ...previous, username: previous.username + '.' } : null) }}>
     <button onClick={() => setMounted(value => !value)}>{mounted ? '卸载' : '重新挂载'} Provider 与聊天页</button>
-    {mounted && <ToastProvider><NotificationProvider><Controls /><MessagesPage /></NotificationProvider></ToastProvider>}
+    {mounted && <ToastProvider><NotificationProvider><Controls /><Routes><Route path="/notifications" element={<NotificationsPage />} /><Route path="*" element={<MessagesPage />} /></Routes></NotificationProvider></ToastProvider>}
   </Auth.Provider>;
 }
 localStorage.setItem('abdl_accounts', JSON.stringify(accounts));

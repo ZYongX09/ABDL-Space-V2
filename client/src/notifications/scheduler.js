@@ -54,28 +54,33 @@ export function runWithDeadline(task, { signal, timeout = REQUEST_TIMEOUT } = {}
   });
 }
 
-/** 无 React/DOM 依赖的读取调度器。所有入口（包括手动刷新）共享同一个资源预算。 */
-export function createRequestScheduler({ resources, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout, interval = POLL_INTERVAL, timeout = REQUEST_TIMEOUT }) {
+/** 无 React/DOM 依赖的读取调度器。详情与轮询共用同一资源预算。 */
+export function createRequestScheduler({ resources, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout, interval = POLL_INTERVAL, timeout = REQUEST_TIMEOUT, quietIntervals = {} }) {
   let session = null;
   let generation = 0;
   let visible = false;
   let paused = false;
+  let quotaUntil = 0;
+  let quotaError = null;
   const listeners = new Set();
   const states = Object.fromEntries(Object.keys(resources).map(name => [name, {
     data: null, error: null, nextAt: 0, failures: 0, revision: 0, timer: null, flight: null,
+    requestedDetails: null, detailKey: null, details: null, urgent: false, write: null,
   }]));
   let snapshot;
 
+  const active = () => session !== null && visible && !paused;
   function publish() {
     snapshot = {
       session, generation, paused,
       resources: Object.fromEntries(Object.entries(states).map(([name, state]) => [name, {
-        data: state.data, error: state.error, loading: !!state.flight, nextAt: state.nextAt,
+        data: state.data, error: quotaUntil > now() ? quotaError : state.error,
+        loading: !!state.flight || !!state.write, nextAt: Math.max(state.nextAt, quotaUntil),
+        detailKey: state.detailKey, details: state.details,
       }])),
     };
     listeners.forEach(listener => listener());
   }
-  const active = () => session !== null && visible && !paused;
   function clearSchedule(state) {
     if (state.timer !== null) clearTimer(state.timer);
     state.timer = null;
@@ -88,26 +93,62 @@ export function createRequestScheduler({ resources, now = Date.now, setTimer = s
     if (keepCooldown) state.nextAt = Math.max(state.nextAt, now() + interval);
     flight.cancel();
   }
+  function cancelWrite(state) {
+    const write = state.write;
+    state.write = null;
+    write?.abort();
+  }
+  function invalidate(state, update) {
+    state.revision++;
+    cancel(state);
+    state.nextAt = Math.max(state.nextAt, now() + interval);
+    state.data = update(state.data);
+    if (state.details !== null) state.details = update(state.details);
+  }
   function arm(name) {
     const state = states[name];
     clearSchedule(state);
-    if (!active() || state.flight) return;
+    if (!active() || state.flight || state.write) return;
     // 长 Retry-After 分段等待，不能被浏览器的 32 位 timer 溢出变成立即重试。
-    state.timer = setTimer(() => {
-      state.timer = null;
-      if (now() < state.nextAt) arm(name);
-      else start(name);
-    }, Math.min(MAX_TIMER, Math.max(0, state.nextAt - now())));
+    state.timer = setTimer(() => { state.timer = null; start(name); },
+      Math.min(MAX_TIMER, Math.max(0, Math.max(state.nextAt, quotaUntil) - now())));
+  }
+  function onFailure(state, error) {
+    state.error = error;
+    const status = Number(error.status);
+    const at = now();
+    const backoff = BACKOFF[Math.min(state.failures++, BACKOFF.length - 1)];
+    const retry = status === 429 || status === 503 ? retryAfterDelay(error.retryAfter, at) : 0;
+    state.nextAt = at + Math.max(backoff, retry);
+    if ((status === 429 || status === 503) && error.code === 'D1_DAILY_QUOTA_EXHAUSTED' && retry > 0) {
+      // The server's quota is account-wide. Navigating, restoring the tab, or changing the
+      // signed-in community account must not restart either poll before that deadline.
+      if (state.nextAt >= quotaUntil) { quotaUntil = state.nextAt; quotaError = error; }
+      Object.keys(states).forEach(arm);
+    }
+    if (status === 401) {
+      paused = true;
+      generation++;
+      Object.values(states).forEach(peer => {
+        cancel(peer);
+        cancelWrite(peer);
+        peer.data = null;
+        peer.detailKey = null;
+        peer.details = null;
+      });
+    }
   }
   function start(name) {
     const state = states[name];
     if (state.flight) return state.flight.promise;
-    if (!active()) return Promise.resolve(undefined);
-    if (now() < state.nextAt) { arm(name); return Promise.resolve(undefined); }
+    if (!active() || state.write) return Promise.resolve(undefined);
+    if (now() < Math.max(state.nextAt, quotaUntil)) { arm(name); return Promise.resolve(undefined); }
     clearSchedule(state);
     const controller = new AbortController();
     const ownGeneration = generation;
     const ownRevision = state.revision;
+    const detailKey = state.requestedDetails;
+    state.urgent = false;
     let resolve;
     let settled = false;
     let deadline;
@@ -125,23 +166,16 @@ export function createRequestScheduler({ resources, now = Date.now, setTimer = s
       if (state.flight === flight) state.flight = null;
       if (current && !cancelled) {
         if (error) {
-          state.error = error;
-          const delay = BACKOFF[Math.min(state.failures++, BACKOFF.length - 1)];
-          state.nextAt = now() + Math.max(delay, Number(error.status) === 429 ? retryAfterDelay(error.retryAfter, now()) : 0);
-          if (Number(error.status) === 401) {
-            // 401 暂停整个当前 session；切到新 session 才允许重新开始。
-            paused = true;
-            generation++;
-            Object.values(states).forEach(peer => {
-              cancel(peer);
-              peer.data = null; // 认证失效不能继续展示之前成功的私有 snapshot。
-            });
-          }
+          onFailure(state, error);
         } else {
           state.data = data;
+          if (detailKey !== null && detailKey === state.requestedDetails) {
+            state.detailKey = detailKey;
+            state.details = data;
+          }
           state.error = null;
           state.failures = 0;
-          state.nextAt = now() + interval;
+          state.nextAt = now() + (state.urgent ? 0 : state.requestedDetails === null ? quietIntervals[name] ?? interval : interval);
         }
         publish();
         arm(name);
@@ -158,7 +192,7 @@ export function createRequestScheduler({ resources, now = Date.now, setTimer = s
     // 显式接住晚到的 resolve/reject，即使底层忽略 abort 也不能修改新 generation。
     Promise.resolve().then(() => {
       if (controller.signal.aborted) return undefined;
-      return resources[name]({ signal: controller.signal });
+      return resources[name]({ signal: controller.signal, details: detailKey !== null });
     }).then(data => finish(data), error => finish(undefined, error));
     return promise;
   }
@@ -173,7 +207,8 @@ export function createRequestScheduler({ resources, now = Date.now, setTimer = s
       generation++;
       Object.values(states).forEach(state => {
         cancel(state, false);
-        Object.assign(state, { data: null, error: null, nextAt: 0, failures: 0, revision: state.revision + 1 });
+        cancelWrite(state);
+        Object.assign(state, { data: null, error: null, nextAt: 0, failures: 0, revision: state.revision + 1, detailKey: null, details: null, urgent: false });
       });
       session = next;
       paused = false;
@@ -185,19 +220,49 @@ export function createRequestScheduler({ resources, now = Date.now, setTimer = s
       visible = next;
       if (!visible) {
         generation++;
-        Object.values(states).forEach(state => cancel(state));
+        Object.values(states).forEach(state => { cancel(state); cancelWrite(state); });
         publish();
       } else Object.keys(states).forEach(arm);
     },
-    refresh: name => start(name),
-    invalidate(name, update) {
+    setDetails(name, key) {
       const state = states[name];
-      state.revision++;
-      cancel(state);
-      state.nextAt = Math.max(state.nextAt, now() + interval);
-      state.data = update(state.data);
+      if (state.requestedDetails === key) return;
+      state.requestedDetails = key;
+      state.detailKey = null;
+      state.details = null;
+      state.urgent = key !== null;
+      // Opening a page may bypass the normal interval, but not a server/error cooldown.
+      if (state.urgent && !state.error) state.nextAt = 0;
       publish();
       arm(name);
+    },
+    refresh: name => start(name),
+    invalidate(name, update) {
+      invalidate(states[name], update);
+      publish();
+      arm(name);
+    },
+    async mutate(name, task, update, viewKey = null) {
+      const state = states[name];
+      if (!active() || state.write || quotaUntil > now() || (state.error && state.nextAt > now())) return;
+      if (viewKey !== null && (state.requestedDetails !== viewKey || state.detailKey !== viewKey)) return;
+      cancel(state);
+      const controller = new AbortController();
+      const ownGeneration = generation;
+      state.write = controller;
+      publish();
+      try {
+        await runWithDeadline(task, { signal: controller.signal, timeout });
+        if (state.write === controller && ownGeneration === generation && active()) invalidate(state, update);
+      } catch (error) {
+        if (state.write === controller && ownGeneration === generation && active()) {
+          onFailure(state, error);
+          if (ownGeneration !== generation) publish(); // 401 clears the current private snapshot immediately.
+        }
+      } finally {
+        if (state.write === controller) state.write = null;
+        if (ownGeneration === generation) { publish(); arm(name); }
+      }
     },
   };
 }
